@@ -31,6 +31,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from sci2audio import __version__
 from sci2audio.app import (
     AudioProgress,
     JobBusyError,
@@ -57,7 +58,15 @@ from sci2audio.voices import (
 from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
 from sci2audio.web.library import about_of, write_about
-from sci2audio.web.player import remove_position, write_record
+from sci2audio.web.player import (
+    Made,
+    PlayerError,
+    current_audiobook,
+    load_document,
+    recorded_position,
+    remove_position,
+    write_record,
+)
 from sci2audio.web.project import ProjectError, audiobook_folder, record_files
 
 logger = logging.getLogger(__name__)
@@ -155,6 +164,17 @@ def audio_work(
             folder = audiobook_folder(document.folder, document.id, document.name, output)
         except ProjectError as error:
             raise JobError(str(error)) from error
+        noted = False
+
+        def progress(event: AudioProgress) -> None:
+            nonlocal noted
+            if event.playable and not noted:
+                # the Listen page plays the chapters as they come (#724): it needs to know
+                # what they are made with before the job's own record is written at the end
+                noted = True
+                _note_made(document, folder, settings, voice, runner)
+            job.report(audio_progress(event))
+
         try:
             result = runner.run_audio(
                 document.source,
@@ -162,7 +182,7 @@ def audio_work(
                 document.folder,
                 voice=voice,
                 overwrite=overwrite,
-                progress=lambda event: job.report(audio_progress(event)),
+                progress=progress,
                 cancel=job.cancel,
                 # the library's only whole-book file until it can build one on request
                 # (#725); the chapters are playable before it either way (#723)
@@ -203,7 +223,9 @@ def audio_work(
         except OSError as error:
             logger.warning("could not note where the audiobook is: %s", error)
         try:
-            remove_position(document.folder)  # a new audiobook starts at the start (#153)
+            # a new audiobook starts at the start (#153); a position kept while this one
+            # was growing is in it, and stays (#724)
+            _forget_other_position(document, written.readalong.parent)
         except OSError as error:  # its stamp no longer fits: the page ignores it anyway
             logger.warning("could not forget the listening position: %s", error)
         files = [
@@ -221,6 +243,41 @@ def audio_work(
         return files
 
     return work
+
+
+def _note_made(
+    document: StoredDocument,
+    folder: Path,
+    settings: JobSettings,
+    voice: VoiceSource,
+    runner: JobRunner,
+) -> None:
+    """Write the web's record with what the job makes the audiobook with (`Made`), once its
+    laid-out document is there (the voice follows its language, D-469). A failure only
+    means the page shows the book once it is done."""
+    try:
+        language = load_document(document.folder).language
+        steps = runner.steps_for(settings)
+        made = Made(
+            voice=voice.voice_for(settings.voice, language),
+            switched_off=frozenset(str(c) for c in settings.switched_off),
+            plugins=frozenset(s.id for s in steps if getattr(s, "plugin", None) is not None),
+            version=__version__,
+        )
+        write_record(document.folder, document.id, folder, made)
+    except (OSError, PlayerError) as error:
+        logger.warning("could not note what the audiobook is made with: %s", error)
+
+
+def _forget_other_position(document: StoredDocument, folder: Path) -> None:
+    """Remove the listening position unless it is in the audiobook now in `folder`.
+    Raises OSError."""
+    try:
+        stamp = current_audiobook(document.folder, document.id, [folder]).located.stamp
+    except PlayerError:
+        stamp = ""
+    if not stamp or recorded_position(document.folder, document.id, stamp) is None:
+        remove_position(document.folder)
 
 
 def voices_work(models_dir: Path, fetch: Fetch | None) -> Callable[[JobRecord], Sequence[Path]]:

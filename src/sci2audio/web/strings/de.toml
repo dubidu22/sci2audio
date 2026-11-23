@@ -385,6 +385,13 @@ cannot_play = "Dieser Browser kann die M4B-Datei des Hörbuchs nicht abspielen. 
 load_failed = "Das Audio ließ sich nicht laden. Läuft sci2audio noch?"
 time_of = "{time} von {total}"  # die Uhr der Wiedergabeleiste und die Zeitleiste (#393)
 speed_now = "Tempo {speed}"  # gesagt, wenn eine Taste das Tempo geändert hat (#394)
+# ein Hörbuch, das noch entsteht (#724): der Zustand jedes Kapitels in der Kapitelliste und
+# was gesagt wird, wenn ein Kapitel hinzukommt
+generating = "wird erstellt"
+missing = "nicht erstellt"
+chapter_ready = "Kapitel {n} ist bereit."  # sein Titel kann folgen, in der Sprache des Texts
+waiting_next = "Das nächste Kapitel wird noch erstellt. Die Wiedergabe geht weiter, sobald es bereit ist."
+start_listening = "Schon jetzt anhören"
 
 [speed]  # das eingetippte Tempo des Players und der Stimme (#651)
 slower = "Langsamer"

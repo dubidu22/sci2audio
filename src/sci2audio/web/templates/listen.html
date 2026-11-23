@@ -5,39 +5,7 @@
 {% from "_speed.html" import speed_field with context %}
 {% block title %}{{ t('listen.title', name=document.name) }} · {{ t('common.app') }}{% endblock %}
 {% block scripts %}{% if view %}<script src="/static/player.js" defer></script>{% endif %}{% endblock %}
-{#- A piece of a block: a sentence the voice reads (`.s`) or text between sentences. Its parts
-    show what the audiobook's own edits did (#392, D-665 conflict 2, D-704b): text left out is
-    struck in pencil, text read differently is underlined with its reading. -#}
-{% macro parts(piece) -%}
-{%- if piece.parts -%}
-{%- for part in piece.parts -%}
-{%- if part.mark == 'cut' -%}<s class="cut">{{ part.text }}</s><span class="visually-hidden"> {{ t('listen.cut_hidden') }}</span>
-{%- elif part.mark == 'said' -%}<span class="said" title="{{ t('listen.said_as', said=part.said) }}">{{ part.text }}</span><span class="visually-hidden"> {{ t('listen.said_as_hidden', said=part.said) }}</span>
-{%- else -%}{{ part.text }}{%- endif -%}
-{%- endfor -%}
-{%- else -%}{{ piece.text }}{%- endif -%}
-{%- endmacro %}
-{% macro pieces(block) -%}
-{%- for piece in block.pieces -%}
-{%- if piece.element -%}<span class="s" id="{{ piece.element }}" data-chunk="{{ piece.chunk }}">{{ parts(piece) }}</span>
-{%- else -%}{{ parts(piece) }}{%- endif -%}
-{%- endfor -%}
-{%- endmacro %}
-{% macro show(block) -%}
-{% if block.page %}<p class="page-mark"><span>{{ t('listen.page', page=block.page) }}</span></p>{% endif %}
-{% if block.notice %}
-<div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
-  <p>{{ icon('skip') }}<span><b>{{ t('listen.notice') }}</b> {{ block.notice }}</span></p>
-  {% for figure in block.figures %}<img class="figure" src="/api/v1/documents/{{ document.id }}/figures/{{ figure.block }}/{{ figure.n }}" alt="{{ figure.alt }}"{% if figure.width %} width="{{ figure.width }}" height="{{ figure.height }}"{% endif %} loading="lazy" decoding="async">{% endfor %}
-  {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
-  {% if block.code %}<pre class="code" translate="no"><code>{{ block.code }}</code></pre>{% endif %}
-</div>
-{% elif block.heading %}
-<h{{ block.heading }} class="block heading{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</h{{ block.heading }}>
-{% else %}
-<p class="block {{ block.kind }}{% if not block.read %} unread{% endif %}{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</p>
-{% endif %}
-{%- endmacro %}
+{% from "_listen_chapter.html" import sheet_chapter with context %}
 {% block view_class %} wide listen-view{% endblock %}
 {% block main %}
 {{ paper_head(head, 'listen', 'listen-title', '') }}
@@ -70,6 +38,7 @@
     <span id="now">{{ t('player.chapter', n=1, total=view.chapters|length) }} <span lang="{{ view.language }}">{{ view.chapters[0].title }}</span></span>
     <span id="clock" class="clock">{{ t('player.time_of', time='0:00', total=total) }}</span>
   </p>
+  {% if planned %}<p id="waiting" class="waiting" role="status" hidden>{{ t('player.waiting_next') }}</p>{% endif %}
   <div class="dock-end">
     <button type="button" id="back-to-reading" class="sm" hidden>{{ t('listen.back_to_reading') }}</button>
     {#- a marker on the sentence being read (#474): pressed while it has one #}
@@ -106,20 +75,12 @@
   </section>
   {% endif %}
   <p id="message" class="message" role="status" tabindex="-1"></p>
+  {% if planned %}<p id="growing-status" class="visually-hidden" aria-live="polite"></p>{% endif %}
   {#- the sentence being read, for screen readers, only if the person switched it on (#388) #}
   {% if announce %}<p id="reading" class="visually-hidden" aria-live="polite"></p>{% endif %}
   <div id="text" class="read-along" role="region" aria-label="{{ t('listen.text') }}" lang="{{ view.language }}">
   {% for chapter in view.chapters %}
-  <section class="sheet-chapter" id="chapter-{{ loop.index0 }}">
-  {% if chapter.title_block %}
-  {{ show(chapter.title_block) }}
-  {% else %}
-  <h2 class="block heading">{{ chapter.title }}</h2>
-  {% endif %}
-  {% for block in chapter.blocks %}
-  {{ show(block) }}
-  {% endfor %}
-  </section>
+  {{ sheet_chapter(chapter, loop.index0) }}
   {% endfor %}
   </div>
 </article>
@@ -166,10 +127,22 @@
   <div class="context-body" role="tabpanel" id="panel-outline" aria-labelledby="tab-outline">
     <nav aria-labelledby="chapters-heading">
       <h2 id="chapters-heading" class="visually-hidden">{{ t('listen.chapters') }}</h2>
-      <ol class="outline">
+      <ol class="outline" id="outline">
+      {% if planned %}
+      {#- a book still growing (#724): every chapter asked for; those not playable yet are
+          plain rows with their state, and player.js turns each into a button once it is -#}
+      {% for row in planned %}
+        {% if row.chapter is not none %}
+        <li><button type="button" class="chapter-button" data-chapter="{{ row.chapter }}" lang="{{ view.language }}"{% if row.chapter == 0 %} aria-current="true"{% endif %} disabled><span class="ot">{{ row.title }}</span><span class="oc">{{ outline[row.chapter].clock }}</span></button></li>
+        {% else %}
+        <li class="chapter-later" data-index="{{ row.index }}"><span class="ot" lang="{{ view.language }}">{{ row.title }}</span><span class="oc chapter-state">{% if row.state == 'missing' %}{{ t('player.missing') }}{% else %}{{ t('player.generating') }}{% endif %}</span></li>
+        {% endif %}
+      {% endfor %}
+      {% else %}
       {% for chapter in outline %}
         <li><button type="button" class="chapter-button" data-chapter="{{ loop.index0 }}" lang="{{ view.language }}"{% if loop.first %} aria-current="true"{% endif %} disabled><span class="ot">{{ chapter.title }}</span><span class="oc">{{ chapter.clock }}</span></button></li>
       {% endfor %}
+      {% endif %}
       </ol>
     </nav>
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>

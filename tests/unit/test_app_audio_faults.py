@@ -289,15 +289,18 @@ def test_a_rerun_that_fails_while_encoding_leaves_no_old_record(tmp_path: Path) 
     first = run(tmp_path, FakeVoice())
     assert first.record.exists()
     assert first.document_file.exists()
+    first.document_file.write_text("the old run's document", encoding="utf-8")
     ffmpeg = FailingFfmpeg(find_ffmpeg(), fail_at=3, calls=[])
     other = OutputSettings(mp3_bitrate="96k")  # every file differs: none is taken as it is
     with pytest.raises(JobError, match="No space left on device"):
         run(tmp_path, FakeVoice(), ffmpeg=ffmpeg, overwrite=True, output_settings=other)
     # the records named files this rerun replaced (MP3s 1 and 2) or vouched for a set
     # that is now mixed: they are gone (D-119); the read-along file lists only the two
-    # chapters this rerun finished (#723)
+    # chapters this rerun finished (#723); the laid-out document is this rerun's, written
+    # before its first chapter's files, so a page reads along in them (#724)
     assert not first.record.exists()
-    assert not first.document_file.exists()
+    clean = run(tmp_path / "clean", FakeVoice(), output_settings=other)
+    assert first.document_file.read_bytes() == clean.document_file.read_bytes()
     readalong = read_readalong(first.written.readalong)
     assert [c.mp3 for c in readalong.chapters] == [p.name for p in first.written.mp3s[:2]]
     record = read_record(tmp_path / "work")
@@ -514,6 +517,15 @@ STOPPED_JOB = textwrap.dedent(
         commit(partial, target, overwrite)
 
     write._commit = _commit
+    from sci2audio.app import audio
+    document = audio._write_document
+
+    def _write_document(work, laid_out):
+        document(work, laid_out)
+        if how == "after-document":
+            hang()
+
+    audio._write_document = _write_document
     source = folder / "in" / "book.md"
     source.parent.mkdir()
     source.write_text(sys.argv[5], encoding="utf-8")
@@ -529,7 +541,8 @@ def kill_while(folder: Path, how: str, at: str) -> None:
     """Run the book's job in another process and kill it outright (SIGKILL, no clean-up)
     while it is `how`: speaking a chunk with `at` in it, running ffmpeg the `at`-th time,
     or putting the file ending in `at` in place (before or after the rename; `name#n`: the
-    n-th time a file ending in `name` is put in place)."""
+    n-th time a file ending in `name` is put in place); "after-document": once the laid-out
+    document is written (#724)."""
     folder.mkdir()
     child = subprocess.Popen(
         [sys.executable, "-c", STOPPED_JOB, str(UNIT), str(folder), how, at, BOOK]
@@ -644,6 +657,22 @@ def test_a_kill_while_the_readalong_file_is_replaced_resumes_cleanly(
     assert record.owned(killed / "out") == {n for n in outputs(killed) if not n.startswith(".")}
     kept = ["book - 01 Alpha.mp3", "book - 02 Beta.mp3"][: nth - 1]
     resumed_like_an_uninterrupted_run(tmp_path, killed, kept)
+
+
+def test_a_kill_after_the_document_is_written_resumes_without_overwrite(tmp_path: Path) -> None:
+    """The laid-out document is written just before the first chapter's files are put in
+    place (#724, D-902). Killed right after it, no file of this run is in the output folder
+    yet and no old record vouches for one: the resume needs no `overwrite` and ends like a
+    run that was never stopped."""
+    killed = tmp_path / "killed"
+    kill_while(killed, "after-document", "")
+    work = killed / "work"
+    assert (work / "document.json").is_file()
+    assert not (work / "audio.json").exists()
+    assert outputs(killed) == []
+    voice = resumed_like_an_uninterrupted_run(tmp_path, killed, [])
+    # the first chapter was spoken before the kill: the resume takes it from the cache
+    assert len(voice.spoken) == BOOK_CHUNKS - 3
 
 
 def test_a_full_disk_while_a_chapter_is_encoded_keeps_the_chapters_before_it(

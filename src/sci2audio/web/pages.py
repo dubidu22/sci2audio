@@ -92,6 +92,8 @@ from sci2audio.web.player import (
     PlayerView,
     Position,
     candidate_folders,
+    chapter_data,
+    chapter_index,
     player_for,
     read_position,
     recorded_folder,
@@ -851,6 +853,8 @@ def making_card(
         "exists": error.get("error") == "output-exists",
         "stop_wait": STOP_WAIT_MS,
         "resume": False,  # the again button reads Resume: a paused job
+        # a chapter of it can be listened to (#723, #724)
+        "playable": bool(progress.get("playable")),
     }
     if view["state"] == "running":
         card.update(_running_lines(s, progress))
@@ -1181,6 +1185,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     except OSError:  # the read-along file went away since the checks: nothing to offer
         stamp, position = "", None
     marking = _markers_data(found.work, found.document, made_from, located)
+    growing = _growing_data(state, found.id, view)
     return _page(
         request,
         state,
@@ -1197,7 +1202,8 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         ),
         resume=None if position is None else _resume(view, position),
         # the stamp goes back with each save of the position (#153)
-        data=data_block({**view.data(found.id), "audiobook": stamp, **marking}),
+        data=data_block({**view.data(found.id), "audiobook": stamp, **marking, **growing}),
+        planned=growing.get("growing", {}).get("planned", []),
         markers=marking["markers"],
         markers_file=marking["markers_file"],
         problem=None,
@@ -1206,6 +1212,93 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         outline=_outline(view),
         total=clock(view.duration),
     )
+
+
+def _running_audio(state: ServerState, document_id: str) -> JobRecord | None:
+    """The audio job running for this document, if one is."""
+    current = state.board.current
+    if (
+        current is not None
+        and current.kind is JobKind.AUDIO
+        and current.document == document_id
+        and current.state is JobState.RUNNING
+    ):
+        return current
+    return None
+
+
+def _growing_data(state: ServerState, document_id: str, view: PlayerView) -> dict[str, Any]:
+    """What the page needs of a book that is still growing (#724): every chapter asked for
+    with its state, and while the job runs, its events (the page follows them) and the
+    address of each new chapter. Nothing for a finished audiobook."""
+    if not view.growing:
+        return {}
+    job = _running_audio(state, document_id)
+    later = "generating" if job is not None else "missing"
+    return {
+        "growing": {
+            "events": "" if job is None else f"/api/v1/jobs/{job.id}/events",
+            "chapter": f"/documents/{document_id}/listen/chapters/",
+            "planned": [
+                {
+                    "index": row.index,
+                    "title": row.title,
+                    "chapter": row.chapter,
+                    "state": "ready" if row.chapter is not None else later,
+                }
+                for row in view.planned
+            ],
+        }
+    }
+
+
+@router.get("/documents/{document_id}/listen/chapters/{n}")
+def listen_chapter(request: Request, state: State, document_id: str, n: int) -> JSONResponse:
+    """Chapter `n` of the audiobook (its place in the read-along file), for a Listen page
+    that is open while the book grows (#724): its text drawn as the page draws it, its
+    chunks and sentences, where it lies on the timeline, the book's length now, and the
+    markers placed in the book as it is now. 404 while the chapter is not playable."""
+    s = strings_of(request)
+    found = state.listening(document_id)
+    if found is None:
+        return JSONResponse({"error": "not-found", "message": "no such document"}, 404)
+    try:
+        view, located, made_from = player_for(
+            found.work,
+            found.document,
+            found.folders,
+            figures=not found.outside,
+            steps=state.runner.steps,
+        )
+        stamp = located.stamp
+    except (PlayerError, OSError):
+        return JSONResponse({"error": "not-found", "message": "no audiobook"}, 404)
+    if not 0 <= n < len(view.chapters):
+        return JSONResponse({"error": "not-found", "message": "no such chapter yet"}, 404)
+    html = templates.env.from_string(_CHAPTER).render(
+        t=s, document=found, chapter=view.chapters[n], n=n
+    )
+    outline = _outline(view)
+    return JSONResponse(
+        {
+            **chapter_data(view, n),
+            "index": chapter_index(found.work, n),  # its row in the page's chapter list
+            "html": html,
+            "audiobook": stamp,
+            "duration": view.duration,
+            "clock": outline[n]["clock"],
+            "ticks": [chapter["at"] for chapter in outline],
+            "total": clock(view.duration),
+            **_markers_data(found.work, found.document, made_from, located),
+            **_growing_data(state, found.id, view),
+        }
+    )
+
+
+_CHAPTER = (
+    '{% from "_listen_chapter.html" import sheet_chapter with context %}'
+    "{{ sheet_chapter(chapter, n) }}"
+)
 
 
 def _markers_data(

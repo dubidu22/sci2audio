@@ -30,11 +30,13 @@ from sci2audio.core import Document
 from sci2audio.output import ReadAlongError
 from sci2audio.web.player import (
     POSITION,
+    Bounds,
     PlayerError,
     audiobook_bounds,
-    audiobook_stamp,
+    current_audiobook,
     in_folder,
     read_audio_record,
+    readalong_stamp,
     recorded_position,
 )
 
@@ -171,7 +173,7 @@ def heard(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Hea
     try:
         record = read_audio_record(work, document_id)
     except PlayerError:
-        return None
+        return _heard_growing(work, document_id, folders)
     found = None
     for folder in folders:
         if folder is None or not folder.is_absolute():
@@ -180,7 +182,7 @@ def heard(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Hea
         if path is None:
             continue
         try:
-            found = audiobook_stamp(path), audiobook_bounds(path)
+            found = readalong_stamp(work, path), audiobook_bounds(path)
         except (OSError, ReadAlongError):
             continue
         break
@@ -191,6 +193,21 @@ def heard(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Hea
     if position is None or position.time > record.duration + 1:
         return Heard(record.duration, None)
     return Heard(record.duration, position.time, bounds.continues(position))
+
+
+def _heard_growing(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Heard | None:
+    """A book the audio job is still making, once a chapter of it is playable (#724)."""
+    try:
+        current = current_audiobook(work, document_id, folders)
+        stamp = current.located.stamp
+    except (PlayerError, OSError):
+        return None
+    duration = current.record.duration
+    position = recorded_position(work, document_id, stamp)
+    if position is None or position.time > duration + 1:
+        return Heard(duration, None)
+    bounds = Bounds.of(current.located.readalong)
+    return Heard(duration, position.time, bounds.continues(position))
 
 
 def position_age(work: Path) -> float:

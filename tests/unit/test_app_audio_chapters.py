@@ -113,6 +113,45 @@ def test_the_record_lists_the_playable_chapters_while_the_job_runs(tmp_path: Pat
     assert record.owned(tmp_path / "out") == set(outputs(tmp_path))
 
 
+def test_the_laid_out_document_is_written_before_the_first_chapter_is_playable(
+    tmp_path: Path,
+) -> None:
+    """The Listen page reads along in a book that is still growing (#724): it needs the
+    laid-out document from the moment the first chapter is playable, not only at the end."""
+    seen: list[tuple[bool, bool]] = []
+    work = tmp_path / "work"
+
+    def progress(event: AudioProgress) -> None:
+        if event.ready is not None:
+            seen.append(((work / "document.json").is_file(), (work / "audio.json").exists()))
+
+    job = run(tmp_path, FakeVoice(), progress=progress)
+    assert seen == [(True, False)] * 3
+    whole = run(tmp_path / "again", FakeVoice())
+    assert job.document_file.read_bytes() == whole.document_file.read_bytes()
+
+
+def test_audio_json_is_still_written_only_at_the_end(tmp_path: Path) -> None:
+    """`audio.json` alone vouches for a finished audiobook (D-119): a rerun removes the old
+    one before its first file is put in place and writes its own only once it is done."""
+    first = run(tmp_path, FakeVoice())
+    old = first.document_file.read_bytes()
+    seen: list[bool] = []
+
+    def watch(text: str) -> bool:  # before each chunk is spoken
+        seen.append(first.record.exists())
+        return False
+
+    other = JobSettings(speed=1.1)
+    job = run(tmp_path, FakeVoice(fail_on=watch), overwrite=True, settings=other)
+    # the old record stays while the first chapter is spoken (nothing of it replaced yet)
+    # and goes before the first chapter's files are put in place
+    assert seen[:3] == [True, True, True]
+    assert seen[3:] == [False] * (len(seen) - 3)
+    assert job.record.exists()
+    assert job.document_file.read_bytes() == old  # same text, so the same document
+
+
 def test_the_job_writes_no_m4b_by_default(tmp_path: Path) -> None:
     job = run(tmp_path, FakeVoice())
     assert OutputSettings(m4b=False) == JOB_OUTPUT

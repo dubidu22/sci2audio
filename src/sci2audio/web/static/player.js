@@ -38,7 +38,7 @@ function readAlong() {
   const clock = document.getElementById("clock");
   const reading = document.getElementById("reading"); // only when announcing is on (#388)
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const total = clockOf(Number(timeline.max) || 0);
+  let total = clockOf(Number(timeline.max) || 0); // grows with a book still being made (#724)
 
   let loaded = -1; // the chapter whose file the audio element holds
   let current = -1; // the chunk highlighted
@@ -50,6 +50,7 @@ function readAlong() {
   let savedAt = 0; // when the position was last sent (performance.now())
   let focusing = false; // Focus listening is shown (#394)
   let panelByKey = null; // P: shows or hides the panel, leaving the focus where it is (#461)
+  let growing = null; // a book still being made (#724), see grow()
 
   // the dock is pinned to the window's foot only while it takes at most a quarter of the
   // window, and then nothing focused or scrolled to may hide under it (WCAG 1.4.10, 2.4.11):
@@ -295,7 +296,7 @@ function readAlong() {
 
   // ---- controls --------------------------------------------------------------------------
 
-  const chapterButtons = [...document.querySelectorAll(".chapter-button")];
+  let chapterButtons = [...document.querySelectorAll(".chapter-button")];
 
   play.addEventListener("click", () => {
     touched = true;
@@ -315,9 +316,10 @@ function readAlong() {
     const target = !audio.paused && into > RESTART_AFTER ? start : start - 1;
     playFrom(target >= 0 ? firstOf[target] : 0, !audio.paused);
   });
-  for (const button of chapterButtons) {
+  function chapterButton(button) {
     button.addEventListener("click", () => toChapter(Number(button.dataset.chapter), true));
   }
+  chapterButtons.forEach(chapterButton);
 
   // the timeline: a move by pointer or keys goes to that time, in its chapter (#393)
   timeline.addEventListener("input", () => {
@@ -354,11 +356,14 @@ function readAlong() {
   });
 
   // a figure that can't be shown (gone, or the reader stopped) leaves only its notice (#293)
-  for (const figure of text.querySelectorAll("img.figure")) {
-    const hide = () => { figure.hidden = true; };
-    figure.addEventListener("error", hide);
-    if (figure.complete && figure.naturalWidth === 0) hide(); // failed before this ran
+  function figuresIn(root) {
+    for (const figure of root.querySelectorAll("img.figure")) {
+      const hide = () => { figure.hidden = true; };
+      figure.addEventListener("error", hide);
+      if (figure.complete && figure.naturalWidth === 0) hide(); // failed before this ran
+    }
   }
+  figuresIn(text);
 
   // a click (or a screen reader's Enter) on a sentence plays from it (D-298)
   text.addEventListener("click", (event) => {
@@ -459,8 +464,8 @@ function readAlong() {
   const focusNow = document.getElementById("focus-now");
   const focusNext = document.getElementById("focus-next");
   const focusChapter = document.getElementById("focus-chapter");
-  const order = [...new Set(chunks.map((chunk) => chunk[3]))]; // sentences in reading order
-  const place = new Map(order.map((id, at) => [id, at]));
+  let order = [...new Set(chunks.map((chunk) => chunk[3]))]; // sentences in reading order
+  let place = new Map(order.map((id, at) => [id, at]));
 
   function copy(id) {
     const element = id ? document.getElementById(id) : null;
@@ -529,9 +534,8 @@ function readAlong() {
     if (focusBar) watch.observe(focusBar.parentElement);
   }
   // a chapter far from the window is laid out again once it comes near (content-visibility)
-  for (const chapter of text.querySelectorAll(".sheet-chapter")) {
-    chapter.addEventListener("contentvisibilityautostatechange", placeBars);
-  }
+  const laidOut = (chapter) => chapter.addEventListener("contentvisibilityautostatechange", placeBars);
+  text.querySelectorAll(".sheet-chapter").forEach(laidOut);
   window.addEventListener("resize", placeBars);
   document.fonts?.ready.then(placeBars);
 
@@ -1009,6 +1013,9 @@ function readAlong() {
     // the next chapter's file follows by itself (D-296); the M4B is one file
     if (data.mode === "mp3" && loaded >= 0 && loaded < chapters.length - 1) {
       seek(loaded + 1, chapters[loaded + 1].start, true);
+    } else if (growing?.coming()) {
+      growing.wait(); // the next chapter is still being made (#724)
+      keepIfTouched();
     } else keepIfTouched(); // the end: nothing is offered for it next time
   });
   window.addEventListener("pagehide", keepIfTouched);
@@ -1029,6 +1036,7 @@ function readAlong() {
       }
     });
   }
+  growing = data.growing ? grow() : null;
   seek(0, chapters[0].start, false);
   const panel = contextPanel();
   panelByKey = panel?.byKey;
@@ -1050,6 +1058,179 @@ function readAlong() {
   undoButton.disabled = false;
   addNoteButton.disabled = false;
   markerState(); // drawn disabled too: enabled once a sentence is there to mark
+
+  // ---- a book still being made (#724, LW-02) ---------------------------------------------
+  // The audio job makes each chapter playable as soon as it is spoken (#723). The page
+  // follows the job's events: when they name more playable chapters than the page holds, it
+  // fetches the next one, drawn by the server as the page draws its chapters, and adds it at
+  // the end of the text, the timeline and the chapter list. The book only grows at its end,
+  // so nothing before moves; a chapter that does not continue the page's chunks (the book
+  // was made again meanwhile) reloads the page instead. At the end of the last chapter the
+  // player waits, says so, and goes on by itself once the next chapter is there, unless the
+  // person moved meanwhile.
+  function grow() {
+    const status = document.getElementById("growing-status");
+    const waiting = document.getElementById("waiting");
+    const outline = document.getElementById("outline");
+    const ticks = document.querySelector(".timeline .ticks");
+    let rows = data.growing.planned; // {index, title, chapter, state}
+    let running = Boolean(data.growing.events);
+    let wanted = chapters.length; // chapters the job says are playable
+    let held = false; // the player stopped at the end of the last chapter, waiting
+
+    function later() {
+      return rows.some((row) => row.chapter === null && row.state === "generating");
+    }
+
+    function showWaiting(on) {
+      held = on;
+      waiting.hidden = !on;
+      // set while shown, so the status is said (a hidden region is not)
+      waiting.textContent = on ? tr("player.waiting_next") : "";
+    }
+
+    function drawRow(row) {
+      const item = outline.querySelector(`li.chapter-later[data-index="${row.index}"]`);
+      // a chapter the server has and this page not yet: it stays a row until it is added
+      if (!item || row.chapter >= chapters.length) return;
+      if (row.chapter === null) {
+        const said = row.state === "missing" ? tr("player.missing") : tr("player.generating");
+        item.querySelector(".chapter-state").textContent = said;
+        return;
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chapter-button";
+      button.dataset.chapter = String(row.chapter);
+      button.lang = text.lang;
+      const title = made("span", "ot", row.title);
+      const at = made("span", "oc", clockOf(chapters[row.chapter].start));
+      button.append(title, at);
+      const fresh = document.createElement("li");
+      fresh.append(button);
+      item.replaceWith(fresh);
+      chapterButton(button);
+      chapterButtons = [...outline.querySelectorAll(".chapter-button")];
+    }
+
+    function add(part) {
+      const n = chapters.length;
+      if (part.first !== chunks.length || part.audiobook !== data.audiobook) {
+        location.reload(); // not the book this page holds any more
+        return;
+      }
+      const holder = document.createElement("template");
+      holder.innerHTML = part.html; // drawn by the server, as the page's own chapters
+      const section = holder.content.firstElementChild;
+      text.append(section);
+      laidOut(section);
+      figuresIn(section);
+      chapters.push(part.chapter);
+      chunks.push(...part.chunks);
+      part.sentences.forEach((first) => firstOf.push(first));
+      order = [...new Set(chunks.map((chunk) => chunk[3]))];
+      place = new Map(order.map((id, at) => [id, at]));
+      timeline.max = String(part.duration);
+      total = clockOf(part.duration);
+      ticks.replaceChildren(
+        ...part.ticks.slice(1).map((at) => {
+          const line = document.createElementNS(ticks.namespaceURI, "line");
+          for (const [name, value] of [["x1", at], ["x2", at], ["y1", "0"], ["y2", "8"]]) {
+            line.setAttribute(name, value);
+          }
+          return line;
+        }),
+      );
+      if (part.growing) rows = part.growing.planned;
+      else {
+        // the book is done: its record names the chapter's row
+        const row = rows.find((each) => each.index === part.index);
+        if (row) Object.assign(row, { chapter: n, state: "ready" });
+      }
+      for (const row of rows) drawRow(row);
+      if (!part.markers_file) {
+        markers = part.markers;
+        drawMarkers();
+      }
+      if (loaded >= 0) showChapter(loaded);
+      showTime(bookTime(), true);
+      status.textContent = `${tr("player.chapter_ready", { n: n + 1 })} ${part.chapter.title}`;
+      // waiting at the end of the chapter before it: go on into it
+      if (held && audio.ended && loaded === n - 1) {
+        showWaiting(false);
+        seek(n, chapters[n].start, true);
+      }
+    }
+
+    // one fetch at a time; a call while one runs gets that one, which goes on as long as
+    // `wanted` says more chapters are playable
+    let busy = null;
+    function more() {
+      busy ??= fetchMore().finally(() => {
+        busy = null;
+      });
+      return busy;
+    }
+    async function fetchMore() {
+      while (chapters.length < wanted) {
+        let part;
+        try {
+          const answer = await fetch(data.growing.chapter + chapters.length, {
+            credentials: "same-origin",
+          });
+          if (!answer.ok) break; // not there (yet): the next event asks again
+          part = await answer.json();
+        } catch {
+          break; // the server is away: app.js says so for the stream
+        }
+        add(part);
+      }
+    }
+
+    async function ended(job) {
+      running = false;
+      if (job.state === "done") wanted = Infinity; // every chapter there is, until a 404
+      if (busy) await busy; // a fetch started before the end: then one for what is left
+      for (;;) {
+        const before = chapters.length;
+        await more();
+        if (chapters.length === before) break;
+      }
+      wanted = chapters.length;
+      for (const row of rows) {
+        if (row.chapter === null) {
+          row.state = "missing";
+          drawRow(row);
+        }
+      }
+      if (held) showWaiting(false);
+    }
+
+    // a play or a move by the person ends the wait: the player follows them from there
+    for (const type of ["play", "seeking"]) {
+      audio.addEventListener(type, () => {
+        if (held) showWaiting(false);
+      });
+    }
+    if (running) {
+      // app.js's `follow`: this function's `follow` is the "scroll with the reading" switch
+      window.follow(
+        data.growing.events,
+        (progress) => {
+          const playable = (progress.playable || []).length;
+          if (playable > wanted) {
+            wanted = playable;
+            more();
+          }
+        },
+        ended,
+      );
+    }
+    return {
+      coming: () => running && later(),
+      wait: () => showWaiting(true),
+    };
+  }
 
   // the offer to continue: it moves there and never plays by itself (D-300)
   const resume = document.getElementById("resume");

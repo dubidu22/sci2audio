@@ -56,10 +56,9 @@ from sci2audio.web.player import (
     PlayerError,
     Position,
     audiobook_file,
+    current_audiobook,
     fits,
     load_document,
-    locate,
-    read_audio_record,
     recorded_folder,
     sentence_starts,
     write_position,
@@ -410,8 +409,7 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     if document is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
     try:
-        record = read_audio_record(document.work, document.document)
-        located = locate(record, document.folders)
+        located = current_audiobook(document.work, document.document, document.folders).located
         stamp = located.stamp
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
@@ -483,8 +481,7 @@ def _book(state: ServerState, document_id: str) -> _Book:
     if listening is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
     try:
-        record = read_audio_record(listening.work, listening.document)
-        located = locate(record, listening.folders)
+        located = current_audiobook(listening.work, listening.document, listening.folders).located
         document = load_document(listening.work)
         stamp = located.stamp
     except (PlayerError, OSError) as error:

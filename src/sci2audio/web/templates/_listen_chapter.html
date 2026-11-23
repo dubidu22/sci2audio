@@ -1,0 +1,50 @@
+{#- The Listen page's text, one chapter at a time: listen.html draws every chapter with it, and
+    a book that is still growing (#724) gets each new chapter drawn by the same macro, through
+    the chapter route, so a chapter added while the page is open is the same as one drawn with
+    the page. Import it "with context" (it needs `t` and `document`). -#}
+{% from "_icons.html" import icon %}
+{#- A piece of a block: a sentence the voice reads (`.s`) or text between sentences. Its parts
+    show what the audiobook's own edits did (#392, D-665 conflict 2, D-704b): text left out is
+    struck in pencil, text read differently is underlined with its reading. -#}
+{% macro parts(piece) -%}
+{%- if piece.parts -%}
+{%- for part in piece.parts -%}
+{%- if part.mark == 'cut' -%}<s class="cut">{{ part.text }}</s><span class="visually-hidden"> {{ t('listen.cut_hidden') }}</span>
+{%- elif part.mark == 'said' -%}<span class="said" title="{{ t('listen.said_as', said=part.said) }}">{{ part.text }}</span><span class="visually-hidden"> {{ t('listen.said_as_hidden', said=part.said) }}</span>
+{%- else -%}{{ part.text }}{%- endif -%}
+{%- endfor -%}
+{%- else -%}{{ piece.text }}{%- endif -%}
+{%- endmacro %}
+{% macro pieces(block) -%}
+{%- for piece in block.pieces -%}
+{%- if piece.element -%}<span class="s" id="{{ piece.element }}" data-chunk="{{ piece.chunk }}">{{ parts(piece) }}</span>
+{%- else -%}{{ parts(piece) }}{%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+{% macro show(block) -%}
+{% if block.page %}<p class="page-mark"><span>{{ t('listen.page', page=block.page) }}</span></p>{% endif %}
+{% if block.notice %}
+<div class="block notice s" id="{{ block.element }}" data-chunk="{{ block.chunk }}">
+  <p>{{ icon('skip') }}<span><b>{{ t('listen.notice') }}</b> {{ block.notice }}</span></p>
+  {% for figure in block.figures %}<img class="figure" src="/api/v1/documents/{{ document.id }}/figures/{{ figure.block }}/{{ figure.n }}" alt="{{ figure.alt }}"{% if figure.width %} width="{{ figure.width }}" height="{{ figure.height }}"{% endif %} loading="lazy" decoding="async">{% endfor %}
+  {% if block.printed %}<details><summary>{{ t('listen.found') }}</summary><p class="printed">{{ block.printed }}</p></details>{% endif %}
+  {% if block.code %}<pre class="code" translate="no"><code>{{ block.code }}</code></pre>{% endif %}
+</div>
+{% elif block.heading %}
+<h{{ block.heading }} class="block heading{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</h{{ block.heading }}>
+{% else %}
+<p class="block {{ block.kind }}{% if not block.read %} unread{% endif %}{% if block.element %} s{% endif %}"{% if block.element %} id="{{ block.element }}" data-chunk="{{ block.chunk }}"{% endif %}>{% if not block.read %}<span class="unread-tag">{{ t('listen.not_read') }}</span> {% endif %}{{ pieces(block) }}</p>
+{% endif %}
+{%- endmacro %}
+{% macro sheet_chapter(chapter, n) -%}
+<section class="sheet-chapter" id="chapter-{{ n }}">
+{% if chapter.title_block %}
+{{ show(chapter.title_block) }}
+{% else %}
+<h2 class="block heading">{{ chapter.title }}</h2>
+{% endif %}
+{% for block in chapter.blocks %}
+{{ show(block) }}
+{% endfor %}
+</section>
+{%- endmacro %}
