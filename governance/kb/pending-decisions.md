@@ -79,3 +79,17 @@ Merge go for #753 (#744, lane:voices, not critical), pinned to dae7c19.
 - Three-system run 45144703459 is green.
 - The coordinator gives this go because no dispatcher runs (D-889).
 - Review note N2: a user with a non-ASCII Windows profile now gets a clear error but still cannot use Kokoro. Filed as an Issue for milestone Later (lane:voices): pass espeak-ng the 8.3 short path. It is an improvement inside the existing scope, not new scope.
+Outcome: #753 squash-merged as 8965914 (#744 closed). impl-744 says it recorded the merge and did not run it.
+
+## D-899 (2026-11-23, coordinator)
+
+Plan impl-infra-b005 (`plans/impl-infra-b005-plan.md`, 9f7f074) is approved as written, as one critical PR for #756, #757, #758 and #759 (v1.5, lane:infra, risk:high).
+- F1 (#756): `check` reads squash subjects from git, falls back to a `--subjects` file, exits 2 when it has neither, and counts only the last `(#N)`.
+- F2 (#757): `deferred:` is required from this PR's number on and summed over a PR's rounds. Only the ledger README changes.
+- Narrating comments (#758):
+  - a strict change-history phrase list fails added comments in the PR check, and a fast test scans every comment and docstring;
+  - the broad list stays a warning;
+  - accepted limit: a comment that says what instead of why (#739 N2) has no word to match, so it stays a review finding. The PR body says so.
+  - So `narrating-comment` counts as fixed only for change-history comments. If a what-comment comes up again, the next step is a design change in the review template, not another word list.
+- PREF-01 (#759): the ruleset is regenerated to 1.15.0 through the governance skill on Colin's word in D-892, and the test comment is fixed.
+- The trial gap on `prs/pr-753.yaml` is closed: impl-744 recorded 8965914. review-b005 fills `merged:` in `rounds/pr753-round1.yaml`.
