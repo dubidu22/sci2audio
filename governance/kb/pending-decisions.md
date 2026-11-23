@@ -118,3 +118,15 @@ Plan impl-724 (`plans/impl-724-plan.md`, 69ccf6a, #724) is approved with three r
 1. Option A: `app/audio.py` writes `document.json` before the first chapter, and `audio.json` still comes only at the end. The PR is lane:web plus lane:app.
 2. It counts as critical (risk:high). It changes when the job runner writes a file into the job folder that the D-895 rule governs, and `app/audio.py` was critical in #723. So it needs a fault test: a kill after `document.json` and before the first chapter, after which the rerun needs no overwrite. The review is on Opus 5.5 high, with ci:full before review.
 3. LANE-02: #724 goes first. #725 and #726 share web files with it, and #726 also `app/audio.py`, so their code starts only after #724 merges. impl-725 may write its plan now, on top of #724's plan.
+
+## D-903 (2026-11-23, coordinator)
+
+Plan impl-725 (`plans/impl-725-plan.md`, fd1fd5c, #725 and #726) is approved as four PRs in order:
+1. output (critical): the whole book as one M4B or MP3 with chapter marks;
+2. app and CLI (critical): build that file on request, add chapters later, `--keep-settings`;
+3. web #725: the download dialog, which removes the D-895 line from `web/tasks.py`;
+4. web #726: chapter states and Generate buttons on top of #724.
+
+Choice 4.1, as recommended: a chapter's number comes from its place among the book's speakable chapters, not among the chosen ones. Chapters added later then need no renaming or re-encoding. A full-book export stays byte-identical. The only golden change is the MP3 track total of a partial run (n/12 becomes n/13). This is a technical choice that serves #726's accepted criteria, not new scope. The PR shows the snapshot diff and explains it.
+
+No code is written until #724 merges (D-902). If the wait goes past the cache window, a fresh thread codes from the plan's handoff (THR-07).
