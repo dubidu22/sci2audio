@@ -12,3 +12,4 @@ kinds: ""
 report: plans/review-pr769-round2.md
 merged: 7e0e994cdb8b27989d120098e776ed18d2142971
 updated_head: ""
+main_ci: "run 45248862210 on 7e0e994: tests ubuntu, macos, windows and CI passed all success"

@@ -26,3 +26,7 @@ Only `tests/unit/test_web_add_chapters.py` changed (+49 lines). This review re-a
 
 - Done: S1 and S2 verified fixed by mutation; CI green.
 - Not done: none.
+
+## Merge
+
+Squash-merged by review-b005 on the coordinator go D-912, pinned to e2f6358, as 7e0e994. Main CI run 45248862210 on 7e0e994: tests on ubuntu, macos and windows and CI passed all success. #726 is closed. N3 is filed as #770 (Later, lane:web, risk:low).
