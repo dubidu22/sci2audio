@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import sys
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -89,6 +90,31 @@ def test_a_record_that_does_not_fit_is_ignored(tmp_path: Path, change: dict[str,
 def test_a_broken_record_is_ignored(tmp_path: Path, text: str) -> None:
     (tmp_path / player.POSITION).write_text(text, encoding="utf-8", errors="surrogateescape")
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
+
+
+def test_two_saves_at_once_both_succeed(tmp_path: Path) -> None:
+    """#763: both saves of the player's `ended` and `pause` used one temporary name, so the
+    loser of a rename race raised FileNotFoundError (about 1 in 6 calls)."""
+    rounds = 300
+    barrier = threading.Barrier(2)
+    failures: list[BaseException] = []
+
+    def save(chapter: int) -> None:
+        for n in range(rounds):
+            try:
+                barrier.wait(timeout=30)  # both threads start each round together
+                write_position(tmp_path, DOC, STAMP, Position(chapter, float(n)))
+            except BaseException as error:
+                failures.append(error)
+
+    threads = [threading.Thread(target=save, args=(chapter,)) for chapter in (0, 1)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert failures == []
+    assert sorted(p.name for p in tmp_path.iterdir()) == [player.POSITION]  # no partial left
+    assert json.loads((tmp_path / player.POSITION).read_text(encoding="utf-8"))["time"] >= 0
 
 
 def test_no_record_and_a_folder_in_its_place_are_ignored(tmp_path: Path) -> None:

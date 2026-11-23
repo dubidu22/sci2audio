@@ -48,6 +48,7 @@ function readAlong() {
   let pending = null; // a jump waiting for its file to load or the seek before it to end
   let touched = false; // the person played or moved: from then on the position is kept
   let savedAt = 0; // when the position was last sent (performance.now())
+  let lastSent = ""; // the body of the last save, until it failed: the same place is sent once (#763)
   let focusing = false; // Focus listening is shown (#394)
   let panelByKey = null; // P: shows or hides the panel, leaving the focus where it is (#461)
   let growing = null; // a book still being made (#724), see grow()
@@ -267,16 +268,27 @@ function readAlong() {
     if (c < 0 || !data.audiobook) return;
     touched = true;
     if (!force && performance.now() - savedAt < SAVE_EVERY) return;
+    // the audiobook this page shows: a save from a page left open over a new audiobook
+    // is refused (409), never written into the new one
+    const body = JSON.stringify(where(c, Math.max(0, time)));
+    // when the audio ends, `pause` and `ended` both keep the same place: one save is enough
+    if (body === lastSent) return;
     savedAt = performance.now();
+    lastSent = body;
+    const failed = () => {
+      if (lastSent === body) lastSent = ""; // the next save of this place tries again
+    };
     fetch(position, {
       method: "POST",
       credentials: "same-origin",
       keepalive: true, // also when the page is going away
       headers: { "content-type": "application/json" },
-      // the audiobook this page shows: a save from a page left open over a new audiobook
-      // is refused (409), never written into the new one
-      body: JSON.stringify(where(c, Math.max(0, time))),
-    }).catch(() => {});
+      body,
+    })
+      .then((response) => {
+        if (response.status >= 500) failed(); // a refusal (4xx) would be refused again
+      })
+      .catch(failed);
   }
 
   // the chapter's index in the document and the time inside it go with it (#726): a chapter
