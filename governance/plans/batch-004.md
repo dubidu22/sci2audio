@@ -167,3 +167,16 @@ coordinator gave the go pinned to 85dd312. Pre-merge check passed (macOS, Window
 and CI passed green; ci:full off). The app's permission check refused relaying the merge
 to the review subagent, so the merge waits for Colin (pinned command in chat).
 Escalations: none yet.
+
+## Handover to the next dispatcher
+
+D-887: dispatcher thread 2 retires because its `gh pr merge` calls stay blocked. It started nothing new after the coordinator's handover message.
+
+- **#749 (#746, docs-b-d2, D-874):** https://github.com/dubidu22/sci2audio/pull/749, head `bdc8247c3da2a008990d05bad6662c98033b74c8`, labels `risk:high` `lane:infra` `lane:docs` (`ci:full` removed). Three-system run 45124663555 is green on bdc8247, and the PR's own CI run 45124653781 is green. `governance pr checks` is red only because there is no approving review round for this head yet (the 1.13.0 rule); 9 of 9 promised tests collect. Its two warnings: no lane owns the new test file, and two deleted probe files in `plans/` look like tests. Ledger `ledger/prs/pr-749.yaml` is 28ee136. Next step: critical review round 1 (Opus high), then the coordinator's go as `ledger/gos/pr-749.yaml`, then a pinned squash merge. The author was docs-b-d2 (subagent a26789ac5e407eb6c, ended after the hand-back).
+- **Open items, in order:**
+  1. #749: critical review, then the coordinator's go and the merge, then `merged:` in its round entry and the main CI run on all three systems (D-580).
+  2. Right after #749 merges, before any other merge of main into governance: `git tag governance-before-d874 && git push origin governance-before-d874`, then the merge exactly as in plan §3 of `plans/docs-b-d2-plan.md` with the restore commands from #749's body, then record the empty-diff output here. If the diff is not empty: commit nothing, `git merge --abort`, and end with `COORDINATOR: governance merge stopped` (D-883).
+  3. Batch audit (critical PRs ran: #740, #742, #745 owner override, #749).
+  4. KB decision-log PR for D-834 onwards.
+  5. Batch report to the coordinator: squash SHAs 204c188 (#735), f85a633 (#742), b5a40a0 (#740), 4ca072a (#739), 5213b4a (#748), plus #749; deferred #744; repeated finding kinds from `ledger_tool.py stats` (META-03).
+- **Watchers and background tasks:** none are running. The last three (#745 merge, #748 merge, main CI on 3bf852f and 5213b4a) finished green.
