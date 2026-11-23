@@ -31,8 +31,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from sci2audio.app.captures import CapturesBroken, read_captures
 from sci2audio.app.files import write_texts
-from sci2audio.core import Document, Span
+from sci2audio.core import CaptureType, Document, Span
 
 MARKERS = "markers.json"
 MARKERS_FORMAT = "sci2audio-web-markers"
@@ -257,6 +258,27 @@ def count_markers(work: Path, document_id: str) -> int | None:
         return len(read_markers(work, document_id))
     except (MarkersBroken, OSError):
         return None
+
+
+def count_captures(work: Path, document_id: str) -> dict[str, Any]:
+    """The document's captures by type (`note`, `quote`, `mark`), for the removal box
+    (ADR-008 2.1 item 4, #396), counted as the box is drawn: from `captures.json`, or,
+    while there is none, from `markers.json` as the carry-over (#475) will map them: a
+    marker with a note as a note, one without as a mark. `unread` names the file that
+    is there but can't be read (`captures` or `markers`), else None."""
+    counts: dict[str, Any] = {**dict.fromkeys(CaptureType, 0), "unread": None}
+    try:
+        captures = read_captures(work, document_id)
+    except (CapturesBroken, OSError):
+        return counts | {"unread": "captures"}
+    if captures is not None:  # markers.json is not read while captures.json is there
+        return counts | captures.count()
+    try:
+        markers = read_markers(work, document_id)
+    except (MarkersBroken, OSError):
+        return counts | {"unread": "markers"}
+    noted = sum(1 for marker in markers if marker.note)
+    return counts | {CaptureType.NOTE: noted, CaptureType.MARK: len(markers) - noted}
 
 
 # ---- finding a marker again (plan section 3) ----------------------------------------------

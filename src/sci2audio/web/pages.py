@@ -85,7 +85,7 @@ from sci2audio.web.library import (
     when,
     write_opened,
 )
-from sci2audio.web.markers import MARKERS, MarkersBroken, count_markers, place, read_markers
+from sci2audio.web.markers import MARKERS, MarkersBroken, count_captures, place, read_markers
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     ChapterStates,
@@ -252,8 +252,8 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
         "folder": None if folder is None or folder in own or unread else str(folder),
         "record_unread": str(record) if unread else None,
         "has_audio": document.has_audio,
-        # counted from the file as the box is drawn (D-728 ruling 3); None: it can't be read
-        "markers": count_markers(document.folder, document.id),
+        # counted from the files as the box is drawn (D-728 ruling 3, ADR-008 2.1 item 4)
+        "captures": count_captures(document.folder, document.id),
     }
 
 
