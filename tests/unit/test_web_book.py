@@ -24,8 +24,9 @@ from web_helpers import (
     wait,
 )
 
+from sci2audio.app import JobSettings, run_audio_job
 from sci2audio.app.playable import read_record
-from sci2audio.output import Ffmpeg, find_ffmpeg
+from sci2audio.output import Ffmpeg, OutputSettings, find_ffmpeg
 from sci2audio.web import create_app
 from sci2audio.web.project import read_project
 
@@ -262,3 +263,94 @@ def test_removing_the_project_removes_the_built_file(tmp_path: Path) -> None:
     assert removed.status_code == 200, removed.text
     assert not (folder / name).exists()
     assert not folder.exists()
+
+
+# ---- #768 round 1: the checks each answer rests on --------------------------------------
+
+
+def test_a_book_built_before_chapters_were_added_is_not_served_as_current(
+    tmp_path: Path,
+) -> None:
+    """B1: a whole-book file holds the chapters made when it was built; once another is
+    added it is not the book any more, and asking again builds it anew."""
+    _, client, config = server(tmp_path)
+    doc = made(client, [0])
+    first = built(client, doc["id"])["progress"]["name"]
+    folder = book_folder(config.output_folder)
+    assert (folder / first).is_file()  # still there, still the file the record vouches for
+    job = client.post(
+        "/api/v1/jobs",
+        json={"kind": "audio", "document": doc["id"], "settings": {"chapters": [1]}},
+    )
+    assert job.status_code == 202, job.text
+    assert wait(client, job.json()["id"])["state"] == "done"
+    again = ask(client, doc["id"], kind="m4b")
+    assert again.status_code == 202, again.text
+    assert again.json()["name"] is None
+    done = wait(client, again.json()["job"]["id"])
+    assert done["state"] == "done", done["error"]
+    assert done["progress"]["name"] == first  # the same name, the file built anew
+    assert not done["progress"]["reused"]
+
+
+def test_an_edited_built_file_is_not_served(tmp_path: Path) -> None:
+    """S1: the download serves a built file only as the chapter record vouches for it."""
+    _, client, config = server(tmp_path)
+    doc = made(client)
+    name = built(client, doc["id"])["progress"]["name"]
+    url = f"/api/v1/documents/{doc['id']}/audiobook/{name}"
+    assert client.get(url).status_code == 200
+    path = book_folder(config.output_folder) / name
+    path.write_bytes(path.read_bytes() + b"\0")
+    assert client.get(url).status_code == 404
+    assert client.get(url + "?download=true").status_code == 404
+
+
+def test_an_audiobook_made_before_the_chapter_record_offers_its_own_m4b(tmp_path: Path) -> None:
+    """S2: an audiobook of before #723 has no chapter record: the M4B its job wrote is
+    served as it is, and no other kind can be built from it (409 not-buildable)."""
+    app, client, config = server(tmp_path)
+    doc = made(client)
+    stored = app.state.sci2audio.store.get(doc["id"])
+    folder = book_folder(config.output_folder)
+    # the job of before #725 wrote the M4B with the chapters (D-895)
+    app_job = run_audio_job(
+        stored.source,
+        JobSettings(output_folder=folder),
+        stored.folder,
+        voice=FakeVoice().source(),
+        output_settings=OutputSettings(),
+        overwrite=True,
+    )
+    m4b = app_job.written.m4b
+    assert m4b is not None
+    (stored.folder / "chapters.json").unlink()  # made before #723
+    jobs = len(client.get("/api/v1/jobs").json())
+    answer = ask(client, doc["id"], kind="m4b")
+    assert answer.status_code == 200, answer.text
+    assert answer.json() == {"name": m4b.name, "partial": False, "job": None}
+    got = client.get(f"/api/v1/documents/{doc['id']}/audiobook/{m4b.name}?download=true")
+    assert got.status_code == 200
+    assert got.content == m4b.read_bytes()
+    refused = ask(client, doc["id"], kind="mp3")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["error"] == "not-buildable"
+    assert len(client.get("/api/v1/jobs").json()) == jobs  # no job for either
+
+
+def test_a_build_after_the_speech_cache_was_freed_fails_as_missing_chapters(
+    tmp_path: Path,
+) -> None:
+    """S3: the chapters are made, but their speech was freed since (D-158): the book job
+    ends with the kind `missing-chapters`, nothing spoken again, no file written."""
+    _, client, config = server(tmp_path)
+    doc = made(client)
+    freed = client.delete(f"/api/v1/documents/{doc['id']}/chunks")
+    assert freed.status_code in (200, 204), freed.text
+    answer = ask(client, doc["id"], kind="m4b")
+    assert answer.status_code == 202, answer.text
+    done = wait(client, answer.json()["job"]["id"])
+    assert done["state"] == "failed"
+    assert done["error"]["error"] == "missing-chapters"
+    assert "no longer in the working folder" in done["error"]["message"]
+    assert not any(p.suffix == ".m4b" for p in book_folder(config.output_folder).iterdir())
