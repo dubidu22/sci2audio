@@ -102,13 +102,9 @@ def test_the_profile_holds_the_paths_of_the_config(key: str) -> None:
 
 # D-882 (ruleset 1.13.0): the dispatcher changes of the audit of 22 Nov 2026. The generator has
 # no setting for them, so they are exact replaces too, and a regeneration that drops one fails here.
+# Its THR-10 and THR-05 texts (subagent hosting, D-881) ended with the move to the claude.ai
+# Project (D-888, ruleset 1.14.0); the D888 pins below replace them.
 D882 = {
-    "THR-10": (
-        "the dispatcher starts implementation and review threads as background subagents of its "
-        "own session (Agent tool, with the slot's model and effort from "
-        "execution_profile.model_routing, and `isolation: worktree` when the thread writes files); "
-        "it writes a starter block only if it has no such tool.",
-    ),
     "MRG-01": (
         "for critical ones the coordinator, whose go is the file "
         "./governance/ledger/gos/pr-<N>.yaml with the head SHA, the coordinator and the time, "
@@ -121,7 +117,6 @@ D882 = {
         "It also watches CI and merges for PRs outside the batch that the coordinator names, and "
         "records them in the batch file.",
     ),
-    "THR-05": ("and never while one of its subagents is running.",),
     "ROLE-17": (
         "A dispatcher event reaches you as one line starting with `COORDINATOR:`; its content is "
         "in ./governance/plans/batch-<NNN>.md, read it there.",
@@ -145,13 +140,46 @@ def test_a_d882_rule_keeps_its_wording(rule_id: str) -> None:
 def test_the_dispatcher_instructions_carry_the_d882_changes() -> None:
     text = " ".join((GOVERNANCE / "dispatcher_instructions.md").read_text(encoding="utf-8").split())
     for fragment in (
-        "Start implementation and review threads as background subagents of your own session: "
-        "the Agent tool, with the slot's model and effort from `execution_profile.model_routing`, "
-        "and `isolation: worktree` when the thread writes files. Write a starter block only if "
-        "you have no such tool.",
-        "never while one of your subagents is running (`THR-05`)",
         "every event reaches the Coordinator as one line starting with `COORDINATOR:`, and its "
         "content goes in the batch file",
         "You also watch CI and merges for PRs outside the batch that the Coordinator names",
     ):
         assert fragment in text, fragment
+
+
+# D-888 (ruleset 1.14.0): the threads are chats in the claude.ai Project, and the working files
+# stay on branch governance. The generator words the starter block for a Claude Code session,
+# so the two instruction files get the Project wording by exact replace; these pins catch a
+# regeneration that brings the old text back.
+PROJECT_CHAT_START = (
+    "ask the owner to open a new chat in the sci2audio claude.ai Project on that model and paste "
+    "it. The Project's instructions (`governance/project_chat_instructions.md`) tell that chat how "
+    "to clone the repository and add the governance worktree."
+)
+
+
+@pytest.mark.parametrize("name", ["project_instructions.md", "dispatcher_instructions.md"])
+def test_an_instruction_file_starts_threads_as_project_chats(name: str) -> None:
+    text = " ".join((GOVERNANCE / name).read_text(encoding="utf-8").split())
+    assert PROJECT_CHAT_START in text
+    assert "claude --model" not in text
+    assert "subagent" not in text.replace("starts a session or subagent", "")
+
+
+def test_no_rule_hosts_threads_as_subagents_or_hands_out_compact() -> None:
+    """A claude.ai chat has neither the Agent tool of D-881 nor /compact (THR-11)."""
+    assert "subagents" not in RULESET
+    assert "/compact" not in RULESET
+    assert "THR-11" not in rules(RULESET)
+    assert CONFIG["coordinator_compact_every_batches"] == 0
+
+
+def test_the_project_chat_instructions_set_up_the_clone_and_the_governance_worktree() -> None:
+    text = (GOVERNANCE / "project_chat_instructions.md").read_text(encoding="utf-8")
+    for line in (
+        "git clone https://github.com/dubidu22/sci2audio.git",
+        "git worktree add ../sci2audio-governance governance",
+        "governance/rules/<role>.yaml",
+    ):
+        assert line in text, line
+    assert "governance/project_chat_instructions.md" in CONFIG["critical_paths"]
