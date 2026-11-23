@@ -200,4 +200,4 @@ Merge go for #769 (PR 4 of D-903, #726, lane:web, not critical), pinned to e2f63
 - Round 2 approved with 0 must-fix.
 - The merge waits until impl-725c sets `handback: done` and the gate passes.
 - With this merge every Issue of batch 005 is done: #723, #724, #725, #726, #744 and #756 to #759.
-- Review note: when a chapter's MP3 is deleted, the page lists no chapter states. That is #724's behaviour, and changing it is not in this batch's scope. It is left for Colin's next batch, not filed now.
+- Review note: when a chapter's MP3 is deleted, the page lists no chapter states. That is #724's behaviour and outside this batch. review-b005 files it as an Issue for milestone Later (GH-01).
