@@ -20,9 +20,12 @@ What it checks (rule ids of the generated ruleset):
     new docs     PR-05   a markdown file the PR adds lies under one of `doc_paths` (config). Summary, notes
                          and report files nobody asked for fail. Needs `git diff --name-status` input:
                          only files with status A count as new. Not checked when the config has no `doc_paths`
-    comments     PR-05   with --diff: added comment lines that narrate the change ("previously", "now uses",
-                         "as requested", ...) or carry a TODO without an issue number are listed as a
-                         warning for the reviewer. A word list cannot judge a comment, so this never fails
+    comments     PR-05   with --diff: an added comment line that tells the history of the change or the
+                         conversation (HISTORY_RE: "previously", "now uses", "as requested", "in this PR",
+                         ...) fails; one that only matches the broad word list (NARRATION_RE: "no longer",
+                         "moved to", ...) or carries a TODO without an issue number is a warning for the
+                         reviewer. HISTORY_RE is strict enough that the tree has no false match
+                         (tests/unit/test_narrating_comments.py scans it with the same list)
 
 Exemptions. A file that may break one of the path checks (ownership, unowned, lock, critical, tests, docs) is
 listed in pr-check-exemptions.json next to the config, never in a private allowlist and never by weakening
@@ -45,8 +48,9 @@ they are given, so they are only as good as the workflow that passes them; a thr
 the workflow, the config or the exemptions file can change what is checked, which is why those files need
 the owner's review (CODEOWNERS) and the check must be required in branch protection. Ownership is by path
 only: a file moved into another lane's folder is owned by that lane from then on. The comment check is a
-word list over added lines that start with a comment marker: it misses trailing comments and narration in
-other words, and it flags honest comments that happen to use a listed phrase, which is why it only warns.
+word list over added lines that start with a comment marker: it misses trailing comments, docstrings (the
+test above scans those) and narration in other words, above all a comment that says what the code does
+instead of why; that stays the reviewer's. A sanctioned case goes in the exemptions file (check "comments").
 The new-docs check sees markdown only; a notes file with another extension is the reviewer's to catch.
 
 A pull request that only changes governance files (the workspace folder) is exempt from the title, label
@@ -66,7 +70,7 @@ from pathlib import Path
 
 TITLE_RE = re.compile(r"^[^\s:][^:]*: \S.* \(#\d+\)$")
 CLOSING_RE = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+(?:[\w.-]+/[\w.-]+)?#\d+", re.IGNORECASE)
-EXEMPTABLE = ("ownership", "unowned", "lock", "critical", "tests", "docs")
+EXEMPTABLE = ("ownership", "unowned", "lock", "critical", "tests", "docs", "comments")
 DOC_FILE_RE = re.compile(r"\.(md|markdown|mdx)$", re.IGNORECASE)
 PROSE_FILE_RE = re.compile(r"\.(md|markdown|mdx|rst|txt|adoc)$", re.IGNORECASE)
 COMMENT_RE = re.compile(r"^\s*(?:#(?!!)|//|/\*|\*(?!/)|--\s|<!--|;;)\s*(.*)$")
@@ -76,6 +80,17 @@ NARRATION_RE = re.compile(
     r"changed (?:from|to)\b|was changed|now uses?\b|now we\b|we now\b|refactored|rewritten|"
     r"(?:added|removed|updated|fixed|moved|renamed) (?:this|the|to|in|by|for)\b|new implementation|old implementation|"
     r"review round|reviewer (?:asked|wanted|said))", re.IGNORECASE)
+# the history of the change or of the conversation: precise enough to fail on (D-891, one step up META-03)
+HISTORY_RE = re.compile(
+    r"\b(?:previously|as (?:requested|discussed|agreed)|per (?:the )?(?:review|feedback|request)\b(?! rounds?\b)|"
+    r"was changed|changed (?:from|to)\b|now uses?\b|now we\b|we now\b|"
+    r"(?:the )?(?:old|new) (?:implementation|code|approach|behaviou?r)\b|"
+    r"in this (?:PR|commit|change)\b|(?:before|after) this (?:PR|commit|change)\b|"
+    r"this (?:PR|commit) (?:adds|removes|changes|fixes|moves|replaces)\b|"
+    r"reviewer (?:asked|wanted|said|found)\b|"
+    r"(?:ended|went away|was dropped|were dropped) (?:with|in) the move\b|"
+    r"(?:was|were) (?:added|removed|renamed|moved|replaced|rewritten) (?:in|by|for|when) (?:#\d|PR|the review|D-\d)|"
+    r"used to (?:be|call|use|read|write|return|live|sit|run)\b)", re.IGNORECASE)
 TODO_RE = re.compile(r"\b(?:TODO|FIXME|HACK|XXX)\b")
 ISSUE_REF_RE = re.compile(r"#\d+|/issues/\d+")
 MAX_LISTED = 12
@@ -157,13 +172,14 @@ def exemption_errors(entries: object) -> list[str]:
     return out
 
 
-def comment_notes(diff: str, skip: list[str]) -> list[str]:
-    """`path:line: text` for added comment lines that narrate the change or hold a TODO without an issue.
+def comment_notes(diff: str, skip: list[str]) -> list[tuple[str, bool]]:
+    """(`path:line: text`, tells history) for added comment lines that narrate the change or hold a TODO
+    without an issue; the flag is true for a HISTORY_RE match, which fails the check.
 
     Reads a unified diff. Prose files and paths matching `skip` are left out. Only lines that start with a
     comment marker are seen; a trailing comment after code is not.
     """
-    out: list[str] = []
+    out: list[tuple[str, bool]] = []
     path, line = "", 0
     for raw in diff.splitlines():
         if raw.startswith("+++ "):
@@ -182,10 +198,12 @@ def comment_notes(diff: str, skip: list[str]) -> list[str]:
             c = COMMENT_RE.match(raw[1:])
             if c and not PROSE_FILE_RE.search(path) and not matches(path, skip):
                 text = c.group(1).strip()
-                if NARRATION_RE.search(text):
-                    out.append(f"{path}:{line}: {text[:90]}")
+                if HISTORY_RE.search(text):
+                    out.append((f"{path}:{line}: {text[:90]}", True))
+                elif NARRATION_RE.search(text):
+                    out.append((f"{path}:{line}: {text[:90]}", False))
                 elif TODO_RE.search(text) and not ISSUE_REF_RE.search(text):
-                    out.append(f"{path}:{line}: {text[:90]} (no issue number)")
+                    out.append((f"{path}:{line}: {text[:90]} (no issue number)", False))
             line += 1
         elif not raw.startswith("-"):
             line += 1
@@ -284,13 +302,21 @@ def run_checks(cfg: dict, title: str, labels: list[str], changes: list[tuple[str
             add("new docs", "ok", "no new markdown file outside the documentation paths")
 
     if diff is not None:
-        notes = comment_notes(diff, governance)
-        if notes:
-            more = f" (and {len(notes) - MAX_LISTED} more)" if len(notes) > MAX_LISTED else ""
+        notes = [(n, history) for n, history in comment_notes(diff, governance) if not exempt("comments", n.split(":", 1)[0])]
+        history = [n for n, h in notes if h]
+        broad = [n for n, h in notes if not h]
+
+        def listed(items: list[str]) -> str:
+            more = f" (and {len(items) - MAX_LISTED} more)" if len(items) > MAX_LISTED else ""
+            return "; ".join(items[:MAX_LISTED]) + more
+        if history:
+            add("comments", "FAIL", "added comments tell the history of the change or the conversation, not why the code is "
+                f"as it is: {listed(history)}. Say why, or drop the comment (PR-05)")
+        if broad:
             add("comments", "WARN", "added comments that may narrate the change instead of saying why the code is as it is: "
-                + "; ".join(notes[:MAX_LISTED]) + more + ". The reviewer decides (PR-05)")
-        else:
-            add("comments", "ok", "no added comment matches the narration word list")
+                + listed(broad) + ". The reviewer decides (PR-05)")
+        if not notes:
+            add("comments", "ok", "no added comment matches the narration word lists")
 
     seen: set[tuple[int, str]] = set()
     for e, path in used:
