@@ -10,5 +10,5 @@ should_fix: 0
 deferred: 0
 kinds: ""
 report: plans/review-pr769-round2.md
-merged: ""
+merged: 7e0e994cdb8b27989d120098e776ed18d2142971
 updated_head: ""
