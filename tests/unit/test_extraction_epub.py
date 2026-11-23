@@ -10,11 +10,12 @@ never a traceback or a hang (D-315).
 
 from __future__ import annotations
 
+import codecs
 import re
 import time
 import tracemalloc
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -327,6 +328,34 @@ def test_text_in_utf_16_and_with_bad_bytes_is_read() -> None:
 def test_a_declared_codec_that_is_not_for_text_reads_as_utf_8(codec: str) -> None:
     document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
     assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+def _lossy_codec(name: str) -> codecs.CodecInfo | None:
+    """A text codec that, like punycode on Python 3.13 (#587), drops every byte it cannot
+    decode under `errors="replace"` instead of raising."""
+    if name != "sci2audio_test_lossy":
+        return None
+    utf_8 = codecs.lookup("utf-8")
+    return codecs.CodecInfo(utf_8.encode, lambda data, errors="strict": ("", len(data)), name=name)
+
+
+@pytest.fixture
+def lossy_codec() -> Iterator[str]:
+    codecs.register(_lossy_codec)
+    yield "sci2audio_test_lossy"
+    codecs.unregister(_lossy_codec)
+
+
+def test_a_declared_codec_that_loses_the_text_reads_as_utf_8(lossy_codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{lossy_codec}"')
+    assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+@pytest.mark.parametrize("codec", ["latin-1", "cp1252", "mac-roman"])
+def test_a_declared_codec_that_keeps_ascii_is_used(codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
+    pages = read(Book(items=[Item("c1", "c1.xhtml", content=document.encode(codec))]).bytes()).pages
+    assert texts(pages[0]) == ["Plain café"]
 
 
 @pytest.mark.parametrize("codec", ["utf-16", "UTF-32", "utf-16-le"])
