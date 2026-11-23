@@ -15,7 +15,6 @@
 {% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>{% endif %}
 {% else %}
 <script id="player-data" type="application/json">{{ data | safe }}</script>
-{% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
 {#- The Listen page (#392, #393; DESIGN.md "Listen"): the desk with the sheet and one context
     panel beside it, and the dock. Every button player.js wires is drawn disabled, so a press
     before the script ran is never lost silently (#350, #427). -#}
@@ -147,6 +146,8 @@
       {% endif %}
       </ol>
     </nav>
+    {#- the whole audiobook as one file (#725), beside the chapters it holds #}
+    {% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>
   </div>
   {#- the markers (#474, D-723): player.js draws the rows from the data block, in reading

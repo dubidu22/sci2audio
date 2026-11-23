@@ -243,13 +243,21 @@ def test_a_book_job_can_be_cancelled(tmp_path: Path) -> None:
 
 def test_removing_the_project_removes_the_built_file(tmp_path: Path) -> None:
     app, client, config = server(tmp_path)
-    doc = made(client)
+    doc = upload(client, paper_bytes())
+    for kind in ("script", "audio"):
+        body = {"kind": kind, "document": doc["id"], "settings": {"subtitles": True}}
+        job = client.post("/api/v1/jobs", json=body)
+        assert job.status_code == 202, job.text
+        assert wait(client, job.json()["id"])["state"] == "done"
     name = built(client, doc["id"])["progress"]["name"]
     folder = book_folder(config.output_folder)
+    # the book's subtitles come with its M4B (#214) and go with the project too
+    pair = {name.removesuffix(".m4b") + suffix for suffix in (".srt", ".vtt")}
+    assert pair <= {p.name for p in folder.iterdir()}
     work = app.state.sci2audio.store.get(doc["id"]).folder
     project = read_project(work, doc["id"])
     assert project is not None
-    assert name in {f.name for a in project.audiobooks for f in a.files}
+    assert {name, *pair} <= {f.name for a in project.audiobooks for f in a.files}
     removed = client.delete(f"/api/v1/documents/{doc['id']}?keep_audiobook=false")
     assert removed.status_code == 200, removed.text
     assert not (folder / name).exists()

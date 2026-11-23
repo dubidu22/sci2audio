@@ -8,11 +8,10 @@ from __future__ import annotations
 import json
 
 from playwright.sync_api import Page, expect
-from test_player import choose_speed, chunk_id, highlighted, make_audiobook
+from test_player import built_m4b, choose_speed, chunk_id, highlighted, make_audiobook
 
 from conftest import Live, check_axe, click_focuses, tab_key
 from sci2audio.web.i18n import PLAYER_SPEED_COOKIE
-from sci2audio.web.player import recorded_folder
 
 
 def rate(page: Page) -> dict[str, object]:
@@ -342,14 +341,16 @@ def test_the_speed_stays_on_the_m4b(signed_in: Page, live: Live) -> None:
     document = make_audiobook(page, live)
     work = live.state.store.get(document).folder
     record = json.loads((work / "audio.json").read_text(encoding="utf-8"))
-    folder = recorded_folder(work, document)  # the project's own audiobook folder (D-749)
-    assert folder is not None
+    # the project's own audiobook folder (D-749), and its M4B as the download builds it
+    folder, m4b = built_m4b(live, document)
     for name in record["files"]["mp3"]:
         (folder / name).unlink()
     record["files"]["mp3"] = []
+    record["files"]["m4b"] = m4b
     (work / "audio.json").write_text(json.dumps(record), encoding="utf-8")
     readalong = folder / record["files"]["readalong"]
     data = json.loads(readalong.read_text(encoding="utf-8"))
+    data["m4b"] = m4b
     for chapter in data["chapters"]:
         chapter["mp3"] = None
     readalong.write_text(json.dumps(data), encoding="utf-8")

@@ -159,8 +159,10 @@ def test_the_main_flow(signed_in: Page, live: Live) -> None:
     expect(page.locator("#result")).to_be_focused()
     links = page.locator("ul.files a")
     names = [re.sub(r"^Save (.*) \(.*\)$", r"\1", text) for text in links.all_inner_texts()]
-    assert names[0] == "paper.m4b"  # named after the file, as the PDF has no title
-    assert any(name.endswith(".mp3") for name in names)
+    # the chapters, named after the file as the PDF has no title; the whole book is built
+    # on request (#725, tests/browser/test_download_book.py), so the job writes no M4B
+    # the one chapter chosen, numbered by its place in the book (D-903)
+    assert names[:-1] == ["paper - 02 Methods.mp3"]
     assert names[-1].endswith(".readalong.json")
     for link in links.all():
         answer = page.request.get(live.url + link.get_attribute("href"))

@@ -566,7 +566,7 @@ details.book { margin: 8px 0; }
 .book-box .hint { display: block; color: var(--ink-2); font-size: 13px; }
 .book-missing { display: grid; gap: 6px; }
 .book-missing[hidden] { display: none; }
-.listen-book { margin: 0 0 8px; }
+.listen-book { margin: 12px 0; }
 .remove summary { list-style: none; display: inline-flex; gap: 6px; font-weight: 700; color: var(--ink-2); }
 .remove summary::-webkit-details-marker { display: none; }
 .remove[open] summary { background: var(--desk-2); }

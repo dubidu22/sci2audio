@@ -51,7 +51,7 @@ from sci2audio.app import (
     find_chapters,
 )
 from sci2audio.app import UnsupportedFileError as AppUnsupportedFileError
-from sci2audio.output import BookKind, Ffmpeg
+from sci2audio.output import BookKind, Ffmpeg, book_subtitles
 from sci2audio.voices import (
     DownloadError,
     DownloadPlan,
@@ -293,9 +293,13 @@ def book_work(
                 "unavailable": [_title(titles, i) for i in built.unavailable],
             }
         )
+        # the book's subtitles come with its M4B when they are on (output's `book_subtitles`)
+        pair = [p for p in book_subtitles(built.path) if p.is_file()]
+        if built.kind is not BookKind.M4B:
+            pair = []
         try:
             # removing the project removes the built file too (D-750)
-            record_files(document.folder, document.id, folder, [built.path])
+            record_files(document.folder, document.id, folder, [built.path, *pair])
         except OSError as error:
             logger.warning("could not record the audiobook's files: %s", error)
         return [built.path]
