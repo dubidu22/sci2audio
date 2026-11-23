@@ -784,7 +784,8 @@ def _adding(
     Checked before any speech: made under other settings (SettingsChangedError), made by a
     version that kept no settings, or read in an order the person chose (#119), the
     project is not added to without `overwrite`. With the settings `kept`, what still
-    differs is what keeping cannot bring back (the voice's version, the book's details)."""
+    differs is what keeping cannot bring back (the voice's version). A record of another
+    book adds nothing: that book's files are checked as any other files."""
     if overwrite or record is None:
         return None
     generated = {
@@ -797,6 +798,8 @@ def _adding(
             "the chapters made so far were made by an earlier version of sci2audio, which "
             "did not keep their settings; choose to replace them"
         )
+    if record.made.get("book") != made["book"]:
+        return None  # another book in this working folder: its files are its own
     if record.settings != key:
         if kept:
             changes = "; ".join(settings_changes(record.made, made))

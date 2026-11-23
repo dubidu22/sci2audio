@@ -260,3 +260,15 @@ def test_keep_settings_names_what_keeping_cannot_bring_back(tmp_path: Path) -> N
     assert "fake-1" in str(raised.value)
     assert "fake-2" in str(raised.value)
     assert voice.made == 0
+
+
+def test_another_book_in_the_same_working_folder_is_not_added_to(tmp_path: Path) -> None:
+    run(tmp_path, FakeVoice(), (0,))
+    other = tmp_path / "in" / "other.md"
+    other.write_text("# Delta\n\nThe chapter Delta starts here.", encoding="utf-8")
+    settings = JobSettings(output_folder=tmp_path / "out")
+    voice = FakeVoice()
+    run_audio_job(other, settings, tmp_path / "work", voice=voice.source())
+    assert voice.texts
+    assert all("Delta" in text for text in voice.texts)
+    assert "other - 01 Delta.mp3" in mp3s(tmp_path)
