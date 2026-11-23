@@ -1,0 +1,14 @@
+pr: 768
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: 22a8e2db81f5aa89aaaa492822e27f1cdd69dea8
+critical: no
+verdict: changes_requested
+must_fix: 1
+should_fix: 3
+deferred: 0
+kinds: "missing-test"
+report: plans/review-pr768-round1.md
+merged: ""
+updated_head: ""
