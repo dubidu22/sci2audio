@@ -847,6 +847,17 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
         data={"text": "A short pasted note.", "name": "note"}, headers=same,
     )  # fmt: skip
     call("POST", f"{api}/jobs/{ids.audio_job}/cancel", 409, headers=same)  # it has ended
+    # the whole audiobook as one file (#725): a job builds it, then the same ask answers
+    # with its name and the audiobook route serves it; before the preview, which would be
+    # the running job, and before the speech cache it is built from is emptied
+    book = f"{api}/documents/{ids.paper}/book"
+    built = call("POST", book, 202, data={"kind": "m4b"}, headers=same).json()["job"]["id"]
+    deadline = time.monotonic() + 120
+    while call("GET", f"{api}/jobs/{built}", 200).json()["state"] == "running":
+        _check(time.monotonic() < deadline, f"the book job {built} did not end")
+        time.sleep(0.2)
+    name = call("POST", book, 200, data={"kind": "m4b"}, headers=same).json()["name"]
+    call("GET", f"{api}/documents/{ids.paper}/audiobook/{name}?download=true", 200)
     call("POST", f"{api}/voices/preview", 202, data={"text": "A preview."}, headers=same)
     call("DELETE", f"{api}/documents/{ids.paper}/chunks", 204, headers=same)
     call("POST", "/quit", 404, headers=same)  # only the browser launch has Quit (#215)
