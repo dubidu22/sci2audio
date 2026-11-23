@@ -127,6 +127,30 @@ def load_webview(platform: str = sys.platform) -> Any | None:
     return webview
 
 
+def load_appkit(platform: str = sys.platform) -> Any | None:
+    """AppKit as pywebview's Cocoa engine loaded it, on macOS; None elsewhere."""
+    if platform != "darwin":
+        return None
+    try:
+        from webview.platforms import cocoa  # pywebview's engine, which brings PyObjC
+    except ImportError:
+        return None
+    return getattr(cocoa, "AppKit", None)
+
+
+def watch_quit(finish: Callable[[], None]) -> None:
+    """Run `finish` when macOS quits the app (the Dock, Cmd-Q or an Apple Event): Cocoa's
+    `terminate:` then ends the process with `exit()` once the window agreed to close, so
+    `webview.start()` never returns and nothing after it runs, not even Python's atexit
+    (#717). The notification that the app will terminate is the last moment to stop."""
+    appkit = load_appkit()
+    if appkit is None:
+        return
+    appkit.NSNotificationCenter.defaultCenter().addObserverForName_object_queue_usingBlock_(
+        appkit.NSApplicationWillTerminateNotification, None, None, lambda note: finish()
+    )
+
+
 # ---- the window --------------------------------------------------------------------------
 
 
@@ -249,11 +273,28 @@ def run_window(webview: Any, *, selftest: Path | None = None) -> int:
         server.stop()
         return 1
     log.info("running in a window on %s", config.origin)
+    stopping = threading.Lock()
+    stopped = False
+
+    def finish(say: bool = True) -> None:
+        """Stop the server, once: when the window closed, on a quit (#717), or when the
+        engine failed (then `main` says why, and the log no "stopped")."""
+        nonlocal stopped
+        with stopping:
+            if stopped:
+                return
+            stopped = True
+            server.stop()
+            if say:
+                log.info("stopped")
+
+    watch_quit(finish)
     try:
         AppWindow(webview, server, config, selftest=selftest).open()
-    finally:
-        server.stop()
-    log.info("stopped")
+    except BaseException:
+        finish(say=False)
+        raise
+    finish()
     return 0 if selftest is None or selftest.exists() else 1
 
 
