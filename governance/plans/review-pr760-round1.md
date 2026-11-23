@@ -45,3 +45,4 @@
 
 - Squash-merged by this thread on the coordinator's go (D-900), pinned to a25a67e, after `ledger_tool.py gate 760` said it may be merged and `tests (ubuntu|macos|windows-latest)`, `CI passed` and `governance pr checks` were green on that head: `e3a328e65f78a86341d5d03dc77680f4cab6c441`.
 - main merged into governance with a plain merge afterwards (THR-14), so governance carries ruleset 1.15.0 and the new extracts.
+- Main CI run 45164259001 on e3a328e: `tests (ubuntu-latest)`, `tests (macos-latest)`, `tests (windows-latest)` and `CI passed` all success.

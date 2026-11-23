@@ -12,3 +12,4 @@ kinds: ""
 report: plans/review-pr760-round1.md
 merged: e3a328e65f78a86341d5d03dc77680f4cab6c441
 updated_head: ""
+main_ci: "run 45164259001 on e3a328e: tests ubuntu, macos, windows and CI passed all success"
