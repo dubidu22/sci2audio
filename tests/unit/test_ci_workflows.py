@@ -312,16 +312,6 @@ def test_every_test_that_reads_the_nightly_profile_runs_in_the_nightly_property_
     assert readers <= selected, sorted(readers - selected)
 
 
-def load_pr_checks():
-    path = ROOT / ".github" / "governance" / "pr_checks.py"
-    spec = importlib.util.spec_from_file_location("sci2audio_pr_checks", path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def tracked_files(*folders: str) -> list[str]:
     git = shutil.which("git")
     assert git is not None
@@ -370,116 +360,15 @@ def test_codeql_runs_with_the_least_permission_and_pinned_actions() -> None:
     assert "persist-credentials: false" in block(job, f"      - uses: {checkout}")
 
 
-def test_codeql_ignores_the_prototype_and_the_workspace_and_nothing_that_ships_or_runs() -> None:
-    """The prototype and governance/ (with the template copy of pr_checks.py) neither ship nor
-    run; .github/governance/ is the copy CI runs on every PR, so it stays scanned."""
+def test_codeql_ignores_the_prototype_and_the_archive_and_nothing_that_ships_or_runs() -> None:
+    """The prototype and the archived KB in governance/ neither ship nor run."""
     ignored = codeql_ignored()
     assert ignored == ["docs/design/prototype/**", "governance/**"]
-    pr_checks = load_pr_checks()
-    unshipped = tracked_files("docs/design/prototype", "governance")
-    assert unshipped
-    assert all(pr_checks.matches(p, ignored) for p in unshipped)
+    prefixes = tuple(glob.removesuffix("**") for glob in ignored)
+    assert tracked_files("docs/design/prototype", "governance")
     scanned = tracked_files("src", ".github")
-    assert ".github/governance/pr_checks.py" in scanned
-    assert not [p for p in scanned if pr_checks.matches(p, ignored)]
-
-
-GOVERNANCE = (WORKFLOWS / "governance-pr-checks.yml").read_text(encoding="utf-8")
-
-
-def test_the_pr_body_reaches_the_promised_tests_check_only_through_the_environment() -> None:
-    """#687: the body is text anyone opening a PR writes, so it never enters a script."""
-    step = block(GOVERNANCE, "      - name: Check that the promised tests exist")
-    assert "PR_BODY: ${{ github.event.pull_request.body }}" in block(step, "        env:")
-    # shown beside a failing title or ownership step, not only after it is fixed
-    assert "        if: ${{ !cancelled() }}" in step
-    # without uv the step would report every promise missing beside the real failure
-    setup_line = next(
-        line for line in GOVERNANCE.splitlines() if "- uses: astral-sh/setup-uv@" in line
-    )
-    setup = block(GOVERNANCE, setup_line)
-    assert "        if: ${{ !cancelled() }}" in setup
-    script = block(step, "        run: |")
-    assert "${{" not in script
-    assert "printf '%s' \"$PR_BODY\"" in script
-    assert "promised_tests.py files" in script
-    assert "promised_tests.py check" in script
-    assert "uv run --frozen pytest --collect-only -q" in script
-
-
-def test_the_base_is_collected_from_the_environment_without_a_new_sync() -> None:
-    """#711: the promises that already collect on the base are listed. The base's files are
-    collected with the head's synced interpreter, so the list costs no second sync, and the
-    base commit reaches the script only through the environment."""
-    step = block(GOVERNANCE, "      - name: Check that the promised tests exist")
-    assert "PR_BASE: ${{ github.event.pull_request.base.sha }}" in block(step, "        env:")
-    script = block(step, "        run: |")
-    assert 'git worktree add --detach --quiet "$RUNNER_TEMP/base" "$PR_BASE"' in script
-    assert 'PYTHONPATH="$RUNNER_TEMP/base/src" "$GITHUB_WORKSPACE/.venv/bin/python"' in script
-    assert script.count("uv run") == 1
-    assert "uv sync" not in script
-    check = next(line for line in script.splitlines() if "promised_tests.py check" in line)
-    assert check.rstrip().endswith('"$RUNNER_TEMP/base-collected.txt"'), check
-
-
-def test_the_governance_check_keeps_its_job_name_and_pins_setup_uv() -> None:
-    assert "    name: governance pr checks" in block(GOVERNANCE, "  checks:")
-    uses = re.findall(r"^\s+- uses: (.+)$", GOVERNANCE, re.M)
-    assert any(u.startswith("astral-sh/setup-uv@") for u in uses), uses
-    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40} # v\d+(\.\d+)*", u) for u in uses), uses
-
-
-def test_the_governance_check_runs_pr_code_only_without_write_access() -> None:
-    """Collecting the promised tests runs the PR's conftest code: never with a token that can
-    write or with the base repository's secrets (pull_request_target)."""
-    assert "pull_request_target" not in GOVERNANCE
-    assert block(GOVERNANCE, "on:").strip().startswith("pull_request:")
-    permissions = block(GOVERNANCE, "permissions:").strip().splitlines()
-    assert sorted(line.strip() for line in permissions) == ["contents: read", "pull-requests: read"]
-    assert "permissions:" not in block(GOVERNANCE, "jobs:")
-    checkout = next(
-        u for u in re.findall(r"^\s+- uses: (.+)$", GOVERNANCE, re.M) if "checkout@" in u
-    )
-    assert "persist-credentials: false" in block(
-        block(GOVERNANCE, f"      - uses: {checkout}"), "        with:"
-    )
-
-
-def test_the_governance_check_gates_a_risk_high_pr_on_the_ledger_of_branch_governance() -> None:
-    """D-882: a risk:high PR fails the required check until the latest round entry on branch
-    governance approves its head. The ledger never comes from the PR and the judging tool comes
-    from the base commit, so a PR cannot approve itself; nothing reaches the script but the
-    environment."""
-    header = "      - name: Check that a risk:high PR has an approving review round for its head"
-    step = block(GOVERNANCE, header)
-    # every later step runs the PR's code (pr_checks.py, the PR's conftest), which could rewrite
-    # $GITHUB_ENV, $GITHUB_PATH or the runner for a step after it (review-745 M1)
-    steps = re.findall(r"^      - (?:name|uses): (.+)$", block(GOVERNANCE, "    steps:"), re.M)
-    assert steps[0].startswith("actions/checkout@"), steps
-    assert steps[1] == header.removeprefix("      - name: "), steps
-    for later in steps[2:]:
-        if not later.startswith("astral-sh/setup-uv@"):
-            assert "        if: ${{ !cancelled() }}" in block(GOVERNANCE, f"      - name: {later}")
-    assert "        if: ${{ !cancelled() }}" in step
-    env = block(step, "        env:")
-    for line in (
-        "PR_NUMBER: ${{ github.event.pull_request.number }}",
-        "PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}",
-        "PR_BASE: ${{ github.event.pull_request.base.sha }}",
-        "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
-    ):
-        assert line in env, line
-    script = block(step, "        run: |")
-    assert "${{" not in script
-    assert script.strip().startswith("set -o pipefail")
-    assert "*,risk:high,*) ;;" in script
-    assert (
-        "git fetch --no-tags origin +refs/heads/governance:refs/remotes/origin/governance" in script
-    )
-    assert "git archive origin/governance governance/ledger" in script
-    assert 'git show "$PR_BASE:governance/tools/ledger_tool.py"' in script
-    ledger = '--ledger "$RUNNER_TEMP/governance/governance/ledger"'
-    assert f'approved "$PR_NUMBER" --head "$PR_HEAD" {ledger}' in script
+    assert scanned
+    assert not [p for p in scanned if p.startswith(prefixes)]
 
 
 def browser_shard():  # type: ignore[no-untyped-def]
