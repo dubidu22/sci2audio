@@ -28,6 +28,7 @@ import hashlib
 import json
 import math
 import statistics
+import threading
 import time
 import unicodedata
 from collections.abc import Collection, Iterable, Sequence
@@ -72,6 +73,10 @@ POSITION = "position.json"  # where the person stopped listening (#153)
 POSITION_FORMAT = "sci2audio-web-position"
 POSITION_VERSION = 1
 POSITION_LIMIT = 4096  # bytes: a record is about 150; a larger file is not ours
+# `write_texts` writes a file under one temporary name, so two saves at once would rename
+# away each other's file (#763): saves take turns and the later one wins. A save is about
+# 150 bytes, so the wait is short.
+_POSITION_SAVE = threading.Lock()
 
 
 class PlayerError(Exception):
@@ -284,7 +289,7 @@ def _bounds(path: str, version: tuple[int, int, int]) -> Bounds:
 
 def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
     """Keep where the person stopped (atomically: a failed write leaves the old record).
-    Raises OSError."""
+    Saves at once take turns, the later one wins (#763). Raises OSError."""
     data: dict[str, Any] = {
         "format": POSITION_FORMAT,
         "version": POSITION_VERSION,
@@ -295,7 +300,8 @@ def write_position(work: Path, document_id: str, stamp: str, position: Position)
     }
     if position.index is not None and position.within is not None:
         data.update(index=position.index, within=position.within)
-    write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+    with _POSITION_SAVE:
+        write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
 
 
 def remove_position(work: Path) -> None:

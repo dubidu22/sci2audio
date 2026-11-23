@@ -150,3 +150,39 @@ def test_the_offer_waits_for_the_script_before_it_can_be_pressed(
     held[0].continue_()
     expect(page.locator("#resume-continue")).to_be_enabled()
     expect(page.locator("#resume-start")).to_be_enabled()
+
+
+def test_the_end_of_the_audio_sends_one_save(signed_in: Page, live: Live) -> None:
+    """#763: `pause` and `ended` both kept the place when the audio ended, and the two
+    requests at once could fail on the server. Now the same place is sent once."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    saves: list[str] = []
+    page.on(
+        "request",
+        lambda request: (
+            saves.append(request.post_data or "")
+            if request.method == "POST" and request.url.endswith(f"/{document}/position")
+            else None
+        ),
+    )
+    answers: list[int] = []
+    page.on(
+        "response",
+        lambda response: (
+            answers.append(response.status)
+            if response.request.method == "POST" and response.url.endswith(f"/{document}/position")
+            else None
+        ),
+    )
+    page.locator(f"#{chunk_id(page, 'We measured it twice.')}").click()  # the last chapter
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.evaluate(
+        "() => { const a = document.getElementById('audio'); a.currentTime = a.duration - 0.3; }"
+    )
+    page.wait_for_function("() => document.getElementById('audio').ended")
+    page.wait_for_timeout(500)  # a second save, if there were one, is sent by now
+    assert saves
+    assert len(saves) == len(set(saves)), saves  # no place was sent twice
+    assert json.loads(saves[-1])["chapter"] == 1
+    assert 503 not in answers, answers  # no save failed because of another
