@@ -45,3 +45,27 @@ The batch audit (critical PRs ran), one KB decision-log PR for D-891 onward, the
 | B | impl-744 | #744 | requested 08:56Z |
 
 Outside the batch: #751 (Colin's ruleset 1.14.0) merged c63fc76 after 3 rounds (D-896); main CI 45155227469 green. Slot B item 2 may now start once #744 is done.
+
+## Batch report (coordinator, 2026-11-23T19:42Z)
+
+Batch 005 is finished; work pauses (D-894, D-915).
+
+| PR | Issue | Squash | Rounds | Critical |
+|---|---|---|---|---|
+| #754 | #723 (PR A, output) | f1a9c1f | 2 | yes |
+| #761 | #723 (PR B, app) | 9f622af | 2 | yes |
+| #753 | #744 | 8965914 | 1 | no |
+| #760 | #756 #757 #758 #759, ruleset 1.15.0 | e3a328e | 1 | yes |
+| #764 | #724 | eab9fb2 | 1 | yes |
+| #762 | #725/#726 PR 1 (output) | 51dd21d | 2 | yes |
+| #765 | #725/#726 PR 2 (app, cli) | ebd6e40 | 2 | yes |
+| #768 | #725 (web) | 1fbff7c | 2 | no |
+| #769 | #726 (web) | see rounds/pr769-round2.yaml | 2 | no |
+| #751 (outside) | #750, ruleset 1.14.0 | c63fc76 | 3 | yes |
+
+- Main CI green on all three systems after every merge; 0 of 41 merged PRs reverted.
+- Deferred: #765 S1 -> #767 (planned). Follow-ups filed: #755 (Later), #766, #767, #772 (v1.5).
+- Audit (plans/audit-batch-005.md): 0 blocking, 2 should-fix (D-913).
+- Decision log: #771 (D-891 to D-912). D-913 onward wait in pending-decisions.md.
+- Repeated finding kinds (ledger_tool.py stats): missing-test regressed after #765 and #768 fixes (next step in D-915); vacuous-test fixed by the shared output_helpers (#762, holding).
+- v1.5 open: #766 (bug), #767, #772. No release cut.

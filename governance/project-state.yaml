@@ -1,11 +1,11 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-23T10:33Z   # clock time from date -u (D-856); ruleset 1.14.0 on main (#751 c63fc76, D-896); batch 005 running (D-893), stop after it (D-894)
+updated: 2026-11-23T19:42Z   # clock time from date -u (D-856); ruleset 1.15.0 on main (#760 e3a328e); paused after batch 005 (D-915)
 active_now:
-  autonomy_horizon: "until batch 005 is finished, then pause"   # Colin "stop working after this batch is finished." 2026-11-23T09:00:47Z (D-894); before: "until Colin asks to stop", ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
+  autonomy_horizon: "reached: batch 005 finished (D-894, D-915); next work waits for Colin"
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
-  paused: false                                      # Colin "continue" 2026-11-23T08:27Z in the claude.ai project (CMD-06, D-889); paused 07:33Z to 08:27Z for the move (CMD-05, D-888)
+  paused: true                                       # batch 005 finished 2026-11-23T19:40Z; Colin "stop working after this batch is finished." 09:00:47Z (D-894, D-915); resume with "continue" (CMD-06)
   pause_exceptions: []
   hosting: "claude.ai project sci2audio-v1.4+ (D-889): threads are opened by the project's channel session on request; no Claude Code dispatcher or subagents"
   slow_down: false
@@ -13,11 +13,9 @@ active_now:
   watchdog_interval_minutes: 120                     # frugal profile, ruleset 1.9.0 (D-871); was 60 (D-702h)
   milestones_in_progress: ["v1.5 Listen while generating"]   # v1.4 has no open Issue since 23 Nov (batch 004 done, #731 closed D-892); remainder after v1.4.1 was batch 4 (D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  current_batch: plans/batch-005.md                  # composed 2026-11-23T08:56Z (D-893); the coordinator writes it while no dispatcher runs (D-889)
+  current_batch: none   # last: plans/batch-005.md, finished (D-915);                  # composed 2026-11-23T08:56Z (D-893); the coordinator writes it while no dispatcher runs (D-889)
   dispatcher: "none since the move (D-889); dispatcher-b004-3 stopped 07:33Z (D-888). The coordinator thread asks the project for each worker thread; batch-004.md handover lists the open items"
-  lanes_active:                                      # batch 5, two slots (frugal); per-slot detail is in the batch file, not here
-    - "slot A: #723 LW-01 (critical, plan first), then #725 #726"
-    - "slot B: #744, then the infra check PR after #751 (D-891, D-892), then #724"
+  lanes_active: []
   lanes_waiting: []
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_markers.py::test_the_undo_ends_after_sixty_seconds_and_with_the_next_marker[webkit]: first failure 2026-11-23T16:35Z on #765 adeba28 (report-only WebKit shard, run 45216903017, 'Locator expected to have attribute false'); #765 changes no web code, passed on 9e160c0; a second failure -> same-day quarantine with Issue"
