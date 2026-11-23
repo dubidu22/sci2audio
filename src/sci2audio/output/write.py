@@ -21,12 +21,21 @@ import os
 import sys
 import tempfile
 from collections.abc import Callable, Iterator, Sequence
+from itertools import pairwise
 from pathlib import Path
 
 from sci2audio import __version__
 from sci2audio.output import names, readalong, subtitles
 from sci2audio.output.ffmpeg import LOCAL_ONLY, Ffmpeg, find_ffmpeg
-from sci2audio.output.model import BookInfo, Chapter, OutputSettings, Pause, Spoken, Written
+from sci2audio.output.model import (
+    BookInfo,
+    BookKind,
+    Chapter,
+    OutputSettings,
+    Pause,
+    Spoken,
+    Written,
+)
 from sci2audio.output.timeline import ChapterRange, Timeline, check_chapters, plan_timeline
 from sci2audio.output.wav import (
     ChunkAudio,
@@ -138,7 +147,12 @@ def write_audiobook(
 
 
 def audiobook_targets(
-    out_folder: Path, title: str, chapter_titles: Sequence[str], settings: OutputSettings
+    out_folder: Path,
+    title: str,
+    chapter_titles: Sequence[str],
+    settings: OutputSettings,
+    numbers: Sequence[int] | None = None,
+    count: int | None = None,
 ) -> Written:
     """The files `write_audiobook` writes into `out_folder` for this book and these chapters:
     the one place their names are made, so every check before writing and every record sees
@@ -148,14 +162,16 @@ def audiobook_targets(
     old characters (`names.retried`): the book's name, tried on its read-along file, and each
     chapter's title, tried on its MP3. A retried name is checked like any other: an existing
     file of that name is replaced only with `overwrite`. In a folder that does not exist yet
-    no name is tried (nothing can be there); `write_audiobook` makes the folder first."""
-    base = names.book_name(title)
-    if names.refused(out_folder, f"{base}.readalong.json"):
-        base = names.retried(title, "audiobook")
-    count = len(chapter_titles)
+    no name is tried (nothing can be there); `write_audiobook` makes the folder first.
+
+    `numbers` are the chapters' numbers in the book and `count` the book's chapter count
+    (#726): the name holds the number, padded to the count, so a chapter keeps its file's
+    name whichever other chapters are written. Left out, the chapters are 1 to n of n."""
+    base = _book_base(out_folder, title)
+    numbers, count = chapter_numbers(len(chapter_titles), numbers, count)
     mp3s: list[Path] = []
     if settings.mp3:
-        for number, chapter in enumerate(chapter_titles, start=1):
+        for number, chapter in zip(numbers, chapter_titles, strict=True):
             name = names.chapter_file(base, number, count, chapter)
             if names.refused(out_folder, name):
                 name = names.chapter_file(base, number, count, names.older(chapter))
@@ -172,6 +188,52 @@ def audiobook_targets(
         out_folder / f"{base}.readalong.json",
         tuple(out_folder / name for name in subtitle_files),
     )
+
+
+def chapter_numbers(
+    chapters: int, numbers: Sequence[int] | None, count: int | None
+) -> tuple[tuple[int, ...], int]:
+    """The book numbers of `chapters` chapters and the book's chapter count: 1 to n of n
+    when left out. Raises ValueError unless there is one number per chapter, the numbers
+    increase and each lies from 1 to the count."""
+    if numbers is None:
+        numbers = range(1, chapters + 1)
+    numbers = tuple(numbers)
+    if count is None:
+        count = numbers[-1] if numbers else chapters
+    if len(numbers) != chapters:
+        raise ValueError(f"one number per chapter: {len(numbers)} numbers, {chapters} chapters")
+    if any(b <= a for a, b in pairwise(numbers)):
+        raise ValueError(f"chapter numbers must be increasing, got {list(numbers)}")
+    if numbers and not (numbers[0] >= 1 and numbers[-1] <= count):
+        raise ValueError(f"chapter numbers run from 1 to {count}, got {list(numbers)}")
+    return numbers, count
+
+
+def book_file_name(out_folder: Path, title: str, kind: BookKind, *, partial: bool = False) -> Path:
+    """The file of the whole book (#725) in `out_folder`: `<book>.m4b` or `<book>.mp3`,
+    `<book> (partial).<kind>` when it holds only some of the chapters asked for. The
+    book's name is the one `audiobook_targets` uses (retried the same way, #493), so the
+    M4B is the one a job writes; `<book>.mp3` cannot meet a chapter's `<book> - 01 ….mp3`."""
+    base = _book_base(out_folder, title)
+    label = " (partial)" if partial else ""
+    return out_folder / f"{base}{label}.{kind.value}"
+
+
+def book_subtitles(target: Path) -> tuple[Path, Path]:
+    """The `.srt` and `.vtt` written next to a book M4B when the settings ask for subtitles:
+    named like it, as `names.subtitle_files` names the M4B's."""
+    stem = target.name.removesuffix(target.suffix)
+    return tuple(  # type: ignore[return-value]
+        target.with_name(f"{stem}{suffix}") for suffix in names.SUBTITLE_SUFFIXES
+    )
+
+
+def _book_base(out_folder: Path, title: str) -> str:
+    base = names.book_name(title)
+    if names.refused(out_folder, f"{base}.readalong.json"):
+        base = names.retried(title, "audiobook")
+    return base
 
 
 def _write_subtitles(
@@ -367,6 +429,30 @@ def _m4b_args(
     args += ["-c:a", "aac", "-b:a", settings.aac_bitrate]
     args += ["-metadata:s:a:0", f"language={_language(book)}", "-movflags", "+faststart"]
     return [*args, "-f", "ipod", "-y", str(partial)]
+
+
+def _book_mp3_args(
+    timeline: Timeline,
+    book: BookInfo,
+    settings: OutputSettings,
+    cover: Path | None,
+    meta: Path,
+    partial: Path,
+) -> list[str]:
+    """The whole book as one MP3: the M4B's chapters from the same ffmetadata file, which
+    ffmpeg's MP3 muxer writes as ID3 `CHAP` frames and a `CTOC` (#725), and the tags and
+    cover a chapter MP3 carries, the book's title in place of the chapter's and no track."""
+    args = [*_pcm_input(timeline), *LOCAL_ONLY, "-f", "ffmetadata", "-i", str(meta)]
+    if cover is not None:
+        args += [*LOCAL_ONLY, "-i", str(cover)]
+    args += ["-map", "0:a"]
+    if cover is not None:
+        args += ["-map", "2:v", "-c:v", "copy", "-disposition:v:0", "attached_pic"]
+        args += ["-metadata:s:v", "title=Cover", "-metadata:s:v", "comment=Cover (front)"]
+    args += ["-map_metadata", "1", "-map_chapters", "1"]
+    args += ["-c:a", "libmp3lame", "-b:a", settings.mp3_bitrate, "-id3v2_version", "3"]
+    args += _metadata_args({"language": _language(book)})
+    return [*args, "-f", "mp3", "-y", str(partial)]
 
 
 def _ffmetadata(timeline: Timeline, book: BookInfo) -> str:

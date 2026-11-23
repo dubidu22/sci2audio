@@ -145,3 +145,11 @@ class Written:
     mp3s: tuple[Path, ...]
     readalong: Path
     subtitles: tuple[Path, ...] = ()  # per chapter .srt and .vtt, then the book's
+
+
+class BookKind(StrEnum):
+    """The kind of one file holding the whole book (#725): an M4B with chapter marks, or
+    an MP3 with ID3 chapter frames for players that do not read M4B."""
+
+    M4B = "m4b"
+    MP3 = "mp3"
