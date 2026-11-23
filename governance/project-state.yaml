@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-23T08:30Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882); resumed in the claude.ai project (D-889)
+updated: 2026-11-23T08:57Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882); batch 005 composed (D-893)
 active_now:
   autonomy_horizon: "until Colin asks to stop"       # ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -11,15 +11,14 @@ active_now:
   slow_down: false
   thread_freeze: false                               # lifted by Colin "continue" 2026-11-22T15:58Z (CMD-06, D-875), as planned for 17:00 Berlin (D-873); frozen 2026-11-20T23:08Z to 2026-11-22T15:58Z: Colin 2026-11-20T23:08Z: "please only finish what has been started" (CMD-07; Fable usage at 95%): no new threads, no new batches or audits; running PRs (#715, web tests, release fix #716 incl. v1.4.1) finish; coordinator keeps its own activity minimal (D-866)                               # lifted by Colin "continue working on multiple lanes..." 18 Nov 13:06:43Z msg:cmsg_011gr2YyZJypGaV6NbzgSXQE5cwtWasr7uD9azqtazxBfd (D-741); frozen 17 Nov 11:15Z to 18 Nov 13:06Z (D-736)
   watchdog_interval_minutes: 120                     # frugal profile, ruleset 1.9.0 (D-871); was 60 (D-702h)
-  milestones_in_progress: [v1.4]   # remainder after v1.4.1 (batch 4, D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
+  milestones_in_progress: ["v1.5 Listen while generating"]   # v1.4 has no open Issue since 23 Nov (batch 004 done, #731 closed D-892); remainder after v1.4.1 was batch 4 (D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
-  current_batch: plans/batch-004.md                  # composed 2026-11-22T16:05Z (D-876); run by the dispatcher, which writes that file from now on
+  current_batch: plans/batch-005.md                  # composed 2026-11-23T08:56Z (D-893); the coordinator writes it while no dispatcher runs (D-889)
   dispatcher: "none since the move (D-889); dispatcher-b004-3 stopped 07:33Z (D-888). The coordinator thread asks the project for each worker thread; batch-004.md handover lists the open items"
-  lanes_active:                                      # batch 4, two slots (frugal); per-slot detail is in the batch file, not here
-    - "slot A, app/release (lane:infra lock): #709 #710 #711 + brittle-test check (ledger 'fixed' came with 1.10.0, D-877)"
-    - "slot B, one lane after another: layout #679, then voices #663, then docs D-874, then #720 (lane:web)"
-  lanes_waiting:                                     # batch 5
-    - "v1.5 Listen while generating (milestone 11, D-870): #723 LW-01 critical first; #724 #725 #726 depend on it"
+  lanes_active:                                      # batch 5, two slots (frugal); per-slot detail is in the batch file, not here
+    - "slot A: #723 LW-01 (critical, plan first), then #725 #726"
+    - "slot B: #744, then the infra check PR after #751 (D-891, D-892), then #724"
+  lanes_waiting: []
   flaky_watch:                                       # D-374, D-702f: second failure without code cause -> same-day quarantine with Issue
     - "tests/browser/test_voice_cards.py::test_a_sample_stopped_while_it_is_made_never_plays[firefox]: first failure 22:22Z on #712 (report-only Firefox shard; comment-only PR, no code cause); a second failure -> same-day quarantine with Issue (D-374)"
     - "tests/browser/test_flow.py::test_resume_of_a_paused_replace_never_asks_to_replace_again[firefox]: failed 20 Nov on PR #689 and again on #696 51daacd (report-only Firefox shard, hold.reached.wait(30) timed out, no code cause) -> quarantined for Firefox in #698 (merged 9066c3d, Issue #697); 40 isolated runs each (D-682): Chromium 40/40 pass, Firefox 38/40 (2x the same wait(30) assertion), so it reproduces at ~1 in 20 on Firefox only, cause unknown, quarantine stays, Issue open"

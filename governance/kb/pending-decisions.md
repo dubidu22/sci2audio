@@ -33,3 +33,7 @@ Batch 004 audit (`plans/audit-batch-004.md`, 3cd4a3b): 0 blocking, 3 should-fix,
 - From now on the coordinator asks no advisor thread before a decision it puts to Colin.
 - The PREF-01 text is removed by the next ruleset PR after #751 (META-01, batch 005, slot A), not inside #751, which is under review.
 - With #731 closed, milestone v1.4 has no open Issue.
+
+## D-893 (2026-11-23, coordinator)
+
+Batch 004 is done (v1.4 has no open Issue). Batch 005 is composed as `plans/batch-005.md`. Slot A is #723 (critical, plan first), then #725 and #726. Slot B is #744, then the infra check PR (D-891 F1, F2 and narrating-comment, plus D-892's PREF-01 removal) once #751 has merged, then #724. #723 to #726 all carry acceptance criteria (PLAN-04). No dispatcher runs, so the coordinator asks the project for each thread (D-889).
