@@ -19,7 +19,7 @@ from sci2audio.app import JobSettings, run_audio_job
 from sci2audio.app import audio as audio_module
 from sci2audio.app import files as files_module
 from sci2audio.extraction import Cover
-from sci2audio.output import find_ffmpeg
+from sci2audio.output import OutputSettings, find_ffmpeg
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 TIME_MACHINE = CORPUS / "epub" / "wells-the-time-machine.epub"
@@ -49,7 +49,14 @@ def small_pdf(folder: Path) -> Path:
 def run(source: Path, folder: Path, overwrite: bool = False):  # type: ignore[no-untyped-def]
     settings = JobSettings(output_folder=folder / "out")
     voice = FakeVoice().source()
-    return run_audio_job(source, settings, folder / "work", voice=voice, overwrite=overwrite)
+    return run_audio_job(
+        source,
+        settings,
+        folder / "work",
+        voice=voice,
+        overwrite=overwrite,
+        output_settings=OutputSettings(),  # the cover goes into the M4B too
+    )
 
 
 def covers(folder: Path) -> list[str]:
@@ -117,7 +124,11 @@ def test_a_damaged_cover_is_dropped_before_any_speech(tmp_path: Path, image: byt
 
     settings = JobSettings(output_folder=tmp_path / "out")
     job = run_audio_job(
-        small_epub(tmp_path, data), settings, tmp_path / "work", voice=FakeVoice(watch).source()
+        small_epub(tmp_path, data),
+        settings,
+        tmp_path / "work",
+        voice=FakeVoice(watch).source(),
+        output_settings=OutputSettings(),
     )
     assert seen
     assert seen[0] == []  # gone before the first chunk was spoken

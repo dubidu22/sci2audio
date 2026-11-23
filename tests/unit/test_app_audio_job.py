@@ -29,6 +29,7 @@ from sci2audio.app import (
 )
 from sci2audio.app import audio as audio_module
 from sci2audio.app.lock import work_folder_lock
+from sci2audio.app.playable import read_record
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.core.export import from_data
 from sci2audio.output import FfmpegNotFoundError, OutputSettings, read_readalong
@@ -72,6 +73,9 @@ def run(source: Path, folder: Path, voice: FakeVoice, **kwargs):  # type: ignore
     settings = kwargs.pop("settings", JobSettings())
     if settings.output_folder is None:
         settings = JobSettings(**{**settings.__dict__, "output_folder": folder / "out"})
+    # the whole book, as the command line writes it; the job's own default is
+    # test_app_audio_chapters.py's
+    kwargs.setdefault("output_settings", OutputSettings())
     return run_audio_job(source, settings, folder / "work", voice=voice.source(), **kwargs)
 
 
@@ -182,7 +186,10 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
         Phase.ENCODING,
         Phase.DONE,
     ]
-    events_spoken = [e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0]
+    # one event per chunk; the event that a chapter became playable (#723) is its own
+    events_spoken = [
+        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None
+    ]
     assert [e.chunks_done for e in events_spoken] == list(range(1, chunks() + 1))
     assert all(e.chunks_total == chunks() and e.chapters == 4 for e in events_spoken)
     done = [e.characters_done for e in events_spoken]
@@ -225,7 +232,9 @@ def test_progress_numbers_the_chapter_and_says_when_it_is_done(tmp_path: Path) -
         settings=JobSettings(chapters=(2, 0)),
         progress=events.append,
     )
-    spoken = [e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0]
+    spoken = [
+        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None
+    ]
     assert [e.chapter_number for e in spoken] == sorted(e.chapter_number for e in spoken)
     assert {e.chapter: e.chapter_number for e in spoken} == {2: 1, 0: 2}
     assert all(e.chapters == 2 for e in spoken)
@@ -326,7 +335,9 @@ def test_cancel_while_speaking_keeps_the_finished_chunks_for_a_rerun(tmp_path: P
     assert (len(rest.spoken), job.reused) == (chunks() - 5, 5)
 
 
-def test_cancel_while_encoding_leaves_no_audiobook_file(tmp_path: Path) -> None:
+def test_cancel_while_encoding_the_book_leaves_its_whole_chapters_and_no_m4b(
+    tmp_path: Path,
+) -> None:
     cancel = threading.Event()
 
     def progress(event: AudioProgress) -> None:
@@ -335,7 +346,11 @@ def test_cancel_while_encoding_leaves_no_audiobook_file(tmp_path: Path) -> None:
 
     with pytest.raises(JobCancelledError):
         run(PYMEDPHYS, tmp_path, FakeVoice(), cancel=cancel, progress=progress)
-    assert outputs(tmp_path) == []  # no partial file, no target
+    # every chapter was playable before the M4B was begun (#723); no partial file, no M4B
+    names = outputs(tmp_path)
+    assert [n for n in names if n.endswith(".mp3")]
+    assert not [n for n in names if ".m4b" in n]
+    assert not [n for n in names if n.endswith(".partial")]
     job = run(PYMEDPHYS, tmp_path, FakeVoice())
     assert job.reused == chunks()
 
@@ -556,7 +571,11 @@ def test_a_failed_run_with_subtitles_leaves_nothing_in_the_way_of_a_rerun(
     monkeypatch.setattr(Path, "write_text", full)
     with pytest.raises(JobError):
         run(source, tmp_path, FakeVoice(), settings=JobSettings(subtitles=True))
-    assert outputs(tmp_path) == []
+    # the chapter's MP3 and subtitles were in place before the read-along file failed
+    # (#723): the record names them, so they are the rerun's own, not in its way
+    record = read_record(tmp_path / "work")
+    assert record is not None
+    assert record.owned(tmp_path / "out") == set(outputs(tmp_path))
     monkeypatch.setattr(Path, "write_text", original)
     job = run(source, tmp_path, FakeVoice(), settings=JobSettings(subtitles=True))
     assert len(job.written.subtitles) == 4

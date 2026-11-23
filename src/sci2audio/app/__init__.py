@@ -48,6 +48,7 @@ from sci2audio.app.job import (
     run_script_job,
     script_files,
 )
+from sci2audio.app.playable import PlayableChapter, playable_chapters
 from sci2audio.app.report import (
     Report,
     build_report,
@@ -79,6 +80,7 @@ __all__ = [
     "OutputExistsError",
     "Phase",
     "PlannedChunk",
+    "PlayableChapter",
     "Report",
     "ScriptFiles",
     "ScriptJob",
@@ -104,6 +106,7 @@ __all__ = [
     "language_warning",
     "load_settings",
     "plan_audio",
+    "playable_chapters",
     "prepare_script",
     "report_data",
     "report_markdown",

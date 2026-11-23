@@ -289,7 +289,7 @@ def test_the_card_of_a_job_paused_before_its_first_sentence(tmp_path: Path) -> N
 
 def held_encoding(monkeypatch: pytest.MonkeyPatch, gate: threading.Event | None) -> None:
     """Writing the files waits for `gate`, or fails at once when there is none."""
-    encode = audio._encode
+    encode = audio._Chapters.finish  # the book's own files, after every chapter's (#723)
 
     def writing(*args: Any, **kwargs: Any) -> Any:
         if gate is None:
@@ -297,7 +297,7 @@ def held_encoding(monkeypatch: pytest.MonkeyPatch, gate: threading.Event | None)
         assert gate.wait(30)
         return encode(*args, **kwargs)
 
-    monkeypatch.setattr(audio, "_encode", writing)
+    monkeypatch.setattr(audio._Chapters, "finish", writing)
 
 
 def test_the_card_of_a_job_that_failed_while_writing_the_files(

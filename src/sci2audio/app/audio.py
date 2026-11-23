@@ -1,14 +1,21 @@
 """The audio job: a file in, the audiobook out (#71, WI-02, WI-04, VA-04; closes #10).
 
 file → script preparation (as the script job, in memory) → the voice speaks every
-utterance of the chosen chapters into the working folder's chunk cache → output writes one
-MP3 per chapter, the M4B and the read-along file → the job's records.
+utterance of the chosen chapters into the working folder's chunk cache → output writes each
+chapter's MP3 as soon as the chapter is spoken (#723), then the M4B when asked for and the
+final read-along file → the job's records.
 
 - Writes only the audiobook files into the output folder (D-154); the script and the
   report are the script job's.
 - Resume (D-155, D-156): a chunk is cached under a key of its text, voice, speed and engine
   version; running the job again on the same working folder speaks only what is missing.
-  All chapters are encoded again at the end (seconds, against minutes of speech).
+- Each chapter is playable as soon as it is spoken (#723, LW-01, `playable.py`): its files
+  are put in place before the next chapter is spoken, recorded in `chapters.json` (named
+  there before each rename) and told to the listener (`AudioProgress.ready`). A rerun or
+  resume under the same settings takes its own whole chapters as they are (same
+  fingerprint, same size and SHA-256), and replaces its own unfinished files without
+  `overwrite`; a finished audiobook, or one made under other settings, still needs it.
+  The job's own default writes no M4B (`JOB_OUTPUT`); the CLI and the web pass theirs.
 - Pauses (D-116, D-157): the app gives every chunk one `Pause` kind; output turns kinds
   into seconds and opens every chapter with the chapter pause.
 - Progress and the time estimate (D-159, D-380 to D-382, D-384, `estimate.py`) are
@@ -28,10 +35,11 @@ MP3 per chapter, the M4B and the read-along file → the job's records.
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import threading
 import time
 import wave
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
@@ -61,6 +69,14 @@ from sci2audio.app.job import (
     settings_data,
 )
 from sci2audio.app.lock import work_folder_lock
+from sci2audio.app.playable import (
+    ChapterRecord,
+    PlayableChapter,
+    RecordedFile,
+    read_record,
+    settings_key,
+    write_record,
+)
 from sci2audio.app.readability import stop_message, unreadable
 from sci2audio.app.report import Pages
 from sci2audio.app.script import ScriptResult, prepare_script
@@ -70,6 +86,7 @@ from sci2audio.core import AudioChunk, BlockKind, Document, Span
 from sci2audio.core.export import to_data
 from sci2audio.output import (
     BookInfo,
+    BookWriter,
     Chapter,
     ChunkAudioError,
     Ffmpeg,
@@ -80,9 +97,9 @@ from sci2audio.output import (
     Spoken,
     Written,
     audiobook_targets,
+    chapter_fingerprint,
     find_ffmpeg,
     read_readalong,
-    write_audiobook,
 )
 from sci2audio.output.ffmpeg import LOCAL_ONLY
 from sci2audio.textprep import BUILT_IN_STEPS, DEFAULT_MAX_CHARS, TextStep, Utterance
@@ -102,6 +119,9 @@ COVER_NAMES = ("cover.jpg", "cover.png")  # the cover in the working folder (D-3
 ESTIMATE_MIN_CHARACTERS = 1000  # measured before the first estimate (D-159, D-382)
 WARM_UP_CALLS = 4  # the voice's first calls are slower; they are not measured (D-381)
 FAILURES_IN_A_ROW = 5  # the voice is taken as broken after this many (D-162)
+# what the job writes unless told otherwise (#723): each chapter's MP3 as soon as it is
+# spoken, and the read-along file; the whole book is built on request (#725)
+JOB_OUTPUT = OutputSettings(m4b=False)
 
 
 @dataclass(frozen=True)
@@ -165,6 +185,11 @@ class AudioProgress:
     seconds_left: float | None = None
     page: int = 0  # reading a PDF: the page its reader started, counted from 1 (#343)
     pages: int = 0  # ... and the PDF's page count; 0 for other files and phases
+    # #723: the chapter whose files just became playable, on the event sent right after
+    # they are recorded (it repeats the chapter's last chunk event); and every playable
+    # chapter so far, as indices in the job's chapter list, in the job's order
+    ready: int | None = None
+    playable: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -336,26 +361,17 @@ def audiobook_files(
 # ---- running -------------------------------------------------------------------------
 
 
-_Identity = tuple[int, int, int, int]  # device, inode, size, modification time (ns)
-
-
 @dataclass(frozen=True)
 class _CancellableFfmpeg(Ffmpeg):
     """Runs the given ffmpeg, stopping the feed when the job is cancelled; output then
-    removes its partial file (D-119). Remembers the identity of every file ffmpeg finished
-    (device, inode, size and modification time, which the rename into place keeps), so a
-    failed run can tell its own files from anyone else's."""
+    removes its partial file (D-119)."""
 
     inner: Ffmpeg | None = None
     cancel: threading.Event | None = None
-    finished: list[_Identity] = field(default_factory=list)
 
     def run(self, args: Sequence[str], feed: Iterable[bytes] = ()) -> str:
         runner = self.inner or Ffmpeg(self.exe)
-        printed = runner.run(args, self._watched(feed))
-        with contextlib.suppress(OSError):  # the file it wrote is its last argument
-            self.finished.append(_identity(Path(args[-1])))
-        return printed
+        return runner.run(args, self._watched(feed))
 
     def _watched(self, feed: Iterable[bytes]) -> Iterator[bytes]:
         for piece in feed:
@@ -403,7 +419,9 @@ class _Speech:
             return None
         return self.estimate.seconds_left()
 
-    def progress(self, chunk: PlannedChunk, title: str, index: int) -> AudioProgress:
+    def progress(
+        self, chunk: PlannedChunk, title: str, index: int, playable: tuple[int, ...]
+    ) -> AudioProgress:
         """The progress after the chunk at `index` in the plan."""
         order = list(self.last_of_chapter)  # the chapters in the order their chunks come
         return AudioProgress(
@@ -420,6 +438,7 @@ class _Speech:
             characters_total=self.characters_total,
             characters_per_second=self.speed(),
             seconds_left=self.seconds_left(),
+            playable=playable,
         )
 
 
@@ -446,13 +465,15 @@ def run_audio_job(
     """Turn `source` into an audiobook in the output folder; see the module docstring.
 
     `work` is the job's own working folder (made if missing; it holds the chunk cache and
-    the records). Existing audiobook files are replaced only with `overwrite`, checked
-    before any speech. Raises JobError (or a subclass) when the job cannot go on;
-    JobCancelledError when `cancel` is set. Nothing half-written is left.
+    the records). Without `output_settings` the job writes the chapters' MP3s and the
+    read-along file, no M4B (`JOB_OUTPUT`). Existing audiobook files are replaced only with
+    `overwrite`, checked before any speech; the job's own files of an unfinished run are
+    reused or replaced without it (#723). Raises JobError (or a subclass) when the job
+    cannot go on; JobCancelledError when `cancel` is set. Only whole chapters are left.
     """
     tell: Callable[[AudioProgress], None] = progress or (lambda event: None)
     # the person's choice of subtitles is a job setting (D-606); output writes them
-    output_settings = replace(output_settings or OutputSettings(), subtitles=settings.subtitles)
+    output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
     if settings.voice and settings.voice not in voice.voices:
         raise JobError(f"there is no {voice.engine} voice {settings.voice!r}; choose another voice")
     check_readable(source)
@@ -492,17 +513,27 @@ def run_audio_job(
         if not plan.chunks:
             raise JobError("there is nothing to read in the chosen chapters")
         titles = {chapter.chapter.index: chapter.chapter.title for chapter in result.chapters}
-        book = book_info(document)
-        _check_targets(out_folder, book, plan, titles, output_settings, overwrite)
         try:
             run = _CancellableFfmpeg(
                 (ffmpeg or Ffmpeg(find_ffmpeg())).exe, inner=ffmpeg, cancel=cancel
             )
         except FfmpegNotFoundError as error:
             raise JobError(str(error)) from error
+        book = book_info(document)
         book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
+        book_plan = _BookPlan.of(plan, titles, book, output_settings)
+        key = settings_key(
+            {
+                "settings": settings_data(settings),
+                "voice": [voice.engine, voice.version_of(voice_id), voice_id],
+                "output": dataclasses.asdict(output_settings),
+                "book": [book.title, list(book.authors), book.language],
+            }
+        )
+        found_files = _check_targets(work, out_folder, book_plan, key, overwrite)
         _check_cancel(cancel)
 
+        chapters = _Chapters(work, out_folder, book_plan, key, found_files, run, overwrite, tell)
         speech = _speak(
             plan,
             work,
@@ -513,18 +544,20 @@ def run_audio_job(
             tell,
             cancel,
             clock,
+            chapters,
         )
-        chapters, spoken = assemble(plan, speech.durations, titles)
-        if not spoken:
+        if chapters.writer is None:
             raise JobError("the voice could not speak any of the chosen chapters")
 
-        tell(AudioProgress(Phase.ENCODING, chapters=len(chapters)))
-        _remove_old_records(work)
-        written = _encode(work, out_folder, chapters, spoken, book, output_settings, run, overwrite)
+        tell(
+            AudioProgress(Phase.ENCODING, chapters=len(chapters.added), playable=chapters.playable)
+        )
+        written = chapters.finish()
         skipped = _skipped(result, plan, speech)
         record = _record(result, settings, voice, voice_id, plan, speech, skipped, written, work)
         files = _write_records(work, result.document, record)
-        tell(AudioProgress(Phase.DONE, chapters=len(chapters)))
+        chapters.complete()
+        tell(AudioProgress(Phase.DONE, chapters=len(chapters.added), playable=chapters.playable))
         return AudioJob(
             result=result,
             written=written,
@@ -538,24 +571,260 @@ def run_audio_job(
         )
 
 
-def _check_targets(
-    out_folder: Path,
-    book: BookInfo,
-    plan: AudioPlan,
-    titles: dict[int, str],
-    settings: OutputSettings,
-    overwrite: bool,
-) -> None:
-    """Refuse, before any speech, to replace an existing audiobook without `overwrite`
-    (D-163; output checks again when it writes, D-119)."""
-    if overwrite:
-        return
-    chapters = list(dict.fromkeys(chunk.chapter for chunk in plan.chunks))
-    targets = audiobook_files(out_folder, book, [titles[c] for c in chapters], settings)
-    if existing := [path.name for path in targets if path.exists()]:
-        raise OutputExistsError(
-            f"these files exist already: {', '.join(existing)}; choose to replace them"
+@dataclass(frozen=True)
+class _BookPlan:
+    """The chapters the job is to speak, in document order, with their numbers among them
+    (counted from 1: the number in a chapter's file name and track tag) and their chunks."""
+
+    order: tuple[int, ...]  # job chapter indices
+    titles: dict[int, str]
+    chunks: dict[int, tuple[PlannedChunk, ...]]
+    book: BookInfo
+    settings: OutputSettings
+
+    @classmethod
+    def of(
+        cls, plan: AudioPlan, titles: dict[int, str], book: BookInfo, settings: OutputSettings
+    ) -> _BookPlan:
+        chunks: dict[int, list[PlannedChunk]] = {}
+        for chunk in plan.chunks:
+            chunks.setdefault(chunk.chapter, []).append(chunk)
+        return cls(
+            tuple(chunks),
+            titles,
+            {index: tuple(c) for index, c in chunks.items()},
+            book,
+            settings,
         )
+
+    def number(self, index: int) -> int:
+        return self.order.index(index) + 1
+
+    def planned_titles(self) -> list[str]:
+        return [self.titles[index] for index in self.order]
+
+    def targets(self, out_folder: Path) -> Written:
+        return audiobook_targets(out_folder, self.book.title, self.planned_titles(), self.settings)
+
+    def chapter_files(self, out_folder: Path, index: int) -> set[str]:
+        """The names of chapter `index`'s files: its MP3 and its subtitle pair."""
+        targets = self.targets(out_folder)
+        number = self.number(index)
+        if not targets.mp3s:
+            return set()
+        names = {targets.mp3s[number - 1].name}
+        if self.settings.subtitles:
+            names |= {p.name for p in targets.subtitles[2 * (number - 1) : 2 * number]}
+        return names
+
+    def spoken(self, work: Path, index: int, keys: Collection[str] | None) -> list[Spoken]:
+        """Chapter `index`'s spoken chunks, timed from their cached files; `keys` the chunks
+        with audio (None: every chunk, all of which must be cached)."""
+        chunks = self.chunks[index]
+        durations = {
+            c.key: _cached_duration(work / c.file) for c in chunks if keys is None or c.key in keys
+        }
+        _, spoken = assemble(AudioPlan(chunks, ()), durations, self.titles)
+        return spoken
+
+    def fingerprint(self, index: int, spoken: Sequence[Spoken]) -> str:
+        return chapter_fingerprint(
+            self.book,
+            self.titles[index],
+            self.number(index),
+            len(self.order),
+            spoken,
+            self.settings,
+        )
+
+
+@dataclass(frozen=True)
+class _Found:
+    """What the output folder holds of this job before it starts: the chapters whose files
+    it can take as they are, and the files that are its own to replace (#723)."""
+
+    reuse: dict[int, PlayableChapter]
+    keep: frozenset[str]
+    record: ChapterRecord | None
+
+
+def _check_targets(
+    work: Path, out_folder: Path, plan: _BookPlan, key: str, overwrite: bool
+) -> _Found:
+    """Refuse, before any speech, to replace an existing audiobook without `overwrite`
+    (D-163; output checks again when it writes, D-119). A file the working folder's
+    chapter record names, unchanged, from an unfinished run under the same settings is the
+    job's own (#723): a chapter whose files are all such and whose fingerprint is the same
+    is reused, any other such file is replaced."""
+    record = read_record(work)
+    same = record is not None and record.settings == key
+    owned = record.owned(out_folder) if record is not None and same else set()
+    if not overwrite:
+        if record is not None and record.complete:
+            owned = set()  # a finished audiobook is replaced only with overwrite (D-163)
+        targets = plan.targets(out_folder)
+        names = [*targets.mp3s, *([targets.m4b] if targets.m4b else []), *targets.subtitles]
+        names.append(targets.readalong)
+        if existing := [p.name for p in names if p.exists() and p.name not in owned]:
+            raise OutputExistsError(
+                f"these files exist already: {', '.join(existing)}; choose to replace them"
+            )
+    reuse: dict[int, PlayableChapter] = {}
+    if record is not None and same:
+        for chapter in record.chapters:
+            if chapter.index not in plan.order or chapter.number != plan.number(chapter.index):
+                continue
+            files = {f.name for f in chapter.files}
+            if files != plan.chapter_files(out_folder, chapter.index) or not files <= owned:
+                continue
+            try:
+                spoken = plan.spoken(work, chapter.index, None)
+            except (OSError, EOFError, wave.Error):
+                continue  # a chunk is missing from the cache: the chapter is spoken again
+            if plan.fingerprint(chapter.index, spoken) == chapter.fingerprint:
+                reuse[chapter.index] = chapter
+    return _Found(reuse, frozenset(owned), record if same else None)
+
+
+class _Chapters:
+    """Writes each chapter's files as soon as its last chunk is spoken, and keeps the
+    chapter record (`playable.py`) one step ahead of the files (#723)."""
+
+    def __init__(
+        self,
+        work: Path,
+        out_folder: Path,
+        plan: _BookPlan,
+        key: str,
+        found: _Found,
+        ffmpeg: _CancellableFfmpeg,
+        overwrite: bool,
+        tell: Callable[[AudioProgress], None],
+    ) -> None:
+        self.work = work
+        self.out_folder = out_folder
+        self.plan = plan
+        self.found = found
+        self.ffmpeg = ffmpeg
+        self.overwrite = overwrite
+        self.tell = tell
+        self.record = ChapterRecord(False, key, plan.order)
+        self.writer: BookWriter | None = None
+        self.added: list[int] = []
+        self.rates: set[int] = set()
+        self.in_book = False  # writing the book's files (the M4B and its subtitles)
+
+    @property
+    def playable(self) -> tuple[int, ...]:
+        return tuple(c.index for c in self.record.chapters)
+
+    def done(self, index: int, keys: Collection[str], event: AudioProgress) -> None:
+        """Chapter `index` is spoken (`keys`: its chunks with audio): write its files, record
+        them and tell the listener."""
+        try:
+            spoken = self.plan.spoken(self.work, index, keys)
+        except (OSError, EOFError, wave.Error) as error:
+            raise JobError("a cached audio chunk became unreadable") from error
+        if not spoken:
+            return  # the voice failed on every sentence: the chapter gets no file (D-162)
+        self._check_rates(spoken)
+        number = self.plan.number(index)
+        fingerprint = self.plan.fingerprint(index, spoken)
+        reused = self.found.reuse.get(index)
+        written = reused is not None and reused.fingerprint == fingerprint
+        try:
+            writer = self._writer()
+            writer.add(number, spoken, written=written)
+        except Exception as error:
+            raise _encode_error(error, self.out_folder) from error
+        files = reused.files if written and reused is not None else self.record.pending
+        names = self.plan.chapter_files(self.out_folder, index)
+        chapter = PlayableChapter(
+            index,
+            self.plan.titles[index],
+            number,
+            fingerprint,
+            tuple(f for f in files if f.name in names),
+        )
+        self._save(self.record.with_chapter(chapter))
+        self.added.append(index)
+        self.tell(dataclasses.replace(event, ready=index, playable=self.playable))
+
+    def finish(self) -> Written:
+        """The M4B and the book's subtitles when asked for, and the final read-along file."""
+        assert self.writer is not None  # noqa: S101 (finish follows a chapter)
+        self.in_book = True
+        try:
+            return self.writer.finish()
+        except Exception as error:
+            raise _encode_error(error, self.out_folder) from error
+
+    def complete(self) -> None:
+        self._save(dataclasses.replace(self.record, complete=True))
+
+    def _writer(self) -> BookWriter:
+        if self.writer is None:
+            # the old records vouch for a finished audiobook (D-119): they go before the
+            # first file of this run is put in place
+            _remove_old_records(self.work)
+            base = self.record
+            if self.found.record is not None:  # an unfinished run's files stay ours
+                old = self.found.record
+                kept = [*old.book, *old.pending, *(f for c in old.chapters for f in c.files)]
+                for file in kept:
+                    if file.name in self.found.keep:
+                        base = base.with_pending(file)
+            self._save(base)
+            try:
+                self.out_folder.mkdir(parents=True, exist_ok=True)
+            except OSError as error:
+                raise _encode_error(error, self.out_folder) from error
+            self.writer = BookWriter(
+                self.work,
+                self.out_folder,
+                self.plan.book,
+                self.plan.planned_titles(),
+                self.plan.settings,
+                ffmpeg=self.ffmpeg,
+                overwrite=self.overwrite,
+                keep=[self.out_folder / name for name in self.found.keep],
+                vouch=self._vouch,
+            )
+        return self.writer
+
+    def _vouch(self, target: Path, size: int, sha256: str) -> None:
+        file = RecordedFile(target.name, size, sha256)
+        assert self.writer is not None  # noqa: S101 (output vouches while writing)
+        if self.in_book or target.name == self.writer.targets.readalong.name:
+            self._save(self.record.with_book_file(file))
+        else:
+            self._save(self.record.with_pending(file))
+
+    def _save(self, record: ChapterRecord) -> None:
+        try:
+            write_record(self.work, record)
+        except OSError as error:
+            raise JobError(
+                f"could not write the job's chapter record: {error.strerror or error}"
+            ) from error
+        self.record = record
+
+    def _check_rates(self, spoken: Sequence[Spoken]) -> None:
+        """All chunks at one sample rate (D-117). They are, unless the cache holds chunks
+        of an engine that changed its rate without changing its version; then cleaning
+        helps, and a plain rerun would only fail the same way."""
+        for file in dict.fromkeys(s.chunk.file for s in spoken):
+            try:
+                with wave.open(str(self.work / file), "rb") as audio:
+                    self.rates.add(audio.getframerate())
+            except (OSError, EOFError, wave.Error):
+                continue  # output names a missing or broken chunk itself
+        if len(self.rates) > 1:
+            raise JobError(
+                "the working folder holds audio at different sample rates "
+                f"({sorted(self.rates)} Hz); remove its chunks (clean the working folder) "
+                "and run the job again"
+            )
 
 
 def _speak(
@@ -568,8 +837,10 @@ def _speak(
     tell: Callable[[AudioProgress], None],
     cancel: threading.Event | None,
     clock: Callable[[], float],
+    chapters: _Chapters,
 ) -> _Speech:
-    """Speak every chunk not yet in the cache; the engine is made only if one is missing."""
+    """Speak every chunk not yet in the cache, and have each chapter written as soon as its
+    last chunk is done; the engine is made only if a chunk is missing."""
     try:
         remove_partials(work)
         needed: dict[str, int] = {}  # key -> characters, in order
@@ -608,7 +879,10 @@ def _speak(
             speech.chunks_done += 1
             if speech.first_chapter is not None and index == last_of_chapter[speech.first_chapter]:
                 speech.first_chapter_done = True
-            tell(speech.progress(chunk, titles[chunk.chapter], index))
+            event = speech.progress(chunk, titles[chunk.chapter], index, chapters.playable)
+            tell(event)
+            if event.chapter_done:
+                chapters.done(chunk.chapter, speech.durations.keys(), event)
     finally:
         if session is not None:
             session.dispose()
@@ -692,57 +966,6 @@ def _one(
         speech.estimate.measure(len(text), elapsed)
 
 
-def _encode(
-    work: Path,
-    out_folder: Path,
-    chapters: list[Chapter],
-    spoken: list[Spoken],
-    book: BookInfo,
-    settings: OutputSettings,
-    ffmpeg: _CancellableFfmpeg,
-    overwrite: bool,
-) -> Written:
-    """`write_audiobook`, all or nothing for the files that are new: if it fails or is
-    cancelled part-way (Ctrl-C included), every audiobook file this run put in place where
-    none was before is removed again, so no half set is left and a rerun without
-    `overwrite` is not refused. Only files ffmpeg wrote in this run are removed, never a
-    file that appeared from elsewhere. With `overwrite`, files this run already replaced
-    cannot be restored: the old versions are gone (output removes the old read-along file
-    first, so it never vouches for a mixed set, D-119)."""
-    _check_rates(work, spoken)
-    try:
-        # made before the names, so a name the folder refuses is retried here as output
-        # retries it, and the files to take back on failure are the ones written (#493)
-        out_folder.mkdir(parents=True, exist_ok=True)
-    except OSError as error:
-        raise _encode_error(error, out_folder) from error
-    targets = audiobook_files(out_folder, book, [c.title for c in chapters], settings)
-    existed = {target for target in targets if target.exists()}
-    try:
-        return write_audiobook(
-            work, out_folder, chapters, spoken, book, settings, ffmpeg=ffmpeg, overwrite=overwrite
-        )
-    except BaseException as error:
-        _remove_new(targets, existed, ffmpeg.finished)
-        if isinstance(error, Exception):
-            raise _encode_error(error, out_folder) from error
-        raise
-
-
-def _remove_new(targets: list[Path], existed: set[Path], ours: list[_Identity]) -> None:
-    for target in targets:
-        if target in existed:
-            continue
-        with contextlib.suppress(OSError):
-            if _identity(target) in ours:
-                target.unlink()
-
-
-def _identity(path: Path) -> _Identity:
-    stat = path.stat()
-    return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
-
-
 def _encode_error(error: Exception, out_folder: Path) -> Exception:
     """The JobError a person can act on for an error while writing the audiobook."""
     if isinstance(error, JobError):
@@ -762,24 +985,6 @@ def _encode_error(error: Exception, out_folder: Path) -> Exception:
         where = Path(str(error.filename)).name if error.filename else "the audiobook"
         return JobError(f"could not write {where}: {error.strerror or error}")
     return error
-
-
-def _check_rates(work: Path, spoken: list[Spoken]) -> None:
-    """All chunks at one sample rate (D-117). They are, unless the cache holds chunks of an
-    engine that changed its rate without changing its version; then cleaning helps, and a
-    plain rerun would only fail the same way."""
-    rates = set()
-    for file in dict.fromkeys(s.chunk.file for s in spoken):
-        try:
-            with wave.open(str(work / file), "rb") as audio:
-                rates.add(audio.getframerate())
-        except (OSError, EOFError, wave.Error):
-            continue  # output names a missing or broken chunk itself
-    if len(rates) > 1:
-        raise JobError(
-            f"the working folder holds audio at different sample rates ({sorted(rates)} Hz); "
-            "remove its chunks (clean the working folder) and run the job again"
-        )
 
 
 def _skipped(

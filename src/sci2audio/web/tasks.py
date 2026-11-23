@@ -44,6 +44,7 @@ from sci2audio.app import (
     VoiceSource,
 )
 from sci2audio.app import UnsupportedFileError as AppUnsupportedFileError
+from sci2audio.output import OutputSettings
 from sci2audio.voices import (
     DownloadError,
     DownloadPlan,
@@ -163,6 +164,9 @@ def audio_work(
                 overwrite=overwrite,
                 progress=lambda event: job.report(audio_progress(event)),
                 cancel=job.cancel,
+                # the library's only whole-book file until it can build one on request
+                # (#725); the chapters are playable before it either way (#723)
+                output_settings=OutputSettings(),
             )
         except (JobCancelledError, OutputExistsError, JobBusyError):
             raise  # the engine is fine
