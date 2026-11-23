@@ -243,3 +243,9 @@ All work stops (CMD-05). Colin: "stop all processes we are moving back to the cl
   - Batch 004's open items, in order (handover section of `batch-004.md`): #749 review and merge; the backup tag `governance-before-d874` and the §3 governance merge (D-883); the batch audit; the KB decision-log PR for D-834 onward; the batch report.
   - Batch 005 (v1.5, #723 to #726) has not started.
   - No owner items are open.
+
+## D-889 (2026-11-23, owner)
+
+Work resumes in the claude.ai project "sci2audio-v1.4+" (CMD-06). Colin: "continue" (2026-11-23T08:27Z), the first message in the project.
+- `paused: false`. The coordinator now runs as a thread of that project. It cannot open threads itself; it asks the project's channel session for each worker thread (review, implementation, KB, audit) and passes the brief. This replaces the dispatcher subagents of D-881; no dispatcher runs until one is opened this way.
+- #749 is unchanged at head bdc8247 (checked 08:28Z). Next: its critical review round 1 from the top (Opus 5.5 high, a thread that did not write it), then the coordinator's go as `ledger/gos/pr-749.yaml`, the pinned squash merge, the D-883 backup tag and §3 governance merge. Then the batch audit, the KB decision-log PR for D-834 onward, and batch 005 (v1.5).
