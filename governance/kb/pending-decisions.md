@@ -162,3 +162,10 @@ Colin asked for batch 005 to go faster. On a decision card in the project chat (
 - impl-725c branches from #765's head and opens no PR while #765 is open.
 - After #765 merges, it merges main into its branch (no rebase or force-push) and follows any API change from #765's review.
 - PR 4 (#726) follows PR 3. review-b005 reviews both.
+
+## D-908 (2026-11-23, coordinator)
+
+Merge go for #765 (PR 2 of D-903, lane:app plus lane:cli, critical), pinned to adeba28.
+- Round 1 found 1 must-fix: another book's version-1 record in a shared work folder was refused before the book check. It also had 2 should-fix (`--keep-settings` without the book check, `_pair_current` untested). All three are fixed.
+- Round 2 approved with 0 must-fix. 1 should-fix is deferred to #767 (no test for re-reading the document when the kept language differs).
+- ci:full run 45216903017: tests on ubuntu, macOS and Windows are green. The report-only WebKit markers test failed once (flaky watch, D-374 not met).
