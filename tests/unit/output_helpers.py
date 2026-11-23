@@ -96,7 +96,7 @@ def quiet_edged_job(folder: Path) -> Job:
 def assert_joins_trim(job: Job) -> None:
     """Fail unless the job's clause joins leave out some of the voice's edge silence: a
     test that holds two ways of joining chunks to byte equality proves nothing about the
-    join on chunks with no quiet edges (#480; #754 M1, #762 B1)."""
+    join on chunks with no quiet edges (#480)."""
     audio = _trim_joins(_inspect_all(job.folder, job.spoken), job.chapters, job.spoken)
     assert any(chunk.kept < chunk.frames for chunk in audio), "no join trims anything"
 
