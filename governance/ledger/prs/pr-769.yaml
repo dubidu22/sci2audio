@@ -7,7 +7,7 @@ plan: plans/impl-725-plan.md
 critical: no
 compactions: 1
 fixes_kinds: ""
-handback: ""
+handback: "review"
 recommended: ""
-note: "PR 4 of the plan, closes #726 (LW-04, reopened for it, D-909). Built from #768's head, merged origin/main after #768 merged (no rebase; the remote branch was new, no force-push). Deviations accepted: D-909 (settings-changed as a failed job with `changes`, not a sync 409; positions keep chapter index and time inside it, old-stamp positions still read and mapped), D-910 (Generate uses keep_settings on both pages; #726 AC1 replaces #472's chapter-list rule). 12 API tests and 3 browser tests added; 3 existing tests changed with reasons in the PR body. Local: fast suite passes except the torch voice tests (sandbox), browser 210 passed + the 2 changed test_player tests re-run green."
+note: "PR 4 of the plan, closes #726 (LW-04, reopened for it, D-909). Built from #768's head, merged origin/main after #768 merged (no rebase; the remote branch was new, no force-push). Deviations accepted: D-909 (settings-changed as a failed job with `changes`, not a sync 409; positions keep chapter index and time inside it, old-stamp positions still read and mapped), D-910 (Generate uses keep_settings on both pages; #726 AC1 replaces #472's chapter-list rule). 12 API tests and 3 browser tests added; 3 existing tests changed with reasons in the PR body. Local: fast suite passes except the torch voice tests (sandbox), browser 210 passed + the 2 changed test_player tests re-run green. CI: governance check failed on the body (test node IDs under How it was tested), fixed by moving them to the promised-tests section and naming the browser test as the plan promised (cf6cace); test_clock_bounds refused a wait loop deadline without a reason, fixed with a clock-bound comment (c231646). All checks green on c231646, incl. Firefox, WebKit and ZAP; handed to review-b005."
 merged: ""
