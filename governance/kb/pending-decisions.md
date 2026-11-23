@@ -169,3 +169,12 @@ Merge go for #765 (PR 2 of D-903, lane:app plus lane:cli, critical), pinned to a
 - Round 1 found 1 must-fix: another book's version-1 record in a shared work folder was refused before the book check. It also had 2 should-fix (`--keep-settings` without the book check, `_pair_current` untested). All three are fixed.
 - Round 2 approved with 0 must-fix. 1 should-fix is deferred to #767 (no test for re-reading the document when the kept language differs).
 - ci:full run 45216903017: tests on ubuntu, macOS and Windows are green. The report-only WebKit markers test failed once (flaky watch, D-374 not met).
+Outcome: #765 merged as ebd6e40; main CI 45221066638 green on three systems.
+
+## D-909 (2026-11-23, coordinator)
+
+Three changes to impl-725 plan §2.3 and §2.4 for PR 4 (#726, web) are accepted:
+1. Changed settings end the job as a failed job, with error kind `settings-changed` and a `changes` list, instead of a synchronous 409. The making card offers "Keep the old settings" and "Replace all chapters". This matches the rule that the pipeline never stops mid-run to ask the user. The promised test is renamed to `test_changed_settings_end_the_job_with_both_choices` (PLAN-01).
+2. A saved position stores the chapter's document index and the time within that chapter. Positions saved before this change must still be read, or mapped, and this needs a test: no saved place is lost.
+3. Generate on the Listen page uses `keep_settings`, and the project page uses the form's settings.
+#726 was closed by #765's merge although its web criteria are still open. It is reopened, and PR 4 closes it.
