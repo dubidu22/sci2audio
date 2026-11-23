@@ -421,6 +421,9 @@ button.speed { min-height: 34px; padding: 4px 10px; font-weight: 700; font-varia
 /* a chapter of a book still being made (#724): its row, not a button, until it is playable */
 .outline .chapter-later { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 10px; color: var(--pencil); }
 .outline .chapter-later .ot { font-weight: 400; }
+/* a chapter not generated, with Generate under its title (#726); not an outline button */
+.outline .chapter-later button.generate { grid-column: 1 / -1; justify-self: start; display: inline-flex; width: auto; min-height: 30px; padding: 4px 10px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font-weight: 600; }
+.generate-rest { margin: 12px 0 4px; }
 .waiting { flex: 1 1 100%; margin: 0; color: var(--ink); font-size: 13.5px; }
 .follow { margin: 16px 0 0; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
 .chg-list { list-style: none; padding: 0; margin: 0; border-bottom: 1px solid var(--rule); }
@@ -611,6 +614,10 @@ details.book { margin: 8px 0; }
 .chapter .why { display: block; font-size: 13px; color: var(--pencil); }
 .chapter .cm { font-size: 13.5px; color: var(--pencil); }
 .chapter .move { display: flex; gap: 2px; margin-left: auto; }
+/* the chapter's state once some are made (#726), with Generate for one not made yet */
+.chapter .made { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.chapter .chapter-made { color: var(--pencil); }
+.chapter .chapter-made.generated { color: var(--ink); }
 .icon-btn { min-height: 30px; width: 30px; padding: 0; border-color: transparent; background: transparent; }
 .icon-btn:hover { background: var(--desk-2); }
 .cats { list-style: none; padding: 0; margin: 4px 0 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }

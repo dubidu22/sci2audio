@@ -46,12 +46,15 @@ from sci2audio.app import (
     MissingChaptersError,
     OutputExistsError,
     Phase,
+    SettingsChangedError,
     UnreadableTextError,
     VoiceSource,
     find_chapters,
 )
 from sci2audio.app import UnsupportedFileError as AppUnsupportedFileError
+from sci2audio.app.playable import read_record
 from sci2audio.output import BookKind, Ffmpeg, book_subtitles
+from sci2audio.textprep import Category
 from sci2audio.voices import (
     DownloadError,
     DownloadPlan,
@@ -65,12 +68,16 @@ from sci2audio.web.documents import StoredDocument
 from sci2audio.web.jobs import JobCancelled, JobFailure, JobRecord, JobState
 from sci2audio.web.library import about_of, write_about
 from sci2audio.web.player import (
+    Bounds,
     Made,
     PlayerError,
+    Position,
+    chapter_index,
     current_audiobook,
     load_document,
     recorded_position,
     remove_position,
+    write_position,
     write_record,
 )
 from sci2audio.web.project import ProjectError, audiobook_folder, record_files
@@ -156,11 +163,13 @@ def audio_work(
     voice: VoiceSource,
     *,
     overwrite: bool,
+    keep_settings: bool = False,
     on_failure: Callable[[], None] = lambda: None,
 ) -> Callable[[JobRecord], Sequence[Path]]:
     """`settings.output_folder` must be set (the server fills in its default): the
-    audiobook goes into the project's own folder in it (D-749). `on_failure` runs when the
-    job fails (the server drops its kept engine)."""
+    audiobook goes into the project's own folder in it (D-749). With `keep_settings` the
+    chapters added are made with the settings the project's chapters were made with (#726).
+    `on_failure` runs when the job fails (the server drops its kept engine)."""
     output = settings.output_folder
     if output is None:
         raise ValueError("the audio job needs an output folder")
@@ -171,6 +180,12 @@ def audio_work(
         except ProjectError as error:
             raise JobError(str(error)) from error
         noted = False
+        made_with = _kept_settings(document, settings) if keep_settings else settings
+        try:
+            # chapters added before the place the person listened to move it (#726)
+            _keep_position_by_chapter(document, folder)
+        except OSError as error:
+            logger.warning("could not keep the listening position by its chapter: %s", error)
 
         def progress(event: AudioProgress) -> None:
             nonlocal noted
@@ -178,7 +193,7 @@ def audio_work(
                 # the Listen page plays the chapters as they come (#724): it needs to know
                 # what they are made with before the job's own record is written at the end
                 noted = True
-                _note_made(document, folder, settings, voice, runner)
+                _note_made(document, folder, made_with, voice, runner)
             job.report(audio_progress(event))
 
         try:
@@ -188,6 +203,7 @@ def audio_work(
                 document.folder,
                 voice=voice,
                 overwrite=overwrite,
+                keep_settings=keep_settings,
                 progress=progress,
                 cancel=job.cancel,
             )
@@ -343,6 +359,52 @@ def _note_made(
         logger.warning("could not note what the audiobook is made with: %s", error)
 
 
+def _kept_settings(document: StoredDocument, settings: JobSettings) -> JobSettings:
+    """The settings the project's chapters were made with, as far as the web's record of
+    them needs (`Made`: the voice, the categories switched off, the plugins), for a job that
+    keeps them (#726); `settings` when the chapter record does not hold them."""
+    record = read_record(document.folder)
+    if record is None or record.made is None or not record.chapters:
+        return settings
+    try:
+        data = record.made["settings"]
+        return replace(
+            settings,
+            language=data["language"],
+            voice=data["voice"],
+            switched_off=frozenset(Category(c) for c in data["switched_off"]),
+            plugins=data.get("plugins", True),
+        )
+    except (KeyError, TypeError, ValueError):
+        return settings
+
+
+def _keep_position_by_chapter(document: StoredDocument, folder: Path) -> None:
+    """Keep the listening position in the audiobook now in `folder` with its chapter's
+    index and the time inside it, before a job adds chapters that may come before it
+    (#726, D-909); a position kept before this version holds only its book time. Raises
+    OSError."""
+    try:
+        located = current_audiobook(document.folder, document.id, [folder]).located
+        stamp = located.stamp
+    except PlayerError:
+        return
+    position = recorded_position(document.folder, document.id, stamp)
+    if position is None:
+        return
+    starts = Bounds.of(located.readalong).starts
+    index = chapter_index(document.folder, position.chapter)
+    if index is None or not 0 <= position.chapter < len(starts):
+        return
+    within = max(0.0, position.time - starts[position.chapter])
+    write_position(
+        document.folder,
+        document.id,
+        stamp,
+        Position(position.chapter, position.time, index, within),
+    )
+
+
 def _forget_other_position(document: StoredDocument, folder: Path) -> None:
     """Remove the listening position unless it is in the audiobook now in `folder`.
     Raises OSError."""
@@ -432,6 +494,9 @@ def classify(error: BaseException) -> tuple[JobState, JobFailure] | None:
         return JobState.CANCELLED, JobFailure("cancelled", "the job was cancelled")
     if isinstance(error, OSError) and error.errno == errno.ENOSPC:
         return JobState.FAILED, JobFailure("disk-full", "not enough disk space; free some space")
+    if isinstance(error, SettingsChangedError):  # #726: the person chooses (D-909)
+        failure = JobFailure("settings-changed", str(error), tuple(error.changes))
+        return JobState.FAILED, failure
     for kind, types in _KINDS:
         if isinstance(error, types):
             return JobState.FAILED, JobFailure(kind, str(error))

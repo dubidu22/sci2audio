@@ -400,6 +400,11 @@ speed_now = "Speed {speed}"  # said when a key changed the speed (#394)
 # said as the book grows
 generating = "being generated"
 missing = "not generated"
+# the remaining chapters, generated later (#726): each chapter's state, on the project page too
+generated = "generated"
+generate = "Generate"
+generate_rest = "Generate the remaining chapters"
+generate_hint = "The chapters are added to this audiobook with the voice, speed and text settings the others were made with."
 chapter_ready = "Chapter {n} is ready."  # its title may follow, in the text's language
 waiting_next = "The next chapter is still being generated. Playback goes on as soon as it is ready."
 start_listening = "Start listening"
@@ -480,6 +485,7 @@ no-such-sentence = "The audiobook has no such sentence."
 no-such-time = "The audiobook has no such place."
 no-token = "Open the link sci2audio showed in the terminal when it started."
 not-buildable = "This audiobook can't be made into one file."
+settings-changed = "The chapters made so far were made with other settings."
 not-cancellable = "An analysis takes seconds and can't be stopped. Wait for it."
 not-found = "That doesn't exist in this run of sci2audio."
 not-saved = "sci2audio could not keep where you stopped listening."
@@ -652,6 +658,13 @@ stays = "The file, its analysis and the speech cache stay on this computer. Your
 
 [making]  # the audiobook job inline on Prepare (#391); Pause is the job's cancel, Cancel also frees the speech cache
 title = "Making the audiobook"
+# the chapters made so far were made with other settings (#726, D-909)
+changed_title = "The chapters made so far were made with other settings"
+changed_text = "New chapters made with the settings you chose now would not match them. What differs:"
+keep_settings = "Keep the earlier settings"
+keep_hint = "The new chapters are made with the voice, speed and text settings the others were made with."
+replace_all = "Make every chapter again"
+replace_hint = "Every chapter is made again with the settings you chose now, and the files made so far are replaced."
 speaking = "Speaking chapter {n} of {total}"
 leave = "You can close this window. The work continues while sci2audio runs, and the sentences already spoken are kept."
 pause = "Pause"

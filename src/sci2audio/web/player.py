@@ -176,10 +176,14 @@ def recorded_folder(work: Path, document_id: str) -> Path | None:
 @dataclass(frozen=True)
 class Position:
     """Chapter `chapter` of the audiobook (as the read-along file counts them) and `time`
-    in seconds on the book's timeline."""
+    in seconds on the book's timeline. A book that grows by chapters added later (#726)
+    also keeps the chapter's index in the document and the time inside it (`within`): a
+    chapter added before it moves its place and its book time, not these (D-909)."""
 
     chapter: int
     time: float
+    index: int | None = None
+    within: float | None = None
 
 
 def audiobook_stamp(readalong: Path) -> str:
@@ -281,7 +285,7 @@ def _bounds(path: str, version: tuple[int, int, int]) -> Bounds:
 def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
     """Keep where the person stopped (atomically: a failed write leaves the old record).
     Raises OSError."""
-    data = {
+    data: dict[str, Any] = {
         "format": POSITION_FORMAT,
         "version": POSITION_VERSION,
         "document": document_id,
@@ -289,6 +293,8 @@ def write_position(work: Path, document_id: str, stamp: str, position: Position)
         "chapter": position.chapter,
         "time": position.time,
     }
+    if position.index is not None and position.within is not None:
+        data.update(index=position.index, within=position.within)
     write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
 
 
@@ -303,17 +309,32 @@ def read_position(
     """Where the person stopped in this audiobook, worth offering to continue from; None
     if there is no such record, it does not fit, or nothing is left to continue: before the
     first sentence ended or after the last one ended."""
-    position = recorded_position(work, document_id, stamp)
-    if position is None or not Bounds.of(readalong).continues(position):
+    bounds = Bounds.of(readalong)
+    position = placed_position(work, document_id, stamp, bounds)
+    if position is None or not bounds.continues(position):
         return None
     return position
+
+
+def placed_position(work: Path, document_id: str, stamp: str, bounds: Bounds) -> Position | None:
+    """The kept position (`recorded_position`) where its chapter is in the book now: a
+    chapter added before it since it was kept moved that chapter (#726, D-909)."""
+    position = recorded_position(work, document_id, stamp)
+    if position is None or position.index is None or position.within is None:
+        return position
+    place = chapter_place(work, position.index)
+    if place is None or place >= len(bounds.starts):
+        return position
+    return replace(position, chapter=place, time=bounds.starts[place] + position.within)
 
 
 def recorded_position(work: Path, document_id: str, stamp: str) -> Position | None:
     """The position the record keeps for this audiobook (`stamp`) of this document, read
     without the read-along file: None for no record, a record of something else, or one
-    that is not ours. `read_position` checks it against the audiobook as well; the library
-    and the rail's shelf (#389) take it with only the audiobook's length."""
+    that is not ours. A record kept before #726 with the book's stamp of then
+    (`legacy_book_key`) is this book's too (D-909). `read_position` checks it against the
+    audiobook as well; the library and the rail's shelf (#389) take it with only the
+    audiobook's length."""
     path = work / POSITION
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > POSITION_LIMIT:
@@ -328,7 +349,7 @@ def recorded_position(work: Path, document_id: str, stamp: str) -> Position | No
         data.get("format") != POSITION_FORMAT
         or data.get("version") != POSITION_VERSION
         or data.get("document") != document_id
-        or data.get("audiobook") != stamp
+        or data.get("audiobook") not in _stamps(work, stamp)
         or not isinstance(chapter, int)
         or isinstance(chapter, bool)
         or not isinstance(time, int | float)
@@ -336,7 +357,26 @@ def recorded_position(work: Path, document_id: str, stamp: str) -> Position | No
         or not math.isfinite(time)
     ):
         return None
+    index, within = data.get("index"), data.get("within")
+    if (
+        isinstance(index, int)
+        and not isinstance(index, bool)
+        and index >= 0
+        and isinstance(within, int | float)
+        and not isinstance(within, bool)
+        and math.isfinite(within)
+        and within >= 0
+    ):
+        return Position(chapter, float(time), index, float(within))
     return Position(chapter, float(time))
+
+
+def _stamps(work: Path, stamp: str) -> tuple[str, ...]:
+    """`stamp`, and the book's stamp before #726 when `stamp` is its book's key."""
+    record = _chapter_record(work)
+    if record is not None and stamp and book_key(record) == stamp:
+        return (stamp, legacy_book_key(record))
+    return (stamp,)
 
 
 def _no_constant(name: str) -> None:
@@ -531,9 +571,16 @@ READALONG_SUFFIX = ".readalong.json"
 
 
 def book_key(record: ChapterRecord) -> str:
-    """The stamp of the book the chapter record describes: its settings and its chapters.
-    The same while the book grows and once it is done; another for any other settings or
-    choice of chapters."""
+    """The stamp of the book the chapter record describes: its settings. The same while the
+    book grows, once it is done and when chapters are added later (#726, the settings key
+    holds no chapter choice); another for any other settings."""
+    data = json.dumps([record.settings], separators=(",", ":"))
+    return hashlib.sha256(data.encode()).hexdigest()[:16]
+
+
+def legacy_book_key(record: ChapterRecord) -> str:
+    """The book's stamp before #726, of its settings and its planned chapters: a position
+    kept with it is still the book's (D-909)."""
     data = json.dumps([record.settings, list(record.planned)], separators=(",", ":"))
     return hashlib.sha256(data.encode()).hexdigest()[:16]
 
@@ -679,6 +726,57 @@ def _has_size(folder: Path, name: str, size: int) -> bool:
         return path is not None and path.stat().st_size == size
     except OSError:
         return False
+
+
+@dataclass(frozen=True)
+class ChapterStates:
+    """Which of the document's chapters are made (#726): `made` those whose files the
+    chapter record names and vouches for where the audiobook is, `coming` those the running
+    audio job is still to speak, `folder` where the audiobook is (a chapter added later
+    goes there too)."""
+
+    made: frozenset[int]
+    coming: frozenset[int]
+    folder: Path
+
+    def of(self, index: int) -> str:
+        """ "generated", "generating" or "not-generated"."""
+        if index in self.made:
+            return "generated"
+        return "generating" if index in self.coming else "not-generated"
+
+
+def chapter_states(
+    work: Path, document_id: str, folders: Iterable[Path | None], running: bool
+) -> ChapterStates | None:
+    """The state of the document's chapters (#726), with `running` true while an audio job
+    of it runs; None while the project has no chapter made: there is nothing to add to."""
+    record = _chapter_record(work)
+    if record is None or not record.chapters:
+        return None
+    try:
+        folder = current_audiobook(work, document_id, folders).located.folder
+    except PlayerError:
+        return None
+    made = frozenset(
+        chapter.index
+        for chapter in record.chapters
+        if chapter.files
+        and all(_vouched(folder, f.name, f.bytes, f.sha256) is not None for f in chapter.files)
+    )
+    if not made:
+        return None
+    coming = frozenset(record.planned) - made if running else frozenset()
+    return ChapterStates(made, coming, folder)
+
+
+def chapter_place(work: Path, index: int) -> int | None:
+    """The place in the read-along file of the document's chapter `index`, as the chapter
+    record says (None without one, or while it is not playable)."""
+    record = _chapter_record(work)
+    if record is None:
+        return None
+    return next((n for n, c in enumerate(record.chapters) if c.index == index), None)
 
 
 def chapter_index(work: Path, n: int) -> int | None:

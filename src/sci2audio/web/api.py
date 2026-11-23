@@ -54,9 +54,12 @@ from sci2audio.web.markers import (
     place,
 )
 from sci2audio.web.player import (
+    Bounds,
     PlayerError,
     Position,
     audiobook_file,
+    chapter_index,
+    chapter_place,
     current_audiobook,
     fits,
     load_document,
@@ -305,8 +308,15 @@ def get_report(state: State, document_id: str) -> dict[str, Any]:
     summary="The chapters of the latest pre-analysis",
 )
 def get_chapters(state: State, document_id: str) -> list[models.ChapterOut]:
+    """Each chapter with its state once the project has a chapter made (#726)."""
     chapters = _report(state, document_id).get("chapters", [])
-    return [models.ChapterOut.model_validate(chapter) for chapter in chapters]
+    states = state.chapter_states(document_id)
+    return [
+        models.ChapterOut.model_validate(
+            {**chapter, "state": None if states is None else states.of(chapter["index"])}
+        )
+        for chapter in chapters
+    ]
 
 
 @router.get(
@@ -481,9 +491,21 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
     if given.audiobook != stamp:
         raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
-    position = Position(given.chapter, given.time)
+    starts = Bounds.of(located.readalong).starts
+    chapter, time = given.chapter, given.time
+    if given.index is not None and given.within is not None:
+        # the page's own chapter (#726, D-909): a chapter added before it since the page
+        # was drawn moved it, not the time inside it
+        place = chapter_place(document.work, given.index)
+        if place is None or place >= len(starts):
+            raise ApiError(422, "no-such-time", "the audiobook has no such chapter")
+        chapter, time = place, starts[place] + given.within
+    position = Position(chapter, time)
     if not fits(located.readalong, position):
         raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")
+    index = chapter_index(document.work, chapter)
+    if index is not None:
+        position = Position(chapter, time, index, time - starts[chapter])
     try:
         write_position(document.work, document.document, stamp, position)
     except OSError as error:
@@ -908,7 +930,7 @@ def start_job(state: State, body: models.JobIn) -> models.JobOut:
     saved, _ = load_settings(state.config.config_file)
     settings = _merged(saved, body.settings)
     if body.kind == "audio":
-        work = state.audio_work(document, settings, body.overwrite)
+        work = state.audio_work(document, settings, body.overwrite, body.keep_settings)
         kind = JobKind.AUDIO
     else:
         work = script_work(state.runner, document, settings)
@@ -926,6 +948,7 @@ def start_job(state: State, body: models.JobIn) -> models.JobOut:
                 work,
                 cancellable=kind is JobKind.AUDIO,
                 overwrite=kind is JobKind.AUDIO and body.overwrite,
+                keep_settings=kind is JobKind.AUDIO and body.keep_settings,
             )
         except BoardBusyError as error:
             raise ApiError(409, "busy", str(error)) from error

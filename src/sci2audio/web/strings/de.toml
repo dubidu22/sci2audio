@@ -405,6 +405,11 @@ speed_now = "Tempo {speed}"  # gesagt, wenn eine Taste das Tempo geändert hat (
 # was gesagt wird, wenn ein Kapitel hinzukommt
 generating = "wird erstellt"
 missing = "nicht erstellt"
+# die übrigen Kapitel, später erstellt (#726): der Zustand jedes Kapitels, auch auf der Projektseite
+generated = "erstellt"
+generate = "Erstellen"
+generate_rest = "Die übrigen Kapitel erstellen"
+generate_hint = "Die Kapitel kommen mit derselben Stimme, demselben Tempo und denselben Texteinstellungen wie die anderen zu diesem Hörbuch hinzu."
 chapter_ready = "Kapitel {n} ist bereit."  # sein Titel kann folgen, in der Sprache des Texts
 waiting_next = "Das nächste Kapitel wird noch erstellt. Die Wiedergabe geht weiter, sobald es bereit ist."
 start_listening = "Schon jetzt anhören"
@@ -485,6 +490,7 @@ no-such-sentence = "Diesen Satz gibt es im Hörbuch nicht."
 no-such-time = "Diese Stelle gibt es im Hörbuch nicht."
 no-token = "Öffnen Sie den Link, den sci2audio beim Start im Terminal angezeigt hat."
 not-buildable = "Aus diesem Hörbuch lässt sich keine einzelne Datei machen."
+settings-changed = "Die bisherigen Kapitel wurden mit anderen Einstellungen erstellt."
 not-cancellable = "Eine Analyse dauert Sekunden und lässt sich nicht abbrechen. Warten Sie, bis sie fertig ist."
 not-found = "Das gibt es in diesem Lauf von sci2audio nicht."
 not-saved = "sci2audio konnte nicht festhalten, wo Sie aufgehört haben."
@@ -657,6 +663,13 @@ stays = "Die Datei, ihre Analyse und der Sprachzwischenspeicher bleiben auf dies
 
 [making]  # der Auftrag des Hörbuchs auf Vorbereiten (#391); Pausieren bricht den Auftrag ab, Abbrechen leert auch den Sprachzwischenspeicher
 title = "Das Hörbuch wird erstellt"
+# die bisherigen Kapitel wurden mit anderen Einstellungen erstellt (#726, D-909)
+changed_title = "Die bisherigen Kapitel wurden mit anderen Einstellungen erstellt"
+changed_text = "Neue Kapitel mit den jetzt gewählten Einstellungen würden nicht zu ihnen passen. Das ist anders:"
+keep_settings = "Die bisherigen Einstellungen behalten"
+keep_hint = "Die neuen Kapitel bekommen dieselbe Stimme, dasselbe Tempo und dieselben Texteinstellungen wie die anderen."
+replace_all = "Alle Kapitel neu erstellen"
+replace_hint = "Alle Kapitel werden mit den jetzt gewählten Einstellungen neu erstellt, und die bisherigen Dateien werden ersetzt."
 speaking = "Kapitel {n} von {total} wird gesprochen"
 leave = "Sie können dieses Fenster schließen. Die Arbeit läuft weiter, solange sci2audio läuft, und schon gesprochene Sätze bleiben erhalten."
 pause = "Pausieren"

@@ -67,6 +67,10 @@
         <span class="ct-box"><span class="ord" aria-hidden="true"></span><label for="chapter-{{ chapter.index }}" class="ct" lang="{{ text_language }}">{{ t('check.chapter_line', title=chapter.title) }}</label>
         {% if chapter.references %}<span class="why">{{ t('check.references') }}</span>{% endif %}{% if chapter.publisher %}<span class="why">{{ t('check.publisher') }}</span>{% endif %}</span>
         <span class="cm" id="chapter-details-{{ chapter.index }}">{% if chapter.first_page %}{{ t('check.chapter_details', page=chapter.first_page, n=chapter.utterances) }}{% else %}{{ t('check.chapter_details_no_page', n=chapter.utterances) }}{% endif %}{% if chapter.references %}<span class="visually-hidden">; {{ t('check.references') }}</span>{% endif %}{% if chapter.publisher %}<span class="visually-hidden">; {{ t('check.publisher') }}</span>{% endif %}</span>
+        {% if made %}{% set state = made.states.get(chapter.index) %}<span class="made">
+          <span class="chapter-made {{ state }}" id="chapter-state-{{ chapter.index }}">{% if state == 'generated' %}{{ t('player.generated') }}{% elif state == 'generating' %}{{ t('player.generating') }}{% else %}{{ t('player.missing') }}{% endif %}</span>
+          {%- if state == 'not-generated' and chapter.index in made.missing and made.can %} <button type="button" class="sm generate" data-chapter="{{ chapter.index }}" data-document="{{ document.id }}" data-output="{{ made.output }}" disabled><span aria-hidden="true">{{ t('player.generate') }}</span><span class="visually-hidden">{{ t('player.generate') }}: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button>{% endif %}
+        </span>{% endif %}
         <span class="move"><button type="button" class="move-up icon-btn" id="move-up-{{ chapter.index }}" disabled>{{ icon('up', 's') }}<span class="visually-hidden">{{ t('check.move_up') }}: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button><button type="button" class="move-down icon-btn" id="move-down-{{ chapter.index }}" disabled>{{ icon('down', 's') }}<span class="visually-hidden">{{ t('check.move_down') }}: <span lang="{{ text_language }}">{{ chapter.title }}</span></span></button></span>
       </li>
     {% endfor %}
@@ -75,6 +79,11 @@
       <button type="button" class="sm" id="choose-all" disabled>{{ t('check.choose_all') }}</button>
       <button type="button" class="sm" id="choose-none" disabled>{{ t('check.choose_none') }}</button>
     </p>
+    {% if made and made.can and made.missing %}
+    {#- the chapters not made yet, added to this audiobook (#726) #}
+    <p class="buttons"><button type="button" class="sm" id="generate-rest" data-chapters="{{ made.missing | tojson | forceescape }}" data-document="{{ document.id }}" data-output="{{ made.output }}" aria-describedby="generate-hint" disabled>{{ t('player.generate_rest') }}</button></p>
+    <p class="hint" id="generate-hint">{{ t('player.generate_hint') }}</p>
+    {% endif %}
   </fieldset>
 
   <div class="field">

@@ -93,7 +93,8 @@ def test_the_chapters_list_their_states(tmp_path: Path) -> None:
     assert re.search(r'id="chapter-state-0"[^>]*>generated<', page)
     assert re.search(r'id="chapter-state-1"[^>]*>not generated<', page)
     assert page.count('class="sm generate"') == 2
-    assert 'data-chapter="1"' in page and 'data-chapter="2"' in page
+    assert 'data-chapter="1"' in page
+    assert 'data-chapter="2"' in page
     rest = re.search(r'<button[^>]*id="generate-rest"[^>]*>', page)
     assert rest is not None
     assert 'data-chapters="[1, 2]"' in rest[0]
@@ -185,7 +186,8 @@ def test_keep_settings_starts_the_job_with_the_old_settings(tmp_path: Path) -> N
     client, config, doc, _gate = project(tmp_path, [0])
     work = work_of(config, doc)
     record = read_record(work)
-    assert record is not None and record.made is not None
+    assert record is not None
+    assert record.made is not None
     old = record.made
     done = audio(client, doc, [1], settings={"speed": 1.2}, keep_settings=True)
     assert done["state"] == "done", done["error"]
@@ -199,7 +201,8 @@ def test_keep_settings_starts_the_job_with_the_old_settings(tmp_path: Path) -> N
     replaced = audio(client, doc, [0, 1], settings={"speed": 1.2}, overwrite=True)
     assert replaced["state"] == "done", replaced["error"]
     record = read_record(work)
-    assert record is not None and record.made is not None
+    assert record is not None
+    assert record.made is not None
     assert record.made["settings"]["speed"] == 1.2
 
 
@@ -315,3 +318,21 @@ def test_adding_to_a_finished_project_shows_the_growing_view_until_done(tmp_path
     data = player_data(client.get(f"/documents/{doc}/listen").text)
     assert "growing" not in data
     assert [c["title"] for c in data["chapters"]] == TITLES
+
+
+def test_chapters_the_analysis_left_out_can_be_generated(tmp_path: Path) -> None:
+    """The analysis counts what is said only in the chapters it was asked for: one it left
+    out may still say something, so it gets Generate."""
+    client, _config, doc, _gate = project(tmp_path, [0])
+    body = {"kind": "script", "document": doc, "settings": {"chapters": [0]}}
+    script = client.post("/api/v1/jobs", json=body)
+    assert wait(client, script.json()["id"])["state"] == "done"
+    chapters = client.get(f"/api/v1/documents/{doc}/chapters").json()
+    assert [(c["selected"], c["utterances"] > 0) for c in chapters] == [
+        (True, True),
+        (False, False),
+        (False, False),
+    ]
+    page = client.get(f"/documents/{doc}").text
+    assert page.count('class="sm generate"') == 2
+    assert 'data-chapters="[1, 2]"' in page
