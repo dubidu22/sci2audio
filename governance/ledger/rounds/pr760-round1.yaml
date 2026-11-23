@@ -10,5 +10,5 @@ should_fix: 0
 deferred: 0
 kinds: ""
 report: plans/review-pr760-round1.md
-merged: ""
+merged: e3a328e65f78a86341d5d03dc77680f4cab6c441
 updated_head: ""

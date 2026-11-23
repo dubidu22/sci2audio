@@ -40,3 +40,8 @@
 - Goal: critical review round 1 of #760 at a25a67e.
 - Done: ruleset net change confirmed (PREF-01 and version only), ledger check clean on the real ledger, narration check shown to fail on a planted comment and docstring, three-system run green.
 - Next: the coordinator's go `ledger/gos/pr-760.yaml` for a25a67e; then `ledger_tool.py gate 760`, rerun `governance pr checks` if still red, squash-merge pinned to a25a67e, and record the merge and main's three-system run here.
+
+## Merge
+
+- Squash-merged by this thread on the coordinator's go (D-900), pinned to a25a67e, after `ledger_tool.py gate 760` said it may be merged and `tests (ubuntu|macos|windows-latest)`, `CI passed` and `governance pr checks` were green on that head: `e3a328e65f78a86341d5d03dc77680f4cab6c441`.
+- main merged into governance with a plain merge afterwards (THR-14), so governance carries ruleset 1.15.0 and the new extracts.
