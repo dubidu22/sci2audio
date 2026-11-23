@@ -70,3 +70,12 @@ Merge go for #754 (PR A of #723, lane:output), pinned to e07c3f1 (`ledger/gos/pr
 - Three-system run 45150916921 is green on that head.
 - If the branch needs an update from main first, MRG-01's `updated_head` path applies.
 - PR B of #723 starts after the merge.
+Outcome: #754 merged as f1a9c1f. #751 merged as c63fc76.
+
+## D-898 (2026-11-23, coordinator)
+
+Merge go for #753 (#744, lane:voices, not critical), pinned to dae7c19.
+- Round 1 approved with 0 must-fix and 0 should-fix.
+- Three-system run 45144703459 is green.
+- The coordinator gives this go because no dispatcher runs (D-889).
+- Review note N2: a user with a non-ASCII Windows profile now gets a clear error but still cannot use Kokoro. Filed as an Issue for milestone Later (lane:voices): pass espeak-ng the 8.3 short path. It is an improvement inside the existing scope, not new scope.
