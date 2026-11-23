@@ -1,0 +1,14 @@
+pr: 765
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: 9e160c09ba794d82d3d499bc6c780ae643c7758d
+critical: yes
+verdict: changes_requested
+must_fix: 1
+should_fix: 2
+deferred: 0
+kinds: "incomplete-fix, correctness, missing-test"
+report: plans/review-pr765-round1.md
+merged: ""
+updated_head: ""
