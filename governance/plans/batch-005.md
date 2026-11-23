@@ -41,7 +41,7 @@ The batch audit (critical PRs ran), one KB decision-log PR for D-891 onward, the
 
 | Slot | Thread | Items | State |
 |---|---|---|---|
-| A | impl-723 | #723 | requested 08:56Z |
+| A | impl-723 | #723 | plan approved 09:03Z (D-895): PR A (lane:output) first, then PR B (lane:app) |
 | B | impl-744 | #744 | requested 08:56Z |
 
 Outside the batch: #751 (Colin's ruleset 1.14.0). Round 1 stopped on preconditions (169a4f7). An implementation thread is merging main into its branch and running ci:full; then round 2.

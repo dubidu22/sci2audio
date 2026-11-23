@@ -44,3 +44,12 @@ Work stops once batch 005 is finished. Colin: "stop working after this batch is 
 - `autonomy_horizon` becomes "until batch 005 is finished, then pause".
 - Batch 005 runs to its end: its PRs, its audit, its decision-log PR and the batch report. #751, already in flight, finishes too.
 - Then the coordinator sets `paused: true`, composes no batch 006 and starts no thread.
+
+## D-895 (2026-11-23, coordinator)
+
+Plan impl-723 (`plans/impl-723-plan.md`, f79a009, #723 LW-01) is approved as written, with 4.1 as recommended.
+- The plan has two PRs, both risk:high. A (lane:output) splits `write_audiobook` into chapter, read-along and book parts, with byte-identical proof. B (lane:app plus one line in `web/tasks.py`) encodes each chapter right after it is spoken, closes #723, and starts only after A merges.
+- 4.1: until #725, the web job passes `OutputSettings()` explicitly and keeps writing the M4B, so no web test changes. #725 removes that line when it adds the on-demand download.
+- Accepted rule change: a killed or cancelled job keeps whole, recorded chapters (instead of all or nothing, D-119/D-160). Book-level files stay all or nothing. The five named fault tests change their assertion to the new rule and are renamed where "no file" no longer holds. This is a changed rule, not a weakened test: every one still asserts no partial file and no overwrite on the rerun, and the PR body lists each change.
+- The CLI keeps writing the M4B with byte-identical output.
+- Lanes: PR A (lane:output) runs alongside #744 (lane:voices) in the same execution lane. They share no files (LANE-02).
