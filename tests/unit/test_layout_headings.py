@@ -892,6 +892,85 @@ def test_a_lone_i_is_a_heading_only_in_the_style_of_the_roman_headings() -> None
     assert headings(named.build()) == [("Methods", ""), ("Results", "")]
 
 
+# Roman section numbers, lettered subsections (IEEE style, #49)
+
+
+def ieee_paper(*numerals: str) -> Page:
+    """Sections numbered "I.", "II.", ... in 12 point bold, each with two lettered
+    subsections "A." and "B." in 10 point bold, on one page (800 points high)."""
+    page = Page()
+    for numeral in numerals:
+        page.heading(f"{numeral}. Section {numeral}").body(2)
+        page.heading("A. First part", 10.0).body(2).heading("B. Second part", 10.0).body(2)
+    return page
+
+
+def test_roman_section_numbers_are_level_one_and_letters_under_them_level_two() -> None:
+    doc = ieee_paper("I", "II", "III", "IV").build()
+    assert [label for _, label in headings(doc)] == [
+        *("I", "A", "B", "II", "A", "B", "III", "A", "B", "IV", "A", "B")
+    ]
+    parts = [("A. First part", 2), ("B. Second part", 2)]
+    assert tree(doc.sections) == [
+        ("I. Section I", 1),
+        parts,
+        ("II. Section II", 1),
+        parts,
+        ("III. Section III", 1),
+        parts,
+        ("IV. Section IV", 1),
+        parts,
+    ]
+
+
+def test_roman_numbers_up_to_xii_are_read_as_printed() -> None:
+    numerals = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII")
+    page = Page()
+    for numeral in numerals:
+        page.heading(f"{numeral}. Section {numeral}").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == list(numerals)
+    assert [s.level for s in doc.sections] == [1] * len(numerals)
+
+
+def test_a_letter_i_under_a_roman_section_is_a_subsection() -> None:
+    """The ninth subsection "I." is not section one again: Roman numbers count up."""
+    page = Page().heading("I. Introduction").body(2)
+    for letter in "ABCDEFGHI":
+        page.heading(f"{letter}. Part {letter}", 10.0).body(2)
+    page.heading("II. Method").body(2)
+    doc = page.build()
+    assert tree(doc.sections)[0] == ("I. Introduction", 1)
+    assert [s.level for s in walk(doc.sections)] == [1, *[2] * 9, 1]
+    assert headings(doc)[9] == ("I. Part I", "I")
+
+
+def test_roman_numbers_out_of_sequence_are_no_heading_numbers() -> None:
+    page = Page().heading("II. Method").body().heading("IV. Results").body()
+    page.heading("III. Discussion").body()
+    assert [label for _, label in headings(page.build())] == ["", "", ""]
+
+
+def test_the_outline_adds_a_lettered_subsection_under_a_roman_section() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    plain(page, "A. Fine Print").body(2)
+    doc = page.build(OutlineEntry("A. Fine Print", 1, 1))  # the outline level loses
+    assert headings(doc)[-1] == ("A. Fine Print", "A")
+    assert tree(doc.sections) == [
+        ("I. Introduction", 1),
+        ("II. Method", 1),
+        [("A. Fine Print", 2)],
+    ]
+
+
+def test_a_letter_in_a_document_with_arabic_numbers_stays_an_appendix_at_level_one() -> None:
+    page = Page().heading("1 Introduction").body().heading("2 Method").body()
+    page.heading("A Proofs").body().heading("B Data").body()
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["1", "2", "A", "B"]
+    assert [s.level for s in doc.sections] == [1, 1, 1, 1]
+
+
 # The publisher's front matter named by the outline (#456, D-755)
 
 
