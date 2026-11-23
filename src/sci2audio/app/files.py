@@ -1,26 +1,69 @@
 """Writing the job's files so that no half-written file is ever left (the #69 rule).
 
-Each file is written under a temporary name (`.<name>.partial`) next to its target and
-renamed when complete; on any error the partial files are removed. `write_texts` writes
+Each file is written under a temporary name of its own (`.<name>.<pid>-<random>.partial`)
+next to its target and renamed when complete, so two writers of the same file never share
+a temporary file and the last rename wins (#778); on any error the partial files are
+removed. `write_texts` writes
 all its files before it renames any, so a full disk leaves every earlier file as it was,
 and without `overwrite` it puts either all of its files in place or none.
 An existing file is only replaced with `overwrite=True`; without it, a file that appeared
 at the target during the run is never replaced either. A run killed outright may leave a
-partial file behind; the next run writes over it.
+partial file behind; the next write of that file removes it once its process is gone.
 """
 
 from __future__ import annotations
 
 import contextlib
 import os
+import re
+import secrets
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
 
 def partial_path(target: Path) -> Path:
-    """The temporary name a file is written under."""
-    return target.with_name(f".{target.name}.partial")
+    """A temporary name to write `target` under: new on every call, in the same folder, with
+    the process id and a random part so that no two writes ever share one."""
+    return target.with_name(f".{target.name}.{os.getpid():x}-{secrets.token_hex(4)}.partial")
+
+
+def _process_is_gone(pid: int) -> bool:
+    """True only if no process has this id; any doubt counts as "still there"."""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+
+            access = 0x1000  # PROCESS_QUERY_LIMITED_INFORMATION
+            handle = ctypes.windll.kernel32.OpenProcess(access, False, pid)  # type: ignore[attr-defined,unused-ignore]
+            if not handle:
+                return ctypes.GetLastError() == 87  # ERROR_INVALID_PARAMETER: no such process
+            code = ctypes.c_ulong()
+            known = ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))  # type: ignore[attr-defined,unused-ignore]
+            ctypes.windll.kernel32.CloseHandle(handle)  # type: ignore[attr-defined,unused-ignore]
+            return bool(known) and code.value != 259  # STILL_ACTIVE
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except (OSError, ValueError, OverflowError):
+        return False
+    return False
+
+
+def _remove_left_behind(target: Path) -> None:
+    """Remove the partial files that a run killed outright left for `target`: those named
+    for a process that is gone. Never one of this process (another thread may be writing)
+    nor of a live process."""
+    pattern = re.compile(rf"\.{re.escape(target.name)}\.([0-9a-f]+)-[0-9a-f]{{8}}\.partial")
+    with contextlib.suppress(OSError):
+        for entry in os.scandir(target.parent):
+            found = pattern.fullmatch(entry.name)
+            if found is None:
+                continue
+            pid = int(found.group(1), 16)
+            if pid != os.getpid() and _process_is_gone(pid):
+                with contextlib.suppress(OSError):
+                    os.unlink(entry.path)
 
 
 def write_text_atomically(target: Path, text: str, *, overwrite: bool) -> None:
@@ -48,6 +91,8 @@ def write_texts(texts: Mapping[Path, str], *, overwrite: bool) -> None:
 
 
 def _write_all(contents: Mapping[Path, str | bytes], *, overwrite: bool) -> None:
+    for target in contents:
+        _remove_left_behind(target)
     partials = {target: partial_path(target) for target in contents}
     committed: list[Path] = []
     try:
