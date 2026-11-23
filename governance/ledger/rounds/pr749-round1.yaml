@@ -9,5 +9,5 @@ must_fix: 0
 should_fix: 0
 kinds: ""
 report: plans/review-pr749-round1.md
-merged: ""
+merged: 1cbfbd2ab5d851a1a16192f8fa9096db42d0624d
 updated_head: ""
