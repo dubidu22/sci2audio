@@ -1075,7 +1075,6 @@ function readAlong() {
     const ticks = document.querySelector(".timeline .ticks");
     let rows = data.growing.planned; // {index, title, chapter, state}
     let running = Boolean(data.growing.events);
-    let fetching = false;
     let wanted = chapters.length; // chapters the job says are playable
     let held = false; // the player stopped at the end of the last chapter, waiting
 
@@ -1092,7 +1091,8 @@ function readAlong() {
 
     function drawRow(row) {
       const item = outline.querySelector(`li.chapter-later[data-index="${row.index}"]`);
-      if (!item) return;
+      // a chapter the server has and this page not yet: it stays a row until it is added
+      if (!item || row.chapter >= chapters.length) return;
       if (row.chapter === null) {
         const said = row.state === "missing" ? tr("player.missing") : tr("player.generating");
         item.querySelector(".chapter-state").textContent = said;
@@ -1162,38 +1162,48 @@ function readAlong() {
       }
     }
 
-    async function more() {
-      if (fetching) return;
-      fetching = true;
-      try {
-        while (chapters.length < wanted) {
+    // one fetch at a time; a call while one runs gets that one, which goes on as long as
+    // `wanted` says more chapters are playable
+    let busy = null;
+    function more() {
+      busy ??= fetchMore().finally(() => {
+        busy = null;
+      });
+      return busy;
+    }
+    async function fetchMore() {
+      while (chapters.length < wanted) {
+        let part;
+        try {
           const answer = await fetch(data.growing.chapter + chapters.length, {
             credentials: "same-origin",
           });
           if (!answer.ok) break; // not there (yet): the next event asks again
-          add(await answer.json());
+          part = await answer.json();
+        } catch {
+          break; // the server is away: app.js says so for the stream
         }
-      } catch {
-        // the server is away: app.js says so for the stream
-      } finally {
-        fetching = false;
+        add(part);
       }
     }
 
-    function ended(job) {
+    async function ended(job) {
       running = false;
-      const done = job.state === "done";
-      wanted = done ? Infinity : wanted;
-      more().then(() => {
-        wanted = chapters.length;
-        for (const row of rows) {
-          if (row.chapter === null) {
-            row.state = "missing";
-            drawRow(row);
-          }
+      if (job.state === "done") wanted = Infinity; // every chapter there is, until a 404
+      if (busy) await busy; // a fetch started before the end: then one for what is left
+      for (;;) {
+        const before = chapters.length;
+        await more();
+        if (chapters.length === before) break;
+      }
+      wanted = chapters.length;
+      for (const row of rows) {
+        if (row.chapter === null) {
+          row.state = "missing";
+          drawRow(row);
         }
-        if (held) showWaiting(false);
-      });
+      }
+      if (held) showWaiting(false);
     }
 
     // the person played or moved while the player waited: it no longer goes on by itself
@@ -1203,7 +1213,8 @@ function readAlong() {
       });
     }
     if (running) {
-      follow(
+      // app.js's `follow`: this function's `follow` is the "scroll with the reading" switch
+      window.follow(
         data.growing.events,
         (progress) => {
           const playable = (progress.playable || []).length;
