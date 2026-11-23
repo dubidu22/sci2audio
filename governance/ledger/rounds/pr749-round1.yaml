@@ -1,0 +1,13 @@
+pr: 749
+round: 1
+date: 2026-11-23
+thread: review-b004-e
+head: bdc8247c3da2a008990d05bad6662c98033b74c8
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr749-round1.md
+merged: ""
+updated_head: ""
