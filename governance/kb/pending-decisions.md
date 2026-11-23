@@ -40,7 +40,7 @@ Batch 004 is done (v1.4 has no open Issue). Batch 005 is composed as `plans/batc
 
 ## D-894 (2026-11-23, owner)
 
-Work stops once batch 005 is finished. Colin: "stop working after this batch is finished." (2026-11-23T09:00:47Z). Batch 004 had closed before the message, so it is read as batch 005. The coordinator asked Colin once to confirm that reading.
+Work stops once batch 005 is finished. Colin: "stop working after this batch is finished." (2026-11-23T09:00:47Z). Batch 004 had closed before the message, so it is read as batch 005. The coordinator asked Colin once to confirm that reading, and he chose "Finish batch 005, then stop" (2026-11-23T09:35Z).
 - `autonomy_horizon` becomes "until batch 005 is finished, then pause".
 - Batch 005 runs to its end: its PRs, its audit, its decision-log PR and the batch report. #751, already in flight, finishes too.
 - Then the coordinator sets `paused: true`, composes no batch 006 and starts no thread.
