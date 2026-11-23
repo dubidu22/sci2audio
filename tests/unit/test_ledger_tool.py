@@ -5,6 +5,7 @@ starts on an unproved claim (THR-16)."""
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -304,7 +305,8 @@ def test_check_passes_when_the_merge_is_recorded() -> None:
 def test_check_takes_the_last_number_of_a_squash_subject() -> None:
     assert LEDGER_TOOL.squash_numbers(["voices: a fix (#744) (#753)"]) == {"753"}
     assert merge_problems([ledger_pr("744")], [], ["voices: a fix (#744) (#753)"]) == []
-    assert LEDGER_TOOL.squash_numbers(["Merge branch 'release/1.4' into main", "docs: (#12) note"]) == set()
+    other = ["Merge branch 'release/1.4' into main", "docs: (#12) note"]
+    assert LEDGER_TOOL.squash_numbers(other) == set()
 
 
 def test_check_counts_a_squash_subject_on_a_release_branch(tmp_path: Path) -> None:
@@ -318,9 +320,12 @@ def test_check_counts_a_squash_subject_on_a_release_branch(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
+    git_exe = shutil.which("git")
+    assert git_exe is not None
+
     def git(*args: str) -> None:
         subprocess.run(
-            ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
+            [git_exe, "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
             cwd=repo,
             check=True,
             capture_output=True,

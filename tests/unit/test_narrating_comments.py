@@ -1,7 +1,6 @@
-"""No comment or docstring tells the history of the code (PR-05, D-891). The kind regressed after
-the review-tag test (#695) caught only one form of it, so this is the check one step up the META-03
-ladder: a strict phrase list in `pr_checks.py` that fails a pull request, and this scan of the tree
-with the same list, so the author meets it in the fast suite before review.
+"""No comment or docstring tells the history of the code (PR-05, D-891). The review-tag test (#695)
+sees one form of it only, so a strict phrase list in `pr_checks.py` fails a pull request, and this
+scan of the tree uses the same list, so the author meets it in the fast suite before review.
 
 A phrase list cannot tell a comment that says what the code does from one that says why it is so;
 that stays the reviewer's finding. The broad list in `pr_checks.py` keeps warning about it."""
@@ -48,10 +47,9 @@ def comments_and_docstrings(source: str) -> list[tuple[int, str]]:
     ]
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
-            body = node.body
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
-                if isinstance(body[0].value.value, str):
-                    found.append((body[0].lineno, body[0].value.value))
+            docstring = ast.get_docstring(node, clean=False)
+            if docstring is not None:
+                found.append((node.body[0].lineno, docstring))
     return found
 
 
@@ -75,7 +73,7 @@ def test_no_comment_or_docstring_narrates_the_change() -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        # #751 round 2 S1, the regression after #712
+        # the change history the review-tag test let through (D-891)
         "Its THR-10 and THR-05 texts (subagent hosting, D-881) ended with the move to the "
         "claude.ai Project (D-888, ruleset 1.14.0); the D888 pins below replace them.",
         "previously this read the whole file",

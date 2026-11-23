@@ -4,7 +4,10 @@ Read the ledger: one small file per PR and per review round (ledger/README.md).
 
     python3 ledger_tool.py table [--ledger DIR]   # PRs and rounds as markdown tables
     python3 ledger_tool.py stats [--ledger DIR]   # rounds per PR, compactions per PR, PRs per thread
-    python3 ledger_tool.py check [--ledger DIR]   # entries with missing or malformed fields (exit 1 if any)
+    python3 ledger_tool.py check [--ledger DIR] [--subjects FILE]
+                                                  # entries with missing or malformed fields, merges no entry records,
+                                                  # deferrals without a deferred/ entry (exit 1 if any; exit 2 when the
+                                                  # squash subjects of main and release/* cannot be read)
     python3 ledger_tool.py gate <PR number> [--head SHA]
                                                   # may this PR be merged? exit 0 only if the entries say yes (MRG-01),
                                                   # or the owner's one-off override for exactly this head is recorded;
@@ -27,7 +30,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 PR_KEYS = ("pr", "opened", "thread", "lane", "labels", "critical", "compactions")
@@ -41,7 +46,17 @@ DECISIONS = ("open", "fixed", "planned", "postponed", "dropped")
 HANDBACKS = ("done", "question", "blocked", "review", "handoff")
 OPEN_HANDBACKS = ("question", "blocked", "review")
 MIN_REASON = 20
-INT_KEYS = {"pr", "round", "compactions", "must_fix", "should_fix"}
+INT_KEYS = {"pr", "round", "compactions", "must_fix", "should_fix", "deferred"}
+# round entries of PRs from this number on must say how many findings the round set aside (D-891 F2):
+# a field that may be left out was how #745's deferral went unrecorded; older entries predate the field
+DEFERRED_FROM_PR = 760
+# the PR number is the last `(#N)` of a squash subject; an earlier one is the issue it closes
+SQUASH_RE = re.compile(r"\(#(\d+)\)\s*$")
+MERGE_REFS = ("refs/remotes/origin/main", "refs/remotes/origin/release/")
+
+
+class SubjectsUnavailable(RuntimeError):
+    """The commit subjects of main and release/* could not be read, so merges cannot be checked."""
 
 
 def read_entry(path: Path) -> dict[str, str]:
@@ -101,6 +116,46 @@ def merged_prs(prs: list[dict[str, str]], rounds: list[dict[str, str]]) -> dict[
         if r.get("merged"):
             out[r.get("pr", "")] = (r["merged"], r.get("date", ""))
     return out
+
+
+def squash_numbers(subjects: Iterable[str]) -> set[str]:
+    """PR numbers that close a commit subject, as a squash merge writes it: `area: outcome (#issue) (#PR)`."""
+    return {m.group(1) for s in subjects if (m := SQUASH_RE.search(s))}
+
+
+def read_subjects(ledger: Path, subjects_file: Path | None) -> list[str]:
+    """Commit subjects of origin/main and origin/release/*, from `subjects_file` or from git in the ledger's repository."""
+    if subjects_file is not None:
+        try:
+            return subjects_file.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise SubjectsUnavailable(f"cannot read {subjects_file}: {exc}") from exc
+    try:
+        refs = subprocess.run(["git", "-C", str(ledger), "for-each-ref", "--format=%(refname)", *MERGE_REFS],
+                              capture_output=True, text=True, check=True).stdout.split()
+        if not refs:
+            raise SubjectsUnavailable(f"no origin/main or origin/release/* in the repository of {ledger}")
+        return subprocess.run(["git", "-C", str(ledger), "log", "--format=%s", *refs],
+                              capture_output=True, text=True, check=True).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = getattr(exc, "stderr", "") or str(exc)
+        raise SubjectsUnavailable(f"git cannot list the commits of main and release/* for {ledger}: {detail.strip()}") from exc
+
+
+def owed_deferrals(rounds: list[dict[str, str]], deferred: list[dict[str, str]]) -> list[tuple[str, int, int, str]]:
+    """(PR, findings its rounds set aside, deferred/ entries for it, its latest round report) where entries are fewer."""
+    owed: dict[str, int] = {}
+    report: dict[str, tuple[int, str]] = {}
+    for r in rounds:
+        n = r.get("pr", "")
+        owed[n] = owed.get(n, 0) + num(r.get("deferred"))
+        if num(r.get("round")) >= report.get(n, (-1, ""))[0]:
+            report[n] = (num(r.get("round")), r.get("report", ""))
+    have: dict[str, int] = {}
+    for e in deferred:
+        have[e.get("pr", "")] = have.get(e.get("pr", ""), 0) + 1
+    return [(n, want, have.get(n, 0), report[n][1]) for n, want in sorted(owed.items(), key=lambda kv: num(kv[0]))
+            if want > have.get(n, 0)]
 
 
 def load_deferred(ledger: Path) -> tuple[list[dict[str, str]], str]:
@@ -170,6 +225,9 @@ def triage(rounds: list[dict[str, str]], deferred: list[dict[str, str]], since: 
             have = per_pr.get(r.get("pr", ""), 0)
             todo.append(f"PR #{r.get('pr')} was merged with {left} should-fix finding(s) open, {have} recorded in deferred/: "
                         f"write one entry per finding from {r.get('report') or 'the round report'}")
+    for n, want, have, report in owed_deferrals(rounds, deferred):
+        todo.append(f"PR #{n}: its rounds set aside {want} finding(s) (`deferred`), {have} recorded in deferred/: "
+                    f"write one entry per finding from {report or 'the round report'}")
     return todo, settled
 
 
@@ -402,9 +460,16 @@ def num(v: str | None, default: int = 0) -> int:
 
 
 def problems(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: list[dict[str, str]] | None = None,
-             overrides: list[dict[str, str]] | None = None, gos: list[dict[str, str]] | None = None) -> list[str]:
+             overrides: list[dict[str, str]] | None = None, gos: list[dict[str, str]] | None = None,
+             deferred: list[dict[str, str]] | None = None, merged_numbers: set[str] | None = None) -> list[str]:
+    """Everything `check` reports. `merged_numbers` are the PRs that squash subjects on main and release/* name."""
     out: list[str] = []
     merged = set(merged_prs(prs, rounds))
+    for e in prs:
+        n = e.get("pr", "")
+        if n in (merged_numbers or set()) and n not in merged:
+            out.append(f"prs/{e['_file']}: PR #{n} is merged (a squash subject on main or release/* ends with (#{n})) "
+                       "but no round or PR entry records the merge: fill `merged:` in the round or PR entry")
     for e in overrides or []:
         out += [f"overrides/{e['_file']}: {w}" for w in override_problems(e)]
     for e in gos or []:
@@ -428,11 +493,14 @@ def problems(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: l
         seen: set[tuple[str, str]] = set()
         for e in entries:
             where = f"{kind}/{e['_file']}"
-            for k in keys:
+            required = keys + (("deferred",) if kind == "rounds" and num(e.get("pr")) >= DEFERRED_FROM_PR else ())
+            for k in required:
                 if k not in e or e[k] == "":
                     out.append(f"{where}: `{k}` is missing")
                 elif k in INT_KEYS and not re.fullmatch(r"\d+", e[k]):
                     out.append(f"{where}: `{k}` must be a whole number, got '{e[k]}'")
+            if "deferred" not in required and e.get("deferred") and not re.fullmatch(r"\d+", e["deferred"]):
+                out.append(f"{where}: `deferred` must be a whole number, got '{e['deferred']}'")
             ident = (e.get("pr", ""), e.get("round", ""))
             if ident in seen:
                 out.append(f"{where}: a second entry for the same PR{' and round' if kind == 'rounds' else ''}")
@@ -449,6 +517,9 @@ def problems(prs: list[dict[str, str]], rounds: list[dict[str, str]], reverts: l
             out.append(f"rounds/{e['_file']}: round 1 must record the reviewer's `critical: yes|no` (CRIT-03)")
         if e.get("merged") and num(e.get("must_fix"), -1) != 0:
             out.append(f"rounds/{e['_file']}: merged with open must-fix findings (MRG-01)")
+    for n, want, have, _ in owed_deferrals(rounds, deferred or []):
+        out.append(f"PR #{n}: its rounds set aside {want} finding(s) (`deferred`), deferred/ holds {have} "
+                   f"entr{'y' if have == 1 else 'ies'} for it")
     return out
 
 
@@ -576,6 +647,8 @@ def main() -> int:
     ap.add_argument("cmd", choices=["table", "stats", "check", "gate", "approved", "triage", "flags", "status"])
     ap.add_argument("pr", nargs="?", help="PR number (gate and approved only)")
     ap.add_argument("--ledger", type=Path, help="ledger directory (default: ../ledger next to this script, or ./ledger)")
+    ap.add_argument("--subjects", type=Path, help="check: a file of commit subjects of main and release/* (one per line), "
+                    "instead of reading them with git from the ledger's repository")
     ap.add_argument("--head", default="", help="gate: the PR's current head SHA, needed for an owner override when no round is "
                     "recorded; approved: the head to check (required)")
     args = ap.parse_args()
@@ -639,7 +712,14 @@ def main() -> int:
         if seam:
             print(f"Seam audit: {'DUE, ' if seam[0] else 'not due, '}{seam[1]}.")
         return 0
-    found = problems(prs, rounds, reverts, overrides, gos) + [f"deferred/{e['_file']}: {w}" for e in deferred for w in deferred_problems(e)]
+    try:
+        numbers = squash_numbers(read_subjects(ledger, args.subjects))
+    except SubjectsUnavailable as exc:
+        print(f"error: {exc}. Run `git fetch origin main 'release/*'` in the clone, or pass --subjects FILE "
+              "(the output of `git log --format=%s origin/main origin/release/*`)", file=sys.stderr)
+        return 2
+    found = problems(prs, rounds, reverts, overrides, gos, deferred, numbers) + [
+        f"deferred/{e['_file']}: {w}" for e in deferred for w in deferred_problems(e)]
     print("\n".join(found) if found else f"{len(prs)} PR entries and {len(rounds)} round entries, no problems.")
     return 1 if found else 0
 
