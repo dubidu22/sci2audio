@@ -394,3 +394,82 @@ def test_an_audio_job_on_a_pdf_of_glyph_numbers_fails_as_unreadable_text(tmp_pat
     assert voice.made == 0
     folder = book_folder(config.output_folder, "glyphs.pdf")
     assert not folder.exists() or not list(folder.iterdir())
+
+
+# ---- listening while the audiobook is made (#724) ---------------------------------------------
+
+
+def test_the_job_card_offers_start_listening_once_a_chapter_is_playable(tmp_path: Path) -> None:
+    from test_web_listen_growing import start_growing
+
+    book = start_growing(tmp_path)
+    try:
+        page = book.client.get(f"/documents/{book.doc}").text
+        assert 'id="making"' in page
+        box = page[page.index('id="start-listening-box"') :]
+        assert box.startswith('id="start-listening-box">')  # drawn shown, not hidden
+        assert f'id="start-listening" href="/documents/{book.doc}/listen"' in box
+        assert "Start listening" in box[: box.index("</p>")]
+    finally:
+        book.finish()
+
+
+def test_the_running_card_hides_start_listening_before_a_chapter_is_playable(
+    tmp_path: Path,
+) -> None:
+    gate = threading.Event()
+    voice = FakeVoice(on_speak=lambda text: gate.wait(60) if "Things happen" in text else None)
+    client, _config = server(tmp_path, voice)
+    doc = upload(client, paper_bytes())["id"]
+    job = start_audio(client, doc)
+    try:
+        page = client.get(f"/documents/{doc}").text
+        assert 'id="start-listening-box" hidden>' in page
+    finally:
+        gate.set()
+        wait(client, job["id"])
+
+
+def test_the_web_record_names_the_folder_and_settings_at_job_start(tmp_path: Path) -> None:
+    from test_web_listen_growing import start_growing
+
+    book = start_growing(tmp_path, ready=1)
+    try:
+        record = json.loads((book.work / "audiobook.json").read_text(encoding="utf-8"))
+        assert record["document"] == book.doc
+        assert record["folder"] == str(book_folder(book.config.output_folder))
+    finally:
+        book.finish()
+    # what it says is what the job's own record says once it is done
+    done = json.loads((book.work / "audio.json").read_text(encoding="utf-8"))
+    made = record["made"]
+    assert made["voice"] == done["voice"] == "af_heart"
+    assert made["switched_off"] == sorted(done["settings"]["switched_off"])
+    assert made["plugins"] == [p["step"] for p in done.get("plugins", ())] == []
+    assert made["sci2audio"] == done["sci2audio"]
+
+
+def test_a_job_for_another_book_still_forgets_the_position(tmp_path: Path) -> None:
+    client, config = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())["id"]
+    assert wait(client, start_audio(client, doc)["id"])["state"] == "done"
+    work = config.work_root / doc
+    url = f"/api/v1/documents/{doc}/position"
+
+    def stamp() -> str:
+        from test_web_player import player_data
+
+        return str(player_data(client.get(f"/documents/{doc}/listen").text)["audiobook"])
+
+    first = stamp()
+    assert client.post(url, json={"chapter": 0, "time": 1.0, "audiobook": first}).status_code == 204
+    # the same book made again (same settings and chapters): the position is in it still
+    again = start_audio(client, doc, overwrite=True)
+    assert wait(client, again["id"])["state"] == "done"
+    assert stamp() == first
+    assert (work / "position.json").is_file()
+    # another book (another speed): the position goes
+    other = start_audio(client, doc, overwrite=True, settings={"speed": 1.5})
+    assert wait(client, other["id"])["state"] == "done"
+    assert stamp() != first
+    assert not (work / "position.json").exists()

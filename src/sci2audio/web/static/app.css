@@ -418,6 +418,10 @@ button.speed { min-height: 34px; padding: 4px 10px; font-weight: 700; font-varia
 .outline button[aria-current="true"] { background: var(--paper); box-shadow: inset 0 0 0 1px var(--rule); }
 .outline .ot { font-weight: 700; font-size: 14px; }
 .outline .oc { color: var(--pencil); font-size: 13px; }
+/* a chapter of a book still being made (#724): its row, not a button, until it is playable */
+.outline .chapter-later { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 10px; color: var(--pencil); }
+.outline .chapter-later .ot { font-weight: 400; }
+.waiting { flex: 1 1 100%; margin: 0; color: var(--ink); font-size: 13.5px; }
 .follow { margin: 16px 0 0; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
 .chg-list { list-style: none; padding: 0; margin: 0; border-bottom: 1px solid var(--rule); }
 .view .chg-list li { max-width: none; margin: 0; }

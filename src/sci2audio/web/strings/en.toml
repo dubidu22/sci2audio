@@ -380,6 +380,13 @@ cannot_play = "This browser can't play the audiobook's M4B file. Save it from th
 load_failed = "The audio could not be loaded. Is sci2audio still running?"
 time_of = "{time} of {total}"  # the dock's clock and the timeline (#393)
 speed_now = "Speed {speed}"  # said when a key changed the speed (#394)
+# a book still being made (#724): each chapter's state in the chapter list, and the lines
+# said as the book grows
+generating = "being generated"
+missing = "not generated"
+chapter_ready = "Chapter {n} is ready."  # its title may follow, in the text's language
+waiting_next = "The next chapter is still being generated. Playback goes on as soon as it is ready."
+start_listening = "Start listening"
 
 [speed]  # the typed speed field of the player and the voice (#651)
 slower = "Slower"

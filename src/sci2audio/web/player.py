@@ -31,7 +31,7 @@ import statistics
 import time
 import unicodedata
 from collections.abc import Collection, Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path, PurePath
 from typing import Any
@@ -40,6 +40,8 @@ from sci2audio import __version__
 from sci2audio.app import find_chapters
 from sci2audio.app.chapters import Chapter
 from sci2audio.app.files import write_texts
+from sci2audio.app.playable import RECORD as CHAPTER_RECORD
+from sci2audio.app.playable import ChapterRecord, read_record
 from sci2audio.app.report import Pages
 from sci2audio.core import Block, BlockKind, Document, Edit, EditKind, Section, SpanError, TextLine
 from sci2audio.core.export import from_data
@@ -85,16 +87,58 @@ class PlayerError(Exception):
 # ---- the web's record (D-295) -----------------------------------------------------------
 
 
-def write_record(work: Path, document_id: str, folder: Path) -> None:
-    """Note where the audio job of `document_id` wrote its audiobook. Raises OSError."""
-    data = {
+@dataclass(frozen=True)
+class Made:
+    """What the web's audio job makes the audiobook with, as `audio.json` will say once it
+    is done (#724): the voice, the categories switched off, the plugin steps it runs and
+    the sci2audio version. The Listen page draws a book that is still growing with them."""
+
+    voice: str
+    switched_off: frozenset[str]
+    plugins: frozenset[str]
+    version: str
+
+
+def write_record(work: Path, document_id: str, folder: Path, made: Made | None = None) -> None:
+    """Note where the audio job of `document_id` writes its audiobook and, while it runs,
+    what it makes it with (`made`, an optional key older versions ignore). Raises OSError."""
+    data: dict[str, Any] = {
         "format": RECORD_FORMAT,
         "version": RECORD_VERSION,
         "document": document_id,
         "folder": str(folder.absolute()),
     }
+    if made is not None:
+        data["made"] = {
+            "voice": made.voice,
+            "switched_off": sorted(made.switched_off),
+            "plugins": sorted(made.plugins),
+            "sci2audio": made.version,
+        }
     text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     write_texts({work / RECORD: text}, overwrite=True)
+
+
+def recorded_made(work: Path, document_id: str) -> Made | None:
+    """What the record says the audio job makes the audiobook with, or None: no record, not
+    ours, or no readable `made` (`recorded_folder` checks the rest)."""
+    if recorded_folder(work, document_id) is None:
+        return None
+    try:
+        made = json.loads((work / RECORD).read_text(encoding="utf-8"))["made"]
+        voice, version = made["voice"], made["sci2audio"]
+        switched_off, plugins = made["switched_off"], made["plugins"]
+    except (OSError, ValueError, KeyError, TypeError, RecursionError):
+        return None
+    if not (
+        isinstance(voice, str)
+        and isinstance(version, str)
+        and isinstance(switched_off, list)
+        and isinstance(plugins, list)
+        and all(isinstance(c, str) for c in (*switched_off, *plugins))
+    ):
+        return None
+    return Made(voice, frozenset(switched_off), frozenset(plugins), version)
 
 
 def recorded_folder(work: Path, document_id: str) -> Path | None:
@@ -409,11 +453,14 @@ class Located:
     folder: Path
     readalong: ReadAlong
     name: str = ""  # the read-along file's name in the folder
+    key: str = ""  # the book's stamp from its chapter record (`book_key`), if it has one
 
     @property
     def stamp(self) -> str:
-        """The audiobook's stamp for the listening position (#153). Raises OSError."""
-        return audiobook_stamp(self.folder / self.name)
+        """The audiobook's stamp for the listening position (#153): the book's key when its
+        chapter record names this read-along file (#724), else the file's hash. Raises
+        OSError."""
+        return self.key or audiobook_stamp(self.folder / self.name)
 
 
 def locate(record: AudioRecord, folders: Iterable[Path | None]) -> Located:
@@ -463,6 +510,199 @@ def candidate_folders(
     project = read_project(work, document_id)
     own = [] if project is None else list(reversed(project.folders()))
     return [recorded_folder(work, document_id), *own, saved, default]
+
+
+# ---- a book that grows (#724, LW-02) --------------------------------------------------
+#
+# The audio job makes each chapter playable as soon as it is spoken (#723): its MP3 is in
+# the output folder, the read-along file is rewritten with it, and `chapters.json` in the
+# working folder names every file with its size and SHA-256. `audio.json` comes only at the
+# end. Until then the page draws the chapters the chapter record names, trusting nothing
+# the record does not vouch for: the read-along file must be the one it names (size and
+# SHA-256), list exactly its chapters' MP3s, and every MP3 must be there at its recorded
+# size. The voice and the switched-off categories come from the web's own record (`Made`).
+#
+# Its timeline only grows: a chapter is added at the end, the ones before keep their
+# times. So the stamp a listening position is kept with is the book's own key, the same
+# while it grows and once it is done, not the read-along file's hash.
+
+
+READALONG_SUFFIX = ".readalong.json"
+
+
+def book_key(record: ChapterRecord) -> str:
+    """The stamp of the book the chapter record describes: its settings and its chapters.
+    The same while the book grows and once it is done; another for any other settings or
+    choice of chapters."""
+    data = json.dumps([record.settings, list(record.planned)], separators=(",", ":"))
+    return hashlib.sha256(data.encode()).hexdigest()[:16]
+
+
+@dataclass(frozen=True)
+class Planned:
+    """A chapter the audio job was asked to speak: its index in the document, its title,
+    and its place in the read-along file once it is playable (else None)."""
+
+    index: int
+    title: str
+    chapter: int | None
+
+
+@dataclass(frozen=True)
+class Current:
+    """The document's audiobook as the player finds it: its record (`audio.json`, or for a
+    book that is still growing one made from the chapter record and `Made`), where it is,
+    and for a growing book its chapter record."""
+
+    record: AudioRecord
+    located: Located
+    growing: ChapterRecord | None = None
+
+
+def current_audiobook(work: Path, document_id: str, folders: Iterable[Path | None]) -> Current:
+    """The finished audiobook if there is one; else the book the audio job is making, once a
+    chapter of it is playable. PlayerError as `read_audio_record` and `locate` say."""
+    try:
+        record = read_audio_record(work, document_id)
+    except PlayerError as error:
+        if error.key != "listen.no_audiobook":
+            raise
+        growing = _growing(work, document_id, folders)
+        if growing is None:
+            raise
+        return growing
+    located = locate(record, folders)
+    return Current(record, replace(located, key=_key_for(work, located.folder, located.name)))
+
+
+def readalong_stamp(work: Path, readalong: Path) -> str:
+    """The stamp of the audiobook whose read-along file this is (`Located.stamp`) without
+    checking the rest of it, for the library and the shelf. Raises OSError."""
+    return _key_for(work, readalong.parent, readalong.name) or audiobook_stamp(readalong)
+
+
+def _key_for(work: Path, folder: Path, readalong: str) -> str:
+    """The book's key if the working folder's chapter record names this very read-along
+    file (its size and SHA-256): a file changed since is another audiobook, as before."""
+    record = _chapter_record(work)
+    if record is None:
+        return ""
+    for entry in record.book:
+        if entry.name == readalong and _vouched(folder, entry.name, entry.bytes, entry.sha256):
+            return book_key(record)
+    return ""
+
+
+def _chapter_record(work: Path) -> ChapterRecord | None:
+    """The chapter record, read once per version of the file (every page asks, #389)."""
+    try:
+        version = file_version(work / CHAPTER_RECORD)
+    except OSError:
+        return None
+    if version is None:
+        return read_record(work)
+    return _cached_record(str(work), version)
+
+
+@lru_cache(maxsize=64)
+def _cached_record(work: str, version: tuple[int, int, int]) -> ChapterRecord | None:
+    return read_record(Path(work))
+
+
+@lru_cache(maxsize=64)
+def _sha256(path: str, version: tuple[int, int, int]) -> str:
+    return _full_hash(Path(path))
+
+
+def _full_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _vouched(folder: Path, name: str, size: int, sha256: str) -> Path | None:
+    """`<folder>/<name>` if it is in the folder (`in_folder`) with this size and SHA-256."""
+    path = in_folder(folder, name)
+    if path is None:
+        return None
+    try:
+        if path.stat().st_size != size:
+            return None
+        version = file_version(path)
+        found = _full_hash(path) if version is None else _sha256(str(path), version)
+    except OSError:
+        return None
+    return path if found == sha256 else None
+
+
+def _growing(work: Path, document_id: str, folders: Iterable[Path | None]) -> Current | None:
+    record = _chapter_record(work)
+    made = recorded_made(work, document_id)
+    if record is None or record.complete or not record.chapters or made is None:
+        return None
+    entries = [f for f in record.book if f.name.endswith(READALONG_SUFFIX)]
+    if len(entries) != 1:
+        return None
+    entry = entries[0]
+    sizes = {f.name: f.bytes for c in record.chapters for f in c.files}
+    mp3s = tuple(f.name for c in record.chapters for f in c.files if f.name.endswith(".mp3"))
+    if len(mp3s) != len(record.chapters):
+        return None
+    for folder in dict.fromkeys(f for f in folders if f is not None and f.is_absolute()):
+        path = _vouched(folder, entry.name, entry.bytes, entry.sha256)
+        if path is None:
+            continue
+        try:
+            data = load_readalong(path)
+        except (OSError, ReadAlongError):
+            continue
+        if tuple(c.mp3 for c in data.chapters) != mp3s or data.m4b is not None or not data.chunks:
+            continue
+        if not all(_has_size(folder, name, size) for name, size in sizes.items()):
+            continue
+        audio = AudioRecord(
+            voice=made.voice,
+            switched_off=made.switched_off,
+            duration=data.duration,
+            chunks=len(data.chunks),
+            m4b=None,
+            mp3s=mp3s,
+            readalong=entry.name,
+            made_with=made.version,
+            plugins=made.plugins,
+        )
+        return Current(audio, Located(folder, data, entry.name, book_key(record)), record)
+    return None
+
+
+def _has_size(folder: Path, name: str, size: int) -> bool:
+    path = in_folder(folder, name)
+    try:
+        return path is not None and path.stat().st_size == size
+    except OSError:
+        return False
+
+
+def chapter_index(work: Path, n: int) -> int | None:
+    """The document's index of the chapter at place `n` in the read-along file, as the
+    chapter record says (None without one)."""
+    record = _chapter_record(work)
+    if record is None or not 0 <= n < len(record.chapters):
+        return None
+    return record.chapters[n].index
+
+
+def planned_chapters(record: ChapterRecord, document: Document) -> list[Planned]:
+    """Every chapter the job was asked to speak, in the job's order, with its place in the
+    read-along file once it is playable. A chapter the voice failed on entirely gets no
+    file (D-162) and so never a place."""
+    titles = {chapter.index: chapter.title for chapter in find_chapters(document)}
+    places = {chapter.index: n for n, chapter in enumerate(record.chapters)}
+    for chapter in record.chapters:
+        titles[chapter.index] = chapter.title
+    return [
+        Planned(index, titles.get(index, ""), places.get(index))
+        for index in record.planned
+        if index in titles
+    ]
 
 
 # ---- the page's view -------------------------------------------------------------------
@@ -545,6 +785,12 @@ class PlayerView:
     marked: bool = False  # the audiobook's edits are drawn on the text (D-704b)
     made_with: str = ""  # the sci2audio version that made the audiobook
     changes: list[ChangeView] = field(default_factory=list)
+    # a book still growing (#724): every chapter the job was asked for; empty once done
+    planned: list[Planned] = field(default_factory=list)
+
+    @property
+    def growing(self) -> bool:
+        return bool(self.planned)
 
     def data(self, document_id: str) -> dict[str, Any]:
         """What the script needs. It builds each file's address itself from the document
@@ -1115,6 +1361,27 @@ def _piece(
     return Piece(shown(text, start, end, joined), element, chunk, parts)
 
 
+def chapter_data(view: PlayerView, n: int) -> dict[str, Any]:
+    """Chapter `n` of the view as the page's script holds it (`PlayerView.data`): the
+    chapter, its chunks with their numbers in the book, and their sentences."""
+    chapter = view.chapters[n]
+    first = chapter.first_chunk
+    end = view.chapters[n + 1].first_chunk if n + 1 < len(view.chapters) else len(view.chunks)
+    sentences = view.sentences or list(range(len(view.chunks)))
+    return {
+        "chapter": {
+            "title": chapter.title,
+            "file": chapter.source,
+            "offset": chapter.offset,
+            "start": chapter.start,
+            "first": first,
+        },
+        "first": first,
+        "chunks": [list(chunk) for chunk in view.chunks[first:end]],
+        "sentences": sentences[first:end],
+    }
+
+
 def player_for(
     work: Path,
     document_id: str,
@@ -1130,13 +1397,15 @@ def player_for(
     `steps` are the server's (its runner's, plugins included, #666); of their plugin steps
     only those the record names made the audiobook and are used (D-852), so a plugin
     installed, upgraded or added since shows no edit the voice never said."""
-    record = read_audio_record(work, document_id)
-    located = locate(record, folders)
+    current = current_audiobook(work, document_id, folders)
+    record, located = current.record, current.located
     document = load_document(work)
     steps = tuple(
         step for step in steps if getattr(step, "plugin", None) is None or step.id in record.plugins
     )
     view = build_view(document, record, located.readalong, steps, figures=figures)
+    if current.growing is not None:
+        view.planned = planned_chapters(current.growing, document)
     return view, located, document
 
 
@@ -1146,11 +1415,10 @@ def audiobook_file(
     """The file `name` of the document's audiobook, if it is one of its files and passes
     every check; else None."""
     with contextlib.suppress(PlayerError):
-        record = read_audio_record(work, document_id)
-        if name not in record.names:
+        current = current_audiobook(work, document_id, folders)
+        if name not in current.record.names:
             return None
-        located = locate(record, folders)
-        return in_folder(located.folder, name)
+        return in_folder(current.located.folder, name)
     return None
 
 

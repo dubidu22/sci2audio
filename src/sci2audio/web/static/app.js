@@ -976,7 +976,12 @@ function makingCard() {
   const chapter = document.getElementById("job-chapter");
   const left = document.getElementById("job-left");
   const count = document.getElementById("job-progress");
-  const announce = announcer(document.getElementById("job-status"));
+  const status = document.getElementById("job-status");
+  const announce = announcer(status);
+  // each chapter is playable as soon as it is spoken (#723): the first one shows "Start
+  // listening" (#724), and each one is said, apart from the throttled progress (D-253)
+  const listenBox = document.getElementById("start-listening-box");
+  let ready = (card.dataset.playable || "").split(",").filter(Boolean).length;
   follow(card.dataset.events, (progress) => {
     const shown = cardShown(progress);
     chapter.textContent = shown.head;
@@ -995,6 +1000,12 @@ function makingCard() {
     drawSegments(segs, shown.chapters, shown.now);
     bar.setAttribute("aria-valuetext", shown.said);
     announce(progress, shown.said);
+    const playable = (progress.playable || []).length;
+    if (listenBox && playable > ready) {
+      ready = playable;
+      listenBox.hidden = false;
+      status.textContent = tr("player.chapter_ready", { n: playable });
+    }
   }, () => {
     if (!leaving) reloadAt("result");
   });

@@ -21,7 +21,7 @@
 <section class="step making" id="making" aria-labelledby="making-title" tabindex="-1"
          data-job="{{ job.id }}" data-state="{{ job.state }}" data-document="{{ document.id }}"
          data-settings="{{ job.settings | tojson | forceescape }}" data-overwrite="{{ 'true' if job.overwrite else 'false' }}"
-         data-events="/api/v1/jobs/{{ job.id }}/events" data-cancel="/api/v1/jobs/{{ job.id }}/cancel" data-stop-wait="{{ card.stop_wait }}">
+         data-events="/api/v1/jobs/{{ job.id }}/events" data-playable="{{ (job.progress.playable or []) | join(',') if job.progress else '' }}" data-cancel="/api/v1/jobs/{{ job.id }}/cancel" data-stop-wait="{{ card.stop_wait }}">
 <header><h2 id="making-title">{{ t('making.title') }}</h2></header>
 <div class="body">
 {% if card.state == 'running' %}
@@ -29,6 +29,9 @@
   <progress id="job-bar" max="100"{% if card.percent is not none %} value="{{ card.percent }}"{% endif %} aria-valuetext="{{ card.head }}{% if card.left %}, {{ card.left }}{% endif %}" aria-labelledby="making-title" aria-describedby="job-progress"></progress>
   {{ segments(card.segments) }}
   <p id="job-progress" class="job-count">{{ card.sentences }}</p>
+  {#- the chapters are playable as they are spoken (#723): the first one opens Listen (#724);
+      app.js shows the link when the first one is ready -#}
+  <p class="buttons" id="start-listening-box"{% if not card.playable %} hidden{% endif %}><a class="btn primary" id="start-listening" href="/documents/{{ document.id }}/listen">{{ icon('speaker', 's') }}<span>{{ t('player.start_listening') }}</span></a></p>
   <p id="job-status" class="visually-hidden" role="status"></p>
   <p class="job-note">{{ t('making.leave') }}</p>
   <div class="buttons">
@@ -75,6 +78,7 @@
     {% if card.kept %}<p id="job-kept">{{ card.kept }}</p>{% endif %}
   </div></div>
   {{ segments(card.segments) }}
+  {% if card.playable %}<p class="buttons"><a class="btn" id="listen-link" href="/documents/{{ document.id }}/listen">{{ icon('speaker', 's') }}<span>{{ t('listen.link') }}</span></a></p>{% endif %}
   <div class="buttons">
     <button type="button" class="primary" id="job-again" disabled aria-describedby="again-hint">{% if card.resume %}{{ icon('play', 's') }}<span>{{ t('making.resume') }}</span>{% else %}{{ t('making.again') }}{% endif %}</button>
     {{ free_button(card) }}
