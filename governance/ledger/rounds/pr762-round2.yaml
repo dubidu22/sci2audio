@@ -1,0 +1,14 @@
+pr: 762
+round: 2
+date: 2026-11-23
+thread: review-b005
+head: 16b6e7ae64ecd37bc39234dd7422c4587536c84a
+critical: yes
+verdict: approved
+must_fix: 0
+should_fix: 0
+deferred: 0
+kinds: ""
+report: plans/review-pr762-round2.md
+merged: ""
+updated_head: ""
