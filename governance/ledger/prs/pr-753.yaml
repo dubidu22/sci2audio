@@ -9,5 +9,5 @@ compactions: 0
 fixes_kinds: ""
 handback: ""
 recommended: ""
-note: "closes #744; check_espeak_data refuses a non-ASCII data folder where Windows' ANSI code page is not UTF-8; characterisation test on tmp/Jürgen/data pins speak (POSIX, UTF-8 code page) or exit 1 (other code pages); head dae7c19; Windows outcome from the ci:full run pending"
+note: "closes #744; check_espeak_data refuses a non-ASCII data folder where Windows' ANSI code page is not UTF-8; characterisation test on tmp/Jürgen/data pins speak (POSIX, UTF-8 code page) or exit 1 (other code pages); head dae7c19; ci:full run 45144703459 green on 3 OS (Windows: exit branch, cp1252); ci:full removed"
 merged: ""
