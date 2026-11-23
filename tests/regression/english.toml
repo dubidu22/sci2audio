@@ -2939,7 +2939,7 @@ audit = 0
 issue = 590
 goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. The voice says nothing for '⇒' yet; a plain '=' stays as printed."
 blocks = [{ kind = "paragraph", text = "So A =⇒ B and C⇐=D, and x = 3 holds iff P ⇐=⇒ Q and X=⇒Y." }]
-expected = ["So A =⇒ B and C⇐=D, and x equals 3 holds iff P ⇐=⇒ Q and X=⇒Y."]
+expected = ["So A ⇒ B and C⇐D, and x equals 3 holds iff P ⇔ Q and X⇒Y."]
 
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 

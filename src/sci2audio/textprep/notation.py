@@ -63,15 +63,24 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
 # "\\longrightarrow") as an arrow and a minus sign, "←−", "−→", "←−→", and a longer one or a
 # vector ("\\overrightarrow{AB}") with more minus signs, "−−→", "←−−" (#593); also
 # glued to its variables ("X−→α"). The voices read "left minus" and "minus right"; one arrow
-# is "left arrow", "right arrow" ("Linkspfeil", "Rechtspfeil"), never "minus" (#527)
-_TWO_GLYPH_ARROW = re.compile("←\u2212+→|←\u2212+|\u2212+→")
+# is "left arrow", "right arrow" ("Linkspfeil", "Rechtspfeil"), never "minus" (#527). A long
+# double arrow ("\\Longrightarrow") comes as an equals sign and an arrow, "=⇒", "⇐=", "⇐=⇒"
+# or "⇐⇒"; the voices read "=⇒" "equals" ("gleich"), which flips the meaning (#590)
+_TWO_GLYPH_ARROW = re.compile("←\u2212+→|←\u2212+|\u2212+→|⇐=*⇒|⇐=+|=+⇒")
+# the one arrow for each first and last glyph of a run
+_ONE_ARROW = {
+    ("←", "→"): "↔",
+    ("←", "\u2212"): "←",
+    ("\u2212", "→"): "→",
+    ("⇐", "⇒"): "⇔",
+    ("⇐", "="): "⇐",
+    ("=", "⇒"): "⇒",
+}
 
 
 def _one_arrow(glyphs: str) -> str:
-    """The one arrow a run of glyphs prints: "←−−→" is "↔", "←−−" "←", "−−→" "→"."""
-    if glyphs[0] == "←":
-        return "↔" if glyphs[-1] == "→" else "←"
-    return "→"
+    """The one arrow a run of glyphs prints: "←−−→" is "↔", "←−−" "←", "−−→" "→", "=⇒" "⇒"."""
+    return _ONE_ARROW[glyphs[0], glyphs[-1]]
 
 
 def as_one_arrow(text: str, found: Sequence[Candidate]) -> str:
@@ -88,7 +97,7 @@ def as_one_arrow(text: str, found: Sequence[Candidate]) -> str:
 
 
 def arrows(text: str) -> list[Candidate]:
-    """Arrows printed as an arrow and a minus sign, read as one arrow (#527)."""
+    """Arrows printed as an arrow and a minus or equals sign, read as one arrow (#527, #590)."""
     found = []
     for match in _TWO_GLYPH_ARROW.finditer(text):
         one = _one_arrow(match[0])
