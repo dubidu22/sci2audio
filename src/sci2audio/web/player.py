@@ -515,7 +515,7 @@ def candidate_folders(
 # ---- a book that grows (#724, LW-02) --------------------------------------------------
 #
 # The audio job makes each chapter playable as soon as it is spoken (#723): its MP3 is in
-# the output folder, the read-along file is rewritten with it, and `chapters.json` in the
+# the output folder, the read-along file is written whole with it, and `chapters.json` in the
 # working folder names every file with its size and SHA-256. `audio.json` comes only at the
 # end. Until then the page draws the chapters the chapter record names, trusting nothing
 # the record does not vouch for: the read-along file must be the one it names (size and

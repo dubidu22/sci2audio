@@ -1206,7 +1206,7 @@ function readAlong() {
       if (held) showWaiting(false);
     }
 
-    // the person played or moved while the player waited: it no longer goes on by itself
+    // a play or a move by the person ends the wait: the player follows them from there
     for (const type of ["play", "seeking"]) {
       audio.addEventListener(type, () => {
         if (held) showWaiting(false);

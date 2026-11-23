@@ -224,7 +224,7 @@ def test_only_the_recorded_files_of_ready_chapters_are_served(growing: Growing) 
     (folder / "notes.txt").write_text("not ours")
     for name in ("paper - 03 Results.mp3", "notes.txt", "../audiobook.json"):
         assert growing.client.get(url + name).status_code == 404, name
-    # a ready chapter's MP3 changed in size is no longer the book's: nothing is served
+    # a ready chapter's MP3 of another size is not the book's: nothing of the book is served
     mp3 = folder / data["chapters"][0]["file"]
     mp3.write_bytes(mp3.read_bytes() + b"x")
     assert growing.client.get(url + data["chapters"][1]["file"]).status_code == 404
@@ -277,7 +277,7 @@ def test_the_finished_audiobook_wins_over_a_growing_record(growing: Growing) -> 
     assert [c["title"] for c in data["chapters"]] == TITLES
     assert 'chapter-state">' not in text
     assert 'class="chapter-later"' not in text
-    # the web's record no longer says what the book is made with: audio.json does
+    # once the book is done, audio.json says what it is made with, not the web's record
     assert "made" not in json.loads((growing.work / WEB_RECORD).read_text())
 
 
