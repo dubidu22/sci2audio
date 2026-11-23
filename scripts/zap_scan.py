@@ -827,6 +827,9 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
         call("GET", f"{api}/documents/{ids.paper}/files/{name}", 200)
     call("GET", f"{api}/documents/{ids.paper}/files/none.txt", 404)
     call("GET", f"{api}/documents/{ids.paper}/audiobook/none.mp3", 404)
+    # a chapter of the audiobook for a Listen page that is open while the book grows (#724)
+    call("GET", f"/documents/{ids.paper}/listen/chapters/0", 200)
+    call("GET", f"/documents/{ids.paper}/listen/chapters/999", 404)
     call("GET", f"{api}/documents/{ids.paper}/figures/0/0", 404)  # a heading: no image (#293)
     job = call("GET", f"{api}/jobs/{ids.audio_job}", 200).json()
     for name in _names(job, "files"):
