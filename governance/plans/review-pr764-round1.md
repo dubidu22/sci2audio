@@ -31,3 +31,7 @@ Attempt 1 of `browser (Linux, webkit, 2/2, reported only)` failed `test_flow.py:
 - Goal: critical review round 1 of #764 at 9d38cec.
 - Done: kill test and the record order verified; tests green locally (unit and Chromium) and in CI on three systems; WebKit failures did not repeat.
 - Next: the coordinator's go `ledger/gos/pr-764.yaml` for 9d38cec; then `ledger_tool.py gate 764`, rerun `governance pr checks` if still red, squash-merge pinned to 9d38cec, record the merge and main's three-system run.
+
+## Merge
+
+Squash-merged by review-b005 on the coordinator go D-905, pinned to 9d38cec, as eab9fb2. Main CI run 45202066107 on eab9fb2: tests on ubuntu, macos and windows and CI passed all success.
