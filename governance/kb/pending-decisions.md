@@ -93,3 +93,11 @@ Plan impl-infra-b005 (`plans/impl-infra-b005-plan.md`, 9f7f074) is approved as w
   - So `narrating-comment` counts as fixed only for change-history comments. If a what-comment comes up again, the next step is a design change in the review template, not another word list.
 - PREF-01 (#759): the ruleset is regenerated to 1.15.0 through the governance skill on Colin's word in D-892, and the test comment is fixed.
 - The trial gap on `prs/pr-753.yaml` is closed: impl-744 recorded 8965914. review-b005 fills `merged:` in `rounds/pr753-round1.yaml`.
+
+## D-900 (2026-11-23, coordinator)
+
+Merge go for #760 (ruleset 1.15.0 plus the ledger and narration checks, closes #756 to #759), pinned to a25a67e.
+- Round 1 approved with 0 must-fix and 0 should-fix.
+- Every ruleset file changes exactly two lines: the version and PREF-01. The D-882 and D-849 texts are byte-identical to main.
+- ci:full run 45160343600 is green.
+- After the merge, every new round entry carries `deferred:`.
