@@ -54,7 +54,7 @@ from sci2audio.app.chunks import (
     remove_partials,
 )
 from sci2audio.app.estimate import Estimate
-from sci2audio.app.files import write_bytes_atomically, write_texts
+from sci2audio.app.files import write_bytes_atomically, write_text_atomically, write_texts
 from sci2audio.app.job import (
     COVERS,
     JobCancelledError,
@@ -533,7 +533,9 @@ def run_audio_job(
         found_files = _check_targets(work, out_folder, book_plan, key, overwrite)
         _check_cancel(cancel)
 
-        chapters = _Chapters(work, out_folder, book_plan, key, found_files, run, overwrite, tell)
+        chapters = _Chapters(
+            work, out_folder, book_plan, key, found_files, run, overwrite, tell, result.document
+        )
         speech = _speak(
             plan,
             work,
@@ -700,8 +702,10 @@ class _Chapters:
         ffmpeg: _CancellableFfmpeg,
         overwrite: bool,
         tell: Callable[[AudioProgress], None],
+        document: Document,
     ) -> None:
         self.work = work
+        self.document = document
         self.out_folder = out_folder
         self.plan = plan
         self.found = found
@@ -775,8 +779,10 @@ class _Chapters:
     def _writer(self) -> BookWriter:
         if self.writer is None:
             # the old records vouch for a finished audiobook (D-119): they go before the
-            # first file of this run is put in place
+            # first file of this run is put in place. The new laid-out document comes now,
+            # so a page can read along in the chapters as they become playable (#724)
             _remove_old_records(self.work)
+            _write_document(self.work, self.document)
             base = self.record
             if self.found.record is not None:  # an unfinished run's files stay ours
                 old = self.found.record
@@ -1114,6 +1120,16 @@ def _remove_old_records(work: Path) -> None:
     except OSError as error:
         raise JobError(
             f"could not replace the job's record in the working folder: {error.strerror or error}"
+        ) from error
+
+
+def _write_document(work: Path, document: Document) -> None:
+    """`document.json` on its own, ahead of `audio.json` (#724)."""
+    try:
+        write_text_atomically(work / DOCUMENT, json_text(to_data(document)), overwrite=True)
+    except OSError as error:
+        raise JobError(
+            f"could not write the job's record in the working folder: {error.strerror or error}"
         ) from error
 
 
