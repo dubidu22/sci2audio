@@ -1,0 +1,13 @@
+pr: 754
+opened: 2026-11-23
+thread: impl-723
+lane: output
+labels: "lane:output, risk:high, ci:full"
+plan: plans/impl-723-plan.md
+critical: yes
+compactions: 0
+fixes_kinds: ""
+handback: ""
+recommended: ""
+note: "PR A of #723 (part of, PR B closes it); BookWriter writes a chapter's files on their own, read-along rewritten per chapter, vouch before rename, chapter_fingerprint; byte-equal to write_audiobook; head 5742b76; ci:full pending"
+merged: ""
