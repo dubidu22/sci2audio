@@ -184,7 +184,8 @@ def test_the_project_chat_instructions_set_up_the_clone_and_the_governance_workt
 
 
 # D-889: the coordinator asks the Project's channel session for each worker thread, so a
-# pasted line saying no chat can open another would send Colin click steps PREF-01 avoids.
+# pasted line saying no chat can open another would send Colin the clicks the Project
+# instructions ask to keep few ("Ask for as few clicks as possible").
 PROJECT_CHANNEL_START = "ask the Project's channel session for"
 
 
@@ -203,3 +204,29 @@ def test_an_instruction_file_starts_threads_through_the_channel_session(name: st
     text = " ".join((GOVERNANCE / name).read_text(encoding="utf-8").split())
     assert PROJECT_CHANNEL_START + " the thread" in text
     assert "(D-889)" in text
+
+
+# D-892: Colin closed #731 as not planned, so PREF-01 asks for no advisor thread any more.
+def test_pref_01_names_no_advisor_thread() -> None:
+    for text in (RULESET, *(path.read_text(encoding="utf-8") for path in EXTRACTS)):
+        block = rules(text)["PREF-01"]
+        assert "advisor" not in block.lower()
+        assert "Report times to Colin in Europe/Berlin." in block
+        assert "Terminal commands for Colin carry no comments inside the code block" in block
+    assert not any("advisor" in pref.lower() for pref in CONFIG["owner_prefs"])
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "claude-project-rules.yaml",
+        "governance-config.json",
+        "project_instructions.md",
+        "dispatcher_instructions.md",
+        "project_chat_instructions.md",
+        "claude-md-snippet.md",
+    ],
+)
+def test_no_instruction_file_asks_for_an_advisor_thread(name: str) -> None:
+    text = (GOVERNANCE / name).read_text(encoding="utf-8")
+    assert not re.search(r"advisor thread|Fable 5\.1", text), name
