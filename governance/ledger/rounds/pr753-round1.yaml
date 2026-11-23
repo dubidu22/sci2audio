@@ -1,0 +1,14 @@
+pr: 753
+round: 1
+date: 2026-11-23
+thread: review-b005
+head: dae7c19d6ce48457f37ffa562af3bc2eb63a5e47
+critical: no
+verdict: approved
+must_fix: 0
+should_fix: 0
+kinds: ""
+report: plans/review-pr753-round1.md
+merged: 8965914ec63de5cb814a3fa36c35b179f3dc3531
+updated_head: ""
+main_ci: "run 45157938814 on 8965914: tests ubuntu, macos, windows and CI passed all success"

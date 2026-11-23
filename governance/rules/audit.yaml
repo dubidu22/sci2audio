@@ -1,8 +1,8 @@
 # Extract for audit threads. Generated with claude-project-rules.yaml; do not edit.
 # It holds the rules scoped to this role or to all. If it and the full file ever differ, the full file wins.
 extract_for: audit
-version: 1.13.0
-date: 2026-11-22
+version: 1.14.0
+date: 2026-11-23
 project: "sci2audio"
 repository: "dubidu22/sci2audio"
 public_repo: true
@@ -19,9 +19,9 @@ project_profile:
   execution_lanes: ["extraction/voices", "layout", "textprep", "app/release", "web", "docs"]
   file_ownership_labels: ["lane:core", "lane:extraction", "lane:layout", "lane:textprep", "lane:voices", "lane:output", "lane:app", "lane:web", "lane:cli", "lane:infra", "lane:docs"]
   lane_mapping_note: "Execution lanes are who works; lane:* labels (.github/lanes.yml) are which files a PR may touch. extraction/voices -> lane:extraction, lane:voices, lane:output. layout -> lane:layout. textprep -> lane:textprep (incl. src/sci2audio/testing). app/release -> lane:app, lane:cli (and lane:web when a PR spans both). web -> lane:web (src/sci2audio/web, static, templates, browser tests). docs -> lane:docs (docs/, CLAUDE.md, KB process text). app and web share files often, so LANE-02 keeps them apart unless their PRs touch disjoint files (D-761 B7/B8). lane:core and lane:infra are shared and critical; lane:infra is the lock. (D-765)"
-  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
-  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
-  doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**", "governance/dispatcher_instructions.md", "governance/claude-md-snippet.md"]
+  critical_paths: ["src/sci2audio/core/**", ".github/**", "pyproject.toml", "uv.lock", "tests/corpus/**", "tests/unit/__snapshots__/**", "tests/regression/**", "THIRD_PARTY_LICENSES.md", "governance/claude-project-rules.yaml", "governance/rules/**", "governance/project_instructions.md", "governance/dispatcher_instructions.md", "governance/project_chat_instructions.md", "governance/claude-md-snippet.md", "governance/governance-config.json", "governance/tools/**", "governance/kb/README.md", "governance/kb/**/adr-*.md", "governance/kb/**/playbook-*.md", "governance/kb/**/doc-*.md"]
+  label_paths: ["lane:core=src/sci2audio/core/**", "lane:extraction=src/sci2audio/extraction/**", "lane:layout=src/sci2audio/layout/**", "lane:textprep=src/sci2audio/textprep/**", "lane:textprep=src/sci2audio/testing/**", "lane:voices=src/sci2audio/voices/**", "lane:output=src/sci2audio/output/**", "lane:app=src/sci2audio/app/**", "lane:web=src/sci2audio/web/**", "lane:cli=src/sci2audio/cli.py", "lane:infra=.github/**", "lane:infra=pyproject.toml", "lane:infra=uv.lock", "lane:infra=.pre-commit-config.yaml", "lane:infra=governance/claude-project-rules.yaml", "lane:infra=governance/rules/**", "lane:infra=governance/project_instructions.md", "lane:infra=governance/dispatcher_instructions.md", "lane:infra=governance/project_chat_instructions.md", "lane:infra=governance/claude-md-snippet.md", "lane:infra=governance/governance-config.json", "lane:infra=governance/github-setup/**", "lane:infra=governance/tools/**", "lane:docs=*.md", "lane:docs=docs/**", "lane:docs=docs/design/**", "lane:docs=.claude/**", "lane:docs=governance/kb/**", "lane:docs=governance/plans/**", "lane:docs=governance/ledger/**", "lane:docs=governance/project-state.yaml", "lane:docs=governance/memory/**", "lane:docs=governance/release/**", "lane:docs=governance/workflow-export.md"]
+  doc_paths: ["docs/**", "**/README.md", "CHANGELOG.md", "CONTRIBUTING.md", ".github/**", ".claude/**", "governance/dispatcher_instructions.md", "governance/project_chat_instructions.md", "governance/claude-md-snippet.md"]
   governance_paths: ["governance/kb/**", "governance/plans/**", "governance/ledger/**", "governance/project-state.yaml", "governance/memory/**", "governance/release/**", "governance/workflow-export.md"]
   promised_tests_check: "the governance check"
   workspace_root: "./governance"
@@ -55,7 +55,7 @@ execution_profile:
     offload_heavy_checks_to_ci: true
     goal_turn_cap: 20
     cache_ttl_minutes: 60
-    coordinator_compact_every_batches: 1
+    coordinator_compact_every_batches: 0
 
 # Read only this when you start; ask a running thread or search for anything else.
 start_reading:

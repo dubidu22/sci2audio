@@ -1,7 +1,7 @@
 # sci2audio: current project state (volatile). Edited only by the coordinator (META-01).
 # Standing rules are in project-rules.yaml; this file says what is true now.
 project: sci2audio
-updated: 2026-11-23T08:57Z   # clock time from date -u (D-856); ruleset 1.13.0 on main (#745 3bf852f, D-882); batch 005 composed (D-893)
+updated: 2026-11-23T10:33Z   # clock time from date -u (D-856); ruleset 1.14.0 on main (#751 c63fc76, D-896); batch 005 running (D-893), stop after it (D-894)
 active_now:
   autonomy_horizon: "until batch 005 is finished, then pause"   # Colin "stop working after this batch is finished." 2026-11-23T09:00:47Z (D-894); before: "until Colin asks to stop", ruleset 1.12.0, #741 3fb4d1b, Colin "Yes, with CLAUDE.md" 22 Nov 2026 (D-880); replaces "until milestone v1.6 Study layer is complete" (1.11.0, D-879)
   autonomy_messages: [cmsg_011gr2YyZJypGaV6NbzgSXQE3RFTQrQwYYTquP5sMVqof1, cmsg_011gr2YyZJypGaV6NbzgSXQEHuo38iDdonbGUW7DhTq5hq]   # AUTO-02
@@ -29,7 +29,8 @@ notifications_pending: []                            # v1.4.0-released notice se
 notify_triggers:                                     # post in chat and wait (ruleset 1.12.0 notify_triggers, D-880); Colin is told nothing else unless he asks
   - "a release is tagged and shipped"
   - "something waits for Colin: a decision AUTO-02 reserves for him, a critical PR stopped at its last review round, or an owner hand step"
-open_owner_items: []                                 # all closed 2026-11-23 (D-882, D-885, D-886)
+open_owner_items:
+  - "Re-paste the Project instructions from governance/project_chat_instructions.md on main (ruleset 1.14.0, #751 c63fc76, D-896)"
 milestones: {1: v1.0, 2: v1.1, 3: v1.0.1, 4: v1.2, 5: v1.4, 6: Later, 7: v1.2.x, 8: "v1.3 The Working Reader", 9: "v1.6 Study layer", 10: v2, 11: "v1.5 Listen while generating"}
 roadmap_order: [v1.2, v1.2.x abbreviations, "v1.3 The Working Reader", "v1.4 installers, update check, plugins", "v1.5 Listen while generating", "v1.6 Study layer", Later]   # D-666, D-573, D-870
 control_commands_reference:                          # meanings: CMD-04 to CMD-06 in project-rules.yaml

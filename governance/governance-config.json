@@ -1,5 +1,5 @@
 {
-  "ruleset_version": "1.13.0",
+  "ruleset_version": "1.14.0",
   "project_name": "sci2audio",
   "repo_slug": "dubidu22/sci2audio",
   "is_public": true,
@@ -102,6 +102,7 @@
     "governance/rules/**",
     "governance/project_instructions.md",
     "governance/dispatcher_instructions.md",
+    "governance/project_chat_instructions.md",
     "governance/claude-md-snippet.md",
     "governance/governance-config.json",
     "governance/tools/**",
@@ -152,6 +153,7 @@
     "lane:infra=governance/rules/**",
     "lane:infra=governance/project_instructions.md",
     "lane:infra=governance/dispatcher_instructions.md",
+    "lane:infra=governance/project_chat_instructions.md",
     "lane:infra=governance/claude-md-snippet.md",
     "lane:infra=governance/governance-config.json",
     "lane:infra=governance/github-setup/**",
@@ -178,6 +180,7 @@
     ".github/**",
     ".claude/**",
     "governance/dispatcher_instructions.md",
+    "governance/project_chat_instructions.md",
     "governance/claude-md-snippet.md"
   ],
   "runtime_verification": false,
@@ -201,6 +204,6 @@
   ],
   "promised_tests_check": "the governance check",
   "cache_ttl_minutes": 60,
-  "coordinator_compact_every_batches": 1,
+  "coordinator_compact_every_batches": 0,
   "active_milestones": []
 }

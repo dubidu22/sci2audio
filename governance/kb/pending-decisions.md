@@ -53,3 +53,43 @@ Plan impl-723 (`plans/impl-723-plan.md`, f79a009, #723 LW-01) is approved as wri
 - Accepted rule change: a killed or cancelled job keeps whole, recorded chapters (instead of all or nothing, D-119/D-160). Book-level files stay all or nothing. The five named fault tests change their assertion to the new rule and are renamed where "no file" no longer holds. This is a changed rule, not a weakened test: every one still asserts no partial file and no overwrite on the rerun, and the PR body lists each change.
 - The CLI keeps writing the M4B with byte-identical output.
 - Lanes: PR A (lane:output) runs alongside #744 (lane:voices) in the same execution lane. They share no files (LANE-02).
+
+## D-896 (2026-11-23, coordinator)
+
+Merge go for #751 (ruleset 1.14.0, the claude.ai Project, Colin's change), pinned to bf417b9 (`ledger/gos/pr-751.yaml`).
+- Rounds: round 1 stopped on preconditions (no three-system run, behind main). Round 2 found 1 must-fix: the Project chat instructions had every thread opened by Colin, against D-889. The rewording is pinned by tests. Round 3 approved with 0 must-fix and 0 should-fix.
+- Three-system run 45150607713 is green on that head.
+- After the merge, Colin re-pastes the Project instructions from `governance/project_chat_instructions.md` (an owner hand step).
+- The next ruleset PR (batch 005, slot B, item 2) also fixes the test comment that cites PREF-01 for "few clicks" (round 3 note).
+
+## D-897 (2026-11-23, coordinator)
+
+Merge go for #754 (PR A of #723, lane:output), pinned to e07c3f1 (`ledger/gos/pr-754.yaml`).
+- Round 1 found 1 must-fix: the join byte test could not fail. Round 2 approved with 0 must-fix and 0 should-fix.
+- Byte identity holds: 98 files across 12 inputs.
+- Three-system run 45150916921 is green on that head.
+- If the branch needs an update from main first, MRG-01's `updated_head` path applies.
+- PR B of #723 starts after the merge.
+Outcome: #754 merged as f1a9c1f. #751 merged as c63fc76.
+
+## D-898 (2026-11-23, coordinator)
+
+Merge go for #753 (#744, lane:voices, not critical), pinned to dae7c19.
+- Round 1 approved with 0 must-fix and 0 should-fix.
+- Three-system run 45144703459 is green.
+- The coordinator gives this go because no dispatcher runs (D-889).
+- Review note N2: a user with a non-ASCII Windows profile now gets a clear error but still cannot use Kokoro. Filed as an Issue for milestone Later (lane:voices): pass espeak-ng the 8.3 short path. It is an improvement inside the existing scope, not new scope.
+Outcome: #753 squash-merged as 8965914 (#744 closed). impl-744 says it recorded the merge and did not run it.
+
+## D-899 (2026-11-23, coordinator)
+
+Plan impl-infra-b005 (`plans/impl-infra-b005-plan.md`, 9f7f074) is approved as written, as one critical PR for #756, #757, #758 and #759 (v1.5, lane:infra, risk:high).
+- F1 (#756): `check` reads squash subjects from git, falls back to a `--subjects` file, exits 2 when it has neither, and counts only the last `(#N)`.
+- F2 (#757): `deferred:` is required from this PR's number on and summed over a PR's rounds. Only the ledger README changes.
+- Narrating comments (#758):
+  - a strict change-history phrase list fails added comments in the PR check, and a fast test scans every comment and docstring;
+  - the broad list stays a warning;
+  - accepted limit: a comment that says what instead of why (#739 N2) has no word to match, so it stays a review finding. The PR body says so.
+  - So `narrating-comment` counts as fixed only for change-history comments. If a what-comment comes up again, the next step is a design change in the review template, not another word list.
+- PREF-01 (#759): the ruleset is regenerated to 1.15.0 through the governance skill on Colin's word in D-892, and the test comment is fixed.
+- The trial gap on `prs/pr-753.yaml` is closed: impl-744 recorded 8965914. review-b005 fills `merged:` in `rounds/pr753-round1.yaml`.

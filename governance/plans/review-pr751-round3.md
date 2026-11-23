@@ -22,10 +22,16 @@
 
 - **N1** (note). The new test comment says a "no chat can open another" line "would send Colin click steps PREF-01 avoids". "As few clicks as possible" is in the "For Colin" paragraph of `project_chat_instructions.md`, not in PREF-01. The comment's reason is right and the cited rule is wrong. The next ruleset PR (D-892, which edits PREF-01) can correct it in passing. Not a finding against merge.
 - **N2** (note, ROLE-14 hand step). After the merge, Colin re-pastes the text below the line of `governance/project_chat_instructions.md` into the Project's instructions. The pasted copy still has the old "No chat here can open another chat" paragraph. The coordinator names this step.
-- **N3** (note, MRG-01). `governance pr checks` must be re-run on bf417b9 after this entry is on governance, and must be green before the merge.
+- **N3** (note, MRG-01). `governance pr checks` re-run on bf417b9 after this entry was pushed (runs 45154731699, 45150596164, 45150595559): all success, "round 3 approved this head with 0 must-fix".
 
 ## Handoff (THR-07)
 
 - Goal: critical review of #751 to approval.
 - Done: round 3 approved at bf417b9 with 0 must-fix.
 - Next: the coordinator's `ledger/gos/pr-751.yaml` for bf417b9, the re-run of `governance pr checks`, `ledger_tool.py gate 751`, then a pinned squash merge, if main has not moved again.
+
+## Merge
+
+- Squash-merged on the coordinator's go (`ledger/gos/pr-751.yaml`, D-896), pinned to bf417b9, as `c63fc7662e736b535153de8a1c22427b4bc0c7b1`.
+- Main CI run 45155227469 (push) on c63fc76: `tests (ubuntu-latest)`, `tests (macos-latest)`, `tests (windows-latest)` and `CI passed` all success.
+- Main merged into governance with a plain merge (0a51d92); the working files are intact and `ledger_tool.py check` is clean.
