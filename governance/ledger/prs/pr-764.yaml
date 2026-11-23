@@ -6,7 +6,7 @@ labels: "risk:high, lane:app, lane:web"
 plan: plans/impl-724-plan.md
 critical: yes
 compactions: 1
-fixes_kinds: "zap-walk"
+fixes_kinds: ""
 handback: "review"
 recommended: ""
 note: "Closes #724 (LW-02), critical by D-902 (choice A: document.json written before the first chapter's files; audio.json still only at the end). Growing view from chapters.json (#723) in web/player.py, chapter route GET /documents/{id}/listen/chapters/{n}, Start listening on the job card, Listen page grows without reload and waits at a chapter end. Kill fault test added; one existing fault test adjusted (in PR body). Promised test renamed ..._is_spoken -> ..._is_playable (plan section 7). Fix commit 9d38cec: the ZAP walk fetches the new chapter route (ZAP failed on a never-scanned route). ci:full run 45184320620 green on ubuntu, macos, windows and Chromium at 9d38cece0abf8689732cfc78c8fc0fdd5435eb2e; reported-only webkit 2/2 failed on test_flow removal button and test_joined (finished-book page), being re-run; ci:full label removed. Pre-existing position-save race filed as #763."
