@@ -265,13 +265,13 @@ def test_removing_the_project_removes_the_built_file(tmp_path: Path) -> None:
     assert not folder.exists()
 
 
-# ---- #768 round 1: the checks each answer rests on --------------------------------------
+# ---- the checks each answer rests on ---------------------------------------------------
 
 
 def test_a_book_built_before_chapters_were_added_is_not_served_as_current(
     tmp_path: Path,
 ) -> None:
-    """B1: a whole-book file holds the chapters made when it was built; once another is
+    """A whole-book file holds the chapters made when it was built; once another is
     added it is not the book any more, and asking again builds it anew."""
     _, client, config = server(tmp_path)
     doc = made(client, [0])
@@ -294,7 +294,7 @@ def test_a_book_built_before_chapters_were_added_is_not_served_as_current(
 
 
 def test_an_edited_built_file_is_not_served(tmp_path: Path) -> None:
-    """S1: the download serves a built file only as the chapter record vouches for it."""
+    """The download serves a built file only as the chapter record vouches for it."""
     _, client, config = server(tmp_path)
     doc = made(client)
     name = built(client, doc["id"])["progress"]["name"]
@@ -307,7 +307,7 @@ def test_an_edited_built_file_is_not_served(tmp_path: Path) -> None:
 
 
 def test_an_audiobook_made_before_the_chapter_record_offers_its_own_m4b(tmp_path: Path) -> None:
-    """S2: an audiobook of before #723 has no chapter record: the M4B its job wrote is
+    """An audiobook of before #723 has no chapter record: the M4B its job wrote is
     served as it is, and no other kind can be built from it (409 not-buildable)."""
     app, client, config = server(tmp_path)
     doc = made(client)
@@ -341,7 +341,7 @@ def test_an_audiobook_made_before_the_chapter_record_offers_its_own_m4b(tmp_path
 def test_a_build_after_the_speech_cache_was_freed_fails_as_missing_chapters(
     tmp_path: Path,
 ) -> None:
-    """S3: the chapters are made, but their speech was freed since (D-158): the book job
+    """The chapters are made, but their speech was freed since (D-158): the book job
     ends with the kind `missing-chapters`, nothing spoken again, no file written."""
     _, client, config = server(tmp_path)
     doc = made(client)
