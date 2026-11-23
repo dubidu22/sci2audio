@@ -222,3 +222,12 @@ The v1.4.1 macOS DMG opens the app window. Colin: "it opens" (2026-11-23, about 
 ## D-886 (2026-11-23, owner)
 
 The upstream change to the governance skill is dropped: the generator will not be taught to read `governance_paths` and keep the D-849 PLAN-01 wording (follow-up of D-855). Colin: "drop it" (2026-11-23), answering the advice to leave it. Ruleset re-runs keep re-applying the two edits by exact replace, and the CI tests of D-855 keep guarding them.
+
+## D-887 (2026-11-23, owner)
+
+Batch 004 gets a new dispatcher, and `dispatcher-b004-2` is retired. Colin: "let's just start a new dispatcher instead and retire the old one" (2026-11-23).
+- Why: the old session started at 2026-11-22T17:36Z, before `.claude/settings.local.json` allowed `gh pr merge` (20:09Z). Auto mode blocked its merge steps overnight, and Colin merged #745 and #748 by hand.
+- Order (THR-05): the old dispatcher's subagent docs-b-d2 hands back first, with #749's `ci:full` run green and the label removed. The old dispatcher then writes `## Handover to the next dispatcher` in `batch-004.md`, starts nothing new and reports ready.
+- Then: the coordinator sends `handover done` to `dispatcher-b004-3` (local_e2bcebe3, Opus 5.5 high, started 2026-11-23) and archives the old session.
+- What the new dispatcher does: #749's critical review and merge, the D-883 backup tag and §3 governance merge, and the batch-end audit, KB PR and report.
+- The test of the fix: #749's merge is the first run by a session that has the allow rule. A block there is reported, not routed around.

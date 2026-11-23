@@ -14,7 +14,7 @@ active_now:
   milestones_in_progress: [v1.4]   # remainder after v1.4.1 (batch 4, D-876); v1.4.0 released 19 Nov 17:12Z (D-830) covering v1.2 B9/B13/B14, v1.3 and v1.4 installers; v1.1.0 was never tagged (D-721)
   finishing_under_old_limit: []                      # D-705; release v1.1 (draft #426) parked per D-721, thread resolved
   current_batch: plans/batch-004.md                  # composed 2026-11-22T16:05Z (D-876); run by the dispatcher, which writes that file from now on
-  dispatcher: "dispatcher-b004-2 on Opus 5.5 high, started 2026-11-22T17:40Z from the batch-004 handoff; replaces the Sonnet dispatcher-b004 (ruleset 1.10.0, #730 880b170, D-877)"
+  dispatcher: "dispatcher-b004-2 (Opus 5.5 high) hands over to dispatcher-b004-3 (local_e2bcebe3, Opus 5.5 high, started 2026-11-23) once docs-b-d2 has handed back; then the old one is archived (D-887)"
   lanes_active:                                      # batch 4, two slots (frugal); per-slot detail is in the batch file, not here
     - "slot A, app/release (lane:infra lock): #709 #710 #711 + brittle-test check (ledger 'fixed' came with 1.10.0, D-877)"
     - "slot B, one lane after another: layout #679, then voices #663, then docs D-874, then #720 (lane:web)"
