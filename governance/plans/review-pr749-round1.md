@@ -30,3 +30,9 @@
 - Goal: critical review round 1 of #749 at bdc8247.
 - Done: approved, 0 must-fix; ledger `rounds/pr749-round1.yaml` written.
 - Next: the coordinator's go `ledger/gos/pr-749.yaml`, then `ledger_tool.py gate 749`, the re-run of `governance pr checks` on bdc8247 (MRG-01, risk:high), the pinned squash merge, `merged:` here, and the main CI run on all three systems.
+
+## After the merge
+
+- Squash-merged as `1cbfbd2ab5d851a1a16192f8fa9096db42d0624d` on the coordinator's go (D-890), pinned to bdc8247, after a green re-run of `governance pr checks` on that head.
+- Main CI run 45139630420 on 1cbfbd2: success; `tests (ubuntu-latest)`, `tests (macos-latest)`, `tests (windows-latest)`, `lint and layers` (the new working-files step) and `CI passed` all green (D-580).
+- One-time merge of main into governance: 6409f52, both empty-diff checks printed nothing (log in `plans/batch-004.md`).
