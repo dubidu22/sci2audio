@@ -1,1 +1,0 @@
-R2 second commit, body additions (D-696): Mutation row = no 1.1.0 mutation result was obtained; run 43774246928 ran ~5 h then the hosted runner lost communication (no log, no results), see #246; it got past the earlier 2-minute collection stop, which proves #412's .github/ copy fix works; tag not held (D-531).

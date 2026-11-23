@@ -1,0 +1,1 @@
+Working files (plans, round reports, batch files, ledger entries, `project-state.yaml`, `kb/pending-decisions.md`) live only on branch `governance` (THR-13, D-874): `git worktree add ../sci2audio-governance governance`.
