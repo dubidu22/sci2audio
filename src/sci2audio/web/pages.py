@@ -28,7 +28,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 
 from sci2audio import __version__
-from sci2audio.app import load_settings, shown_original
+from sci2audio.app import find_chapters, load_settings, shown_original
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.updates import RELEASES_URL, Outcome, release_page
 from sci2audio.app.voice import primary_language
@@ -88,6 +88,7 @@ from sci2audio.web.library import (
 from sci2audio.web.markers import MARKERS, MarkersBroken, count_markers, place, read_markers
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
+    ChapterStates,
     PlayerError,
     PlayerView,
     Position,
@@ -853,6 +854,10 @@ def making_card(
         "cache": cache,
         "cache_text": s.size(cache),
         "exists": error.get("error") == "output-exists",
+        # made under other settings than the project's chapters (#726): the person chooses
+        # between keeping those settings and replacing every chapter (D-909)
+        "changed": error.get("error") == "settings-changed",
+        "changes": list(error.get("changes") or []),
         "stop_wait": STOP_WAIT_MS,
         "resume": False,  # the again button reads Resume: a paused job
         # a chapter of it can be listened to (#723, #724)
@@ -877,7 +882,7 @@ def making_card(
             title = s("making.paused_at", n=number) if where == "chapter" else s("making.paused")
             kept = s("making.kept_sentences", done=done, n=total) if total else ""
             card.update(title=title, kept=kept, segments=_segments(chapters, number), resume=True)
-    elif view["state"] == "failed" and not card["exists"]:
+    elif view["state"] == "failed" and not card["exists"] and not card["changed"]:
         titles = {
             "chapter": lambda: s("making.failed_in", n=number),
             "writing": lambda: s("making.failed_writing"),
@@ -972,6 +977,7 @@ def _prepare(
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
     ordered, chosen = _chapter_order(chapters, report_settings.get("chapters"))
+    made = _made_chapters(state, found.id, chapters)
     shown = {
         "switched_off": sorted(switched_off),
         "chapters": chosen,
@@ -1007,6 +1013,7 @@ def _prepare(
         chapters=chapters,
         ordered_chapters=ordered,
         chosen_chapters=len(shown["chapters"]),
+        made=made,
         edit_count=len(edits),
         heard=spoken,
         shown=json.dumps(shown),
@@ -1085,6 +1092,39 @@ def _chapter_order(
         rest = [c for c in printed if c.get("index") not in set(order)]
         return [by_index[n] for n in order] + rest, order
     return printed, sorted(n for n in chosen_set if isinstance(n, int))
+
+
+def _says_something(chapter: Mapping[str, Any]) -> bool:
+    """False for a chapter the analysis chose and found nothing to say in; the analysis
+    counts what is said only in the chapters it chose, so any other may say something."""
+    return not chapter.get("selected") or int(chapter.get("utterances") or 0) > 0
+
+
+def _made_chapters(
+    state: ServerState, document_id: str, chapters: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """What the pages show of the chapters made so far (#726): each report chapter's state
+    by index, the chapters with something to say not made yet (for "Generate the remaining
+    chapters"), the output folder a chapter added goes to (the audiobook's), and whether a
+    Generate button can start a job now (one job at a time). None while no chapter is
+    made."""
+    states = state.chapter_states(document_id)
+    if states is None:
+        return None
+    by_index = {int(c["index"]): states.of(int(c["index"])) for c in chapters if "index" in c}
+    missing = sorted(
+        int(c["index"])
+        for c in chapters
+        if by_index.get(int(c.get("index", -1))) == "not-generated" and _says_something(c)
+    )
+    current = state.board.current
+    return {
+        "of": states,
+        "states": by_index,
+        "missing": missing,
+        "output": str(states.folder.parent),
+        "can": current is None or current.state is not JobState.RUNNING,
+    }
 
 
 # --- the listen page (#78) ---------------------------------------------------------------
@@ -1188,6 +1228,15 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         stamp, position = "", None
     marking = _markers_data(found.work, found.document, made_from, located)
     growing = _growing_data(state, found.id, view)
+    made = None if stored is None else _made_chapters(state, found.id, _chapters_of(stored))
+    rows = (
+        None
+        if made is None or stored is None
+        else _outline_rows(found.work, view, growing, made_from, stored, made)
+    )
+    if made is not None and rows is not None:  # the rows' own chapters not generated
+        rest = [r["index"] for r in rows if r["chapter"] is None and r.get("state") == "missing"]
+        made = {**made, "missing": rest}
     return _page(
         request,
         state,
@@ -1204,7 +1253,9 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         ),
         resume=None if position is None else _resume(view, position),
         # the stamp goes back with each save of the position (#153)
-        data=data_block({**view.data(found.id), "audiobook": stamp, **marking, **growing}),
+        data=data_block(
+            {**_indexed(view.data(found.id), found.work), "audiobook": stamp, **marking, **growing}
+        ),
         planned=growing.get("growing", {}).get("planned", []),
         markers=marking["markers"],
         markers_file=marking["markers_file"],
@@ -1212,21 +1263,69 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         announce=announce_of(request),  # each sentence to screen readers, if switched on (#392)
         changes=_listen_changes(view, s),
         outline=_outline(view),
+        rows=rows,
+        made=made,
         total=clock(view.duration),
     )
 
 
+def _indexed(data: dict[str, Any], work: Path) -> dict[str, Any]:
+    """The player's data with each chapter's index in the document, when the chapter record
+    names it: the position is saved by it, so a chapter added before it moves nothing (#726,
+    D-909)."""
+    for n, chapter in enumerate(data["chapters"]):
+        index = chapter_index(work, n)
+        if index is not None:
+            chapter["index"] = index
+    return data
+
+
+def _chapters_of(stored: StoredDocument) -> list[dict[str, Any]]:
+    return list((_report(stored) or {}).get("chapters", []))
+
+
+def _outline_rows(
+    work: Path,
+    view: PlayerView,
+    growing: dict[str, Any],
+    document: Document,
+    stored: StoredDocument,
+    made: dict[str, Any],
+) -> list[dict[str, Any]] | None:
+    """The Listen page's chapter list once chapters can be added later (#726): every
+    chapter of the document the audiobook was made from, in the book's order. A playable
+    chapter is a button (`chapter`: its place in the read-along file), any other a row with
+    its state: a growing book's planned rows as #724 draws them, the others "missing" (not
+    generated) unless the analysis found nothing to say in them. None for a book read in
+    an order the person chose (#119), which is never added to: the list as before."""
+    places = {chapter_index(work, n): n for n in range(len(view.chapters))}
+    if None in places or [places[i] for i in sorted(places)] != sorted(places.values()):
+        return None
+    # whether the analysis found something to say, where it names the same chapter
+    said = {
+        (int(c["index"]), c.get("title")): _says_something(c)
+        for c in _chapters_of(stored)
+        if "index" in c
+    }
+    planned = {row["index"]: row for row in growing.get("growing", {}).get("planned", [])}
+    states: ChapterStates = made["of"]
+    rows: list[dict[str, Any]] = []
+    for chapter in find_chapters(document):
+        index = chapter.index
+        if index in places:
+            n = places.pop(index)
+            rows.append({"index": index, "title": view.chapters[n].title, "chapter": n})
+        elif index in planned:
+            rows.append(planned[index])
+        elif states.of(index) == "not-generated" and said.get((index, chapter.title), True):
+            row = {"index": index, "title": chapter.title, "chapter": None, "state": "missing"}
+            rows.append(row)
+    return None if places else rows
+
+
 def _running_audio(state: ServerState, document_id: str) -> JobRecord | None:
     """The audio job running for this document, if one is."""
-    current = state.board.current
-    if (
-        current is not None
-        and current.kind is JobKind.AUDIO
-        and current.document == document_id
-        and current.state is JobState.RUNNING
-    ):
-        return current
-    return None
+    return state.running_audio(document_id)
 
 
 def _growing_data(state: ServerState, document_id: str, view: PlayerView) -> dict[str, Any]:
@@ -1281,10 +1380,14 @@ def listen_chapter(request: Request, state: State, document_id: str, n: int) -> 
         t=s, document=found, chapter=view.chapters[n], n=n
     )
     outline = _outline(view)
+    index = chapter_index(found.work, n)
+    part = chapter_data(view, n)
+    if index is not None:  # as the page's own chapters carry it (#726)
+        part["chapter"]["index"] = index
     return JSONResponse(
         {
-            **chapter_data(view, n),
-            "index": chapter_index(found.work, n),  # its row in the page's chapter list
+            **part,
+            "index": index,  # its row in the page's chapter list
             "html": html,
             "audiobook": stamp,
             "duration": view.duration,

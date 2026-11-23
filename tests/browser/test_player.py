@@ -114,10 +114,17 @@ def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, 
         "Things happen (Smith, 2020) (not read) and more."
     )  # #444
     expect(page.locator("#text")).not_to_contain_text("A book about things")  # not chosen
-    # the Chapters panel lists the chosen chapters only, and names no other (#472)
-    expect(page.locator(".outline .ot")).to_have_text(["Introduction", "Methods"])
+    # the Chapters panel plays the chosen chapters; every other chapter of the book is listed
+    # as not generated, with Generate (#726 asks for every chapter with its state, which
+    # replaces #472's list of the chosen ones only)
+    expect(page.locator(".outline li .ot")).to_have_text(["Introduction", "Methods", "References"])
+    expect(page.locator(".outline .chapter-button .ot")).to_have_text(["Introduction", "Methods"])
+    later = page.locator(".outline .chapter-later")
+    expect(later).to_have_count(1)
+    expect(later.locator(".ot")).to_have_text("References")
+    expect(later.locator(".chapter-state")).to_have_text("not generated")
+    expect(later.get_by_role("button", name="Generate: References")).to_be_visible()
     expect(page.locator("#panel-outline")).not_to_contain_text("Not in this audiobook")
-    expect(page.locator("#panel-outline")).not_to_contain_text("References")
     expect(page.get_by_text(re.compile("read by a synthetic voice"))).to_be_visible()
     expect(page.locator(".page-mark").first).to_have_text("Page 1")
     check_axe(page, "player, ready")
@@ -223,8 +230,9 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         assert outline != "none", f"no focus ring on {order[-1]} after {order}"
     # the paper header's tabs first (#391), then the dock in the order it shows (#393), the
     # Focus button (#394), the panel's button, and the panel: its selected tab, the
-    # chapters, the whole-book download (#725) and the follow switch; the hidden button, the
-    # status line and the panel's other tab are skipped
+    # chapters, Generate for the chapter not generated and for all of them (#726), the
+    # whole-book download (#725) and the follow switch; the hidden button, the status line
+    # and the panel's other tab are skipped
     assert order == [
         "tab-prepare",
         "tab-listen",
@@ -239,6 +247,8 @@ def test_the_player_by_keyboard_only(signed_in: Page, live: Live) -> None:
         "panel-close",
         "BUTTON",
         "BUTTON",
+        "BUTTON",
+        "generate-rest",
         "SUMMARY",
         "follow",
     ], order

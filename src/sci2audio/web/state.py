@@ -25,9 +25,9 @@ from sci2audio.output import BookKind, Ffmpeg
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
-from sci2audio.web.jobs import JobBoard, JobRecord
+from sci2audio.web.jobs import JobBoard, JobKind, JobRecord, JobState
 from sci2audio.web.markers import MarkerBook
-from sci2audio.web.player import candidate_folders
+from sci2audio.web.player import ChapterStates, candidate_folders, chapter_states
 from sci2audio.web.tasks import (
     PREVIEW_FOLDER,
     Fetch,
@@ -128,7 +128,13 @@ class ServerState:
             self.config.config_file.parent / STATE_NAME, available=not self.config.outside
         )
 
-    def audio_work(self, document: StoredDocument, settings: JobSettings, overwrite: bool) -> Work:
+    def audio_work(
+        self,
+        document: StoredDocument,
+        settings: JobSettings,
+        overwrite: bool,
+        keep_settings: bool = False,
+    ) -> Work:
         """An audio job into the person's output folder (D-199): the one in the settings,
         else the server's default."""
         if settings.output_folder is None:
@@ -139,6 +145,7 @@ class ServerState:
             settings,
             self.kept.source(),
             overwrite=overwrite,
+            keep_settings=keep_settings,
             on_failure=self.kept.dispose,
         )
 
@@ -211,6 +218,27 @@ class ServerState:
         return Listening(
             found.id, found.id, found.name, found.folder, tuple(folders), outside=False
         )
+
+    def running_audio(self, document_id: str) -> JobRecord | None:
+        """The audio job running for this document, if one is."""
+        current = self.board.current
+        if (
+            current is not None
+            and current.kind is JobKind.AUDIO
+            and current.document == document_id
+            and current.state is JobState.RUNNING
+        ):
+            return current
+        return None
+
+    def chapter_states(self, document_id: str) -> ChapterStates | None:
+        """The state of each chapter of a web document's audiobook (#726), or None while
+        it has no chapter made."""
+        found = self.listening(document_id)
+        if found is None or found.outside:
+            return None
+        running = self.running_audio(document_id) is not None
+        return chapter_states(found.work, found.document, found.folders, running)
 
 
 def _state(request: Request) -> ServerState:

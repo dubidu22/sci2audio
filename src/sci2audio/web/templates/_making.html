@@ -20,7 +20,7 @@
 {% set job = card.job %}
 <section class="step making" id="making" aria-labelledby="making-title" tabindex="-1"
          data-job="{{ job.id }}" data-state="{{ job.state }}" data-document="{{ document.id }}"
-         data-settings="{{ job.settings | tojson | forceescape }}" data-overwrite="{{ 'true' if job.overwrite else 'false' }}"
+         data-settings="{{ job.settings | tojson | forceescape }}" data-overwrite="{{ 'true' if job.overwrite else 'false' }}" data-keep-settings="{{ 'true' if job.keep_settings else 'false' }}"
          data-events="/api/v1/jobs/{{ job.id }}/events" data-playable="{{ (job.progress.playable or []) | join(',') if job.progress else '' }}" data-cancel="/api/v1/jobs/{{ job.id }}/cancel" data-stop-wait="{{ card.stop_wait }}">
 <header><h2 id="making-title">{{ t('making.title') }}</h2></header>
 <div class="body">
@@ -62,6 +62,20 @@
   {% endif %}
   <p id="cache-text">{% if card.cache %}{{ t('job.cache', size=card.cache_text) }}{% else %}{{ t('job.cache_freed') }}{% endif %}</p>
   {% if card.cache %}<div class="buttons">{{ free_button(card) }}</div>{% endif %}
+{% elif card.changed %}
+  {#- the chapters made so far were made with other settings (#726, D-909): nothing is mixed
+      silently; the person keeps those settings for the new chapters or replaces them all -#}
+  <div class="callout warn">{{ icon('alert', 'l') }}<div>
+    <h3 id="result" tabindex="-1">{{ t('making.changed_title') }}</h3>
+    <p>{{ t('making.changed_text') }}</p>
+    {% if card.changes %}<ul id="job-changes">{% for change in card.changes %}<li lang="en">{{ change }}</li>{% endfor %}</ul>{% endif %}
+  </div></div>
+  <p class="buttons">
+    <button type="button" class="primary" id="job-keep-settings" disabled aria-describedby="keep-hint">{{ t('making.keep_settings') }}</button>
+    <button type="button" id="job-replace" disabled aria-describedby="replace-hint">{{ t('making.replace_all') }}</button>
+  </p>
+  <p class="hint" id="keep-hint">{{ t('making.keep_hint') }}</p>
+  <p class="hint" id="replace-hint">{{ t('making.replace_hint') }}</p>
 {% elif card.exists %}
   <div class="callout warn">{{ icon('alert', 'l') }}<div>
     <h3 id="result" tabindex="-1">{{ job.failure.reason }}</h3>

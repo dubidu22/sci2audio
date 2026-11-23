@@ -35,6 +35,17 @@ class BookErrorOut(ErrorOut):
     )
 
 
+class JobErrorOut(ErrorOut):
+    """Why a job ended without its result; `settings-changed` lists what differs (#726)."""
+
+    changes: list[str] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="settings-changed: the choices that differ from those the project's "
+        "chapters were made with, in words; left out for any other error",
+    )
+
+
 class DocumentOut(BaseModel):
     id: str = Field(description="the first 16 hex digits of the file's SHA-256")
     name: str = Field(description="the file name as opened")
@@ -94,6 +105,11 @@ class ChapterOut(BaseModel):
     )
     selected: bool
     utterances: int
+    state: Literal["generated", "generating", "not-generated"] | None = Field(
+        default=None,
+        description="whether the chapter's audio is made (#726); null while the project has "
+        "no chapter made",
+    )
 
 
 class SettingsModel(Strict):
@@ -188,6 +204,11 @@ class JobIn(Strict):
     overwrite: StrictBool = Field(
         default=False, description="replace audiobook files that exist; only `true` does"
     )
+    keep_settings: StrictBool = Field(
+        default=False,
+        description="make the chapters added with the settings the project's chapters were "
+        "made with (#726); only the chapters and the output folder are taken from `settings`",
+    )
 
 
 class FileOut(BaseModel):
@@ -208,8 +229,11 @@ class JobOut(BaseModel):
     overwrite: bool = Field(
         description="the job was started with `overwrite`; resuming it sends the same (D-733)"
     )
+    keep_settings: bool = Field(
+        default=False, description="the job was started with `keep_settings` (#726)"
+    )
     progress: dict[str, Any] | None
-    error: ErrorOut | None
+    error: JobErrorOut | None
     files: list[FileOut]
 
 
@@ -275,6 +299,21 @@ class PositionIn(Strict):
     audiobook: str = Field(
         pattern=r"^[0-9a-f]{16}$",
         description="the stamp of the audiobook the page was drawn for (its read-along file)",
+    )
+    index: int | None = Field(
+        default=None,
+        ge=0,
+        le=100_000,
+        strict=True,
+        description="the chapter's index in the document; with `within`, it places the "
+        "position, as a chapter added before it moves `chapter` and `time` (#726)",
+    )
+    within: float | None = Field(
+        default=None,
+        ge=0,
+        le=10_000_000,
+        allow_inf_nan=False,
+        description="seconds from the start of the chapter `index`",
     )
 
 

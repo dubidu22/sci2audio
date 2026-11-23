@@ -129,7 +129,18 @@
     <nav aria-labelledby="chapters-heading">
       <h2 id="chapters-heading" class="visually-hidden">{{ t('listen.chapters') }}</h2>
       <ol class="outline" id="outline">
-      {% if planned %}
+      {% if rows %}
+      {#- every chapter of the book (#726): the playable ones are buttons, the others rows with
+          their state; a chapter not generated has Generate while no job runs. player.js
+          turns a growing book's rows into buttons as #724 does -#}
+      {% for row in rows %}
+        {%- if row.chapter is not none %}
+        <li><button type="button" class="chapter-button" data-chapter="{{ row.chapter }}" lang="{{ view.language }}"{% if row.chapter == 0 %} aria-current="true"{% endif %} disabled><span class="ot">{{ row.title }}</span><span class="oc">{{ outline[row.chapter].clock }}</span></button></li>
+        {%- else %}
+        <li class="chapter-later" data-index="{{ row.index }}"><span class="ot" lang="{{ view.language }}">{{ row.title }}</span><span class="oc chapter-state">{% if row.state == 'missing' %}{{ t('player.missing') }}{% else %}{{ t('player.generating') }}{% endif %}</span>{% if row.state == 'missing' and made.can %}<button type="button" class="sm generate" data-chapter="{{ row.index }}" data-document="{{ document.id }}" data-output="{{ made.output }}" disabled><span aria-hidden="true">{{ t('player.generate') }}</span><span class="visually-hidden">{{ t('player.generate') }}: <span lang="{{ view.language }}">{{ row.title }}</span></span></button>{% endif %}</li>
+        {%- endif %}
+      {% endfor %}
+      {% elif planned %}
       {#- a book still growing (#724): every chapter asked for; those not playable yet are
           plain rows with their state, and player.js turns each into a button once it is -#}
       {% for row in planned %}
@@ -146,6 +157,10 @@
       {% endif %}
       </ol>
     </nav>
+    {% if rows and made.can and made.missing %}
+    <p class="buttons generate-rest"><button type="button" class="sm" id="generate-rest" data-chapters="{{ made.missing | tojson | forceescape }}" data-document="{{ document.id }}" data-output="{{ made.output }}" aria-describedby="generate-hint" disabled>{{ t('player.generate_rest') }}</button></p>
+    <p class="hint" id="generate-hint">{{ t('player.generate_hint') }}</p>
+    {% endif %}
     {#- the whole audiobook as one file (#725), beside the chapters it holds #}
     {% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>

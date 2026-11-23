@@ -275,8 +275,20 @@ function readAlong() {
       headers: { "content-type": "application/json" },
       // the audiobook this page shows: a save from a page left open over a new audiobook
       // is refused (409), never written into the new one
-      body: JSON.stringify({ chapter: c, time: Math.max(0, time), audiobook: data.audiobook }),
+      body: JSON.stringify(where(c, Math.max(0, time))),
     }).catch(() => {});
+  }
+
+  // the chapter's index in the document and the time inside it go with it (#726): a chapter
+  // added before this one since the page was drawn moves its place, not these
+  function where(c, time) {
+    const body = { chapter: c, time, audiobook: data.audiobook };
+    const index = chapters[c] && chapters[c].index;
+    if (Number.isInteger(index)) {
+      body.index = index;
+      body.within = Math.max(0, time - chapters[c].start);
+    }
+    return body;
   }
 
   function keepIfTouched() {

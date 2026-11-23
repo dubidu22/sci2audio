@@ -100,6 +100,8 @@ def test_a_script_job_from_start_to_files(server: tuple[FastAPI, Any]) -> None:
     assert report["format"] == "sci2audio-report"
     assert report["source"]["name"] == "note.pdf"
     chapters = client.get(f"/api/v1/documents/{doc['id']}/chapters").json()
+    # each chapter's state is the audiobook's, not the report's (#726): none made yet
+    assert [chapter.pop("state") for chapter in chapters] == [None] * len(chapters)
     assert chapters == [
         {key: chapter[key] for key in chapters[0]} for chapter in report["chapters"]
     ]

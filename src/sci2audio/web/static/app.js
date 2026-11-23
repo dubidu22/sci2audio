@@ -468,6 +468,35 @@ function removal() {
   }
 }
 
+// ---- the remaining chapters, generated later (#726) -------------------------------------
+
+// "Generate" on a chapter not made yet and "Generate the remaining chapters" start an audio
+// job in the same project, with the settings its chapters were made with (keep_settings),
+// into the folder its audiobook is in; the job page shows it, with Start listening (#724).
+function generateButtons() {
+  const buttons = document.querySelectorAll("button.generate, #generate-rest");
+  for (const button of buttons) {
+    button.addEventListener("click", async () => {
+      const chapters = button.dataset.chapters
+        ? JSON.parse(button.dataset.chapters)
+        : [Number(button.dataset.chapter)];
+      say(tr("js.starting"));
+      try {
+        const job = await send("/api/v1/jobs", json("POST", {
+          kind: "audio",
+          document: button.dataset.document,
+          settings: { chapters, output_folder: button.dataset.output },
+          keep_settings: true,
+        }));
+        location.assign(`/jobs/${job.id}`);
+      } catch (error) {
+        say(explain(error), true);
+      }
+    });
+    button.disabled = false;
+  }
+}
+
 // ---- the whole audiobook as one file (#725) ---------------------------------------------
 
 // The box's buttons ask for the file: one built before is saved at once; else the job page
@@ -959,16 +988,20 @@ function makingCard() {
   // the spoken sentences in the cache are used again (Pause is today's cancel, #391).
   // Resume keeps the paused job's own "replace" choice: a paused replace run would
   // otherwise stop at the audiobook it was already allowed to replace (D-733)
-  async function restart(overwrite) {
+  // Keep the settings adds the chapters with the settings the others were made with (#726)
+  async function restart(overwrite, keepSettings = false) {
     try {
-      const job = await send("/api/v1/jobs", json("POST", { kind: "audio", document: doc, settings, overwrite }));
+      const body = { kind: "audio", document: doc, settings, overwrite, keep_settings: keepSettings };
+      const job = await send("/api/v1/jobs", json("POST", body));
       location.assign(`/jobs/${job.id}`);
     } catch (error) {
       say(explain(error), true);
     }
   }
   wire(document.getElementById("job-replace"), () => restart(true));
-  wire(document.getElementById("job-again"), () => restart(card.dataset.overwrite === "true"));
+  wire(document.getElementById("job-keep-settings"), () => restart(false, true));
+  wire(document.getElementById("job-again"), () =>
+    restart(card.dataset.overwrite === "true", card.dataset.keepSettings === "true"));
 
   // the DELETE goes out only from inside the confirm box, which names what is lost (D-733)
   const free = document.getElementById("cache-free");
@@ -1394,6 +1427,7 @@ document.addEventListener("DOMContentLoaded", () => {
   librarySearch();
   removal();
   bookBoxes();
+  generateButtons();
   documentPage();
   makingCard();
   jobPage();
