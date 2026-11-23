@@ -117,9 +117,13 @@ def test_the_highlight_follows_the_voice_into_the_next_chapter(signed_in: Page, 
     # the Chapters panel plays the chosen chapters; every other chapter of the book is listed
     # as not generated, with Generate (#726 asks for every chapter with its state, which
     # replaces #472's list of the chosen ones only)
+    expect(page.locator(".outline li .ot")).to_have_text(["Introduction", "Methods", "References"])
     expect(page.locator(".outline .chapter-button .ot")).to_have_text(["Introduction", "Methods"])
-    expect(page.locator(".outline .chapter-later")).to_have_text(re.compile(r"^References"))
-    expect(page.locator(".outline .chapter-later")).to_contain_text("not generated")
+    later = page.locator(".outline .chapter-later")
+    expect(later).to_have_count(1)
+    expect(later.locator(".ot")).to_have_text("References")
+    expect(later.locator(".chapter-state")).to_have_text("not generated")
+    expect(later.get_by_role("button", name="Generate: References")).to_be_visible()
     expect(page.locator("#panel-outline")).not_to_contain_text("Not in this audiobook")
     expect(page.get_by_text(re.compile("read by a synthetic voice"))).to_be_visible()
     expect(page.locator(".page-mark").first).to_have_text("Page 1")
