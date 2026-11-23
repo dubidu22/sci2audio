@@ -156,3 +156,16 @@ Runs: the fast checks from CLAUDE.md before each PR, `uv run pytest -m browser` 
 - Goal: plan #723 (LW-01) and get it approved.
 - Done: this plan, from main 0994f97 (app/audio.py, output/write.py, timeline, readalong, web tasks/player, tests named above).
 - Next: the coordinator approves the plan (and 4.1). Then PR A, then PR B after A merges.
+
+## Handoff (THR-07, THR-02), 2026-11-23
+
+- Goal: #723 (LW-01), each chapter playable as soon as it is spoken; PR A #754 merged (f1a9c1f), PR B #761 closes the issue.
+- Done: PR B #761 open at 492eb06 (branch claude/project-thread-wrlvkm); Linux CI and the ci:full three-system run 45163940997 green; ci:full removed; ledger prs/pr-761.yaml updated. Fast suite and browser tests (Chromium) green locally apart from torch-only voice tests (torch cannot be downloaded in the cloud container).
+- Next: review of #761 in review-b005; fix rounds by a fresh implementation thread started from this handoff (impl-723 has handled two PRs, THR-02). Final round: mutation run on `app/audio.py` and `app/playable.py` (INV-09) and the corpus byte comparison of the CLI's output (INV-07).
+
+Tried and ruled out, with evidence:
+- More existing tests changed than the five the plan named: every one is listed with its reason in #761's body ("Existing tests that changed, and why"); the rule they pin changed (a stopped job keeps whole chapters), none checks less (`whole_chapters()` asserts no partial, record ownership by size and SHA-256, read-along listing exactly the MP3s).
+- `governance pr checks` red on #761 is the D-882 gate (no approving review round for the head yet), as on #754 before review; no comment posted.
+- First Windows run failed only in two snapshot tests: `write_text` wrote CRLF, so the source SHA-256 in `audio.json` differed; fixed with `newline="\n"` in 492eb06 (run 45161450149 failed, 45163940997 green).
+- A resumed run's kept read-along file sat in both `book` and `pending`; `ChapterRecord.with_book_file` now drops it from `pending` (caught by the kill-between-vouch-and-rename tests).
+- Benchmark: share 14 to 16 % at 0.1 s per chunk (0.05 s gave up to 18 %, too near the 20 % limit), row in docs/baseline.md.
