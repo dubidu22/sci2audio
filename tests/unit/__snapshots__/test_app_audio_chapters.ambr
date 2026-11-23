@@ -1,0 +1,239 @@
+# serializer version: 1
+# name: test_the_records_snapshot_of_a_chapters_only_job
+  dict({
+    'audio.json': dict({
+      'cache_bytes': '<size>',
+      'chapters': list([
+        dict({
+          'chunks': 3,
+          'index': 0,
+          'seconds': 3.322,
+          'selected': True,
+          'title': 'Alpha',
+        }),
+        dict({
+          'chunks': 3,
+          'index': 1,
+          'seconds': 3.322,
+          'selected': True,
+          'title': 'Beta',
+        }),
+        dict({
+          'chunks': 3,
+          'index': 2,
+          'seconds': 3.322,
+          'selected': True,
+          'title': 'Gamma',
+        }),
+      ]),
+      'characters_per_second': '<measured>',
+      'chunks': dict({
+        'reused': 0,
+        'skipped': 0,
+        'spoken': 9,
+        'total': 9,
+      }),
+      'duration': 9.966,
+      'engine': 'fake',
+      'engine_version': 'fake-1',
+      'files': dict({
+        'm4b': None,
+        'mp3': list([
+          'book - 01 Alpha.mp3',
+          'book - 02 Beta.mp3',
+          'book - 03 Gamma.mp3',
+        ]),
+        'readalong': 'book.readalong.json',
+        'subtitles': list([
+        ]),
+      }),
+      'format': 'sci2audio-audio',
+      'sci2audio': '<version>',
+      'settings': dict({
+        'chapters': None,
+        'language': '',
+        'letter_pace': 'normal',
+        'speed': 1.0,
+        'switched_off': list([
+          'footnote-texts',
+        ]),
+        'voice': '',
+      }),
+      'skipped': list([
+      ]),
+      'source': dict({
+        'format': 'markdown',
+        'name': 'book.md',
+        'sha256': 'da8b413eeebb354ed7515b4e0adfbee1a7624ffd9df18ddc332ebe2ce5846ebe',
+      }),
+      'speed': 1.0,
+      'version': 1,
+      'voice': 'af_heart',
+    }),
+    'chapters.json': dict({
+      'book': list([
+        dict({
+          'bytes': '<size>',
+          'name': 'book.readalong.json',
+          'sha256': '<sha256 of book.readalong.json>',
+        }),
+      ]),
+      'chapters': list([
+        dict({
+          'files': list([
+            dict({
+              'bytes': '<size>',
+              'name': 'book - 01 Alpha.mp3',
+              'sha256': '<sha256 of book - 01 Alpha.mp3>',
+            }),
+          ]),
+          'fingerprint': "<sha256 of the chapter's input>",
+          'index': 0,
+          'number': 1,
+          'title': 'Alpha',
+        }),
+        dict({
+          'files': list([
+            dict({
+              'bytes': '<size>',
+              'name': 'book - 02 Beta.mp3',
+              'sha256': '<sha256 of book - 02 Beta.mp3>',
+            }),
+          ]),
+          'fingerprint': "<sha256 of the chapter's input>",
+          'index': 1,
+          'number': 2,
+          'title': 'Beta',
+        }),
+        dict({
+          'files': list([
+            dict({
+              'bytes': '<size>',
+              'name': 'book - 03 Gamma.mp3',
+              'sha256': '<sha256 of book - 03 Gamma.mp3>',
+            }),
+          ]),
+          'fingerprint': "<sha256 of the chapter's input>",
+          'index': 2,
+          'number': 3,
+          'title': 'Gamma',
+        }),
+      ]),
+      'complete': True,
+      'format': 'sci2audio-chapters',
+      'pending': list([
+      ]),
+      'planned': list([
+        0,
+        1,
+        2,
+      ]),
+      'settings': '<sha256 of the settings, the voice and the book>',
+      'version': 1,
+    }),
+    'readalong.json': dict({
+      'chapters': list([
+        dict({
+          'end': 3.322,
+          'first_chunk': 0,
+          'mp3': 'book - 01 Alpha.mp3',
+          'start': 0.0,
+          'title': 'Alpha',
+        }),
+        dict({
+          'end': 6.644,
+          'first_chunk': 3,
+          'mp3': 'book - 02 Beta.mp3',
+          'start': 3.322,
+          'title': 'Beta',
+        }),
+        dict({
+          'end': 9.966,
+          'first_chunk': 6,
+          'mp3': 'book - 03 Gamma.mp3',
+          'start': 6.644,
+          'title': 'Gamma',
+        }),
+      ]),
+      'chunks': list([
+        dict({
+          'block': 0,
+          'chapter': 0,
+          'end': 2.002,
+          'end_char': 5,
+          'start': 2.0,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 1,
+          'chapter': 0,
+          'end': 3.015,
+          'end_char': 30,
+          'start': 3.002,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 1,
+          'chapter': 0,
+          'end': 3.322,
+          'end_char': 50,
+          'start': 3.315,
+          'start_char': 31,
+        }),
+        dict({
+          'block': 2,
+          'chapter': 1,
+          'end': 5.324,
+          'end_char': 4,
+          'start': 5.322,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 3,
+          'chapter': 1,
+          'end': 6.336,
+          'end_char': 29,
+          'start': 6.324,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 3,
+          'chapter': 1,
+          'end': 6.644,
+          'end_char': 48,
+          'start': 6.636,
+          'start_char': 30,
+        }),
+        dict({
+          'block': 4,
+          'chapter': 2,
+          'end': 8.646,
+          'end_char': 5,
+          'start': 8.644,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 5,
+          'chapter': 2,
+          'end': 9.658,
+          'end_char': 30,
+          'start': 9.646,
+          'start_char': 0,
+        }),
+        dict({
+          'block': 5,
+          'chapter': 2,
+          'end': 9.966,
+          'end_char': 50,
+          'start': 9.958,
+          'start_char': 31,
+        }),
+      ]),
+      'duration': 9.966,
+      'format': 'sci2audio-readalong',
+      'm4b': None,
+      'sample_rate': 24000,
+      'version': 1,
+    }),
+  })
+# ---

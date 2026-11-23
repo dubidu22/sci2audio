@@ -149,3 +149,15 @@ cost per plugin per document, on the largest corpus paper (`arxiv2024-arsiwalla-
 |---|---|---|---|
 | MacBook Pro M4, macOS | 23.9 ms (median 19.9 ms) | 2026-11-20 | branch of f98d446 |
 | MacBook Pro M4, macOS | 36.4 ms (mean of 24; the collection is about 14 ms of it) | 2026-11-21 | branch of b00002d (#715) |
+
+## Time to the first playable chapter (#723)
+
+Since #723 the job writes each chapter's MP3 as soon as the chapter is spoken. The table is a
+ten-chapter Markdown book spoken by a fake voice that takes 0.1 s per chunk, so the share is
+what a real voice would see: `uv run pytest tests/unit/test_app_first_chapter_speed.py -m benchmark -s -p no:xdist`
+(nightly). Before #723 nothing was playable before the job's end (100 %); the test fails
+above 20 %.
+
+| Machine | First chapter playable after | Whole job | Share | Date | Commit |
+|---|---|---|---|---|---|
+| Linux cloud container, x86_64, 4 cores | 0.34 to 0.41 s | 2.46 to 2.51 s | 14 to 16 % (3 rounds) | 2026-11-23 | branch of f1a9c1f |

@@ -1,0 +1,237 @@
+# serializer version: 1
+# name: test_convert_writes_the_same_files_as_before_chapters_became_playable_early
+  dict({
+    'audio.json': dict({
+      'cache_bytes': '<size>',
+      'chapters': list([
+        dict({
+          'chunks': 3,
+          'index': 0,
+          'seconds': 3.322,
+          'selected': True,
+          'title': 'Part A',
+        }),
+        dict({
+          'chunks': 0,
+          'index': 1,
+          'seconds': 0.0,
+          'selected': False,
+          'title': 'Part B',
+        }),
+        dict({
+          'chunks': 3,
+          'index': 2,
+          'seconds': 3.323,
+          'selected': True,
+          'title': 'Part C',
+        }),
+      ]),
+      'characters_per_second': '<measured>',
+      'chunks': dict({
+        'reused': 1,
+        'skipped': 0,
+        'spoken': 5,
+        'total': 6,
+      }),
+      'duration': 6.645,
+      'engine': 'fake',
+      'engine_version': 'fake-1',
+      'files': dict({
+        'm4b': 'three.m4b',
+        'mp3': list([
+          'three - 01 Part A.mp3',
+          'three - 02 Part C.mp3',
+        ]),
+        'readalong': 'three.readalong.json',
+        'subtitles': list([
+          'three - 01 Part A.srt',
+          'three - 01 Part A.vtt',
+          'three - 02 Part C.srt',
+          'three - 02 Part C.vtt',
+          'three.srt',
+          'three.vtt',
+        ]),
+      }),
+      'format': 'sci2audio-audio',
+      'sci2audio': '<version>',
+      'settings': dict({
+        'chapters': list([
+          0,
+          2,
+        ]),
+        'language': '',
+        'letter_pace': 'normal',
+        'speed': 1.0,
+        'switched_off': list([
+          'footnote-texts',
+        ]),
+        'voice': '',
+      }),
+      'skipped': list([
+      ]),
+      'source': dict({
+        'format': 'markdown',
+        'name': 'three.md',
+        'sha256': '36ba3349411825183e105cae892ee8c41b857332693d120d156f7ab008f6082a',
+      }),
+      'speed': 1.0,
+      'version': 1,
+      'voice': 'af_heart',
+    }),
+    'files': dict({
+      'three - 01 Part A.mp3': dict({
+        'chapters': list([
+        ]),
+        'tags': dict({
+          'album': 'three',
+          'comment': 'AI-generated audio: text-to-speech made with sci2audio <version>.',
+          'genre': 'Audiobook',
+          'language': 'eng',
+          'title': 'Part A',
+          'track': '1/2',
+        }),
+      }),
+      'three - 01 Part A.srt': '''
+        1
+        00:00:02,000 --> 00:00:02,002
+        Part A
+        
+        2
+        00:00:03,002 --> 00:00:03,014
+        The text of part A is here.
+        
+        3
+        00:00:03,314 --> 00:00:03,322
+        It has two sentences.
+  
+      ''',
+      'three - 01 Part A.vtt': '''
+        WEBVTT
+        
+        00:00:02.000 --> 00:00:02.002
+        Part A
+        
+        00:00:03.002 --> 00:00:03.014
+        The text of part A is here.
+        
+        00:00:03.314 --> 00:00:03.322
+        It has two sentences.
+  
+      ''',
+      'three - 02 Part C.mp3': dict({
+        'chapters': list([
+        ]),
+        'tags': dict({
+          'album': 'three',
+          'comment': 'AI-generated audio: text-to-speech made with sci2audio <version>.',
+          'genre': 'Audiobook',
+          'language': 'eng',
+          'title': 'Part C',
+          'track': '2/2',
+        }),
+      }),
+      'three - 02 Part C.srt': '''
+        1
+        00:00:02,000 --> 00:00:02,003
+        Part C
+        
+        2
+        00:00:03,003 --> 00:00:03,014
+        The text of part C is here.
+        
+        3
+        00:00:03,314 --> 00:00:03,323
+        It has two sentences.
+  
+      ''',
+      'three - 02 Part C.vtt': '''
+        WEBVTT
+        
+        00:00:02.000 --> 00:00:02.003
+        Part C
+        
+        00:00:03.003 --> 00:00:03.014
+        The text of part C is here.
+        
+        00:00:03.314 --> 00:00:03.323
+        It has two sentences.
+  
+      ''',
+      'three.m4b': dict({
+        'chapters': list([
+          tuple(
+            0,
+            79740,
+            'Part A',
+          ),
+          tuple(
+            79740,
+            159480,
+            'Part C',
+          ),
+        ]),
+        'tags': dict({
+          'album': 'three',
+          'comment': 'AI-generated audio: text-to-speech made with sci2audio <version>.',
+          'compatible_brands': 'M4A isomiso2',
+          'genre': 'Audiobook',
+          'major_brand': 'M4A ',
+          'minor_version': '512',
+          'title': 'three',
+        }),
+      }),
+      'three.readalong.json': '''
+        {"format":"sci2audio-readalong","version":1,"sample_rate":24000,"duration":6.645,"m4b":"three.m4b","chapters":[{"title":"Part A","mp3":"three - 01 Part A.mp3","start":0.0,"end":3.322,"first_chunk":0},{"title":"Part C","mp3":"three - 02 Part C.mp3","start":3.322,"end":6.645,"first_chunk":3}],"chunks":[{"chapter":0,"start":2.0,"end":2.002,"block":0,"start_char":0,"end_char":6},{"chapter":0,"start":3.002,"end":3.014,"block":1,"start_char":0,"end_char":27},{"chapter":0,"start":3.314,"end":3.322,"block":1,"start_char":28,"end_char":49},{"chapter":1,"start":5.322,"end":5.325,"block":4,"start_char":0,"end_char":6},{"chapter":1,"start":6.325,"end":6.336,"block":5,"start_char":0,"end_char":27},{"chapter":1,"start":6.636,"end":6.645,"block":5,"start_char":28,"end_char":49}]}
+  
+      ''',
+      'three.srt': '''
+        1
+        00:00:02,000 --> 00:00:02,002
+        Part A
+        
+        2
+        00:00:03,002 --> 00:00:03,014
+        The text of part A is here.
+        
+        3
+        00:00:03,314 --> 00:00:03,322
+        It has two sentences.
+        
+        4
+        00:00:05,322 --> 00:00:05,325
+        Part C
+        
+        5
+        00:00:06,325 --> 00:00:06,336
+        The text of part C is here.
+        
+        6
+        00:00:06,636 --> 00:00:06,645
+        It has two sentences.
+  
+      ''',
+      'three.vtt': '''
+        WEBVTT
+        
+        00:00:02.000 --> 00:00:02.002
+        Part A
+        
+        00:00:03.002 --> 00:00:03.014
+        The text of part A is here.
+        
+        00:00:03.314 --> 00:00:03.322
+        It has two sentences.
+        
+        00:00:05.322 --> 00:00:05.325
+        Part C
+        
+        00:00:06.325 --> 00:00:06.336
+        The text of part C is here.
+        
+        00:00:06.636 --> 00:00:06.645
+        It has two sentences.
+  
+      ''',
+    }),
+  })
+# ---

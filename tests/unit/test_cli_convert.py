@@ -14,8 +14,11 @@ from pathlib import Path
 import pytest
 from audio_fakes import FakeVoice
 from cli_helpers import Cli, files_in, small_pdf
+from output_helpers import chapters_of, ffmetadata, tags_of
+from syrupy.assertion import SnapshotAssertion
 from test_cli_script import AMPERSAND
 
+from sci2audio import __version__
 from sci2audio import cli as cli_module
 from sci2audio.app.lock import work_folder_lock
 from sci2audio.textprep import installed_steps
@@ -511,3 +514,38 @@ def test_no_plugins_makes_the_audiobook_without_plugins(tmp_path: Path) -> None:
     assert "plugins" not in made["on"]["settings"]
     assert "plugins" not in made["off"]
     assert made["off"]["settings"]["plugins"] is False
+
+
+def test_convert_writes_the_same_files_as_before_chapters_became_playable_early(
+    cli: Cli, tmp_path: Path, snapshot: SnapshotAssertion
+) -> None:
+    """#723: the job now writes each chapter as soon as it is spoken; the command line still
+    writes the M4B and the same files. Pinned on main before that change: every file name,
+    every text file whole, the read-along file, the job's record, and the tags and chapter
+    marks of every audio file (raw MP3/M4B bytes differ between ffmpeg builds)."""
+    source = tmp_path / "in" / "three.md"
+    source.parent.mkdir()
+    parts = [f"# Part {n}\n\nThe text of part {n} is here. It has two sentences." for n in "ABC"]
+    source.write_text("\n\n".join(parts), encoding="utf-8", newline="\n")
+    out = tmp_path / "b"
+    result = cli("convert", source, "-o", out, "-q", "--subtitles", "--chapters", "1,3")
+    assert result.code == 0, result.err
+    record = audio_record(cli, source)
+    record["sci2audio"] = "<version>"
+    record["cache_bytes"] = "<size>"
+    record["characters_per_second"] = "<measured>"
+    files: dict[str, object] = {}
+    for path in sorted(out.iterdir()):
+        if path.suffix in (".mp3", ".m4b"):
+            meta = ffmetadata(path)
+            files[path.name] = {
+                "tags": {
+                    k: v.replace(__version__, "<version>")
+                    for k, v in tags_of(meta).items()
+                    if k != "encoder"
+                },
+                "chapters": chapters_of(meta),
+            }
+        else:
+            files[path.name] = path.read_text(encoding="utf-8")
+    assert {"files": files, "audio.json": record} == snapshot

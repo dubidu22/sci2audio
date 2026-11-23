@@ -305,7 +305,8 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     (D-119), so the old set is incomplete; Resume writes the whole new set (D-733)."""
     from sci2audio.app import audio
 
-    encode = audio._encode
+    # writing the book's own files, once every chapter's are written (#723)
+    encode = audio._Chapters.finish
     writing, gate = threading.Event(), threading.Event()
 
     def held(*args: Any, **kwargs: Any) -> Any:
@@ -319,18 +320,17 @@ def test_a_replace_paused_while_writing_resumes_without_asking_again(
     assert wait(client, start_audio(client, doc["id"])["id"])["state"] == "done"
     names = sorted(p.name for p in book_folder(config.output_folder).iterdir())
 
-    monkeypatch.setattr(audio, "_encode", held)
+    monkeypatch.setattr(audio._Chapters, "finish", held)
     job = start_audio(client, doc["id"], overwrite=True)
     assert writing.wait(30)
     assert client.post(f"/api/v1/jobs/{job['id']}/cancel").status_code == 202
     gate.set()
     paused = wait(client, job["id"])
     assert paused["state"] == "cancelled"
-    assert (
-        sorted(p.name for p in book_folder(config.output_folder).iterdir()) != names
-    )  # a partial set
+    readalong = next(book_folder(config.output_folder).glob("*.readalong.json"))
+    assert json.loads(readalong.read_text(encoding="utf-8"))["m4b"] is None  # a partial set
 
-    monkeypatch.setattr(audio, "_encode", encode)
+    monkeypatch.setattr(audio._Chapters, "finish", encode)
     resumed = wait(client, resumed_as_the_card_sends(client, paused)["id"])
     assert resumed["state"] == "done", resumed["error"]
     assert resumed["progress"]["spoken"] == 0  # every sentence came from the cache
