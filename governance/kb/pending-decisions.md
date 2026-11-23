@@ -154,3 +154,11 @@ Merge go for #762 (PR 1 of D-903, lane:output, critical), pinned to 16b6e7a.
 - Round 2 approved with 0 must-fix. ci:full run 45202299756 is green.
 - The merge waits until impl-725b fixes `prs/pr-762.yaml` (`fixes_kinds: vacuous-test`, `handback: done`) and the gate passes.
 - Note: the flaky-watch line in `project-state.yaml` (889257c) was written by a worker thread after the coordinator's request was relayed. The content is right, but the file's writer is the coordinator (META-02); later edits stay with the coordinator.
+Outcome: #762 merged as 51dd21d; main CI 45211348862 green on three systems.
+
+## D-907 (2026-11-23, owner)
+
+Colin asked for batch 005 to go faster. On a decision card in the project chat (about 16:35Z) he chose to start PR 3 of D-903 (#725 web) now, on top of #765's branch, rather than after #765 merges. The card text was not relayed, so this entry ranks without a quote (KB-01).
+- impl-725c branches from #765's head and opens no PR while #765 is open.
+- After #765 merges, it merges main into its branch (no rebase or force-push) and follows any API change from #765's review.
+- PR 4 (#726) follows PR 3. review-b005 reviews both.
