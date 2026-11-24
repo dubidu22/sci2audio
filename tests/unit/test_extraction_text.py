@@ -903,3 +903,68 @@ def test_a_short_line_in_capitals_without_a_colon_is_a_title_line() -> None:
         ("p",),
         ("p",),
     ]
+
+
+# ---- #848: a number before a full stop ---------------------------------------------------
+
+_ORDINAL = "Die Konferenz fand in diesem Jahr in Berlin statt, und zwar am 3.\n"
+_NUMBER = "The tool reads many kinds of input, and the error rose to approximately 3.\n"
+_NEW = "The second part starts on this line and runs on for a while here.\n"
+
+
+@pytest.mark.parametrize("month", ["OKTOBER", "MAERZ", "MÄRZ", "DEZEMBER", "(JULI"])
+def test_a_german_ordinal_before_a_month_in_capitals_stays_in_its_sentence(month: str) -> None:
+    """ "am 3." / "OKTOBER" is a date wrapped over two lines, not a sentence end before a
+    heading: the month stays in the sentence (#848). (The line after the month is judged by
+    the title rule, which this issue leaves alone.)"""
+    text = f"{_ORDINAL}{month}\nDie Teilnehmer kamen aus ganz Europa zusammen und blieben da.\n"
+    assert tags_of(text)[:2] == [("p",), ("p", "br")]
+
+
+def test_a_german_ordinal_before_a_month_is_no_sentence_end_for_a_mixed_case_heading() -> None:
+    """ "am 3." / "Oktober 2020" twice in a document: the month line is the date's second
+    half, not a mixed-case heading after a sentence end (#848)."""
+    second = "Die Auswertung lief danach noch eine ganze Weile, und zwar bis zum 7.\n"
+    after = "Die Teilnehmer kamen aus ganz Europa zusammen und blieben lange da.\n"
+    text = f"{_ORDINAL}Oktober 2020\n{after}{second}März 2021\n{after}"
+    br = ("p", "br")
+    assert tags_of(text)[:2] == [("p",), br]
+    assert tags_of(text)[3:5] == [br, br]
+
+
+def test_a_german_ordinal_before_a_line_that_goes_on_stays_one_paragraph() -> None:
+    text = f"{_ORDINAL}Oktober 2020 in einem grossen Saal mit vielen Teilnehmern aus Europa.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_a_number_before_a_stop_runs_on_into_a_lower_case_line() -> None:
+    """ "approximately 3." / "files and ...": a lower-case next line goes on (#848)."""
+    text = f"{_NUMBER}files and plain text, and it runs on for a while here as prose does.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+@pytest.mark.parametrize("heading", ["RESULTS", "MARCH", "MAY 2020", "JULY", "PDF"])
+def test_a_capitals_heading_after_a_number_before_a_stop_is_cut_before_a_new_sentence(
+    heading: str,
+) -> None:
+    """ "approximately 3." / "RESULTS" / "The second ...": the number's stop ends a sentence
+    and the heading is cut before and after (#570, #848). An English month is a heading:
+    English writes no "3. March"."""
+    assert tags_of(f"{_NUMBER}{heading}\n{_NEW}") == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("heading", ["RESULTS", "PDF"])
+def test_a_capitals_heading_after_a_number_before_a_stop_keeps_its_cuts_before_lower_case(
+    heading: str,
+) -> None:
+    """ "approximately 3." / "RESULTS" / "mRNA levels ...": a short capitals line keeps its
+    title cuts after a number's stop, as after any sentence end (#827, #848)."""
+    after = "mRNA levels and pH values rose in every sample, and it runs on here.\n"
+    assert tags_of(f"{_NUMBER}{heading}\n{after}") == [("p",), ("p",), ("p",)]
+
+
+def test_an_english_month_line_after_a_number_before_a_stop_stays_a_mixed_case_heading() -> None:
+    """ "we used 3." / "June 2020" / "The second ..." twice: both month lines are headings,
+    cut before and after, as without #848."""
+    text = f"The first part of the note ends here, and for it we used 3.\nJune 2020\n{_NEW}" * 2
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
