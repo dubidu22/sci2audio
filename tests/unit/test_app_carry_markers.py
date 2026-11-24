@@ -448,8 +448,9 @@ def test_any_v1_file_carries_over_one_to_one_or_nothing_is_written(
 
 
 def _folder(work: Path) -> dict[str, bytes]:
-    """Every entry of the working folder with its bytes (a folder as None): what a call that
-    must write, rename and delete nothing leaves exactly as it was."""
+    """Every entry of the working folder with its bytes (a folder as the marker byte string
+    b"<not a file>"): what a call that must write, rename and delete nothing leaves
+    exactly as it was."""
     return {
         p.name: (p.read_bytes() if p.is_file() else b"<not a file>") for p in sorted(work.iterdir())
     }
@@ -635,8 +636,8 @@ def test_after_a_full_disk_the_peek_tells_the_carry_over_from_another_failure(
     work: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """What the web layer asks after an OSError of a load (#910): the carry-over's own
-    write failed, so the peek still sees the carry-over; if the markers can't be read
-    the peek fails the same way, and nothing is written either way."""
+    write failed, so the peek still sees the carry-over; with the markers gone the peek
+    is None, and nothing is written either way."""
     raw = _put_markers(work, V1)
 
     def full(partial: Path, content: str | bytes) -> None:
@@ -649,6 +650,32 @@ def test_after_a_full_disk_the_peek_tells_the_carry_over_from_another_failure(
     _untouched(work, raw, captures=False)
     (work / MARKERS).unlink()
     assert peek_carry_over(work, DOC) is None
+
+
+@pytest.mark.parametrize("unreadable", [MARKERS, CAPTURES])
+@pytest.mark.parametrize("peek", [peek_captures, peek_carry_over])
+def test_a_peek_whose_read_fails_raises_the_oserror_and_leaves_the_folder(
+    work: Path, monkeypatch: pytest.MonkeyPatch, unreadable: str, peek: Any
+) -> None:
+    """A file that can't be read (no permission, a failing disk) reaches the caller as the
+    same OSError a load raises, never as a refusal, a count of zero or a written file."""
+    _put_markers(work, V1)
+    (work / CAPTURES).write_bytes(captures_text(CARRIED).encode("utf-8"))
+    if unreadable == MARKERS:
+        (work / CAPTURES).unlink()
+    before = _folder(work)
+    real = Path.read_bytes
+
+    def read_bytes(self: Path) -> bytes:
+        if self.name == unreadable:
+            raise PermissionError(errno.EACCES, "Permission denied")
+        return real(self)
+
+    monkeypatch.setattr(Path, "read_bytes", read_bytes)
+    with pytest.raises(PermissionError):
+        peek(work, DOC)
+    monkeypatch.undo()
+    assert _folder(work) == before
 
 
 # ---- faults while carrying over -------------------------------------------------------------

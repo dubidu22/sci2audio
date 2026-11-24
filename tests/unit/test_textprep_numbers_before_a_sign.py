@@ -30,12 +30,15 @@ def _read_all(text: str, language: str) -> str:
         # the words a second run sees, printed so
         ("We set 1234 equals A.", "We set 1,234 equals A."),
         ("We had 1234 times the cost.", "We had 1,234 times the cost."),
-        # a year-like number is left as printed, before the sign and before its word
+        # a year-like number is left as printed before "=" and before its word
         ("We set 2019 = A.", "We set 2019 equals A."),
         ("We set 2019 equals A.", "We set 2019 equals A."),
-        ("It grew 2019× here.", "It grew 2019 times here."),
-        ("It grew 1501 × 5.", "It grew 1501 times 5."),
-        ("We had 2099 times the cost.", "We had 2099 times the cost."),
+        # ... and before the times sign or "times" with a number of three or more digits
+        # after it (a size), while before a smaller factor or alone it is a count (#871)
+        ("It grew 1501 × 5.", "It grew 1,501 times 5."),
+        ("It is 1920 × 1080.", "It is 1920 times 1080."),
+        ("It grew 2019× here.", "It grew 2,019 times here."),
+        ("We had 2099 times the cost.", "We had 2,099 times the cost."),
         # a sign before the number reads it as a number, as before
         ("x = 2019 = A", "x equals 2,019 equals A"),
         # the plural rule is unchanged: a year word before, or none

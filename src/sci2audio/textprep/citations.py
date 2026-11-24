@@ -312,6 +312,8 @@ _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
+# the signs the English statistics step reads with nothing before them (all but "=")
+_SIGNS_READ_ALONE = frozenset({key[0] for key in OPERATORS} - {"=", "\u0338"})
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _GLUES = ".,0123456789"  # what a removal must not join to a digit after it (#308)
 _CLOSE_AHEAD = re.compile(r"\s*\)")
@@ -1784,6 +1786,23 @@ class _Rules:
         At the start of a sentence the punctuation after it goes instead: "It holds. (Smith,
         2019). Then" reads "It holds. Then", not "It holds.. Then".
         """
+        spaced_start, spaced_end = self._with_space_around(text, start, end)
+        if spaced_end > end and self._sign_after(text, end):
+            # "[1] < 3x": the English statistics step's reading of the sign takes the white
+            # space before it, and would be set aside if the removal took it too; a second
+            # run, where the sign starts the block, reads it (#1010)
+            return spaced_start, end
+        return spaced_start, spaced_end
+
+    def _sign_after(self, text: str, end: int) -> bool:
+        """True if a sign the English statistics step reads starts after the white space at
+        `end`; "=" needs a word before it there, so a second run leaves it as the first."""
+        if self.language == "de":
+            return False
+        after = _SPACE.match(text, end)
+        return after is not None and text[after.end() : after.end() + 1] in _SIGNS_READ_ALONE
+
+    def _with_space_around(self, text: str, start: int, end: int) -> tuple[int, int]:
         if self._starts_sentence(text, start) or only_links_before(text, start, self.language):
             punctuation = _AFTER_START.match(text, end)
             if punctuation and only_links_after(text, end, self.language):

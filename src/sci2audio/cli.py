@@ -28,6 +28,7 @@ import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from enum import IntEnum
+from gettext import gettext as _
 from pathlib import Path
 from typing import IO, Any, TextIO
 from urllib.parse import urlsplit
@@ -238,6 +239,17 @@ class _Parser(argparse.ArgumentParser):
         elif file is sys.stderr:
             file = self.env.err
         file.write(message)
+
+    def _check_value(self, action: argparse.Action, value: Any) -> None:
+        # Python 3.13 quotes the choices of an invalid-choice error, 3.12 does not; the
+        # quoted form is written on both, as it matches the quoted value just before it.
+        choices = action.choices
+        if choices is None:
+            return
+        if value not in (iter(choices) if isinstance(choices, str) else choices):
+            listed = ", ".join(repr(str(choice)) for choice in choices)
+            message = _("invalid choice: %(value)r (choose from %(choices)s)")
+            raise argparse.ArgumentError(action, message % {"value": str(value), "choices": listed})
 
     def subcommands(self, **kwargs: Any) -> argparse._SubParsersAction[_Parser]:
         return self.add_subparsers(parser_class=_parser_class(self.env), **kwargs)
