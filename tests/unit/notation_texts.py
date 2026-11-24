@@ -135,6 +135,9 @@ def _german_expression(draw: st.DrawFn) -> str:
         f"{a}/{b}",
         f"{one('Kapitel', 'Phase', 'Abb.', 'Typ', 'Ludwig')} "
         f"{one('I', 'IV', 'II und III', 'I–III', 'XIV.')}",
+        # a list of numerals, a full stop after each (#996)
+        f"{one('Kapitel', 'Teile', 'Kap.', 'Typ')} I."
+        f"{one(' und II.', ' bis III.', ', II. und III.', ' oder IV.', ' & II.')}",
         f"{one('Abschnitt', 'Abb.', 'Version', 'Tab.')} "
         f"{one('2.5', '3.1.2', '2.5 und 2.6', '1.234')}",
         f"{one('10', 'x', 'R', '5 m')}{one('⁶', '⁻⁴', '²', '³', '^2', '^{-3}')}",

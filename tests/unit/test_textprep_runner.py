@@ -359,6 +359,9 @@ def test_switching_a_category_off_is_like_leaving_its_steps_out(
 @given(documents())
 @example(make_document([(BlockKind.PARAGRAPH, "e.g.=1 and approx.\u21d21")], "en"))  # #972
 @example(make_document([(BlockKind.PARAGRAPH, "So A \u21d0==> 3x.")], "en"))  # #984
+@example(make_document([(BlockKind.PARAGRAPH, "So A > 3x and e.g. < 3x.")], "en"))  # #988
+@example(make_document([(BlockKind.PARAGRAPH, "So A = \u2212 3x.")], "en"))  # #997
+@example(make_document([(BlockKind.PARAGRAPH, "Kapitel I. und II.")], "de"))  # #996
 def test_the_built_in_steps_never_fail_and_are_idempotent(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)

@@ -2,9 +2,9 @@
 # (minus signs, dashes and the times sign are what these texts are made of)
 """Readings a second run over the first run's script keeps (D-577): an arrow of logic beside
 "Nx" (#843, #984), an arrow or a sign where another step reads what stands before it (#924,
-#972), an ISO date after a dash range (#957) and a part's Roman numeral before a full stop
-(#976). Each is pinned on the printed text and on its first run's script, in English and
-German."""
+#972), an ISO date after a dash range (#957), a part's Roman numeral before a full stop
+(#976) and a list of them (#996), and "<", ">" or a minus sign before "Nx" (#988, #997). Each
+is pinned on the printed text and on its first run's script, in English and German."""
 
 import pytest
 
@@ -107,6 +107,62 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("Kapitel I. Teil", "de", "Kapitel I. Teil"),
         ("Kapitel I. Mai", "de", "Kapitel I. Mai"),
         ("Kapitel I.2", "de", "Kapitel I.2"),
+        # #996: a list of such numerals, a full stop after each, is left whole too
+        ("Kapitel I. und II.", "de", "Kapitel I. und II."),
+        ("Teile I. und II. folgen.", "de", "Teile I. und II. folgen."),
+        ("Kapitel I. bis III.", "de", "Kapitel I. bis III."),
+        ("Kapitel I. oder II.", "de", "Kapitel I. oder II."),
+        ("Kapitel I. & II.", "de", "Kapitel I. & II."),
+        ("Kapitel I./II.", "de", "Kapitel I./II."),
+        ("Kapitel I., II. und III.", "de", "Kapitel I., II. und III."),
+        ("Kap. I. und II.", "de", "Kapitel I. und II."),
+        # ... but not one numeral before a word or another part keyword
+        ("Kapitel IV. Dann folgt mehr.", "de", "Kapitel 4. Dann folgt mehr."),
+        ("Kapitel I. Im Text", "de", "Kapitel 1. Im Text"),
+        ("Kapitel I. und Teil II.", "de", "Kapitel 1. und Teil 2."),
+        # #988: a bare "<" or ">" before "Nx" is the sign only where its words are on a second
+        # run, after a one-letter variable or a closing bracket (D-646); prose elsewhere
+        ("A > 3x", "en", "A greater than 3 times"),
+        ("A < 3x", "en", "A less than 3 times"),
+        ("e.g. < 3x", "en", "for example less than 3 times"),
+        ("e.g. > 3x", "en", "for example greater than 3 times"),
+        ("A>3x", "en", "A greater than 3 times"),
+        ("> 3x", "en", "greater than 3 times"),
+        ("I < 3x", "en", "I less than 3 times"),
+        ("2 s > 3x", "en", "2 seconds greater than 3 times"),
+        ("x < 3x", "en", "x less than 3x"),
+        ("(a) < 3x", "en", "(a) less than 3x"),
+        ("f(x) > 3x", "en", "f(x) greater than 3x"),
+        ("A > 3x + 1", "en", "A greater than 3x + 1"),  # an operator after it still counts
+        ("A << 3x", "en", "A << 3x"),  # left as printed: a sign on both runs
+        ("A -> 3x", "en", "A -> 3x"),
+        ("A > 3x", "de", "A größer als 3x"),
+        ("z. B. < 3x", "de", "zum Beispiel kleiner als 3x"),
+        # #997: "minus", the reading of a minus sign, is that sign before "Nx"
+        ("A − 3x", "en", "A minus 3x"),
+        ("A = − 3x", "en", "A equals minus 3x"),
+        ("A ⇒ − 3x", "en", "A implies minus 3x"),
+        ("− 3x", "en", "minus 3x"),
+        ("A = −3x", "en", "A equals minus 3x"),
+        ("A ± 3x", "en", "A plus or minus 3 times"),  # "±" is no operator: as before
+        ("A plus or minus 3x", "en", "A plus or minus 3 times"),
+        ("It was minus 3x here.", "en", "It was minus 3x here."),  # printed: as its sign
+        ("It was minus\n3x here.", "en", "It was minus 3x here."),
+        # ... but "plus or minus" ("±") in any case and with any white space is no sign
+        ("A plus or  minus 3x", "en", "A plus or minus 3 times"),
+        ("A plus or\nminus 3x", "en", "A plus or minus 3 times"),
+        ("A plus or minus 3x", "en", "A plus or minus 3 times"),
+        ("A plus\tor minus 3x", "en", "A plus or minus 3 times"),
+        ("Plus or minus 3x.", "en", "Plus or minus 3 times."),
+        ("A PLUS OR minus 3x", "en", "A PLUS OR minus 3 times"),
+        ("A plus/minus 3x", "en", "A plus/minus 3 times"),
+        ("A plus / minus 3x", "en", "A plus / minus 3 times"),
+        ("A plus-minus 3x", "en", "A plus-minus 3 times"),
+        ("Minus 3x is the spread.", "en", "Minus 3 times is the spread."),  # no sign's reading
+        ("A − 3x", "de", "A − 3x"),
+        ("A = − 3x", "de", "A gleich − 3x"),
+        ("A ⇒ − 3x", "de", "A daraus folgt − 3x"),
+        ("− 3x", "de", "− 3x"),
     ],
 )
 def test_the_reading_is_the_same_on_both_runs(printed: str, language: str, said: str) -> None:
@@ -119,6 +175,7 @@ def test_the_reading_is_the_same_on_both_runs(printed: str, language: str, said:
         ("Kapitel I. Einleitung", "Kapitel 1. Einleitung"),
         ("Teil II.", "Teil 2."),
         ("Typ I.", "Typ I."),
+        ("Kapitel I. und II.", "Kapitel I. und II."),  # #996
     ],
 )
 def test_a_heading_reads_a_part_number_as_a_paragraph_does(printed: str, said: str) -> None:

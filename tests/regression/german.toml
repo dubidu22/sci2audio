@@ -3316,3 +3316,51 @@ expected = [
     "Also A folgt aus größer als 3x und B.",
     "Also A folgt aus genau dann, wenn 3 mal und B.",
 ]
+
+[[case]]
+id = "de-a-list-of-part-numbers-in-roman-numerals-with-full-stops"
+audit = 0
+issue = 996
+goal = "A list of Roman numerals after a part keyword with a full stop after each numeral ('Kapitel I. und II.', 'Kapitel I. bis III.') is left as printed as a whole, as 'Teil II und III.' is; one numeral before a full stop is still read ('Kapitel IV.', #976). Each reads the same on a second run (#996)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I. und II." },
+    { kind = "paragraph", text = "Teile I. und II. folgen." },
+    { kind = "paragraph", text = "Kapitel I. bis III." },
+    { kind = "paragraph", text = "Kapitel I., II. und III." },
+    { kind = "heading", text = "Kapitel I. oder II." },
+    { kind = "paragraph", text = "Teil II und III." },
+    { kind = "paragraph", text = "Kapitel IV." },
+    { kind = "paragraph", text = "Kapitel IV. Dann folgt mehr." },
+]
+expected = [
+    "Kapitel I. und II.",
+    "Teile I. und II. folgen.",
+    "Kapitel I. bis III.",
+    "Kapitel I., II. und III.",
+    "Kapitel I. oder II.",
+    "Teil II und III.",
+    "Kapitel 4.",
+    "Kapitel 4. Dann folgt mehr.",
+]
+
+[[case]]
+id = "de-a-sign-before-nx"
+audit = 0
+issue = 988
+goal = "German readings of '<', '>' and '−' before 'Nx' stay as they were when English changes (#988, #997): 'größer als' and 'kleiner als' count as the sign on both runs, and '−' there is not read."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A > 3x und B < 3x." },
+    { kind = "paragraph", text = "z. B. < 3x und z. B. > 3x" },
+    { kind = "paragraph", text = "Also A − 3x und A = − 3x." },
+    { kind = "paragraph", text = "Also A ⇒ − 3x." },
+    { kind = "paragraph", text = "− 3x" },
+]
+expected = [
+    "Also A größer als 3x und B kleiner als 3x.",
+    "zum Beispiel kleiner als 3x und zum Beispiel größer als 3x",
+    "Also A − 3x und A gleich − 3x.",
+    "Also A daraus folgt − 3x.",
+    "− 3x",
+]
