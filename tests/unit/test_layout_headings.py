@@ -1007,6 +1007,83 @@ def test_a_letter_in_a_document_with_arabic_numbers_stays_an_appendix_at_level_o
     assert [s.level for s in doc.sections] == [1, 1, 1, 1]
 
 
+# IEEE third-level numbers "1)" under a lettered subsection (#798)
+
+
+def test_a_parenthesised_number_under_a_lettered_subsection_is_level_three() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    page.heading("1) Hardware", 10.0).body(2).heading("2) Software", 10.0).body(2)
+    page.heading("B. Data", 10.0).body(2).heading("1) Sources", 10.0).body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert headings(doc)[2:7] == [
+        ("A. Setup", "A"),
+        ("1) Hardware", "1)"),
+        ("2) Software", "2)"),
+        ("B. Data", "B"),
+        ("1) Sources", "1)"),
+    ]
+    assert tree(doc.sections) == [
+        ("I. Introduction", 1),
+        ("II. Method", 1),
+        [
+            ("A. Setup", 2),
+            [("1) Hardware", 3), ("2) Software", 3)],
+            ("B. Data", 2),
+            [("1) Sources", 3)],
+        ],
+        ("III. Results", 1),
+    ]
+
+
+def test_a_parenthesised_number_in_body_style_stays_a_list_item() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    for text in ("1) The first entry of the list.", "2) The second entry of the list."):
+        page.lines.append(set_line(text, page.y))
+        page.y += PITCH
+    page.body(2).heading("B. Data", 10.0).body(2)
+    doc = page.build()
+    items = [b.text for b in doc.blocks if b.kind is BlockKind.LIST_ITEM]
+    assert items == ["1) The first entry of the list.", "2) The second entry of the list."]
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "B"]
+
+
+def test_a_parenthesised_number_without_a_letter_before_it_is_no_heading_number() -> None:
+    """Under a Roman section with no lettered subsection yet, a bold "1)" is no third level."""
+    page = Page().heading("I. Introduction").body(2)
+    page.heading("1) Bold step", 10.0).body(2).heading("2) Next step", 10.0).body(2)
+    page.heading("II. Method").body(2).heading("A. Setup", 10.0).body(2)
+    doc = page.build()
+    assert headings(doc) == [("I. Introduction", "I"), ("II. Method", "II"), ("A. Setup", "A")]
+
+
+def test_a_parenthesised_number_in_an_arabic_document_is_no_heading_number() -> None:
+    page = Page().heading("1 Introduction").body(2).heading("1.1 Setup", 10.0).body(2)
+    page.heading("1) Bold step", 10.0).body(2).heading("2) Next step", 10.0).body(2)
+    page.heading("2 Method").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["1", "1.1", "2"]
+
+
+def test_the_outline_adds_a_parenthesised_number_under_a_letter_at_level_three() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    plain(page, "1) Fine print").body(2)
+    doc = page.build(OutlineEntry("1) Fine print", 1, 1))  # the outline level loses
+    assert headings(doc)[-1] == ("1) Fine print", "1)")
+    assert [s.level for s in walk(doc.sections)] == [1, 1, 2, 3]
+
+
+def test_the_outline_reads_no_parenthesised_number_without_a_letter_before_it() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    plain(page, "1) Fine print").body(2)
+    doc = page.build(OutlineEntry("1) Fine print", 1, 1))
+    assert headings(doc)[-1] == ("1) Fine print", "")
+    assert [s.level for s in walk(doc.sections)] == [1, 1, 1]
+
+
 # The publisher's front matter named by the outline (#456, D-755)
 
 
