@@ -1137,12 +1137,13 @@ def test_each_documents_captures_are_read_once_per_library_page(
 
 
 @pytest.mark.benchmark
-def test_the_captures_column_costs_the_library_little_with_many_captures(
-    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+def test_the_captures_column_costs_the_library_little_with_many_captures(  # type: ignore[no-untyped-def]
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch, benchmark
 ) -> None:
     """#962: `GET /` with 200 documents of 500 captures each takes at most 15% longer than
     without the Captures column and the shelf's strips (the removal boxes count them
-    either way), each timed as the middle of five runs taken in turn."""
+    either way), each timed as the middle of five runs taken in turn. The comparison runs
+    once through `benchmark`, so the nightly `--benchmark-only` run takes it."""
     client = client_of(server)
     _app, config = server
     for n in range(200):
@@ -1160,10 +1161,14 @@ def test_the_captures_column_costs_the_library_little_with_many_captures(
         assert client.get("/").status_code == 200
         return time_ns() - start
 
-    timed(True)  # the first page warms the templates and the file cache
-    times: dict[bool, list[int]] = {True: [], False: []}
-    for _ in range(5):
-        for column in (True, False):
-            times[column].append(timed(column))
-    with_column, without = (sorted(times[c])[2] for c in (True, False))
+    def compare() -> tuple[int, int]:
+        timed(True)  # the first page warms the templates and the file cache
+        times: dict[bool, list[int]] = {True: [], False: []}
+        for _ in range(5):
+            for column in (True, False):
+                times[column].append(timed(column))
+        with_column, without = (sorted(times[c])[2] for c in (True, False))
+        return with_column, without
+
+    with_column, without = benchmark.pedantic(compare, rounds=1, iterations=1)
     assert with_column <= 1.15 * without, (with_column / 1e6, without / 1e6)

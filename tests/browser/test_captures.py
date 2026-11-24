@@ -1054,9 +1054,13 @@ def test_the_panels_tabs_stay_on_one_line_with_a_three_digit_count(
     for language, name in (("de", "Fundstücke (999)"), ("en", "Captures (999)")):
         page.set_extra_http_headers({"Accept-Language": language})
         page.reload()
-        # the tab as the page draws it for 999 captures, without making 999 of them
-        page.evaluate("(words) => { document.getElementById('tab-captures').textContent = words; }",
-                      name)  # fmt: skip
+        # the tab in the page's own words for 999 captures (player.js, drawList), without
+        # making 999 of them
+        page.evaluate(
+            "() => { document.getElementById('tab-captures').textContent ="
+            " tr('capture.tab_count', { n: 999 }); }"
+        )
+        expect(tab(page)).to_have_text(name)
         expect(tab(page)).to_have_accessible_name(name)
         assert page.evaluate(
             "() => [...document.querySelectorAll('#context [role=tab]')]"
