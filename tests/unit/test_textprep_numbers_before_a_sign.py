@@ -1,4 +1,4 @@
-# ruff: noqa: RUF001
+# ruff: noqa: RUF001, RUF002
 # (the times sign is what these texts are about)
 """N3 before a sign (#844): a four-digit number before "=", "×" or an "x" read as "times"
 reads the same on a first run and on a second run, which sees "equals" and "times"."""
@@ -62,9 +62,7 @@ def test_english_reads_a_number_before_a_sign_the_same_on_both_runs(
         ("Es wuchs 2019× im Jahr.", "Es wuchs 2019 mal im Jahr."),
     ],
 )
-def test_german_reads_a_number_before_a_sign_the_same_on_both_runs(
-    printed: str, said: str
-) -> None:
+def test_german_reads_a_number_before_a_sign_the_same_on_both_runs(printed: str, said: str) -> None:
     first = _read_all(printed, "de")
     assert first == said
     assert _read_all(first, "de") == first
