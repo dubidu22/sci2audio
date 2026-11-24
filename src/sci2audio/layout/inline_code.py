@@ -4,7 +4,8 @@ Markdown and EPUB mark inline code themselves (backticks, `<code>`), and the tex
 read a run tagged `code` as printed (#854): "x => x + 1" keeps its arrow and operators
 while the prose around it is read. A PDF has no markup; its sign is the font. Layout tags
 the runs, as it knows the typewriter fonts (`code.monospace`) and whether the whole
-document is typed (`code.typewritten`, the judgement `find_code` uses, #794).
+document is typed (`BodyText.typed`, the one judgement `build_document` makes for
+`paragraphs` and `find_code`, #794).
 
 - In a document that is not typed, a run with visible text set in a typewriter font gets
   the tag `code` when it stands in a read text block (not a placeholder, not furniture)
@@ -26,7 +27,7 @@ import re
 from dataclasses import replace
 
 from sci2audio.core import Block, BlockKind, Content, TextLine, TextRun
-from sci2audio.layout.code import monospace, typewritten
+from sci2audio.layout.code import BodyText, monospace
 
 CODE_TAG = "code"  # the source tag the text steps read as inline code (#854)
 # a link's mark, as `code._LINK` finds links: a scheme, "www.", a DOI or an e-mail's "@"
@@ -36,11 +37,12 @@ _JOINING = re.compile(r"[\s{},;]*")  # runs that keep a stretch of typewriter ru
 _Place = tuple[str, int]  # a run: its line's id and its number in the line
 
 
-def tag_inline_code(blocks: list[Block], content: Content) -> Content:
-    """The content with each typewriter run inside read prose tagged `code`."""
-    lines = {line.id: line for page in content.pages for line in page.lines}
-    if typewritten(lines.values()):
+def tag_inline_code(blocks: list[Block], content: Content, body: BodyText) -> Content:
+    """The content with each typewriter run inside read prose tagged `code`; `body` is the
+    document's judgement of code, nothing is tagged where it is typed."""
+    if body.typed:
         return content
+    lines = {line.id: line for page in content.pages for line in page.lines}
     marked: set[_Place] = set()
     for block in blocks:
         if block.is_placeholder or block.kind is BlockKind.FURNITURE:

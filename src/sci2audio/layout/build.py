@@ -86,7 +86,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     language, source, guess = choose_language(content, settings)
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(
-        content=tag_inline_code(blocks, content),  # typewriter words in prose (#879)
+        content=tag_inline_code(blocks, content, layout.body),  # typewriter words in prose (#879)
         language=language,
         blocks=tuple(blocks),
         sections=sections,
