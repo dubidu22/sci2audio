@@ -662,6 +662,8 @@ function captureExport(current) {
           let text = typeof said === "string" ? said : said.text;
           if (error.kind === "export-file-held" && error.data && error.data.file) {
             text = tr("export.held", { file: error.data.file }); // the one to close, by name
+          } else if (error.kind === "export-file-refused" && error.data && error.data.file) {
+            text = tr("export.refused", { file: error.data.file }); // the one to check (#1014)
           }
           tell("failed", "alert", {
             text: `${tr("export.failed")} ${text}`,

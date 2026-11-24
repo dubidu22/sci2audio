@@ -1,22 +1,21 @@
-"""Markers with a note (#474, D-723, D-728): the file, its guard, its writes under faults,
-the undo store, finding a marker again in a changed document, and the API."""
+"""The v1.3 markers file, read only since the captures replace it (#474, D-728, #887): the
+file as v1.3 wrote it, the guard that refuses a file v1.3 can't read, and finding a
+sentence again in a changed document, which the captures use (#397)."""
 
 from __future__ import annotations
 
-import errno
 import json
-import os
 import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from hypothesis.stateful import RuleBasedStateMachine, invariant, precondition, rule
-from web_helpers import FakeClock, markers_of
+from web_helpers import markers_of
 
-from sci2audio.app import files
 from sci2audio.core import Document, Span, apply_edits
 from sci2audio.testing.documents import make_document
 from sci2audio.textprep import cut_utterances
@@ -25,22 +24,18 @@ from sci2audio.web.markers import (
     MARKERS,
     MAX_MARKERS,
     NOTE_LIMIT,
-    UNDO_KEPT,
-    UNDO_SECONDS,
     Anchor,
-    MarkedAgain,
     Marker,
-    MarkerBook,
+    MarkerError,
     MarkerLimit,
-    MarkerMissing,
     MarkersBroken,
-    NoteRefused,
-    UndoExpired,
+    MarkersTooLarge,
+    State,
     anchor_of,
     count_captures,
+    locate,
     markers_text,
     note_problem,
-    place,
     read_markers,
 )
 
@@ -63,13 +58,29 @@ def second() -> Anchor:
     return Anchor(1, start, start + len(SECOND), SECOND)
 
 
-def by_anchor(anchor: Anchor) -> Any:
-    """`existing` for MarkerBook.set: the marker on exactly this anchor."""
-    return lambda markers: next((m for m in markers if m.anchor == anchor), None)
+@dataclass(frozen=True)
+class Placed:
+    """A marker where this audiobook reads it: the chunk it is shown on, or None."""
+
+    marker: Marker
+    chunk: int | None
+    state: State
 
 
-def no_clash(marker: Marker, markers: list[Marker]) -> bool:
-    return any(other.anchor == marker.anchor for other in markers)
+def place(markers: Sequence[Marker], document: Document, spans: Sequence[Span]) -> list[Placed]:
+    """Each marker where this audiobook reads it, in reading order, as `locate` places
+    captures."""
+    return [
+        Placed(marker, chunk, state)
+        for marker, chunk, state in locate(markers, lambda m: m.anchor, document, spans)
+    ]
+
+
+def put(work: Path, markers: list[Marker]) -> bytes:
+    """The markers file as v1.3 left it."""
+    raw = markers_text(DOC, markers).encode("utf-8")
+    (work / MARKERS).write_bytes(raw)
+    return raw
 
 
 @pytest.fixture
@@ -82,11 +93,10 @@ def work(tmp_path: Path) -> Path:
 # ---- the file --------------------------------------------------------------------------
 
 
-def test_a_marker_and_its_note_are_kept_with_every_field(work: Path) -> None:
-    book = MarkerBook()
-    marker, new = book.set(work, DOC, first(), by_anchor(first()))
-    assert new
-    noted = book.note(work, DOC, marker.id, "Check the second cohort.\nLine two: ✓")
+def test_the_file_holds_every_field_as_v13_wrote_it(work: Path) -> None:
+    marker = Marker("0123456789abcdef", "2026-11-01T09:00:00Z", "2026-11-01T09:05:00Z",
+                    first(), "Check the second cohort.\nLine two: ✓")  # fmt: skip
+    put(work, [marker])
     data = markers_of(work)
     assert data["format"] == "sci2audio-web-markers"
     assert data["version"] == 1
@@ -95,21 +105,12 @@ def test_a_marker_and_its_note_are_kept_with_every_field(work: Path) -> None:
     assert entry == {
         "id": marker.id,
         "created": marker.created,
-        "changed": noted.changed,
+        "changed": marker.changed,
         "anchor": {"block": 1, "start": 0, "end": len(FIRST), "text": FIRST},
         "note": "Check the second cohort.\nLine two: ✓",
     }
-    assert read_markers(work, DOC) == [noted]
-    assert len(marker.id) == 16
-
-
-def test_a_second_marker_on_the_same_sentence_is_the_first_one(work: Path) -> None:
-    book = MarkerBook()
-    one, _ = book.set(work, DOC, first(), by_anchor(first()))
-    before = (work / MARKERS).read_bytes()
-    again, new = book.set(work, DOC, first(), by_anchor(first()))
-    assert (again, new) == (one, False)
-    assert (work / MARKERS).read_bytes() == before  # nothing written
+    assert read_markers(work, DOC) == [marker]
+    assert count_captures(work, DOC) == {"note": 1, "quote": 0, "mark": 0, "unread": None}
 
 
 def test_no_file_is_no_markers_and_is_not_made_by_reading(work: Path) -> None:
@@ -126,22 +127,8 @@ def test_the_limits_of_a_note_and_of_the_file() -> None:
     with pytest.raises(MarkerLimit):
         markers_text(DOC, many)
     big = [Marker(f"{n:016x}", "t", "t", Anchor(1, 0, 1, "x" * 2000), "") for n in range(1500)]
-    with pytest.raises(MarkerLimit) as large:
+    with pytest.raises(MarkersTooLarge):
         markers_text(DOC, big)
-    assert large.value.kind == "markers-too-large"
-
-
-def test_a_marker_past_the_limit_is_refused_and_the_file_kept(
-    work: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(module, "MAX_MARKERS", 2)
-    book = MarkerBook()
-    book.set(work, DOC, first(), by_anchor(first()))
-    book.set(work, DOC, second(), by_anchor(second()))
-    before = (work / MARKERS).read_bytes()
-    with pytest.raises(MarkerLimit):
-        book.set(work, DOC, Anchor(0, 0, 9, "1 Results"), lambda markers: None)
-    assert (work / MARKERS).read_bytes() == before
 
 
 # ---- the guard: a file this version can't read is never written (D-728 ruling 1) -----------
@@ -195,330 +182,40 @@ BROKEN: dict[str, bytes] = {
 
 
 @pytest.mark.parametrize("case", sorted(BROKEN))
-def test_a_file_this_version_cant_read_is_never_written(work: Path, case: str) -> None:
-    """Without the guard the next write would replace the person's notes with one marker."""
+def test_a_file_this_version_cant_read_is_refused_and_left_as_it_is(work: Path, case: str) -> None:
+    """The library counts it as a file it can't read (#418), and reading changes nothing."""
     path = work / MARKERS
     path.write_bytes(BROKEN[case])
     before = path.read_bytes()
     with pytest.raises(MarkersBroken):
         read_markers(work, DOC)
     assert count_captures(work, DOC)["unread"] == "markers"
-    book = MarkerBook()
-    for change in (
-        lambda: book.set(work, DOC, second(), by_anchor(second())),
-        lambda: book.note(work, DOC, "a" * 16, "new"),
-        lambda: book.remove(work, DOC, "a" * 16),
-    ):
-        with pytest.raises(MarkersBroken):
-            change()
     assert path.read_bytes() == before
-    assert sorted(p.name for p in work.iterdir()) == [MARKERS]  # no partial file either
+    assert sorted(p.name for p in work.iterdir()) == [MARKERS]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="links need rights on Windows")
-def test_a_link_in_the_markers_place_is_never_followed_or_written(
-    work: Path, tmp_path: Path
-) -> None:
+def test_a_link_in_the_markers_place_is_never_followed(work: Path, tmp_path: Path) -> None:
     elsewhere = tmp_path / "elsewhere.json"
     elsewhere.write_text(markers_text(DOC, []), encoding="utf-8")
     (work / MARKERS).symlink_to(elsewhere)
     before = elsewhere.read_bytes()
     with pytest.raises(MarkersBroken):
-        MarkerBook().set(work, DOC, first(), by_anchor(first()))
+        read_markers(work, DOC)
+    assert count_captures(work, DOC)["unread"] == "markers"
     assert (work / MARKERS).is_symlink()
     assert elsewhere.read_bytes() == before
 
 
-# ---- writing under faults (tests.md: file writing) -------------------------------------------
-
-
-@pytest.fixture
-def kept(work: Path) -> bytes:
-    """A file with one marker and its note, as it was before the failing write."""
-    book = MarkerBook()
-    marker, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.note(work, DOC, marker.id, "keep me")
-    return (work / MARKERS).read_bytes()
-
-
-def test_a_write_that_fails_half_way_leaves_the_old_file(
-    work: Path, kept: bytes, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    real = files._write_partial
-
-    def half(partial: Path, content: str | bytes) -> None:
-        real(partial, content[: len(content) // 2])
-        raise OSError(errno.EIO, "the disk went away")
-
-    monkeypatch.setattr(files, "_write_partial", half)
-    with pytest.raises(OSError, match="disk went away"):
-        MarkerBook().set(work, DOC, second(), by_anchor(second()))
-    assert (work / MARKERS).read_bytes() == kept
-    assert sorted(p.name for p in work.iterdir()) == [MARKERS]
-
-
-def test_a_full_disk_leaves_the_old_file(
-    work: Path, kept: bytes, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def full(texts: Any, *, overwrite: bool) -> None:
-        raise OSError(errno.ENOSPC, "No space left on device")
-
-    monkeypatch.setattr(module, "write_texts", full)
-    with pytest.raises(OSError, match="No space") as error:
-        MarkerBook().set(work, DOC, second(), by_anchor(second()))
-    assert error.value.errno == errno.ENOSPC
-    assert (work / MARKERS).read_bytes() == kept
-
-
-def test_a_file_removed_between_read_and_write_keeps_what_was_read(
-    work: Path, kept: bytes, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    real = module.read_markers
-
-    def read_then_remove(folder: Path, document_id: str) -> list[Marker]:
-        found = real(folder, document_id)
-        (folder / MARKERS).unlink()
-        return found
-
-    monkeypatch.setattr(module, "read_markers", read_then_remove)
-    MarkerBook().set(work, DOC, second(), by_anchor(second()))
-    monkeypatch.undo()
-    notes = [m.note for m in read_markers(work, DOC)]
-    assert notes == ["keep me", ""]
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="no read-only folders on Windows")
-@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root writes anyway")
-def test_a_read_only_folder_leaves_the_old_file(work: Path, kept: bytes) -> None:
-    work.chmod(0o500)
-    try:
-        with pytest.raises(OSError, match="ermission"):
-            MarkerBook().set(work, DOC, second(), by_anchor(second()))
-    finally:
-        work.chmod(0o700)
-    assert (work / MARKERS).read_bytes() == kept
-
-
-# ---- Undo: the removed marker is kept in memory only (D-723 ruling 1) -----------------------
-
-
-def test_undo_puts_the_marker_back_unchanged_and_the_file_holds_no_removed_marker(
-    work: Path,
-) -> None:
-    clock = FakeClock()
-    book = MarkerBook(clock)
-    marker, _ = book.set(work, DOC, first(), by_anchor(first()))
-    noted = book.note(work, DOC, marker.id, "mine")
-    gone = book.remove(work, DOC, marker.id)
-    assert gone == noted
-    assert markers_of(work)["markers"] == []
-    assert marker.id not in (work / MARKERS).read_text(encoding="utf-8")
-    clock.advance(UNDO_SECONDS - 1)
-    assert book.restore(work, DOC, marker.id, no_clash) == noted
-    assert read_markers(work, DOC) == [noted]
-    with pytest.raises(UndoExpired):  # once only
-        book.restore(work, DOC, marker.id, no_clash)
-
-
-def test_undo_ends_after_ten_minutes_a_restart_or_twenty_later_removals(work: Path) -> None:
-    clock = FakeClock()
-    book = MarkerBook(clock)
-    one, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.remove(work, DOC, one.id)
-    clock.advance(UNDO_SECONDS)  # exactly ten minutes: still kept, only "more than" ends it
-    assert book.restore(work, DOC, one.id, no_clash) == one
-    book.remove(work, DOC, one.id)
-    clock.advance(UNDO_SECONDS + 0.001)
-    with pytest.raises(UndoExpired):
-        book.restore(work, DOC, one.id, no_clash)
-    two, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.remove(work, DOC, two.id)
-    with pytest.raises(UndoExpired):
-        MarkerBook(clock).restore(work, DOC, two.id, no_clash)  # a new server run
-    removed = []
-    for n in range(UNDO_KEPT + 1):
-        anchor = Anchor(1, n, n + 1, TEXT[n])
-        marker, _ = book.set(work, DOC, anchor, by_anchor(anchor))
-        removed.append(book.remove(work, DOC, marker.id))
-    with pytest.raises(UndoExpired):
-        book.restore(work, DOC, removed[0].id, no_clash)
-    assert book.restore(work, DOC, removed[1].id, no_clash) == removed[1]
-
-
-def test_undo_after_the_sentence_was_marked_again_is_refused(work: Path) -> None:
-    book = MarkerBook(FakeClock())
-    one, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.remove(work, DOC, one.id)
-    again, _ = book.set(work, DOC, first(), by_anchor(first()))
-    before = (work / MARKERS).read_bytes()
-    with pytest.raises(MarkedAgain):
-        book.restore(work, DOC, one.id, no_clash)
-    assert (work / MARKERS).read_bytes() == before
-    assert read_markers(work, DOC) == [again]
-
-
-def test_undo_writes_only_through_the_one_locked_change(
-    work: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """D-728 ruling 2: a restore is a read-modify-write like a set, with no second path."""
-    book = MarkerBook(FakeClock())
-    marker, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.remove(work, DOC, marker.id)
-    calls: list[str] = []
-    real = MarkerBook.change
-
-    def counted(self: MarkerBook, *args: Any, **kwargs: Any) -> Any:
-        calls.append("change")
-        return real(self, *args, **kwargs)
-
-    writes: list[Path] = []
-    real_write = module.write_texts
-
-    def watched(texts: Any, *, overwrite: bool) -> None:
-        assert calls, "a write outside MarkerBook.change"
-        writes.extend(texts)
-        real_write(texts, overwrite=overwrite)
-
-    monkeypatch.setattr(MarkerBook, "change", counted)
-    monkeypatch.setattr(module, "write_texts", watched)
-    book.restore(work, DOC, marker.id, no_clash)
-    assert calls == ["change"]
-    assert writes == [work / MARKERS]
-
-
-def test_a_failed_undo_can_be_tried_again(work: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    book = MarkerBook(FakeClock())
-    marker, _ = book.set(work, DOC, first(), by_anchor(first()))
-    book.remove(work, DOC, marker.id)
-
-    def full(texts: Any, *, overwrite: bool) -> None:
-        raise OSError(errno.ENOSPC, "No space left on device")
-
-    with monkeypatch.context() as patched:
-        patched.setattr(module, "write_texts", full)
-        with pytest.raises(OSError, match="No space"):
-            book.restore(work, DOC, marker.id, no_clash)
-    assert book.restore(work, DOC, marker.id, no_clash) == marker
-
-
-def test_a_note_the_file_could_not_hold_is_refused_before_any_write(work: Path) -> None:
-    """Found by the state machine: a NUL in a note would write a file no version reads."""
-    book = MarkerBook()
-    marker, _ = book.set(work, DOC, first(), by_anchor(first()))
-    before = (work / MARKERS).read_bytes()
+def test_a_file_v13_could_not_read_back_is_never_made() -> None:
+    """A NUL or a note past the limit, or an empty anchor text, would make a file no
+    version reads."""
     for note in ("a\x00b", "x" * (NOTE_LIMIT + 1)):
-        with pytest.raises(NoteRefused):
-            book.note(work, DOC, marker.id, note)
-    assert (work / MARKERS).read_bytes() == before
+        with pytest.raises(MarkerError):
+            markers_text(DOC, [Marker("b" * 16, "t", "t", first(), note)])
     bad = Marker("b" * 16, "t", "t", Anchor(1, 0, 1, ""))  # an empty anchor text
-    with pytest.raises(module.MarkerError) as refused:
+    with pytest.raises(MarkerError):
         markers_text(DOC, [bad])
-    assert refused.value.kind == "markers-not-saved"
-
-
-def test_a_missing_marker_is_named(work: Path) -> None:
-    book = MarkerBook()
-    book.set(work, DOC, first(), by_anchor(first()))
-    with pytest.raises(MarkerMissing):
-        book.note(work, DOC, "f" * 16, "x")
-    with pytest.raises(MarkerMissing):
-        book.remove(work, DOC, "f" * 16)
-
-
-# ---- any sequence of changes keeps a valid file equal to a plain model --------------------------
-
-
-class MarkerMachine(RuleBasedStateMachine):
-    """Set, note, remove, undo and a new server run, in any order (plan 7a item 4)."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        import tempfile
-
-        self.folder = Path(tempfile.mkdtemp()) / DOC
-        self.folder.mkdir()
-        self.clock = FakeClock()
-        self.book = MarkerBook(self.clock)
-        self.model: list[Marker] = []
-        self.removed: dict[str, tuple[Marker, float]] = {}
-
-    def teardown(self) -> None:
-        import shutil
-
-        shutil.rmtree(self.folder.parent, ignore_errors=True)
-
-    @rule(at=st.integers(0, len(TEXT) - 1))
-    def set_marker(self, at: int) -> None:
-        anchor = Anchor(1, at, at + 1, TEXT[at])
-        marker, new = self.book.set(self.folder, DOC, anchor, by_anchor(anchor))
-        existing = [m for m in self.model if m.anchor == anchor]
-        if existing:
-            assert (marker, new) == (existing[0], False)
-        else:
-            assert new
-            self.model.append(marker)
-
-    @precondition(lambda self: self.model)
-    @rule(pick=st.integers(0, 10_000), note=st.text(max_size=40))
-    def write_note(self, pick: int, note: str) -> None:
-        target = self.model[pick % len(self.model)]
-        if note_problem(note):
-            with pytest.raises(NoteRefused):  # nothing written
-                self.book.note(self.folder, DOC, target.id, note)
-            return
-        noted = self.book.note(self.folder, DOC, target.id, note)
-        assert noted.note == note
-        self.model[self.model.index(target)] = noted
-
-    @precondition(lambda self: self.model)
-    @rule(pick=st.integers(0, 10_000))
-    def remove(self, pick: int) -> None:
-        target = self.model[pick % len(self.model)]
-        assert self.book.remove(self.folder, DOC, target.id) == target
-        self.model.remove(target)
-        self.removed.pop(target.id, None)
-        self.removed[target.id] = (target, self.clock())
-        while len(self.removed) > UNDO_KEPT:
-            del self.removed[next(iter(self.removed))]
-
-    @precondition(lambda self: self.removed)
-    @rule(pick=st.integers(0, 10_000))
-    def undo(self, pick: int) -> None:
-        marker_id = list(self.removed)[pick % len(self.removed)]
-        marker, at = self.removed[marker_id]
-        expected: type[Exception] | None = None
-        if self.clock() - at > UNDO_SECONDS:
-            expected = UndoExpired
-        elif any(m.anchor == marker.anchor for m in self.model):
-            expected = MarkedAgain
-        if expected is None:
-            assert self.book.restore(self.folder, DOC, marker_id, no_clash) == marker
-            self.model.append(marker)
-            del self.removed[marker_id]
-        else:
-            with pytest.raises(expected):
-                self.book.restore(self.folder, DOC, marker_id, no_clash)
-            if expected is UndoExpired:
-                del self.removed[marker_id]
-
-    @rule(seconds=st.sampled_from([1.0, 120.0, UNDO_SECONDS]))
-    def wait(self, seconds: float) -> None:
-        self.clock.advance(seconds)
-
-    @rule()
-    def restart(self) -> None:
-        self.book = MarkerBook(self.clock)
-        self.removed.clear()
-
-    @invariant()
-    def the_file_is_the_model(self) -> None:
-        found = read_markers(self.folder, DOC)
-        assert found == self.model
-        assert len({m.id for m in found}) == len(found)
-
-
-TestMarkerMachine = MarkerMachine.TestCase
-TestMarkerMachine.settings = settings(stateful_step_count=30, deadline=None)
 
 
 # ---- finding a marker again (plan section 3, step 1 to 5) ----------------------------------------
@@ -764,22 +461,16 @@ def test_soft_hyphens_are_read_through_both_ways() -> None:
 def test_a_sentence_gone_is_listed_as_not_found_with_its_note_and_never_dropped(
     work: Path,
 ) -> None:
-    """D-728 ruling 1: fails if a marker not found is left out of the list or the file."""
-    book = MarkerBook()
-    lost = Anchor(1, 0, 20, "A sentence no longer")
-    marker, _ = book.set(work, DOC, lost, by_anchor(lost))
-    book.note(work, DOC, marker.id, "still mine")
+    """D-728 ruling 1: fails if a marker not found is left out of the list."""
+    marker = Marker("a" * 16, "t", "t", Anchor(1, 0, 20, "A sentence no longer"), "still mine")
+    found = Marker("b" * 16, "t", "t", first())
+    put(work, [marker, found])
     document = paper()
     placed = place(read_markers(work, DOC), document, spans_of(document))
     assert [(p.marker.id, p.marker.note, p.chunk, p.state) for p in placed] == [
-        (marker.id, "still mine", None, "not-found")
+        (found.id, "", 1, "found"),  # found first (chunk 0 is the heading), lost last
+        (marker.id, "still mine", None, "not-found"),
     ]
-    # a later change of the file keeps it, as found or not
-    book.set(work, DOC, first(), by_anchor(first()))
-    ids = [m["id"] for m in markers_of(work)["markers"]]
-    assert ids == [marker.id, read_markers(work, DOC)[1].id]
-    again = place(read_markers(work, DOC), document, spans_of(document))
-    assert [p.state for p in again] == ["found", "not-found"]  # found first, lost last
 
 
 def test_text_the_audiobook_does_not_read_is_listed_as_not_read() -> None:

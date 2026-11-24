@@ -2,9 +2,9 @@
 server error and every answer matches the schema (status, content type, body).
 
 The app runs in process (ASGI) with the bearer token, so nothing listens on a port. Each
-generated case is sent twice: as generated, and with its document, job and marker ids
+generated case is sent twice: as generated, and with its document, job and capture ids
 replaced by those of a real document with an audiobook (made with the fake voice), its
-finished job and a marker on it (#474), so the paths behind the 404s are checked too.
+finished job and a mark on it (#397), so the paths behind the 404s are checked too.
 
 One built-in check is left out: `positive_data_acceptance` expects every schema-valid
 request to succeed, but this API refuses schema-valid requests for reasons a schema can't
@@ -24,7 +24,7 @@ from audio_fakes import FakeVoice
 from hypothesis import HealthCheck, settings
 from schemathesis.specs.openapi.checks import positive_data_acceptance
 from test_web_player import player_data
-from web_helpers import ORIGIN, make_config, pdf_bytes, program, set_marker, upload, wait
+from web_helpers import ORIGIN, make_config, pdf_bytes, program, set_capture, upload, wait
 
 from sci2audio.app.updates import STATE_NAME, UpdateCheck
 from sci2audio.testing import no_network
@@ -52,13 +52,13 @@ def served(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     audio = client.post("/api/v1/jobs", json={"kind": "audio", "document": doc["id"]})
     assert wait(client, audio.json()["id"])["state"] == "done"
     data = player_data(client.get(f"/documents/{doc['id']}/listen").text)
-    marker = set_marker(client, doc["id"], 1, data["audiobook"])
+    mark = set_capture(client, doc["id"], "mark", 1, data["audiobook"])
     return {
         "app": app,
         "config": config,
         "document": doc["id"],
         "job": job["id"],
-        "marker": marker["id"],
+        "capture": mark["id"],
         "exports": folder / "exports",
     }
 
@@ -96,7 +96,7 @@ def test_the_api_matches_its_schema(case: Any, served: dict[str, Any]) -> None:
         known = {
             "document_id": served["document"],
             "job_id": served["job"],
-            "marker_id": served["marker"],
+            "capture_id": served["capture"],
         }
         replaced = {
             key: known.get(key, value) for key, value in (case.path_parameters or {}).items()
