@@ -92,6 +92,9 @@ _OPERATORS = frozenset("+=−×·|<>≤≥∈∉⊂⊆∑∏/^_")  # noqa: RUF00
 _WORD_END = re.compile(r"[^\W\d_]{2,}\d*\Z")  # two letters or more, then maybe digits
 _SPOKEN_MARK = re.compile(r"[0-9A-Za-z]+")  # a mark that can be read: a number or letters
 _MASS_NUMBER = re.compile(r"[0-9]{1,3}")  # an isotope's mass number has at most three digits
+_EXPONENT = re.compile(r"[0-9]{1,3}")  # a raised exponent after a number: "10⁴", #576
+_SIGNED_EXPONENT = re.compile(r"[\u2212+-][0-9]{1,3}")  # "(I - P)⁻¹", "A⁻¹", "10⁻³": #589
+_SUPERSCRIPT = str.maketrans("0123456789\u2212-+", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁻⁺")
 _BRACKETED = re.compile(r"\[([^\[\]]+)\]|\(([^()]+)\)")  # "[1]" or "(1)": one pair
 # what a mark's removal says about its note (#213)
 _READ_AFTER = "the note is read after the sentence that holds it"
@@ -534,6 +537,48 @@ def raised_numbers(document: Document) -> dict[int, list[tuple[int, int]]]:
                     found.setdefault(index, []).append((offset, end))
                 offset = end
     return found
+
+
+def raised_exponents(document: Document) -> dict[int, list[tuple[int, int]]]:
+    """Where each block holds an exponent whose raise only its runs show, by block: a run (or
+    runs side by side) set small and raised, as `raised_numbers` asks, of one to three digits
+    glued after a digit ("10" and a raised "4", "10⁴", #576), or of a sign and one to three
+    digits glued after a digit, a letter, ")" or "]" ("(I - P)" and a raised "-1", #589).
+    A raised run after a space or a word's first letter is no exponent: a mass number ("⁴⁰K",
+    #449) or a footnote mark."""
+    items = document.content.items()
+    found: dict[int, list[tuple[int, int]]] = {}
+    for index, block in enumerate(document.blocks):
+        text = block.text
+        lines = list(_lines(items, block))
+        main = _main_size(run for _, _, line in lines for run in line.runs)
+        spans: list[tuple[int, int]] = []
+        for _, offset, line in lines:
+            for run in line.runs:
+                end = offset + len(run.text)
+                if run.text and _set_small(run, main) and _superscript(run, line, main):
+                    if spans and spans[-1][1] == offset:
+                        spans[-1] = (spans[-1][0], end)  # "-" and "1" as runs side by side
+                    else:
+                        spans.append((offset, end))
+                offset = end
+        for start, end in spans:
+            before = text[start - 1 : start]
+            if (_EXPONENT.fullmatch(text, start, end) and before.isdigit()) or (
+                _SIGNED_EXPONENT.fullmatch(text, start, end)
+                and (before.isalnum() or before in (")", "]"))
+            ):
+                found.setdefault(index, []).append((start, end))
+    return found
+
+
+def as_superscripts(text: str, spans: Iterable[tuple[int, int]]) -> str:
+    """The text with each span written in superscript characters ("4" as "⁴", "-1" as "⁻¹"),
+    one for one, so every offset stays where it is."""
+    chars = list(text)
+    for start, end in spans:
+        chars[start:end] = text[start:end].translate(_SUPERSCRIPT)
+    return "".join(chars)
 
 
 def _superscript(run: TextRun, line: TextLine, main: float) -> bool:

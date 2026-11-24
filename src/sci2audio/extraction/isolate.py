@@ -23,7 +23,11 @@ memory limit holds for the program, not only for one child.
 
 The parent hands each step on to `on_step` as it arrives (page progress, #343), and watches a
 `cancel` event: once it is set, the child is ended at once and its slot is free (#344). The
-parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot.
+parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot. A
+child that ended without a word while `cancel` is set, or is set within
+`_CANCEL_GRACE_SECONDS`, was cancelled: a terminal's Ctrl-C can end the child while it
+starts (Windows has no signal mask to hold it back) and reach the parent's cancel only a
+moment later (#367).
 
 The child imports only what the step needs: the program's main module is not imported in
 the child (multiprocessing would otherwise run it, and with it every other layer).
@@ -44,6 +48,7 @@ import time
 import types
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from multiprocessing import resource_tracker
 from multiprocessing.connection import Connection
 from typing import Any
 
@@ -52,6 +57,10 @@ TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
 START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
+# How long after a child ended a cancel still counts (#367). The command line sees Ctrl-C
+# within its 0.1 s poll; on loaded CI runners the cancel came up to 0.11 s (Windows) and
+# 0.23 s (macOS) after the reader saw its child's end, 30 tries each (#803).
+_CANCEL_GRACE_SECONDS = 1.0
 _log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
@@ -195,10 +204,16 @@ def _sigint_held() -> Iterator[None]:
     while starting ends as a reader that could not start; the child inherits the held-back
     signal, ignores SIGINT first thing and only then lets it through, so the parent's
     cancel alone ends it. Windows has no signal mask: there the child ignores SIGINT from
-    its first line of our code on."""
+    its first line of our code on.
+
+    multiprocessing's resource tracker starts first, outside the hold: the first child of
+    a program starts it inside `child.start()`, and on Python 3.12.0 to 3.12.8 its start
+    let SIGINT through in this thread again, so that child started without the hold
+    (#803)."""
     if not hasattr(signal, "pthread_sigmask"):
         yield
         return
+    resource_tracker.ensure_running()
     held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
     try:
         yield
@@ -239,6 +254,8 @@ def _wait(
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()
             reason = {MEMORY_EXIT: "memory", TIME_EXIT: "time"}.get(child.exitcode, "ended")
+            if reason == "ended" and cancel is not None and cancel.wait(_CANCEL_GRACE_SECONDS):
+                return Stopped("cancelled", step)  # Ctrl-C ended it, then reached `cancel`
             return Stopped(reason, step)
         if kind == "step":
             step = value

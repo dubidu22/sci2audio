@@ -33,8 +33,9 @@ step reads a short notice instead, and the player shows the code.
   page in its column. A CODE block is named by one such caption at most, and a listing
   caption with no CODE block next to it names nothing.
 
-A listing's indentation is not rebuilt: a PDF line holds no leading white space, and layout
-adds no text (#282).
+A listing's indentation is not rebuilt here: a PDF line holds no leading white space, and
+layout adds no text. The player draws the indent from the line boxes (`web/player.py`
+`indented`, #282).
 """
 
 from __future__ import annotations
@@ -90,7 +91,7 @@ def find_code(
     is the body text's font size (0 if unknown)."""
     items = content.items()
     lines = {item.id: item for _, item in items.values() if isinstance(item, TextLine)}
-    if _typewritten(lines.values()):
+    if typewritten(lines.values()):
         return blocks, sections
     page_of = {key: page.number for key, (page, _) in items.items()}
     starts = {section.start for section in _all(sections)}
@@ -116,7 +117,7 @@ def find_code(
     kept: list[_Group] = []
     for group in groups:
         run = [blocks[k] for k in group.members]
-        if group.code and (_links("\n".join(b.text for b in run)) or _all_bold(run, lines)):
+        if group.code and (only_links("\n".join(b.text for b in run)) or _all_bold(run, lines)):
             # only links or only bold: as printed, in the order read
             kept += [_Group([k], False) for k in sorted(group.members + group.carried)]
         else:
@@ -192,7 +193,7 @@ def _gap(upper: Box, lower: Box) -> float:
     return lower.y0 - upper.y1
 
 
-def _typewritten(lines: Iterable[TextLine]) -> bool:
+def typewritten(lines: Iterable[TextLine]) -> bool:
     """True if most letters of the document are in a typewriter font."""
     letters: Counter[bool] = Counter()
     for line in lines:
@@ -223,7 +224,7 @@ def _bold(run: TextRun) -> bool:
     return run.bold or bool(_BOLD.search(run.font))
 
 
-def _links(text: str) -> bool:
+def only_links(text: str) -> bool:
     """True if the text is only links: one when put together, or one per word."""
     if _LINK.fullmatch("".join(text.split())):
         return True

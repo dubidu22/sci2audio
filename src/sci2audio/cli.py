@@ -60,8 +60,10 @@ from sci2audio.app import (
     load_settings,
     script_files,
 )
+from sci2audio.app.audio import _kept
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
+from sci2audio.app.playable import read_record
 from sci2audio.app.projects import project_work_folder
 from sci2audio.app.readability import picture_pages, picture_warning
 from sci2audio.app.report import PLUGINS_OFF, plugins_line, plugins_off
@@ -810,9 +812,13 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
             (args.overwrite, args.keep_settings),
         )
         if args.with_script:
-            script = env.job_runner(settings).run_script(
+            # the audio was made with the settings the chapters were made with when they are
+            # kept, so the script and report are too, or they would not match it (#766)
+            keeps = args.keep_settings and not args.overwrite  # --overwrite makes every one anew
+            script_settings = _kept_settings(work, settings) if keeps else settings
+            script = env.job_runner(script_settings).run_script(
                 source,
-                settings,
+                script_settings,
                 work,
                 overwrite=args.overwrite,
                 progress=progress.phase,
@@ -822,6 +828,16 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
         progress.end()
     _print_audio(env, job, script, work)
     return Exit.OK
+
+
+def _kept_settings(work: Path, settings: JobSettings) -> JobSettings:
+    """The settings the audio job made the project's chapters with: its record holds them
+    (the job rewrote it). Only the chapter choice and the output folder are this run's."""
+    record = read_record(work)
+    if record is None or not record.chapters:
+        return settings
+    kept, _, _ = _kept(record, settings, None, ())
+    return kept
 
 
 def _audio_in_thread(

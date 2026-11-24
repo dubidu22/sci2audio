@@ -59,6 +59,11 @@ MAX_TOTAL = 512 * 1024 * 1024  # bytes all files read from one EPUB may unpack t
 MAX_SPINE = 10_000  # documents in the reading order
 MAX_COVER = 20 * 1024 * 1024  # bytes of a cover image
 MAX_OUTLINE_LEVEL = 15  # as for PDF bookmarks (D-267)
+# elements of an NCX table of contents (#608): ElementTree holds a whole tree, about 14 KB per
+# 100 elements, and 16 MB of navPoints (830,000 elements) took 230 MB; at the limit (about
+# 50,000 navPoints of the smallest kind) reading the book peaks at about 60 MB under tracemalloc.
+# Past it the book has no outline (D-311).
+MAX_NCX_ELEMENTS = 200_000
 
 CONTAINER = "META-INF/container.xml"
 _DRM_FILES = ("META-INF/rights.xml", "META-INF/sinf.xml", "META-INF/license.lcpl")
@@ -300,22 +305,34 @@ class _Book:
                 data = self.read(package.ncx.path, missing_ok=True)
                 if data:
                     return _outline(
-                        _ncx_entries(_xml(data, self, "NCX"), package.ncx.path), anchors
+                        _ncx_entries(_xml(data, self, "NCX", MAX_NCX_ELEMENTS), package.ncx.path),
+                        anchors,
                     )
         except (ExtractionError, ValueError, AssertionError, TooMuchText):
             return ()  # AssertionError: the HTML parser gave up
         return ()
 
 
-def _xml(data: bytes, book: _Book, what: str) -> ET.Element:
-    """A small XML file of the package, refused when it declares an entity (D-305)."""
+def _xml(data: bytes, book: _Book, what: str, max_elements: int | None = None) -> ET.Element:
+    """A small XML file of the package, refused when it declares an entity (D-305) or, if
+    `max_elements` is given, holds more elements than that: they are counted by the same
+    pass that looks for entities, before ElementTree builds its tree (#608)."""
 
     def refuse(*_: object) -> None:
         raise ValueError("entity declared")
 
+    elements = 0
+
+    def count(*_: object) -> None:
+        nonlocal elements
+        elements += 1
+        if max_elements is not None and elements > max_elements:
+            raise ExtractionError(f"{book.name}: the EPUB's {what} holds too many elements")
+
     checker = expat.ParserCreate()
     checker.EntityDeclHandler = refuse
     checker.UnparsedEntityDeclHandler = refuse
+    checker.StartElementHandler = count
     try:
         checker.Parse(data, True)
         # Safe here: the checker above refused any entity declaration, and ElementTree
@@ -348,10 +365,22 @@ def _decode(data: bytes) -> str:
             codec = "utf-8"
         if codec.startswith("utf-16") or codec.startswith("utf-32"):
             codec = "utf-8"  # declared but written without a byte-order mark: not readable
+        if not _reads_ascii(codec, found.group(0)):
+            codec = "utf-8"  # punycode on Python 3.13 decodes to nothing instead of failing
     try:
         return data.decode(codec, errors="replace")
-    except (LookupError, ValueError):  # not a text codec (hex, base64) or one that can't
-        return data.decode("utf-8", errors="replace")  # replace (idna, punycode)
+    except (LookupError, ValueError):  # only idna gets here: it reads the declaration as it is,
+        # so _reads_ascii lets it pass, but it raises on errors="replace"
+        return data.decode("utf-8", errors="replace")
+
+
+def _reads_ascii(codec: str, declaration: bytes) -> bool:
+    """Whether `codec` reads the (ASCII) XML declaration back as it is (#587): a codec that
+    garbles or drops it would garble or drop the chapter too."""
+    try:
+        return declaration.decode(codec) == declaration.decode("ascii")
+    except (LookupError, ValueError, TypeError):
+        return False
 
 
 # ---- the package file ------------------------------------------------------------------

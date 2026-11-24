@@ -10,8 +10,10 @@ Running text that opens the same way ("Figure 1 gives the accuracy …") is neit
 stays a paragraph. The caption's label is "Table 2", "Figure 1" or "Algorithm 3", as
 printed. An algorithm's caption ends where its numbered lines ("1: …") start; those stay
 a paragraph for now (the pseudocode is #38). A listing's caption ends where its first line
-set wholly in a typewriter font starts: that line is the listing's (#281); a caption whose
-own first line is so set is not cut. A table's or
+set wholly in a typewriter font starts, with another such line right under it: those lines
+are the listing's (#281). A single such line is the caption's, a code name wrapped onto a
+line of its own (#603), and a caption whose own first line is so set is not cut. A
+typewriter line larger than the body text is no code, so it cuts nothing. A table's or
 figure's caption is never cut. Which block a caption names (`describes`) is set with the
 placeholders in PR D (D-86); a listing's caption names its CODE block (`code`).
 """
@@ -19,6 +21,7 @@ placeholders in PR D (D-86); a listing's caption names its CODE block (`code`).
 from __future__ import annotations
 
 import re
+from bisect import bisect_right
 from dataclasses import replace
 
 from sci2audio.core import Block, BlockKind, Content, Part, TextLine
@@ -42,9 +45,10 @@ _CODE_LINE = re.compile(r"\d{1,3}:(?:\s|$)")
 _ALGORITHM = ("Algorithm", "ALGORITHM")
 
 
-def find_captions(blocks: list[Block], content: Content) -> list[Block]:
+def find_captions(blocks: list[Block], content: Content, size: float = 0.0) -> list[Block]:
     """The blocks with each caption marked (kind CAPTION, its label), an algorithm's
-    numbered lines or a listing's code lines cut off into a paragraph of their own."""
+    numbered lines or a listing's code lines cut off into a paragraph of their own; `size`
+    is the body text's font size (0 if unknown)."""
     lines = {line.id: line for page in content.pages for line in page.lines}
     out: list[Block] = []
     for block in blocks:
@@ -52,17 +56,32 @@ def find_captions(blocks: list[Block], content: Content) -> list[Block]:
         if label is None:
             out.append(block)
             continue
-        if label.startswith(LISTING):  # the listing's first line, set in a typewriter font
-            # a caption whose first line is so set is never cut: its first cut is at 0
-            cuts = [
-                p.start for p in block.parts if p.item in lines and monospace_line(lines[p.item])
-            ]
+        if label.startswith(LISTING):
+            cuts = _listing_starts(block, lines, size)
         else:
             starts = line_starts(block)[1:] if label.startswith(_ALGORITHM) else []
             cuts = [k for k in starts if _CODE_LINE.match(block.text, k)]
         caption, *code = split_at(block, cuts[:1])
         out += [replace(caption, kind=BlockKind.CAPTION, label=label), *code]
     return out
+
+
+def _listing_starts(block: Block, lines: dict[str, TextLine], size: float) -> list[int]:
+    """Where a listing starts in a caption's text: each printed line set wholly in a
+    typewriter font with another such line after it (#603). A caption whose first line is
+    so set is never cut: its first cut is at 0."""
+    starts = line_starts(block)
+    typed = [True] * len(starts)
+    seen = [False] * len(starts)
+    for part in block.parts:
+        if part.item in lines:
+            k = bisect_right(starts, part.start) - 1
+            seen[k] = True
+            typed[k] = typed[k] and monospace_line(lines[part.item], size)
+    typed = [t and s for t, s in zip(typed, seen, strict=True)]
+    if typed[0]:
+        return [0]
+    return [starts[k] for k in range(1, len(starts) - 1) if typed[k] and typed[k + 1]]
 
 
 def starts_with_label(text: str) -> bool:

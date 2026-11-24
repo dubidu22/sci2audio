@@ -3,6 +3,7 @@ the missing ones are made; other settings exit 7 and name both choices."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -71,3 +72,74 @@ def test_convert_with_keep_settings_adds_with_the_old_settings(
     assert {speed for _, _, speed in new} == {1.2}
     assert all("Beta" in text for text, _, _ in new)
     assert "book - 02 Beta.mp3" in files_in(out)
+
+
+def test_convert_keep_settings_with_script_writes_the_script_with_the_kept_settings(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#766: the script and report match the audio, which was made with the kept settings:
+    the same switches and plugins, not the ones given on this command line."""
+    out = tmp_path / "out"
+    first = cli("convert", source, "-o", out, "-q", "--chapters", "1", "--off", "links,code")
+    assert first.code == 0, first.err
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["switched_off"] == ["code", "footnote-texts", "links"]
+    assert "book.script.txt" in files_in(out)
+
+
+def test_convert_keep_settings_with_script_keeps_the_plugins_off(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    first = cli("convert", source, "-o", out, "-q", "--chapters", "1", "--no-plugins")
+    assert first.code == 0, first.err
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"].get("plugins") is False
+
+
+def test_convert_keep_settings_with_overwrite_writes_the_script_with_the_given_settings(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """--overwrite wins over --keep-settings: every chapter is made anew, script included."""
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1", "--no-plugins").code == 0
+    result = cli(
+        "convert",
+        source,
+        "-o",
+        out,
+        "-q",
+        "--chapters",
+        "2",
+        "--keep-settings",
+        "--overwrite",
+        "--with-script",
+        "--off",
+        "links",
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert "links" in report["settings"]["switched_off"]
+    assert report["settings"].get("plugins") is not False
+
+
+def test_convert_keep_settings_with_script_keeps_the_language(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    first = cli("convert", source, "-o", out, "-q", "--chapters", "1", "--language", "en")
+    assert first.code == 0, first.err
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["language"] == "en"

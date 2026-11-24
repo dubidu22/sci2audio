@@ -172,6 +172,7 @@ def test_bad_sequences_after_a_byte_order_mark_become_replacement_characters() -
         (b"GIF89a" + b"rest", "not a text file"),
         (b"GIF87a" + b"rest", "not a text file"),
         (b"\x1f\x8b\x08" + b"rest", "not a text file"),
+        (b"word " * 800_001, "holds a paragraph longer than 4,000,000 characters"),  # #607
     ],
 )
 def test_broken_files_fail_with_a_clear_message(data: bytes, message: str) -> None:
@@ -193,8 +194,10 @@ def test_the_limit_is_the_decided_one() -> None:
 
 
 def test_a_large_file_is_read_in_linear_time() -> None:
-    """Eight times the lines against a base run, on CPU time (#298)."""
-    line = "A line of an ordinary plain-text file, about sixty chars.\n"
+    """Eight times the lines against a base run, on CPU time (#298). One paragraph of 100,000
+    lines, so that a reader quadratic in a paragraph's lines fails; the lines are short (28
+    characters) to keep the paragraph, 2.8 million characters, under `MAX_PARAGRAPH` (#607)."""
+    line = "A short line of plain text.\n"
     content = assert_linear(lambda text: read(text.encode()), lambda n: line * n, 100_000)
     assert len(content.pages[0].lines) == 100_000
 
@@ -249,6 +252,136 @@ def test_every_printed_line_counts_blank_ones_too(
 
 def test_the_line_limit_is_the_decided_one() -> None:
     assert text_module.MAX_LINES == 500_000  # D-579
+
+
+# ---- the paragraph limit (#607, D-777) -----------------------------------------------------
+
+PARAGRAPH_MESSAGE = (
+    "notes.txt: the file holds a paragraph longer than {:,} characters"
+    " (counted between blank lines)"
+)
+
+
+def refused_before_it_is_split(data: bytes, monkeypatch: pytest.MonkeyPatch) -> int:
+    """The peak (tracemalloc) of refusing `data`, which must happen before any line is built."""
+
+    def fold(_: str) -> str:
+        raise AssertionError("a line was built")
+
+    monkeypatch.setattr(text_module, "fold", fold)
+    tracemalloc.start()
+    try:
+        with pytest.raises(ExtractionError) as error:
+            read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert str(error.value) == PARAGRAPH_MESSAGE.format(4_000_000)
+    return peak
+
+
+def test_one_long_line_past_the_paragraph_limit_is_refused_before_lines_are_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One line of 64 MB took 1 GB to read and handed layout one paragraph of that size."""
+    peak = refused_before_it_is_split(b"word " * (8 * 1024 * 1024 // 5), monkeypatch)
+    assert peak < 40 * 1024 * 1024
+
+
+def test_a_paragraph_of_many_lines_past_the_limit_is_refused_before_lines_are_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    peak = refused_before_it_is_split(
+        (b"word " * 53 + b"\n") * (8 * 1024 * 1024 // 266), monkeypatch
+    )
+    assert peak < 40 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param(b"w" * 4_000_000, id="one line"),
+        pytest.param((b"word " * 53 + b"\n") * (4_000_000 // 266), id="short lines"),
+    ],
+)
+def test_a_paragraph_at_the_real_limit_still_reads_in_bounded_memory(data: bytes) -> None:
+    """Measured at the limit: one line of "word " peaks at 58 MB under tracemalloc, short lines
+    at 19 MB."""
+    assert text_module.longest_paragraph(data.decode()) <= 4_000_000
+    tracemalloc.start()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 100 * 1024 * 1024
+    assert content.pages[0].lines
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 9 + "\n\n" + "b" * 9, id="paragraphs"),
+        pytest.param("a" * 9 + "\n \t\f\n" + "b" * 9, id="a blank line of white space"),
+        pytest.param("a" * 8 + "\r\n\r\n" + "b" * 9, id="CR LF"),
+        pytest.param("a" * 9 + "\r\r" + "b" * 9, id="CR"),
+        pytest.param("a" * 10, id="one line"),
+        pytest.param("a" * 4 + "\n" + "b" * 5, id="two lines"),
+    ],
+)
+def test_paragraphs_at_the_limit_read(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    """Each paragraph holds at most 10 characters, its line ends included."""
+    monkeypatch.setattr(text_module, "MAX_PARAGRAPH", 10)
+    assert read(text.encode()).pages[0].lines
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 11, id="one line"),
+        pytest.param("a" * 5 + "\n" + "b" * 5, id="two lines"),
+        pytest.param("x\n\n" + "a" * 5 + "\r\n" + "b" * 5, id="CR LF inside a paragraph"),
+        pytest.param("a\nb\nc\nd\ne\nf", id="many short lines"),
+        pytest.param("a" * 6 + "\n\u00a0\n" + "b" * 6, id="a no-break space is no blank line"),
+    ],
+)
+def test_a_paragraph_past_the_limit_fails(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    monkeypatch.setattr(text_module, "MAX_PARAGRAPH", 10)
+    with pytest.raises(ExtractionError) as error:
+        read(text.encode())
+    assert str(error.value) == PARAGRAPH_MESSAGE.format(10)
+
+
+@pytest.mark.parametrize(
+    ("text", "longest"),
+    [
+        ("", 0),
+        ("\n\n", 0),
+        ("abc", 3),
+        ("abc\n", 4),
+        ("ab\ncd\n\nefghij", 6),
+        ("ab\r\ncd\r\n \r\nx", 8),
+        ("ab\rcd\r\t\r", 6),
+        ("  \t\f  \n", 0),
+        (" " * 100 + "x", 101),  # spaces before text make no blank line
+        ("a\n\u00a0\nb", 5),  # a no-break space is text, as `fold` has it
+    ],
+)
+def test_the_longest_paragraph_counts_characters_between_blank_lines(
+    text: str, longest: int
+) -> None:
+    assert text_module.longest_paragraph(text) == longest
+
+
+def test_the_longest_paragraph_is_found_in_linear_time() -> None:
+    def sized(size: int) -> str:
+        return ("a" * 50 + "\n" + " " * 50 + "\n\n") * (size // 103)
+
+    assert_linear(text_module.longest_paragraph, sized, 4_000_000)
+
+
+def test_the_paragraph_limit_is_the_decided_one() -> None:
+    assert text_module.MAX_PARAGRAPH == 4_000_000  # D-777, as markup.MAX_LINE
 
 
 # ---- properties --------------------------------------------------------------------------
@@ -535,3 +668,91 @@ def test_a_two_letter_line_can_be_a_title_line() -> None:
     (#561); "0" has none and stays joined."""
     text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
     assert tags_of(text) == [("p",), ("p",)]
+
+
+# ---- #570: a title line between two prose lines ------------------------------------------
+
+
+@pytest.mark.parametrize("end", [".", "!", "?", "…", ".”", ".)"])
+def test_a_title_line_after_the_end_of_a_sentence_starts_an_element_of_its_own(end: str) -> None:
+    """A short line in capitals inside a paragraph, after a line that ends a sentence, is cut
+    before as well as after: the heading is not read as the end of the prose before it."""
+    text = (
+        f"The first part of the note ends here, at the end of the first part{end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_german_title_line_after_a_sentence_starts_an_element_of_its_own() -> None:
+    text = (
+        "Der erste Teil der Notiz endet hier, am Ende des ersten Teils.\n"
+        "ERGEBNISSE DER STUDIE\n"
+        "Der zweite Teil beginnt in dieser Zeile und läuft eine Weile weiter.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("end", ["", ",", ":", ";", "-"])
+def test_a_title_line_after_a_line_that_runs_on_stays_joined_to_it(end: str) -> None:
+    """Without the end of a sentence before it, the short line in capitals ends the element
+    before it, as it did (#466): an acronym wrapped onto a line of its own stays in place."""
+    text = (
+        f"The first part of the note runs on here and names the agency of the{end}\n"
+        "NASA JPL\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_short_last_line_in_capitals_after_a_sentence_stays_joined() -> None:
+    """The last line of a paragraph has no next line to start: a licence in capitals whose
+    short last line follows a full stop stays one paragraph."""
+    text = (
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY. IN NO EVENT SHALL.\n"
+        "THE AUTHORS BE LIABLE.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "item"),
+    [
+        ("- Install the package from the website first.", "- Run the installer now.", "ul"),
+        ("1. Install the package from the website first.", "2. Run the installer now.", "ol"),
+    ],
+)
+def test_a_line_in_capitals_between_two_list_items_keeps_the_list(
+    first: str, second: str, item: str
+) -> None:
+    """The heading rule applies after prose only: a short line in capitals after an item
+    that ends a sentence continues that item, and the next item stays an item (#570)."""
+    assert tags_of(f"{first}\nWINDOWS\n{second}\n") == [
+        (item, "li"),
+        (item, "li", "br"),
+        (item, "li"),
+    ]
+
+
+def test_a_short_mixed_case_line_after_a_sentence_is_not_cut_before() -> None:
+    """Only a line in capitals is cut before (`_capitals`): "Results" or a poem's line after
+    a full stop stays joined to the line before it."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "Results\n"
+        "the second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_long_line_in_capitals_after_a_sentence_is_not_cut_before() -> None:
+    """Only a short line is cut before (`_short`): a full line in capitals after a full stop
+    is wrapped prose, as in a licence that mixes cases."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT ANY WARRANTY OF ANY KIND\n"
+        "and the second part starts on this line and runs on for a while.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]

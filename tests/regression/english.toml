@@ -1185,6 +1185,46 @@ blocks = [{ kind = "paragraph", text = "We use 40K and 87Rb atoms in 441K runs."
 expected = ["We use 40 thousand and 87Rb atoms in 441 thousand runs."]
 
 [[case]]
+id = "units-raised-exponent-before-a-magnitude-letter-is-a-power"
+audit = 0
+issue = 576
+goal = "Raised digits glued after a number are its exponent, before a magnitude letter or not: '10⁴K' is ten thousand kelvin, never '104 thousand'. The K reads 'kelvin' as it does in '10⁴ K'; an M that is no unit is set apart, since after a power it is no 'million'."
+blocks = [
+    { kind = "paragraph", runs = ["At T = 10", { sup = "4" }, "K the gas is hot."] },
+    { kind = "paragraph", runs = ["10", { sup = "3" }, "K and 10", { sup = "6" }, "M stars."] },
+    { kind = "paragraph", runs = ["It grows as 10", { sup = "4" }, " in the limit, as 2", { sup = "8" }, " and 10", { sup = "-3" }, " s do."] },
+]
+expected = [
+    "At T equals 10 to the power of 4 kelvin the gas is hot.",
+    "10 to the power of 3 kelvin and 10 to the power of 6 M stars.",
+    "It grows as 10 to the power of 4 in the limit, as 2⁸ and 10 to the power of minus 3 seconds do.",
+]
+
+[[case]]
+id = "units-printed-power-before-a-magnitude-letter-is-no-magnitude"
+audit = 0
+issue = 576
+goal = "A power printed with superscripts before a glued K or M reads the same on both runs: '10⁴K' was '10 to the power of 4K' and then '4 thousand'."
+blocks = [{ kind = "paragraph", text = "At T = 10⁴K and 10⁶M the gas is hot." }]
+expected = ["At T equals 10 to the power of 4 kelvin and 10 to the power of 6 M the gas is hot."]
+
+[[case]]
+id = "numbers-raised-minus-one-after-a-bracket-or-letter-is-a-power"
+audit = 0
+issue = 589
+goal = "A raised '−1' after ')', ']' or a letter is an inverse, read as a power from its raise; untagged, '(I − P)−1' and 'f(x)−1' stay as printed (#527)."
+blocks = [
+    { kind = "paragraph", runs = ["We take (I − P)", { sup = "−1" }, " and [A]", { sup = "−1" }, " here."] },
+    { kind = "paragraph", runs = ["We take A", { sup = "−1" }, " and x", { sup = "−2" }, " here."] },
+    { kind = "paragraph", text = "We take (I − P)⁻¹ and f(x)−1 here." },
+]
+expected = [
+    "We take (I − P) to the power of minus 1 and [A] to the power of minus 1 here.",
+    "We take A to the power of minus 1 and x to the power of minus 2 here.",
+    "We take (I − P) to the power of minus 1 and f(x)−1 here.",
+]
+
+[[case]]
 id = "symbols-approximately-about"
 audit = 0
 issue = 68
@@ -2932,6 +2972,14 @@ issue = 527
 goal = "An arrow printed as two glyphs ('←−', '−→') is read as one arrow ('left arrow', 'right arrow'), never 'minus'. A raised '−1' glued to a closing bracket is left as printed, since without the raise it may be 'f(x) minus 1'; the voice still says 'minus one' there (#589)."
 blocks = [{ kind = "paragraph", text = "Then β(0, S, 0) ←− 0 and P′ ←− (I − P)−1 and S −→ ε hold." }]
 expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold."]
+
+[[case]]
+id = "a-double-arrow-printed-as-an-equals-sign-and-an-arrow"
+audit = 0
+issue = 590
+goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. The voice says nothing for '⇒' yet; a plain '=' stays as printed."
+blocks = [{ kind = "paragraph", text = "So A =⇒ B and C⇐=D, and x = 3 holds iff P ⇐=⇒ Q and X=⇒Y." }]
+expected = ["So A ⇒ B and C⇐D, and x equals 3 holds iff P ⇔ Q and X⇒Y."]
 
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 

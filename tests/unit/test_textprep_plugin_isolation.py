@@ -155,6 +155,10 @@ def test_an_offset_whose_index_raises_is_read_as_a_plain_int() -> None:
     assert "Smith" not in "".join(piece.text for piece in run.script())
 
 
+@pytest.mark.quarantined(
+    issue=804,
+    reason="no __del__ recorded by the final gc.collect() when many suites run at once",
+)
 @pytest.mark.parametrize("attribute", ["CyclicPlantStep", "CyclicErrorStep"])
 def test_an_object_in_a_reference_cycle_is_freed_in_the_worker(attribute: str, calls) -> None:
     run = run_with(attribute)

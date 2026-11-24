@@ -8,7 +8,6 @@ import pytest
 
 from sci2audio.app import JobSettings, default_config_file, load_settings, save_settings
 from sci2audio.app import config as config_module
-from sci2audio.app.files import partial_path
 from sci2audio.textprep import DEFAULT_SWITCHED_OFF, Category
 
 
@@ -222,7 +221,7 @@ def test_saving_is_all_or_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     with pytest.raises(OSError, match="No space"):
         save_settings(JobSettings(speed=0.75), file)
     assert file.read_bytes() == before
-    assert not partial_path(file).exists()
+    assert [p.name for p in tmp_path.iterdir()] == [file.name]  # no partial file left
 
 
 def test_the_settings_file_lives_in_the_users_config_folder(

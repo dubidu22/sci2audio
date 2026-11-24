@@ -383,6 +383,98 @@ def test_a_full_width_listing_caption_keeps_out_of_the_code() -> None:
     assert [part.item for part in doc.blocks[2].parts] == [line.id for line in lines]
 
 
+def test_code_right_under_a_full_paragraph_line_is_one_code_block() -> None:
+    """#599: a paragraph whose last line fills its column, then code lines on the line
+    pitch right under it: the code is one CODE block, none of it read as prose."""
+    top = 280
+    para = [
+        text_line(prose("The plot is drawn by the following lines of code"), top, end=RIGHT),
+    ]
+    lines = listing(*SEABORN, top=top + PITCH)
+    after = text_line(prose("Users interface with seaborn through functions."), 400)
+    doc = build(*para, *lines, after)
+    assert kinds(doc)[1:] == [
+        ("paragraph", "The plot is drawn by the following lines of code"),
+        ("code", "\n".join(text for text, _ in SEABORN)),
+        ("paragraph", "Users interface with seaborn through functions."),
+    ]
+    assert [part.item for part in doc.blocks[2].parts] == [line.id for line in lines]
+
+
+def test_a_monospace_line_inside_prose_stays_in_the_paragraph() -> None:
+    """A wrapped line that is only a code name, with prose going on under it, is part of
+    the paragraph: it is no listing (#599)."""
+    rows = [
+        prose("The training loop calls the loss function, which is named"),
+        code("compute_loss_for_every_batch_and_every_epoch_of_the_run()"),
+        prose("and returns a number for every batch of the data set."),
+    ]
+    lines = [
+        text_line(row, 280 + PITCH * k, end=RIGHT if k < 2 else HALF) for k, row in enumerate(rows)
+    ]
+    doc = build(*lines)
+    assert kinds(doc)[1:] == [("paragraph", "\n".join(row[0].text for row in rows))]
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        (("https://github.com/rycolab/", 0), ("prefix-parsing", 0)),
+        (("alice@uni-x.de", 0), ("bob@uni-y.org", 0)),
+    ],
+    ids=["url-over-two-lines", "two-e-mails"],
+)
+def test_monospace_links_right_under_a_full_paragraph_line_are_read(rows: tuple) -> None:
+    """Links set in a typewriter font under a full prose line are no listing (#599)."""
+    words = "The code and data are available from the authors at"
+    para = text_line(prose(words), 280, end=RIGHT)
+    doc = build(para, *listing(*rows, top=280 + PITCH))
+    assert kinds(doc)[1:] == [("paragraph", "\n".join([words, *(text for text, _ in rows)]))]
+
+
+def test_typewriter_lines_under_a_proportional_line_in_a_typed_memo_stay_one_paragraph() -> None:
+    """In a document set mostly in a typewriter font nothing is a listing: a line in another
+    font with typed lines right under it on the pitch is one paragraph (#599)."""
+    first = "To: all staff. Subject: the move to the new building next month."
+    typed = [f"Typed text of the memo, line {k}, as it was typed." for k in range(8)]
+    lines = [text_line(prose(first), 100, end=RIGHT)] + [
+        text_line(
+            (TextRun(text, "Courier", 10.0),), 100 + PITCH * (k + 1), end=RIGHT if k < 7 else HALF
+        )
+        for k, text in enumerate(typed)
+    ]
+    doc = build_document(content(lines))
+    assert kinds(doc) == [("paragraph", "\n".join([first, *typed]))]
+
+
+def test_a_wrapped_caption_line_that_is_only_a_code_name_stays_in_the_caption() -> None:
+    """#603: a caption whose wrapped line holds only a code name, set in a typewriter font
+    on the caption's line pitch, with the code after more white: the name is the caption's,
+    the code starts at the listing's first line."""
+    head = caption("Listing 3: The training loop that calls the loss function", 280, end=RIGHT)
+    name = text_line(code("compute_loss()"), 280 + PITCH, end=LEFT + 84)
+    lines = listing(("for x in xs:", 0), ("    f(x)", 0), top=280 + 3 * PITCH)
+    doc = build(head, name, *lines)
+    assert kinds(doc)[1:] == [
+        ("caption", "Listing 3: The training loop that calls the loss function\ncompute_loss()"),
+        ("code", "for x in xs:\n    f(x)"),
+    ]
+    assert doc.blocks[1].describes == 2
+
+
+def test_a_caption_line_in_a_typewriter_font_larger_than_the_body_text_is_not_cut() -> None:
+    """A caption's wrapped lines set in a typewriter font larger than the body text (the
+    caption itself is set a little larger) are no code, so the caption keeps them: the cut
+    judges them as `find_code` does (#603)."""
+    words = "Listing 3: The package of this paper, named"
+    head = text_line((TextRun(words, "Times", 11.0),), 280, end=RIGHT)
+    big = [
+        text_line(code(name, size=11.5), 280 + PITCH * k) for k, name in [(1, "big"), (2, "pkg")]
+    ]
+    doc = build(head, *big)
+    assert kinds(doc)[1:] == [("caption", "Listing 3: The package of this paper, named\nbig\npkg")]
+
+
 def test_a_listing_caption_beside_no_code_names_nothing() -> None:
     doc = build(
         caption("Listing 4: Left out of this version.", 280), text_line(prose("Text."), 310)
