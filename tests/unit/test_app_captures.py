@@ -39,9 +39,10 @@ NOTE = Capture(
 QUOTE = Capture("00000000000000c3", CaptureType.QUOTE, TIME, TIME, Anchor(1, 0, 44, SENTENCE))
 THREE = CaptureFile(DOC, (MARK, NOTE, QUOTE))
 
-# the person's other files in the working folder, which a captures write never touches
+# the person's other files in the working folder, which a captures write never touches;
+# not markers.json, beside which no captures.json is created before its carry-over (#875):
+# test_app_carry_markers.py holds it byte for byte through every write
 NEIGHBOURS = {
-    "markers.json": b'{"format": "sci2audio-web-markers", "a person\'s": "markers"}\n',
     "position.json": b'{"chunk": 3}\n',
     "source.pdf": b"%PDF-1.7 not really",
 }

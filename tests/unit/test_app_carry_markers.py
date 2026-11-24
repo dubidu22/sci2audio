@@ -590,3 +590,113 @@ def test_markers_json_is_never_opened_for_writing(
     after = os.stat(work / MARKERS)
     assert hashlib.sha256((work / MARKERS).read_bytes()).hexdigest() == digest
     assert after.st_mtime_ns == before.st_mtime_ns
+
+
+# ---- no write hides markers that wait for their carry-over (#875) --------------------------
+# Once captures.json exists, markers.json is not read (ADR-008 2.1 item 5): a writer that
+# skips `load_captures` and creates captures.json beside them would hide them for good.
+
+FRESH = CaptureFile(DOC, CARRIED.captures[:1])  # not the carry-over: no migrated_from
+
+
+def _markers_in_place(work: Path, tmp_path: Path, kind: str) -> None:
+    if kind == "v1":
+        _put_markers(work, V1)
+    elif kind == "broken":
+        _put_markers(work, b"{broken")
+    elif kind == "folder":
+        (work / MARKERS).mkdir()
+    else:
+        if sys.platform == "win32":
+            pytest.skip("links need rights on Windows")
+        (tmp_path / "elsewhere.json").write_text(V1, encoding="utf-8")
+        (work / MARKERS).symlink_to(tmp_path / "elsewhere.json")
+
+
+def _snapshot(work: Path) -> dict[str, bytes | str]:
+    """Every entry of the working folder: a file's bytes, a link's target, or 'folder'."""
+    seen: dict[str, bytes | str] = {}
+    for path in work.iterdir():
+        if path.is_symlink():
+            seen[path.name] = str(os.readlink(path))
+        elif path.is_dir():
+            seen[path.name] = "folder"
+        else:
+            seen[path.name] = path.read_bytes()
+    return seen
+
+
+@pytest.mark.parametrize("kind", ["v1", "broken", "folder", "link"])
+@pytest.mark.parametrize("captures", [FRESH, CaptureFile(DOC)], ids=["one", "empty"])
+def test_a_new_captures_json_beside_uncarried_markers_is_refused(
+    work: Path, tmp_path: Path, kind: str, captures: CaptureFile
+) -> None:
+    _markers_in_place(work, tmp_path, kind)
+    before = _snapshot(work)
+    with pytest.raises(MarkersNotCarried, match=r"markers\.json") as refused:
+        write_captures(work, captures)
+    assert isinstance(refused.value, CapturesBroken)  # capturing stays off, as for a broken file
+    assert _snapshot(work) == before  # markers.json as it was, no captures.json, no partial
+
+
+def test_the_carry_over_itself_still_writes(work: Path) -> None:
+    raw = _put_markers(work, V1)
+    write_captures(work, CARRIED)
+    assert read_captures(work, DOC) == CARRIED
+    _untouched(work, raw, captures=True)
+
+
+def test_a_write_after_the_carry_over_goes_through(work: Path) -> None:
+    """The server's flow (#397, PR #886): `load_captures`, a change, `write_captures`."""
+    raw = _put_markers(work, V1)
+    assert load_captures(work, DOC) == CARRIED
+    write_captures(work, FRESH)  # once captures.json is there, migrated_from may go
+    assert load_captures(work, DOC) == FRESH
+    _untouched(work, raw, captures=True)
+
+
+def test_markers_put_beside_an_existing_captures_json_do_not_stop_a_write(work: Path) -> None:
+    write_captures(work, CaptureFile(DOC))
+    raw = _put_markers(work, b"{broken")  # not read while captures.json is there
+    write_captures(work, FRESH)
+    assert read_captures(work, DOC) == FRESH
+    _untouched(work, raw, captures=True)
+
+
+def test_captures_json_removed_by_hand_after_a_load_refuses_the_next_write(work: Path) -> None:
+    """The recovery path stays open: the markers come back, they are not hidden again."""
+    raw = _put_markers(work, V1)
+    load_captures(work, DOC)
+    (work / CAPTURES).unlink()
+    with pytest.raises(MarkersNotCarried):
+        write_captures(work, FRESH)
+    _untouched(work, raw, captures=False)
+    assert load_captures(work, DOC) == CARRIED
+
+
+def test_a_full_disk_during_a_carry_over_write_leaves_both_files(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw = _put_markers(work, V1)
+
+    def full(partial: Path, content: str | bytes) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(files, "_write_partial", full)
+    with pytest.raises(OSError, match="No space"):
+        write_captures(work, CARRIED)
+    _untouched(work, raw, captures=False)
+
+
+def test_a_refused_write_never_opens_a_file_for_writing(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw = _put_markers(work, V1)
+
+    def no_write(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("a refused write reached write_texts")
+
+    monkeypatch.setattr(module, "write_texts", no_write)
+    with pytest.raises(MarkersNotCarried):
+        write_captures(work, FRESH)
+    _untouched(work, raw, captures=False)

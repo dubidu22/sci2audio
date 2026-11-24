@@ -23,7 +23,9 @@ v1.3: it is only read, never written, renamed or removed, and not read at all wh
 surrogate, more than fits the size limit), is left as it is and reported
 (`MarkersNotCarried`), and nothing is written: writing `captures.json` would hide its
 markers for good, so capturing stays off for that document until the person fixes or
-removes the file.
+removes the file. For the same reason `write_captures` never creates `captures.json` beside
+a `markers.json` unless what it writes is their carry-over (`migrated_from: markers.json`,
+#875): a writer that skips `load_captures` is refused, nothing is written.
 """
 
 from __future__ import annotations
@@ -54,7 +56,8 @@ class CapturesBroken(Exception):
 
 class MarkersNotCarried(CapturesBroken):
     """There is no `captures.json` and the v1.3 `markers.json` can't be carried over:
-    v1.3 can't read it, or the capture model refuses its markers. Nothing is written and
+    v1.3 can't read it, or the capture model refuses its markers; or a write that is not
+    their carry-over would create `captures.json` beside them (#875). Nothing is written and
     `markers.json` is left as it is; capturing stays off, as for a broken captures file."""
 
 
@@ -85,9 +88,17 @@ def read_captures(work: Path, document_id: str) -> CaptureFile | None:
 def write_captures(work: Path, captures: CaptureFile) -> None:
     """Put `captures` in the document's `captures.json`, all of it or nothing. Raises
     CapturesBroken (nothing is written) if the file there now can't be read or belongs to
-    another document, ValueError if the file would be larger than its limit, OSError if
-    writing fails (the old file stays)."""
-    read_captures(work, captures.document)  # never write over a file this version can't read
+    another document, MarkersNotCarried (a CapturesBroken; nothing is written) if there is
+    no `captures.json` yet but a `markers.json` and `captures` is not its carry-over,
+    ValueError if the file would be larger than its limit, OSError if writing fails (the
+    old file stays)."""
+    # never write over a file this version can't read
+    if read_captures(work, captures.document) is None and captures.migrated_from != MARKERS:
+        markers = work / MARKERS
+        if markers.exists() or markers.is_symlink():  # a new captures.json would hide them
+            raise MarkersNotCarried(
+                f"{markers} is not carried over yet: read the captures through load_captures"
+            )
     write_texts({captures_path(work): _sized_text(captures)}, overwrite=True)
 
 
