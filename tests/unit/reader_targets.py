@@ -8,12 +8,16 @@ test process.
 from __future__ import annotations
 
 import contextlib
+import importlib
 import multiprocessing
 import os
 import signal
+import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from sci2audio.extraction import isolate
 
@@ -55,5 +59,53 @@ def sigint_children(stop: threading.Event) -> threading.Thread:
             time.sleep(0.01)
 
     thread = threading.Thread(target=press, daemon=True)
+    thread.start()
+    return thread
+
+
+ENDS_WHILE_STARTING = """
+import multiprocessing, os
+from pathlib import Path
+
+# in the reader child, importing this module is part of its start (the target is unpickled
+# before the child runs any of isolate's code): it ends there, as a Ctrl-C would end it
+if multiprocessing.current_process().name == "sci2audio-reader":
+    Path(__file__).with_name("ended").write_text("")
+    os._exit(1)
+
+
+def never_runs(*args):
+    raise AssertionError("the child ended while starting")
+"""
+
+
+def ends_while_starting(folder: Path) -> Callable[..., Any]:
+    """A target whose child ends during its start, before its first word, and marks that
+    in `folder` ("ended"). The caller removes `folder` from `sys.path` and the module from
+    `sys.modules` (`forget_ends_while_starting`)."""
+    (folder / "ends_while_starting.py").write_text(ENDS_WHILE_STARTING)
+    sys.path.insert(0, str(folder))
+    sys.modules.pop("ends_while_starting", None)
+    importlib.invalidate_caches()
+    return importlib.import_module("ends_while_starting").never_runs  # type: ignore[no-any-return]
+
+
+def forget_ends_while_starting(folder: Path) -> None:
+    sys.modules.pop("ends_while_starting", None)
+    with contextlib.suppress(ValueError):
+        sys.path.remove(str(folder))
+
+
+def cancel_once_ended(folder: Path, cancel: threading.Event) -> threading.Thread:
+    """Set `cancel` once the child marked its end in `folder`: a Ctrl-C that ended the child
+    while starting and reaches the parent's cancel a moment later."""
+
+    def watch() -> None:
+        deadline = time.monotonic() + 60
+        while not Path(folder, "ended").exists() and time.monotonic() < deadline:
+            time.sleep(0.005)
+        cancel.set()
+
+    thread = threading.Thread(target=watch, daemon=True)
     thread.start()
     return thread

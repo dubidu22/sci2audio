@@ -23,7 +23,11 @@ memory limit holds for the program, not only for one child.
 
 The parent hands each step on to `on_step` as it arrives (page progress, #343), and watches a
 `cancel` event: once it is set, the child is ended at once and its slot is free (#344). The
-parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot.
+parent looks at the event every `_CANCEL_SECONDS`, also while it waits for a free slot. A
+child that ended without a word while `cancel` is set, or is set within
+`_CANCEL_GRACE_SECONDS`, was cancelled: a terminal's Ctrl-C can end the child while it
+starts (Windows has no signal mask to hold it back) and reach the parent's cancel only a
+moment later (#367).
 
 The child imports only what the step needs: the program's main module is not imported in
 the child (multiprocessing would otherwise run it, and with it every other layer).
@@ -52,6 +56,7 @@ TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
 START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
+_CANCEL_GRACE_SECONDS = 0.2  # how long after a child ended a cancel still counts (#367)
 _log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
@@ -239,6 +244,8 @@ def _wait(
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()
             reason = {MEMORY_EXIT: "memory", TIME_EXIT: "time"}.get(child.exitcode, "ended")
+            if reason == "ended" and cancel is not None and cancel.wait(_CANCEL_GRACE_SECONDS):
+                return Stopped("cancelled", step)  # Ctrl-C ended it, then reached `cancel`
             return Stopped(reason, step)
         if kind == "step":
             step = value

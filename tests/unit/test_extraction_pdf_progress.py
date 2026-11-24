@@ -16,7 +16,7 @@ import multiprocessing
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -329,3 +329,47 @@ def test_a_sigint_to_the_child_leaves_the_cancel_to_the_parent(
     assert outcome.get("result") == isolate.Stopped("cancelled", "page 1 of 1"), outcome
     assert multiprocessing.active_children() == []
     assert readers.alive == 0
+
+
+# ---- a child that ends while starting, as a Ctrl-C ends it (#367) ---------------------------
+
+
+@pytest.fixture
+def ends_while_starting(tmp_path: Path) -> Iterator[Callable[..., Any]]:
+    yield targets.ends_while_starting(tmp_path)
+    targets.forget_ends_while_starting(tmp_path)
+
+
+def test_a_child_ended_while_starting_by_a_cancelled_read_is_cancelled(
+    tmp_path: Path, ends_while_starting: Callable[..., Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ctrl-C can end the child during its start (on Windows, which has no signal mask, or
+    on POSIX in a rare case whose cause is not known) and reach the parent's cancel only a
+    moment later: the read is cancelled, not a reader that could not start. Before #367 it
+    ended as Stopped("ended", "starting"). Runs on every system."""
+    monkeypatch.setattr(isolate, "_CANCEL_GRACE_SECONDS", 30.0)  # a busy machine is slow
+    cancel = threading.Event()
+    targets.cancel_once_ended(tmp_path, cancel)
+    readers = isolate.Readers(1)
+    stopped = isolate.run(
+        ends_while_starting, (), memory=GiB, step_seconds=60, readers=readers, cancel=cancel
+    )
+    assert (tmp_path / "ended").exists()
+    assert stopped == isolate.Stopped("cancelled", "starting")
+    assert readers.alive == 0
+
+
+def test_a_child_ended_while_starting_with_no_cancel_still_ended(
+    ends_while_starting: Callable[..., Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The grace for a cancel is a short wait, not a guess: no cancel, no cancelled read."""
+    monkeypatch.setattr(isolate, "_CANCEL_GRACE_SECONDS", 0.05)
+    stopped = isolate.run(
+        ends_while_starting,
+        (),
+        memory=GiB,
+        step_seconds=60,
+        readers=isolate.Readers(1),
+        cancel=threading.Event(),
+    )
+    assert stopped == isolate.Stopped("ended", "starting")
