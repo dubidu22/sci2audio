@@ -955,6 +955,11 @@ class _Chapters:
 
     @property
     def playable(self) -> tuple[int, ...]:
+        if self.writer is None:
+            # until this run puts its first file in place, the earlier run's record and
+            # read-along file stand: the chapters of it this run takes as they are (same
+            # settings, files and fingerprint) are playable from the start (#1065)
+            return tuple(index for index in self.plan.order if index in self.found.reuse)
         return tuple(c.index for c in self.record.chapters)
 
     def done(self, index: int, keys: Collection[str], event: AudioProgress) -> None:
@@ -1124,7 +1129,11 @@ def _speak(
     session: EngineSession | None = None
     try:
         if needed:
-            tell(AudioProgress(Phase.LOADING_VOICE, chapters=speech.chapters))
+            tell(
+                AudioProgress(
+                    Phase.LOADING_VOICE, chapters=speech.chapters, playable=chapters.playable
+                )
+            )
             engine, session = _load(voice)
         tell(
             AudioProgress(
@@ -1132,6 +1141,7 @@ def _speak(
                 chapters=speech.chapters,
                 chunks_total=speech.chunks_total,
                 characters_total=speech.characters_total,
+                playable=chapters.playable,
             )
         )
         for index, chunk in enumerate(plan.chunks):
