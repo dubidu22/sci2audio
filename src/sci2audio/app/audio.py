@@ -922,6 +922,28 @@ def _check_targets(
     return _Found(reuse, frozenset(owned), record if same else None)
 
 
+def _standing(work: Path, out_folder: Path, plan: _BookPlan, found: _Found) -> tuple[int, ...]:
+    """The chapters playable before this run puts its first file in place (#1065): the
+    ones it takes as they are, in its order, if the earlier run's book still stands whole.
+    Until then the Listen page plays that book, and only as a whole: every file its record
+    names, as recorded, with this book's read-along file among them (and its `audio.json`
+    once it was finished). Otherwise none, so the job never reports a chapter the page
+    cannot open."""
+    old = found.record
+    if old is None or not found.reuse:
+        return ()
+    files = [*old.book, *(f for c in old.chapters for f in c.files)]
+    readalong = plan.targets(out_folder).readalong.name
+    if (
+        not all(c.files for c in old.chapters)
+        or not all(f.name in found.keep for f in files)
+        or readalong not in {f.name for f in old.book}
+        or (old.complete and not (work / RECORD).is_file())
+    ):
+        return ()
+    return tuple(index for index in plan.order if index in found.reuse)
+
+
 class _Chapters:
     """Writes each chapter's files as soon as its last chunk is spoken, and keeps the
     chapter record (`playable.py`) one step ahead of the files (#723)."""
@@ -952,14 +974,12 @@ class _Chapters:
         self.rates: set[int] = set()
         self.in_book = False  # writing the book's files (the M4B and its subtitles)
         self.placing: set[str] = set()  # book files vouched for, maybe not yet in place
+        self.standing = _standing(work, out_folder, plan, found)
 
     @property
     def playable(self) -> tuple[int, ...]:
         if self.writer is None:
-            # until this run puts its first file in place, the earlier run's record and
-            # read-along file stand: the chapters of it this run takes as they are (same
-            # settings, files and fingerprint) are playable from the start (#1065)
-            return tuple(index for index in self.plan.order if index in self.found.reuse)
+            return self.standing
         return tuple(c.index for c in self.record.chapters)
 
     def done(self, index: int, keys: Collection[str], event: AudioProgress) -> None:

@@ -264,14 +264,36 @@ def test_a_resumed_job_reports_its_made_chapters_as_playable_before_the_voice_lo
     assert events[-1][0].playable == (0, 1, 2)
 
 
-def test_a_made_chapter_whose_file_is_missing_is_not_reported_until_made_again(
-    tmp_path: Path,
+def damage(tmp_path: Path, how: str) -> None:
+    """Spoil the earlier run's book: chapter 2's MP3 gone or cut short, or its read-along
+    file changed."""
+    out = tmp_path / "out"
+    if how == "missing":
+        sorted(out.glob("*.mp3"))[1].unlink()
+    elif how == "truncated":
+        mp3 = sorted(out.glob("*.mp3"))[1]
+        mp3.write_bytes(mp3.read_bytes()[:-100])
+    elif how == "readalong":
+        readalong = next(out.glob("*.readalong.json"))
+        readalong.write_text(readalong.read_text(encoding="utf-8") + " ", encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("how", "overwrite"),
+    # a changed file is not the job's own: it goes on only when told to replace it
+    [("missing", False), ("truncated", True), ("readalong", True)],
+)
+def test_nothing_is_reported_before_the_run_writes_when_the_earlier_book_is_not_whole(
+    tmp_path: Path, how: str, overwrite: bool
 ) -> None:
+    """Until the run puts its first file in place, the Listen page plays the earlier run's
+    book only as a whole: with any of its files missing or changed it plays none of it, so
+    no chapter is reported, and a chapter made again only from its own `ready` on."""
     stopped_in(tmp_path, "Gamma")
-    beta = sorted(n for n in outputs(tmp_path) if n.endswith(".mp3"))[1]
-    (tmp_path / "out" / beta).unlink()
-    events = audio_events(tmp_path, FakeVoice())
-    assert events[0][0].playable == (0,)
+    damage(tmp_path, how)
+    events = audio_events(tmp_path, FakeVoice(), overwrite=overwrite)
+    first_ready = next(n for n, (e, _) in enumerate(events) if e.ready is not None)
+    assert all(e.playable == () for e, _ in events[:first_ready])
     ready = next(n for n, (e, _) in enumerate(events) if e.ready == 1)
     assert all(1 not in e.playable for e, _ in events[:ready])
     assert events[-1][0].playable == (0, 1, 2)
