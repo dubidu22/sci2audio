@@ -1794,3 +1794,393 @@ def test_the_reference_checks_take_linear_time() -> None:
         )
 
     assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+# ---- #981: more reference shapes; titles shaped like entries read as before #947 ----------
+
+# An entry whose last line ends in a comma, a semicolon, a number, a bracket or a lead word
+_RUN_ON_ENTRIES = {
+    "numbered-comma": (
+        "[1] J. Smith and K. Jones, A study of reading papers aloud, J. Acoust., pp. 1-9,",
+        "[2] B. Brown and G. Green, Another study of listening to papers, Journal of Sound",
+    ),
+    "vancouver-semicolon": (
+        "Smith J, Jones K. A study of reading papers aloud. J Acoust. 2020;1:1-9;",
+        "Brown B, Green G. Another study of listening to papers. Journal of Sound",
+    ),
+    "apa-number": (
+        "Smith, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics, 1",
+        "Brown, B. and Green, G. Another study of listening to papers. Journal of Sound",
+    ),
+    "chicago-bracket": (
+        "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics (1)",
+        "Brown, Bob, and Gail Green. Another Study of Listening. Journal of Sound",
+    ),
+    "numbered-lead-word": (
+        "[1] J. Smith and K. Jones, A study of reading papers aloud, published in",
+        "[2] B. Brown and G. Green, Another study of listening to papers, Journal of Sound",
+    ),
+}
+
+
+@pytest.mark.parametrize("style", list(_RUN_ON_ENTRIES))
+def test_a_date_ends_its_entry_whatever_the_entry_ends_in(style: str) -> None:
+    """ "[1] ... pp. 1-9," / "June 2020" / "[2] ...": the date runs on from the entry's last
+    line, and still the next entry starts a block, as after an entry ending in a word (#981)."""
+    first, second = _RUN_ON_ENTRIES[style]
+    for date in ("June 2020", "JUNE 2020"):
+        assert tags_of(f"{first}\n{date}\n{second}\n") == tags_read("pbp"), date
+        listed = f"{first}\n{date}\n{second}\n{date}\n{first}\n"
+        assert tags_of(listed) == tags_read("pbpbp"), date
+
+
+@pytest.mark.parametrize("style", ["vancouver", "chicago", "apa", "numbered", "von", "german"])
+def test_a_date_with_a_full_stop_ends_its_entry(style: str) -> None:
+    """ "... Journal of Acoustics" / "June 2020." / "Brown, B. ...": a date that ends in a
+    stop stays in its entry, and the next entry starts a block (#981)."""
+    first, second = _STYLES[style]
+    month = "Oktober 2020." if style == "german" else "June 2020."
+    assert tags_of(f"{first}\n{month}\n{second}\n") == tags_read("pbp")
+
+
+def test_a_date_with_a_full_stop_in_prose_stays_in_its_sentence() -> None:
+    """Outside a reference list a date ending in a stop ends the sentence it is in (#922)."""
+    text = f"The board met once more to read the papers that came in during\nJune 2020.\n{_BOARD}"
+    assert tags_of(text) == tags_read("pbb")
+
+
+_MORE_STYLES = {
+    "initials-first": (
+        "J. Smith and K. Jones, A study of reading papers aloud, Journal of Acoustics",
+        "B. Brown and G. Green, Another study of listening to papers, Journal of Sound",
+    ),
+    "initials-first-three": (
+        "J. A. Smith, K. Jones, and L. Li, A study of reading papers aloud, Journal of Acoustics",
+        "B. Brown, G. Green, and W. White, Another study of listening, Journal of Sound",
+    ),
+    "capitalised-particle": (
+        "De Souza, M. and Jones, K. A study of reading papers aloud. Journal of Acoustics",
+        "Van Gogh, V. and Green, G. Another study of listening to papers. Journal of Sound",
+    ),
+    "capitalised-particle-vancouver": (
+        "De Souza M, Jones K. A study of reading papers aloud. Journal of Acoustics",
+        "Van Gogh V, Green G. Another study of listening to papers. Journal of Sound",
+    ),
+    "vancouver-et-al": (
+        "Smith J, Jones K, et al. A study of reading papers aloud. Journal of Acoustics",
+        "Brown B, Green G, et al. Another study of listening. Journal of Sound",
+    ),
+}
+
+
+@pytest.mark.parametrize("style", list(_MORE_STYLES))
+def test_initials_first_and_capitalised_particle_entries_keep_their_dates(style: str) -> None:
+    """Initials before the surname ("J. Smith and K. Jones, ...") and a capitalised particle
+    ("De Souza, M.", "Van Gogh V,"): the date stays in its entry and the next entry starts a
+    block, as in the styles of #947 (#981)."""
+    first, second = _MORE_STYLES[style]
+    for date in ("June 2020", "JUNE 2020", "June 2020."):
+        assert tags_of(f"{first}\n{date}\n{second}\n") == tags_read("pbp"), date
+        listed = f"{first}\n{date}\n{second}\n{date}\n{first}\n"
+        assert tags_of(listed) == tags_read("pbpbp"), date
+
+
+@pytest.mark.parametrize(
+    "second",
+    [
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound",
+        "Brown, Bob K. Another Study of Listening to Papers. Journal of Sound",
+        "B. Brown, Another study of listening to papers, Journal of Sound",
+    ],
+    ids=["chicago", "chicago-middle", "initials-first"],
+)
+def test_a_single_author_entry_in_a_list_keeps_its_date(second: str) -> None:
+    """One Chicago author ("Brown, Bob. ...") or one initials-first author ("B. Brown, ...")
+    in a list that an APA entry opened: the date stays in its entry (#981)."""
+    first = "Smith, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics"
+    text = f"{first}\nJune 2020\n{second}\nJune 2020\n{first}\n"
+    assert tags_of(text) == tags_read("pbpbp")
+
+
+@pytest.mark.parametrize(
+    "first",
+    [
+        "Smith, John. A Study of Reading Papers Aloud on the Train. Journal of Acoustics",
+        "J. Smith, A Study of Reading Papers Aloud on the Train, Journal of Acoustics",
+    ],
+    ids=["chicago", "initials-first"],
+)
+def test_a_lone_single_author_entry_before_its_date_reads_as_a_title(first: str) -> None:
+    """A known limit, pinned (#981): one Chicago or initials-first author has the shape of
+    a title ("Yes, Sir. ...", "A. Lincoln, The Man"), so two such entries alone read as a
+    title, its date and the text after it, as on main. In a list they are entries."""
+    second = "Brown, Bob. Another Study of Listening to Papers. Journal of Sound"
+    assert tags_of(f"{first}\nJune 2020\n{second}\n") == tags_read("ppp")
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "Smith, J. A study of reading papers aloud on the train and the bus. Journal of",
+        "[1] J. Smith, A study of reading papers aloud on the train and the bus, in",
+    ],
+    ids=["apa", "numbered"],
+)
+def test_a_capitals_date_ending_an_entry_is_cut_from_a_numbered_line(entry: str) -> None:
+    """ "Journal of Sound" / "DECEMBER 2025" / "1. While ...": the date stays in its entry
+    (#947), and the numbered line after it starts a block, as before #947 (#981)."""
+    text = (
+        f"{entry}\nJournal of Sound\nDECEMBER 2025\n"
+        "1. While the board read it, nothing changed at all.\n"
+    )
+    assert tags_of(text) == tags_read("pbbp")
+
+
+@pytest.mark.parametrize(
+    ("month", "after"),
+    [("JUNE", "2020, 12(3), 1-9."), ("DECEMBER 2025", "12(3), 1-9.")],
+    ids=["month-before-year", "date-before-volume"],
+)
+def test_a_capitals_month_in_an_entry_runs_on_into_its_year(month: str, after: str) -> None:
+    """ "Journal of Sound" / "JUNE" / "2020, 12(3), 1-9.": only a numbered line is cut
+    from a capitals date that ends an entry; a year or a volume stays in it, as on main
+    (#981)."""
+    entry = "Smith, J. A study of reading papers aloud on the train and the bus. Journal of"
+    assert tags_of(f"{entry}\nJournal of Sound\n{month}\n{after}\n") == tags_read("pbbb")
+
+
+_APA_FIRST = "Smith, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics"
+_APA_SECOND = "Brown, B. and Green, G. Another study of listening to papers. Journal of Sound"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        f"{_APA_FIRST}\nJune 2020\n{_APA_SECOND}\nJune 2020.\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound\n",
+        "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics\n"
+        "June 2020\n"
+        "White, Walt, and Kim Black. A Third Study of Papers. Journal of Speech\n"
+        "June 2020.\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound\n",
+        f"{_APA_FIRST}\nJune 2020\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound, 1-9,\n"
+        f"June 2020\n{_APA_SECOND}\n",
+        f"{_APA_FIRST}\nJune 2020\n"
+        "Brown, B. and Green, G. Another study of listening. Journal of Sound, 1-9,\n"
+        "June 2020\nB. Brown, Another study of listening to papers, Journal of Sound\n",
+    ],
+    ids=["stop-before-chicago", "chicago-list-stop", "chicago-comma", "comma-before-initials"],
+)
+def test_a_single_author_entry_in_a_list_ends_at_its_date(text: str) -> None:
+    """In a list of entries, a date after a stop or an entry ending in a comma ends its
+    entry before one Chicago or initials-first author too, and such an entry ends at its
+    own date: any entry shape counts on both sides of the date once the paragraph is a list
+    (#981)."""
+    assert tags_of(text) == tags_read("pbpbp")
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [_APA_FIRST, "[1] J. Smith and K. Jones, A study of reading papers aloud, Journal of Sound"],
+    ids=["apa", "numbered"],
+)
+def test_a_title_right_after_an_entry_reads_as_the_entry_s_last_line(entry: str) -> None:
+    """A known limit, pinned (#947, #981): a short title line right after an entry, with no
+    blank line, has the shape of the entry's wrapped last line ("... Journal of" / "Speech,
+    Language, and Hearing" / "June 2020"), so the date joins it. Before #947 it was cut
+    (``pbpp``)."""
+    text = f"{entry}\nReading Papers Aloud\nJune 2020\n{_BOARD}"
+    assert tags_of(text) == tags_read("pbbp")
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        # a title, its date and a sentence that opens like an entry (#981, lead's comment)
+        (
+            "The US, China and Europe: Research on Reading Papers Aloud at Home\n"
+            "June 2020\n"
+            "Using AI, we read papers aloud to the board, and the board read them twice.\n",
+            "ppp",
+        ),
+        (
+            "Guns, Germs, and Steel: The Fates of Human Societies in the Long Run\n"
+            "June 2020\n"
+            "Today, Europe, China and the US read papers aloud, as the board noted here.\n",
+            "ppp",
+        ),
+        (
+            "Guns, Germs, and Steel\n"
+            "June 2020\n"
+            "Using AI, we read papers aloud to the board, and the board read them twice.\n",
+            "ppp",
+        ),
+        # a title and its subtitle of the same shape
+        (f"The US, China and Europe\nPart II. Trade and Research\nJune 2020\n{_BOARD}", "pppp"),
+        (f"Guns, Germs, and Steel\nDiamond, Jared, and Others\nJune 2020\n{_BOARD}", "pppp"),
+        (
+            f"Kinder, Eltern, Lehrer\nDie EU, China und die USA\nOktober 2020\n{_VORSTAND}",
+            "pppp",
+        ),
+        # a title before its date and an entry
+        (
+            "Guns, Germs, and Steel\nJune 2020\n"
+            "Brown, Bob, and Gail Green. Another Study of Listening. Journal of Sound\n",
+            "ppp",
+        ),
+        (
+            "Guns, Germs, and Steel: The Fates of Human Societies in the Long Run\n"
+            "June 2020\n"
+            "Brown, Bob, and Gail Green. Another Study of Listening. Journal of Sound\n",
+            "ppp",
+        ),
+        (
+            "Guns, Germs, and Steel\nJune 2020\n"
+            "Brown, B. and Green, G. Another study of listening to papers. Journal of Sound\n",
+            "ppp",
+        ),
+        # headings and sentences shaped like one author
+        (
+            "Part I. Reading Aloud\nJune 2020\n"
+            "Yes, Sir. The board read it twice and then sent it back with many notes.\n",
+            "ppp",
+        ),
+        (
+            "Part II. Trade and Research\nJune 2020\n"
+            "J. Smith, the chair, read it twice and then sent it back with many notes.\n",
+            "ppp",
+        ),
+        (f"Part I. Reading Aloud\nPart II. Trade and Research\nJune 2020\n{_BOARD}", "pppp"),
+        (f"Hello, World. A Study\nParis, France. Annual Report\nJune 2020\n{_BOARD}", "pppp"),
+        (
+            "Paris, France. Annual Report of the Society\nJune 2020\n"
+            "Berlin, Germany. The board read it twice and sent it back with many notes.\n",
+            "ppp",
+        ),
+        (
+            "J. Smith and K. Jones, Department of Acoustics\n"
+            "B. Brown and G. Green, Department of Speech\n"
+            f"June 2020\n{_BOARD}",
+            "pppp",
+        ),
+    ],
+    ids=[
+        "the-us-using-ai",
+        "guns-today",
+        "guns-short-using-ai",
+        "the-us-part-ii",
+        "guns-diamond",
+        "kinder-die-eu",
+        "guns-short-chicago-entry",
+        "guns-long-chicago-entry",
+        "guns-short-apa-entry",
+        "part-i-yes-sir",
+        "part-ii-initials",
+        "part-i-part-ii",
+        "hello-world-paris",
+        "paris-berlin",
+        "author-lines",
+    ],
+)
+def test_a_title_shaped_like_an_entry_keeps_its_date_apart_in_context(text: str, tags: str) -> None:
+    """A title shaped like a Chicago or Vancouver entry keeps its date apart when the line
+    after the date or the line after the title has an entry's shape too, as before #947: only
+    a whole author list confirms another ("Smith J, Jones K.", "Smith, John, and Kate
+    Jones."), and only after one does the paragraph become a list of entries (#981)."""
+    assert tags_of(text) == tags_read(tags)
+
+
+def test_the_author_list_checks_take_linear_time() -> None:
+    """Author lists of every style that never end, before and after a date: the reference
+    checks take time linear in the lines (#981)."""
+
+    def sized(size: int) -> str:
+        n = size // 10
+        return (
+            f"{'Smith J, ' * n}\nJune 2020\n{'Smith J, ' * n}\nJune 2020\n"
+            f"Smith, John, {'Kate Jones, ' * n}\nJune 2020\n{'J. Smith, ' * n}\n"
+            f"June 2020\n{'J. ' * n}Smith and\nJune 2020.\n{'De ' * n}Souza, M.\n"
+        )
+
+    assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        (
+            "Using AI, Speech and Sound to Read Scientific Papers Aloud at Home\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (f"Using AI, Speech and Sound\nJune 2020\n{_BOARD}", "ppp"),
+        (
+            f"Part II. Reading Scientific Papers Aloud on Phones and Tablets\nJune 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (f"Part II. Listening\nJune 2020\n{_BOARD}", "ppp"),
+        (
+            "Appendix A. Reading Scientific Papers Aloud on Phones and Tablets\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (
+            "The US, China and Europe: Research on Reading Papers Aloud at Home\n"
+            f"JUNE 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (f"Die EU, China und die USA\nOktober 2020\n{_VORSTAND}", "ppp"),
+        (
+            "Guns, Germs, and Steel\nJune\n"
+            "2020 was a year of many notes and the board read them all twice.\n",
+            "ppb",
+        ),
+        (f"Reading Papers Aloud\nSmith, Jane, and John Doe\nJune 2020\n{_BOARD}", "pppp"),
+        (
+            "Smith J, Jones K. A study of reading papers aloud. Journal of Acoustics\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (
+            "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (
+            "Smith J, Jones K. A study of reading papers aloud on phones and\n"
+            f"tablets. Journal of Acoustics\nJune 2020\n{_BOARD}",
+            "pbpp",
+        ),
+    ],
+    ids=[
+        "using-ai",
+        "using-ai-short",
+        "part-ii",
+        "part-ii-short",
+        "appendix-a",
+        "the-us-capitals-date",
+        "die-eu-short",
+        "guns-lone-month",
+        "title-and-author-line",
+        "one-vancouver-entry-and-prose",
+        "one-chicago-entry-and-prose",
+        "one-wrapped-vancouver-entry-and-prose",
+    ],
+)
+def test_more_entry_shaped_titles_read_as_before_947(text: str, tags: str) -> None:
+    """More titles shaped like an entry, each read as on main before #947: a
+    line shaped like an entry before its date and prose is a title, and so is one entry of
+    a style that titles share before prose (#981)."""
+    assert tags_of(text) == tags_read(tags)
+
+
+def test_the_date_after_a_chicago_shaped_title_in_a_bullet_item_joins_the_item() -> None:
+    """ "- Guns, Germs, and Steel: ..." / "June 2020" / body: the date joins the item as on
+    main before #947, and the body starts a block (#981)."""
+    text = (
+        "- Guns, Germs, and Steel: The Fates of Human Societies in the Long Run\n"
+        f"June 2020\n{_BOARD}"
+    )
+    item = ("ul", "li")
+    assert tags_of(text) == [item, (*item, "br"), ("p",)]
