@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 from core_strategies import documents, edits_on, overlaps, spans_in
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from sci2audio.core import (
@@ -357,6 +357,8 @@ def test_switching_a_category_off_is_like_leaving_its_steps_out(
 
 
 @given(documents())
+@example(make_document([(BlockKind.PARAGRAPH, "e.g.=1 and approx.\u21d21")], "en"))  # #972
+@example(make_document([(BlockKind.PARAGRAPH, "So A \u21d0==> 3x.")], "en"))  # #984
 def test_the_built_in_steps_never_fail_and_are_idempotent(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)

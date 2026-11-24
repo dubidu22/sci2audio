@@ -145,6 +145,7 @@ def test_say_decimal(number: str, words: str) -> None:
         ("x^2 und 5 m^2", "x Quadrat und 5 m^2"),  # after a number: the units step's
         # N-de-10 Roman numerals
         ("Kapitel IV", "Kapitel 4"),
+        ("Kapitel IV.", "Kapitel 4."),  # a part's one numeral before a full stop too (#976)
         ("Phase II und III, Typ I–III", "Phase 2 und 3, Typ 1 bis 3"),
         ("Abb. II", "Abb. 2"),
     ],
@@ -164,7 +165,8 @@ def test_german_numbers_read_as_said(printed: str, said: str) -> None:
         "Es waren 3. Die Studie",  # no article and no known noun
         "in 3. Auflage",  # a preposition alone does not tell the case
         "Ludwig XIV.",  # no keyword
-        "Kapitel IV.",  # a full stop after it: left as printed (plan, N-de-10)
+        "Typ IV.",  # a full stop after a keyword that numbers no part: left as printed (#976)
+        "Kapitel IV. Teil",  # "4. Teil" would be an ordinal on a second run (#976)
         "31.2.2019",  # no such day
         "3.4.",  # a list or a version without "am" before it
         "1,2,3",  # a list, not a decimal
@@ -578,6 +580,9 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @example(make_document([(BlockKind.PARAGRAPH, "Kapitel I")], "de"))  # #924
 @example(make_document([(BlockKind.PARAGRAPH, "Also 3x=>A.")], "de"))  # #843
 @example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")], "de"))  # #957
+@example(make_document([(BlockKind.PARAGRAPH, "Siehe Kapitel I. Dann Teil II.")], "de"))  # #976
+@example(make_document([(BlockKind.HEADING, "Kapitel I. Einleitung")], "de"))  # #976
+@example(make_document([(BlockKind.PARAGRAPH, "A \u21d0==> 3x und B")], "de"))  # #984
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)

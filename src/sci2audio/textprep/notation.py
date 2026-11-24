@@ -80,10 +80,14 @@ _PIECED_LEFT_DOUBLE_END = re.compile("⇐=+\\Z")
 def in_ascii_run(text: str, start: int, arrow: str) -> bool:
     """True if the ASCII arrow `arrow` ("=>", "<=>") found at `start` follows a "<", ">" or
     "=" ("==>", ">=>"): part of a longer ASCII run, no arrow of logic. The "=" that ends a
-    pieced arrow ("⇐=<=>") is no part of the run. The statistics and units steps both ask
-    this, so neither reads an arrow the other does not (#843)."""
+    pieced arrow ("⇐=<=>") is no part of the run before a "<". The statistics and units
+    steps both ask this, so neither reads an arrow the other does not (#843)."""
     if arrow[:1] not in ("<", "=") or arrow[-1:] != ">" or not start:
         return False
+    if arrow[0] == "=":
+        # an "=" after "⇐" or "⇐=" is a piece of that arrow ("⇐==>" is "⇐==" and ">" to the
+        # statistics step, which takes "⇐=+" whole), so its ">" is an operator there (#984)
+        return text[start - 1] in "<>=⇐"
     if text[start - 1] not in "<>=":
         return False
     return not _PIECED_LEFT_DOUBLE_END.search(text, max(0, start - 64), start)

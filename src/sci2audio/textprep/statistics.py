@@ -192,7 +192,7 @@ def find_statistics_in_german(text: str) -> list[Candidate]:
     return pick(
         [
             *find_statistics_de(text, plain),
-            *_operators(text, plain, OPERATORS_DE, ARROWS_DE, word_stop=True),
+            *_operators(text, plain, OPERATORS_DE, ARROWS_DE, word_stop=True, language="de"),
         ]
     )
 
@@ -329,11 +329,13 @@ def _operators(
     arrows: Mapping[str, str] = ARROWS,
     *,
     word_stop: bool = False,
+    language: str = "en",
 ) -> list[Candidate]:
     """The comparison signs and the arrows of logic (S6) read as words. With `word_stop`
     (German), "=" needs nothing on its left: after "Jh.=1" (#130), a footnote's "=1" (#212)
     or a removed link or citation (#101) a second run sees a word, a full stop or the block
-    start there."""
+    start there. In both languages an abbreviation the abbreviations step reads with its full
+    stop ends an operand, as its words do on a second run ("e.g.=1", "Jh.⇒1", #924, #972)."""
     found = []
     tags = [m.span() for m in _TAG.finditer(plain)]  # in text order, never overlapping
     tag_starts = [a for a, _ in tags]
@@ -357,12 +359,10 @@ def _operators(
                 _OPERAND.match(plain, right_start) or plain[right_start : right_start + 1] == "¬"
             ):
                 continue
-            # in German an abbreviation read as words ends an operand, as one prose word
-            read_abbreviation = (
-                word_stop
-                and _LINE_BREAKS.isdisjoint(plain[left:start])
-                and _read_abbreviation_before(plain, left)
-            )
+            # an abbreviation read as words ends an operand, as one prose word
+            read_abbreviation = _LINE_BREAKS.isdisjoint(
+                plain[left:start]
+            ) and _read_abbreviation_before(plain, left, language)
             if not read_abbreviation and not _operand_before_arrow(
                 plain, left, start, read_end, word_stop
             ):
@@ -400,6 +400,7 @@ def _operators(
             and not word_stop
             and left != read_end
             and not (left and _LEFT_OF_EQUALS.match(plain[left - 1]))
+            and not _read_abbreviation_before(plain, left, language)
         ):
             continue
         if op in "<>" and not (
@@ -457,11 +458,11 @@ def _operand_before_arrow(
     return bool(_LEFT_OF_ARROW.match(plain, left - 1))
 
 
-def _read_abbreviation_before(plain: str, left: int) -> bool:
-    """True if an abbreviation the abbreviations step reads with its full stop ends at `left`
-    (German): it is an operand before an arrow, as before "=" (#130), since a second run sees
-    its words there ("Jh.⇒1" is "Jahrhundert⇒1" then, #924)."""
-    return left > 0 and plain[left - 1] == "." and reads_full_stop(plain, left, "de")
+def _read_abbreviation_before(plain: str, left: int, language: str) -> bool:
+    """True if an abbreviation the abbreviations step reads with its full stop ends at `left`:
+    it is an operand before an arrow or "=", since a second run sees its words there ("Jh.⇒1"
+    is "Jahrhundert⇒1" then, #924; "e.g.=1" is "for example=1", #972)."""
+    return left > 0 and plain[left - 1] == "." and reads_full_stop(plain, left, language)
 
 
 def _named_in_prose(plain: str, left: int, right_start: int, *, prose_before: bool = False) -> bool:
