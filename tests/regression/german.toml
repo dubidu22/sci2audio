@@ -2957,3 +2957,39 @@ expected = [
     "Wir nehmen (I − P) hoch minus 1 und [A] hoch minus 1 hier.",
     "Wir nehmen (I − P) hoch minus 1, aber (I − P)−1 und f(x)−1 bleiben.",
 ]
+
+# ---- #854, #878, #880 inline code ----------------------------------------------------------
+
+[[case]]
+id = "de-inline-code-is-read-as-printed"
+audit = 0
+issue = 854
+goal = "Inline code (a run tagged `code`, Markdown's backticks) is read as printed: no rule reads its arrows, operators, powers, numbers or units as words; the prose around it is still read (#854)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Nutze ", { text = "x => x + 1", tags = ["p", "code"] }, " hier."] },
+    { kind = "paragraph", runs = [{ text = "a <=> b", tags = ["p", "code"] }] },
+    { kind = "paragraph", runs = ["Setze ", { text = "n = 2^3", tags = ["p", "code"] }, " für 10 km, z. B. ", { text = "p < 0.05", tags = ["p", "code"] }, "."] },
+]
+expected = [
+    "Nutze x => x + 1 hier.",
+    "a <=> b",
+    "Setze n = 2^3 für 10 Kilometer, zum Beispiel p < 0.05.",
+]
+
+[[case]]
+id = "de-inline-code-of-only-links-is-left-out"
+audit = 0
+issue = 878
+goal = "Inline code that holds only links (a URL, DOI, e-mail address or arXiv id, with the punctuation and brackets around them) is left out by the links step as the same links without backticks; links inside other code stay as printed (#854, #878)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Die Daten sind unter ", { text = "https://example.org/daten", tags = ["p", "code"] }, " abrufbar."] },
+    { kind = "paragraph", runs = ["Fragen Sie die Autorin (", { text = "<jane.doe@example.org>", tags = ["p", "code"] }, ") nach den Daten."] },
+    { kind = "paragraph", runs = ["Führe ", { text = "curl https://example.org/a", tags = ["p", "code"] }, " aus."] },
+]
+expected = [
+    "Die Daten sind abrufbar.",
+    "Fragen Sie die Autorin nach den Daten.",
+    "Führe curl https://example.org/a aus.",
+]

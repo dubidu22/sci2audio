@@ -25,7 +25,7 @@ from web_helpers import (
     upload,
 )
 
-from sci2audio.app.captures import CAPTURES, write_captures
+from sci2audio.app.captures import CAPTURES, load_captures, write_captures
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
 from sci2audio.web import create_app
 from sci2audio.web.markers import MARKERS, UNDO_SECONDS
@@ -333,6 +333,7 @@ def test_the_removal_box_counts_the_captures_by_type_and_not_the_markers_beside_
         Capture("00000000000000a2", CaptureType.NOTE, stamp, stamp, anchor),
         Capture("00000000000000a3", CaptureType.QUOTE, stamp, stamp, anchor),
     )
+    load_captures(work, doc)  # the markers carried over first, as the server does (#875)
     write_captures(work, CaptureFile(doc, captures))
     english = page.get("/").text
     assert "Your 2 notes go too. Your quote goes too.</p>" in english

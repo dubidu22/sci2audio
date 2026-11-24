@@ -7,6 +7,7 @@ x 70 and x 526 unless a test says otherwise.
 import itertools
 from collections.abc import Callable
 
+import pytest
 from core_strategies import contents
 from hypothesis import example, given
 from hypothesis import strategies as st
@@ -1093,6 +1094,35 @@ def test_a_middle_column_as_short_as_the_crossings_a_gutter_allows_is_a_column()
     found = content(lines)
     assert texts(build_document(found)) == [li.text for li in lines]
     assert columns_per_page(found) == [3]
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
+    captioned: bool,
+) -> None:
+    """#895: two columns with a gutter of 140 pt that holds a drawing (x 236 to 360), its
+    axis labels and its caption. The white on each side of the figure is a gutter, so the
+    figure is read after the left column and before the right one, but the page still has
+    two columns of text: the labels lie on the drawing, and a caption is no column.
+
+    The figure's column is read row by row: the upper row of labels (y 200) before the
+    drawing, the lower one (y 210) after it, then the caption."""
+    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
+    labels = [line(f"lab{k}", 240 + 20 * k, 200 + 10 * (k % 2), 252 + 20 * k) for k in range(6)]
+    caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
+    found = content(
+        left + right + labels + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
+    )
+    doc = build_document(found)
+    assert columns_per_page(found) == [2]
+    figures = [b for b in doc.blocks if b.kind is BlockKind.FIGURE]
+    assert [[p.item for p in b.parts] for b in figures] == [["fig"]]
+    ids = {li.id: li.text for li in [*left, *right, *labels, *caption]}
+    read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
+    upper, lower = [li.text for li in labels[::2]], [li.text for li in labels[1::2]]
+    middle = [*upper, "fig", *lower, *[li.text for li in caption]]
+    assert read == [li.text for li in left] + middle + [li.text for li in right]
 
 
 @given(column_pages())

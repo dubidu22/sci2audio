@@ -43,8 +43,8 @@
   3  p1  paragraph  [p1-l7]  1. Einleitung
   4  p1  paragraph  [p1-l8..p1-l10 (3)]  Viele Menschen hören wissenschaftliche Texte, während sie gehen,\nkochen oder pendeln. Ein Wort kann über zwei Zeilen getrennt wer-\nden, wie in diesem Beispiel, und wird doch als ganzes Wort gehört.
   5  p1  paragraph  [p1-l11..p1-l12 (2)]  Manche lesen lieber im Café am Mittag, andere in Zürich bei 7 °C.\nEin Gedankenstrich – kurz – und Anführungszeichen „wie diese“.
-  6  p1  list_item  [p1-l13]  - erster Punkt
-  7  p1  list_item  [p1-l14]  - zweiter Punkt
+  6  p1  list_item (-)  [p1-l13]  - erster Punkt
+  7  p1  list_item (-)  [p1-l14]  - zweiter Punkt
   8  p1  paragraph  [p1-l15..p1-l18 (4)]  Rosen sind rot,\ndie Hörerin wartet;\nein Vers im Gedicht\nbleibt, wo er bricht.
   sections
   
@@ -103,8 +103,8 @@
   4  p1  paragraph  [p1-l7..p1-l10 (4)]  People listen to papers while they walk, cook or commute. Spoken text\nruns at about 150 words per minute, so a 6,000-word paper takes forty\nminutes. A word may be split across lines, as in this exam-\nple, which a listener hears whole.
   5  p1  paragraph  [p1-l11]  A paragraph that starts with a tab, followed by several spaces.
   6  p1  paragraph  [p1-l12..p1-l14 (3)]  The line above holds only spaces, so it ends a paragraph too. Some\nreaders prefer the café at noon; others read in Zürich at 7 °C. A dash\n– en, and one — em; quotes “like these” and µs for microseconds.
-  7  p1  list_item  [p1-l15]  - first point
-  8  p1  list_item  [p1-l16]  - second point
+  7  p1  list_item (-)  [p1-l15]  - first point
+  8  p1  list_item (-)  [p1-l16]  - second point
   9  p1  paragraph  [p1-l17..p1-l20 (4)]  Roses are red,\nthe listener waits;\na line in a poem\nkeeps where it breaks.
   sections
   

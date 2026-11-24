@@ -15,6 +15,15 @@ strictly inside an accepted edit or at an accepted insertion or pause, or when i
 already moved or would chain (a moved block is no target, a target block does not move).
 `StepRun.read_at` says in which block's place a block is read.
 
+Inline code is read as printed (#854): an inline edit that touches a run the file marks as
+code (`inline_code`: a character of it, or a position strictly inside it) is dropped before
+anything else, from built-in steps and plugins alike, so arrows, operators and numbers in
+"Use `x => x + 1` here." stay as typed while the prose around them is still read. Code
+that holds only links (URLs, DOIs, e-mail addresses, with the punctuation and brackets
+around them) is not protected: the links step leaves it out as before. Block edits (a code
+block's notice, furniture) and moves claim whole blocks and are not touched. A dropped
+edit is no outcome: the report lists what a rule changes, and inside code none does.
+
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
 run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests. Steps from
 `installed_steps` bring the plugins they hold and the plugins that did not load: the result
@@ -29,7 +38,18 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from functools import cached_property
 
-from sci2audio.core import Document, Edit, EditKind, ScriptPiece, Span, apply_edits, check_edits
+from sci2audio.core import (
+    Document,
+    Edit,
+    EditKind,
+    ScriptPiece,
+    Span,
+    TextLine,
+    apply_edits,
+    check_edits,
+)
+from sci2audio.textprep.furniture import HIDDEN_TAGS, PAGE_BREAK_TAGS
+from sci2audio.textprep.links import find_links
 from sci2audio.textprep.plugins import InstalledSteps, PluginError, PluginInfo
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
 from sci2audio.textprep.steps import (
@@ -70,11 +90,12 @@ class StepProblem:
 
 @dataclass(frozen=True)
 class StepRun:
-    """Everything the steps proposed for one document, settled.
+    """What the steps proposed for one document, settled.
 
     The data behind the report (UC-01, #70): every edit with its reason, step, category and
     status, set-aside edits with the edit that won, problems and the steps not run for the
-    job's language.
+    job's language. An inline edit that touches inline code is dropped before it gets an
+    outcome (#854), so it is not here: the code is read as printed.
     """
 
     document: Document
@@ -130,6 +151,7 @@ def run_steps(
     # each step may know which categories this run will not apply (D-595)
     context = replace(context, switched_off=frozenset(switched_off))
     accepted = _Accepted()
+    code = inline_code(document)
     outcomes: list[Outcome] = []
     problems: list[StepProblem] = []
     not_run: list[str] = []
@@ -155,6 +177,8 @@ def run_steps(
             )
             problems.append(StepProblem(step.id, said))
             continue
+        if step.stage is Stage.INLINE and code:
+            edits = [edit for edit in edits if not _in_code(code, edit.span)]
         for edit in edits:
             if step.category in switched_off:
                 outcomes.append(Outcome(edit, step.category, Status.SWITCHED_OFF))
@@ -193,6 +217,80 @@ def _proposed(step: TextStep, document: Document, context: StepContext) -> list[
 def whole_block(document: Document, index: int) -> Span:
     """The span of a block's whole text."""
     return Span(index, 0, len(document.blocks[index].text))
+
+
+CODE_TAG = "code"
+# a run inside one of these is no inline code: `pre` is a code block, which has its notice;
+# a hidden run or page-break marker is left out by the hidden-runs step
+_NOT_INLINE_CODE = frozenset({"pre"}) | HIDDEN_TAGS | PAGE_BREAK_TAGS
+# what may stand around and between links in code left to the links step: the punctuation
+# and brackets it strips at a link's end (`links._TRAILING`, `links._PAIRS`), their opening
+# brackets and quotes, and white space
+_AROUND_LINKS = frozenset(
+    ".,;:!?*()[]<>'\" \t\n"
+    "\N{LEFT SINGLE QUOTATION MARK}\N{RIGHT SINGLE QUOTATION MARK}"
+    "\N{LEFT DOUBLE QUOTATION MARK}\N{RIGHT DOUBLE QUOTATION MARK}"
+    "\N{DOUBLE LOW-9 QUOTATION MARK}"
+)
+
+
+def inline_code(document: Document) -> dict[int, list[tuple[int, int]]]:
+    """Where each block holds inline code: (start, end) in its text, in order, runs side by
+    side joined. Inline code is a run the file tags `code` (Markdown's backticks, an EPUB's
+    `<code>`) outside `pre`, not hidden, and not only links (`_only_links`). A line whose
+    text is not where its part says (it never should be) is skipped, so a span never points
+    at other text."""
+    items = document.content.items()
+    found: dict[int, list[tuple[int, int]]] = {}
+    for index, block in enumerate(document.blocks):
+        spans: list[tuple[int, int]] = []
+        for part in block.parts:
+            line = items[part.item][1]
+            if not isinstance(line, TextLine):
+                continue
+            if block.text[part.start : part.start + len(line.text)] != line.text:
+                continue
+            offset = part.start
+            for run in line.runs:
+                end = offset + len(run.text)
+                tags = set(run.tags)
+                if CODE_TAG in tags and not _NOT_INLINE_CODE & tags:
+                    if spans and spans[-1][1] == offset:
+                        offset = spans.pop()[0]
+                    spans.append((offset, end))
+                offset = end
+        if spans := [span for span in spans if not _only_links(block.text[slice(*span)])]:
+            found[index] = spans
+    return found
+
+
+def _only_links(text: str) -> bool:
+    """True for code that holds links and nothing else (#854): one or more URLs, DOIs,
+    arXiv ids or e-mail addresses as `links.find_links` finds them, with only white space,
+    commas, the sentence punctuation and the brackets and quotes the links step strips
+    around a link between and around them ("`<https://example.org/a>.`", "`https://a.org,
+    https://b.org`"). The links step leaves such code out with its reason, as it does the
+    same links printed without backticks."""
+    links = find_links(text)
+    at = 0
+    for link in links:
+        if not _AROUND_LINKS.issuperset(text[at : link.start].strip()):
+            return False
+        at = link.end
+    return bool(links) and _AROUND_LINKS.issuperset(text[at:].strip())
+
+
+def _in_code(code: Mapping[int, list[tuple[int, int]]], span: Span) -> bool:
+    """True if the span touches inline code: shares a character with it, or is a position
+    strictly inside it. The spans of a block are in order and never overlap."""
+    spans = code.get(span.block)
+    if not spans:
+        return False
+    position = bisect_left(spans, (span.end, span.end))
+    for start, end in spans[max(position - 1, 0) : position + 1]:
+        if overlap(Span(span.block, start, end), span):
+            return True
+    return False
 
 
 def overlap(a: Span, b: Span) -> bool:
