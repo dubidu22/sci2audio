@@ -70,6 +70,7 @@ SCRIPT_KEYS = (
     "making.cancel_size",
     "player.",
     "capture.",  # the captures on the Listen page (#397)
+    "captures.",  # the Captures page, filtered in place (#398)
     "remove.removing",
     "remove.done",
     "remove.stays",  # and remove.stays_folder, remove.stays_earlier

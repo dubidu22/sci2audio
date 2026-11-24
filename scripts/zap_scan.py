@@ -743,6 +743,7 @@ def _pages(ids: Ids) -> list[str]:
         f"/jobs/{ids.voice_job}",
         f"/documents/{ids.paper}/listen",
         f"/documents/{ids.note}/listen",  # nothing to play
+        "/captures",  # every document's captures (#398), after the walk captured some
         "/quit",  # the scan's server runs as `sci2audio ui`: the not-found page (#215)
     ]
 

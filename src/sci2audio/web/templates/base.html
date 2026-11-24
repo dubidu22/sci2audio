@@ -19,6 +19,8 @@
     <a class="wordmark" href="/" aria-label="{{ t('nav.wordmark') }}">sci<span class="two">2</span>audio</a>
     <ul class="nav">
       <li><a href="/" id="nav-library" aria-label="{{ t('nav.library') }}, {{ t('nav.documents', n=library_count) }}"{% if nav == 'library' %} aria-current="page"{% endif %}>{{ icon('library') }}<span>{{ t('nav.library') }}</span><span class="count" aria-hidden="true">{{ library_count }}</span></a></li>
+      {#- every document's captures (#398); no count here, so no page reads every captures file #}
+      <li><a href="/captures" id="nav-captures"{% if nav == 'captures' %} aria-current="page"{% endif %}>{{ icon('captures') }}<span>{{ t('nav.captures') }}</span></a></li>
       <li><a href="/#open-file">{{ icon('open') }}<span>{{ t('nav.open') }}</span></a></li>
       <li><a href="/voice"{% if nav == 'voices' %} aria-current="page"{% endif %}>{{ icon('voices') }}<span>{{ t('nav.voices') }}</span></a></li>
     </ul>
