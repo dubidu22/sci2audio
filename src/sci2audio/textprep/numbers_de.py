@@ -58,6 +58,7 @@ from sci2audio.textprep.units import (
     reads_unit_after,
     reads_unit_after_per,
     reads_x_after,
+    symbol_word_at,
 )
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
@@ -241,6 +242,7 @@ _STOP = (
 
 # the first characters of the signs and arrows the statistics step reads as words
 _SIGN_START = "[" + re.escape("".join(sorted({s[0] for s in (*OPERATORS_DE, *ARROWS_DE)}))) + "]"
+_UNIT_SIGN = "[\u00d7\u2248~\u223c]"  # the signs the units step reads: "mal", "ungefähr", "etwa"
 
 # --- N-de-1, N-de-2 decimals and thousands ---------------------------------------------------
 _COMMA_DECIMAL = re.compile(
@@ -689,12 +691,14 @@ _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
 # a word after it, or what a second run sees as one (`_AfterNumber`): a sign the statistics
-# step reads, a "1" the units step reads before its unit
+# or the units step reads, a "1" the units step reads before its unit
 _ORDINAL = re.compile(
     r"(?<![^\WxX])(?<![,/:\u2013-])"
     + _STOP
     + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_]|\s*"
     + _SIGN_START
+    + r"|\s*"
+    + _UNIT_SIGN
     + r"|\s+1(?![\d.,/]))"
 )
 # after an en dash too, which the range rule reads "bis": a second run sees "bis 2019-03-05"
@@ -861,9 +865,14 @@ def _dates(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
         one = None if match["y"] else _ONE_AHEAD.match(text, match.end())
         if one is not None and not reads_one_as_word(after.printed, one.end(), "de"):
             continue  # "am 3.4. 1 und 2": no "1" read "ein" before a unit, so the date stays
-        if not match["y"] and after.unread_arrow(text, match.end()):
+        if (
+            not match["y"]
+            and after.unread_arrow(text, match.end())
+            and after.reads_arrow_after(MONTHS[month - 1], match.end())
+        ):
             # "am 3.4. ⇒ M": the arrow after a full stop is not read, but after "April" a
-            # second run would read it; so the date stays as printed with it (#970)
+            # second run reads it; so the date stays as printed with it. Before a prose word
+            # ("am 3.4. ⇒ Mai") a second run leaves the arrow too, so the date is read (#970)
             continue
         words = _date_words(text, match.start(), day, month, match["y"], paired=paired)
         if words and not _year_left_alone(text, match.end()):
@@ -885,6 +894,7 @@ def _dates(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
 _FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
 _ONE_AHEAD = re.compile(r"\s*(?=1(?![\d.,/]))")
 _SIGN_AHEAD = re.compile(r"\s*(?=" + _SIGN_START + ")")
+_UNIT_SIGN_AHEAD = re.compile(r"\s*(?=" + _UNIT_SIGN + ")")
 _SPACES = re.compile(r"\s*")
 _ARROW_AHEAD = re.compile(DOUBLE_ARROW)
 
@@ -917,6 +927,9 @@ class _AfterNumber:
             read = self._sign_at(sign.end())
             words = read.replacement.split() if read is not None else []
             return words[0] if words else None
+        sign = _UNIT_SIGN_AHEAD.match(text, end)
+        if sign is not None:
+            return symbol_word_at(self.printed, sign.end(), "de")
         one = _ONE_AHEAD.match(text, end)
         if one is not None and one.end() > end and reads_one_as_word(self.printed, one.end(), "de"):
             return "ein"
@@ -926,6 +939,13 @@ class _AfterNumber:
         """True if an arrow of logic follows `end` that the statistics step leaves as printed."""
         at = _SPACES.match(text, end).end()  # type: ignore[union-attr]
         return _ARROW_AHEAD.match(self.printed, at) is not None and self._sign_at(at) is None
+
+    def reads_arrow_after(self, word: str, end: int) -> bool:
+        """True if the statistics step reads the arrow after `end` once a second run sees
+        `word` (the reading's last word) before it. Only a window after `end` is looked at."""
+        around = word + self.printed[end : end + WINDOW]
+        at = _SPACES.match(around, len(word)).end()  # type: ignore[union-attr]
+        return any(c.start <= at < c.end for c in find_statistics_in_german(around))
 
 
 # the dash between the two dates of a range: a hyphen or en dash glued to both, an em dash
@@ -1285,12 +1305,17 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         exponent = match["braced"] or match["paren"] or match["bare"]
         letter = match["base"].isalpha()
         before = _before(plain, match.start("base"))
+        # the minutes of a clock time are no number before it, as for a raised power: "um
+        # 24:00 R^2" reads "24 Uhr R^2" on a first run, whose "R^2" a second run reads (#970)
+        clock = letter and _CLOCK_BEFORE.search(plain, max(0, match.start() - 16), match.start())
         if letter and (
             _unit_chain(plain, match.start("base"))
-            or _NUMBER_BEFORE.search(before)
+            or (_NUMBER_BEFORE.search(before) and not clock)
             or reads_unit_after_per(plain, match.start("base"), "de")
         ):
             continue  # "5 m^2", "pro m^2": the units step's ("5 Quadratmeter", #230)
+        if clock and unit_starts_at(plain, match.start("base"), "de"):
+            continue  # "um 13:30 m^2": a unit after a time is left as printed, as the time is
         words = (_letter_power(exponent) if letter else None) or (
             f" hoch {_exponent_words(exponent)}"
         )

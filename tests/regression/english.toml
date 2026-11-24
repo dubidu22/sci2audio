@@ -3585,3 +3585,31 @@ expected = [
     "1999-02-01:3 times 10 to the power of minus 4",
     "1999-02-01:3",
 ]
+
+[[case]]
+id = "an-arrow-in-pieces-next-to-nx"
+audit = 0
+issue = 970
+goal = "A minus sign that is a piece of an arrow next to 'Nx' ('←−12x', '12x−→') is no operator: the numbers step reads the pieces as one arrow, which a second run sees there, so the x reads 'times' on both runs (was '←12x' on the first run, #970)."
+blocks = [
+    { kind = "paragraph", text = "So ←−12x and 12x−→ M here." },
+    { kind = "paragraph", text = "So 12x−−→ M and 12x − 3 here." },
+]
+expected = [
+    "So ←12 times and 12 times → M here.",
+    "So 12 times → M and 12x minus 3 here.",
+]
+
+[[case]]
+id = "iso-date-before-a-colon-a-second-run-reads-as-no-ratio"
+audit = 0
+issue = 1053
+goal = "An ISO date before a colon stays as printed only where a second run would read the year and the number after the colon as a ratio: '2019-03-01:12:30' is read as before, since '2019:12:30' is no ratio. In a range the second date before ':3' stays as printed and the first is read, as a second run reads them (main read '5 March 2019:3', then '2019 to 3', #1053)."
+blocks = [
+    { kind = "paragraph", text = "2019-03-01:12:30" },
+    { kind = "paragraph", text = "from 2019-03-01–2019-03-05:3" },
+]
+expected = [
+    "1 March 2019:12:30",
+    "from 1 March 2019 to 2019-03-05:3",
+]

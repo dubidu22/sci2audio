@@ -3590,3 +3590,60 @@ expected = [
     "Abb.-ungleich χ2",
     "Wert-gleich 3",
 ]
+
+[[case]]
+id = "de-a-date-before-an-arrow-between-prose-words"
+audit = 0
+issue = 970
+goal = "A date without its year before an arrow is read where a second run leaves the arrow after the month too, as before a prose word ('am 3.4. ⇒ Mai' is 'am dritten April ⇒ Mai' on both runs, as on main); it stays as printed only where a second run would read the arrow after the month ('am 3.4. ⇒ M', #970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3.4. ⇒ Mai" },
+    { kind = "paragraph", text = "am 3.4. ⇒ Die Studie" },
+    { kind = "paragraph", text = "am 3.4. ⇒ M" },
+]
+expected = [
+    "am dritten April ⇒ Mai",
+    "am dritten April ⇒ Die Studie",
+    "am 3.4. ⇒ M",
+]
+
+[[case]]
+id = "de-an-ordinal-before-a-sign-the-units-step-reads"
+audit = 0
+issue = 970
+goal = "An ordinal before a sign the units step reads as a word ('×' as 'mal', '≈' as 'ungefähr', '~' as 'etwa') takes that word as its next word, as a second run sees it: 'am 3. × 5' is 'am dritten mal 5' on both runs, glued or spaced (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3. × 5" },
+    { kind = "paragraph", text = "am 3. ≈ 5" },
+    { kind = "paragraph", text = "am 3. ~ 5" },
+    { kind = "paragraph", text = "am 3. × 10−4" },
+    { kind = "paragraph", text = "am 3.×5" },
+]
+expected = [
+    "am dritten mal 5",
+    "am dritten ungefähr 5",
+    "am dritten etwa 5",
+    "am dritten mal 10−4",
+    "am dritten mal 5",
+]
+
+[[case]]
+id = "de-a-caret-power-after-a-clock-time"
+audit = 0
+issue = 970
+goal = "The minutes of a clock time are no number before a caret power, as they are none before a raised one: 'um 24:00 R^2' was 'um 24 Uhr R^2', whose power a second run read; it is read on the first run now. A unit after a time stays as printed, as before (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "um 24:00 R^2 hier" },
+    { kind = "paragraph", text = "um 13:30 R^2 hier" },
+    { kind = "paragraph", text = "um 13:30 m^2 hier" },
+    { kind = "paragraph", text = "um 24:00 n² hier" },
+]
+expected = [
+    "um 24 Uhr R Quadrat hier",
+    "um 13 Uhr 30 R Quadrat hier",
+    "um 13:30 m^2 hier",
+    "um 24 Uhr n Quadrat hier",
+]

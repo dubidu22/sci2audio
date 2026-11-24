@@ -771,6 +771,27 @@ def reads_one_as_word(text: str, start: int, language: str) -> bool:
     return found is not None and bool(found[4]) and _one(text, number, table, found[4]) is not None
 
 
+def symbol_word_at(text: str, position: int, language: str) -> str | None:
+    """The word the step reads for the "×", "≈" or "~" at `position`, or None. The numbers
+    step asks after an ordinal's full stop ("am 3. × 5" is "am 3. mal 5" after the first run,
+    whose "3." a second run reads "dritten", #970). A "~" after a number is left to the step
+    (None): after a full stop it never stands there."""
+    table = _compiled(language)
+    char = text[position : position + 1]
+    if table is None or not char:
+        return None
+    words = table.words.words
+    if char == "\u00d7" and _single(text, position, char):
+        return words["times"]
+    if char == "\u2248" and _single(text, position, char):
+        return words["approximately"]
+    if _TILDE.match(text, position):
+        head = text[max(0, position - 3) : position].rstrip(" \u00a0")
+        if not (head[-1:].isascii() and head[-1:].isdigit()):
+            return words["about"]
+    return None
+
+
 def unit_spans(text: str, language: str) -> list[tuple[int, int]]:
     """What the step reads in `text`, as spans: the numbers step writes a raised exponent as
     printed only where this step does not read it ("5 mL⁻¹" is "per millilitre", #589)."""

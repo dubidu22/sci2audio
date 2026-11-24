@@ -218,9 +218,7 @@ _UNIT_CHAIN_AFTER_FRACTION = re.compile(
 # ("2019-03-01–2019-03-05", "3–1999-02-01", #957)
 _ISO_DATE = re.compile(
     r"(?<![\w.:/-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
-    # not before a power: "2019-03-12⁻⁴" is no date; nor before a colon and a digit, as in
-    # German: read, "1999:3" would be a ratio on a second run (#1053)
-    r"(?![\w⁺⁻^-]|[.,:]\d)"
+    r"(?![\w⁺⁻^-]|[.,]\d)"  # not before a power: "2019-03-12⁻⁴" is no date
 )
 
 # --- N10 grouped digits ----------------------------------------------------------------------
@@ -385,8 +383,17 @@ def _iso_dates(text: str) -> list[Candidate]:
         if day > calendar.monthrange(year, month)[1]:
             continue
         words = f"{day} {calendar.month_name[month]} {year}"
+        if text[match.end() : match.end() + 1] == ":" and _ratio_after(words, text, match.end()):
+            continue  # "1999-02-01:3": "1 February 1999:3" would be a ratio next time (#1053)
         found.append(Candidate(*match.span(), words, f'date "{match.group()}" read as "{words}"'))
     return found
+
+
+def _ratio_after(words: str, text: str, end: int) -> bool:
+    """True if `_ratios` reads the colon at `end` once what ends there is read as `words`, as
+    a second run sees it. Only a window after `end` is looked at (linear on long blocks)."""
+    around = words + text[end : end + WINDOW]
+    return any(c.start == len(words) for c in _ratios(around))
 
 
 def _roman_value(numeral: str) -> int:
