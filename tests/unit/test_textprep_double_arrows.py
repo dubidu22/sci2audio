@@ -176,6 +176,70 @@ def test_a_sign_before_nx_reads_the_same_on_a_second_run(text: str, language: st
     assert second == first
 
 
+_SIGNS_AFTER_NX = ["<", ">", "−", "-", "=", "≤", "±", "<<", ">=", "->", "⇒",
+                   "−\n", "minus", "minus\n", "Minus", "less than",
+                   "greater than", "plus or minus"]  # fmt: skip
+_AFTER_SIGN = ["2", ".5", "2y", "y", "A", "a b", "I", "(a)", "e.g. 2", "the rest", "s", "x",
+               "", "y."]  # fmt: skip
+
+
+@st.composite
+def signs_after_nx(draw: st.DrawFn) -> str:
+    gap = st.sampled_from(["", " ", "\n"])
+    return (
+        draw(st.sampled_from(["", "So ", "A = ", "[1] ", "y < "]))
+        + draw(st.sampled_from(["3", "2.5", "10", "1234", "2019"]))
+        + draw(st.sampled_from(["x", " x", "X"]))
+        + draw(gap)
+        + draw(st.sampled_from(_SIGNS_AFTER_NX))
+        + draw(gap)
+        + draw(st.sampled_from(_AFTER_SIGN))
+    )
+
+
+@given(signs_after_nx(), st.sampled_from(["en", "de"]))
+@example("So 3x > 2.", "en")  # #1010
+@example("So 3x > y.", "en")  # #1010
+@example("So 3x − 2.", "en")  # #1010
+@example("So 3x minus\n2.", "en")  # #1010
+def test_a_sign_after_nx_reads_the_same_on_a_second_run(text: str, language: str) -> None:
+    """D-577 for #1010: a sign after "Nx" makes it a variable or "N times" the same way on
+    both runs, as one before it does (#988, #997)."""
+    first, second = first_and_second_run(text, language)
+    assert second == first
+
+
+_BEFORE_GLUED_SIGN = ["A", "So A", "[1]", "Kapitel IV.", "Teil II.", "Typ II.", "Kap. IV.",
+                      "Kapitel I", "plus", "plus or"]  # fmt: skip
+_GLUED_SIGNS = ["=", "<", ">", "≤", "⇒", "==", "=−", "=− ", "=−\n",
+                "=‒ ", "=- ", "<− ", " < ", " > ", " = ", "–", "—",
+                "‐", " bis III", " bis ", " und II"]  # fmt: skip
+
+
+@st.composite
+def glued_signs(draw: st.DrawFn) -> str:
+    return (
+        draw(st.sampled_from(_BEFORE_GLUED_SIGN))
+        + draw(st.sampled_from(_GLUED_SIGNS))
+        + draw(st.sampled_from(["3", ".5", "1", "x", "minus 3x", "3x", "III", ""]))
+        + draw(st.sampled_from(["", ".", " here.", " K", "x"]))
+    )
+
+
+@given(glued_signs(), st.sampled_from(["en", "de"]))
+@example("So A=− 3.", "en")  # #1010
+@example("[1] < 3x", "en")  # #1010
+@example("Kapitel IV.=1", "de")  # #1010
+@example("Kapitel I bis III", "de")  # #1010
+@example("plus–minus 3x", "en")  # #1021
+def test_a_glued_sign_reads_the_same_on_a_second_run(text: str, language: str) -> None:
+    """D-577 for #1010 and #1021: an "=" glued before a minus sign, a sign after a removed
+    citation or after a part's numeral and its full stop, a range of Roman numerals and
+    "plus" glued to "minus" read the same on both runs."""
+    first, second = first_and_second_run(text, language)
+    assert second == first
+
+
 @pytest.mark.parametrize(
     ("language", "printed"),
     [
