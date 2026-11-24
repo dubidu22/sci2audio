@@ -183,6 +183,60 @@ def test_not_read_and_not_found_are_listed_and_kept(signed_in: Page, live: Live)
     check_axe(page, "captures, a capture not found")
 
 
+def state_icons(page: Page) -> dict[str, list[str]]:
+    """Each shown row's state words and the sprite icons beside them, by capture id."""
+    found: dict[str, list[str]] = page.evaluate(
+        """() => Object.fromEntries([...document.querySelectorAll('.capture-row:not([hidden])')]
+            .map((row) => [row.dataset.capture, [...row.querySelectorAll('.cp-state svg')]
+                .map((svg) => [svg.getAttribute('aria-hidden'),
+                               svg.querySelector('use').getAttribute('href')].join(' '))]))"""
+    )
+    return found
+
+
+def test_every_capture_state_has_the_listen_pages_icon_beside_its_word(
+    signed_in: Page, live: Live
+) -> None:
+    """#1012: not read, not found and no audiobook each have the Listen page's icon
+    (#955) beside their word, hidden from screen readers; found rows name their place
+    without one. Axe in light and dark."""
+    page = signed_in
+    made = captured(page, live)
+    path = made["file"]
+    work = path.parent
+    blocks = json.loads((work / "document.json").read_text(encoding="utf-8"))["blocks"]
+    unread = len(blocks) - 1  # the reference list, which this audiobook leaves out
+    assert blocks[unread]["text"] == "Smith, J. 2020. A book about things."
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for id_, text, block in (("d" * 16, blocks[unread]["text"], unread),
+                             ("f" * 16, "Not in here.", 0)):  # fmt: skip
+        other = dict(data["captures"][0])
+        other.update(id=id_, type="note", text="Still mine.")
+        other["anchor"] = {"block": block, "start": 0, "end": len(text), "text": text}
+        data["captures"].append(other)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    open_captures(page)
+    words = {
+        "d" * 16: "Not read in this audiobook",
+        "f" * 16: "Not found in this audiobook",
+    }
+    for id_, word in words.items():
+        expect(page.locator(f"#capture-{id_} .cp-state")).to_contain_text(word)  # the word stays
+    icons = state_icons(page)
+    assert icons["d" * 16] == icons["f" * 16] == ["true #i-info"]
+    for id_ in made["ids"].values():  # found: the place, no state
+        assert icons[id_] == []
+        expect(page.locator(f"#capture-{id_} .cp-at")).to_be_visible()
+    check_axe(page, "captures, every state")
+    (work / "audio.json").unlink()
+    page.reload()
+    page.wait_for_load_state("load")
+    gone = page.locator(f"#capture-{made['ids']['quote']} .cp-state")
+    expect(gone).to_contain_text("This document has no audiobook now")
+    assert set(map(tuple, state_icons(page).values())) == {("true #i-info",)}
+    check_axe(page, "captures, no audiobook")
+
+
 def test_axe_in_light_dark_and_german_with_the_toast(signed_in: Page, live: Live) -> None:
     page = signed_in
     made = captured(page, live)

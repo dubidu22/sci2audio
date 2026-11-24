@@ -16,6 +16,7 @@ from audio_fakes import FakeVoice
 from test_web_player import make, player_data, work_of
 from web_helpers import (
     FakeClock,
+    book_folder,
     browser,
     events,
     make_config,
@@ -27,6 +28,7 @@ from sci2audio.app.captures import CAPTURES
 from sci2audio.web import create_app
 from sci2audio.web.captures import UNDO_SECONDS
 from sci2audio.web.markers import MARKERS, markers_text
+from sci2audio.web.player import audiobook_stamp
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -140,6 +142,33 @@ def test_wrong_requests_are_refused_and_the_file_kept(listening: dict[str, Any])
     assert (listening["work"] / CAPTURES).read_bytes() == listening["bytes"]
 
 
+@pytest.mark.parametrize(
+    ("case", "end"),
+    [
+        ("an empty span", lambda span: span["start_char"]),
+        ("past the block's end", lambda _: 10_000),
+    ],
+    ids=["empty", "outside"],
+)
+def test_a_chunk_whose_span_is_empty_or_outside_the_document_is_no_sentence(
+    listening: dict[str, Any], case: str, end: Any
+) -> None:
+    """The route refuses it itself (422), never through the file's read-back guard (503),
+    and the file is unchanged (from the v1.3 marker route's test, #887)."""
+    client, doc, config = listening["client"], listening["doc"], listening["config"]
+    [path] = book_folder(config.output_folder).glob("*.readalong.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    chunk = sentences(listening["data"])[0]  # a sentence without a capture
+    assert chunk not in listening["chunks"]
+    span = data["chunks"][chunk]
+    span["end_char"] = end(span)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    body = {"type": "mark", "chunk": chunk, "audiobook": audiobook_stamp(path)}
+    answer = client.post(f"/api/v1/documents/{doc}/captures", json=body)
+    assert (answer.status_code, answer.json()["error"]) == (422, "no-such-sentence"), case
+    assert (listening["work"] / CAPTURES).read_bytes() == listening["bytes"]
+
+
 def test_a_notes_text_changes_and_a_mark_takes_none(listening: dict[str, Any]) -> None:
     client, doc, ids = listening["client"], listening["doc"], listening["ids"]
     url = f"/api/v1/documents/{doc}/captures"
@@ -215,6 +244,37 @@ def test_markers_not_carried_over_turn_capturing_off_and_stay(tmp_path: Path) ->
         json={"type": "mark", "chunk": sentences(data)[0], "audiobook": data["audiobook"]},
     )
     assert (refused.status_code, refused.json()["error"]) == (409, "markers-not-carried")
+    assert not (work / CAPTURES).exists()
+
+
+@pytest.mark.parametrize(
+    ("language", "words"),
+    [
+        ("en", "Your markers from an earlier version could not be carried over"),
+        ("de", "Ihre Markierungen aus einer früheren Version ließen sich nicht übernehmen"),
+    ],
+)
+def test_a_refused_carry_over_names_markers_json_on_the_page(
+    tmp_path: Path, language: str, words: str
+) -> None:
+    """#911: the notice of a carry-over refused (`capture.markers`) names markers.json by
+    its path (`captures_file`), never captures.json, in English and German."""
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    client = program(create_app(config, voice=lambda models_dir: voice.source()), config)
+    client.cookies.set("sci2audio-language", language)
+    doc = make(client)["doc"]["id"]
+    work = work_of(config, doc)
+    (work / MARKERS).write_text('{"a person\'s": "markers"}', encoding="utf-8")
+    data = page_data(client, doc)
+    assert (data["captures_off"], data["captures_file"]) == ("markers", str(work / MARKERS))
+    page = client.get(f"/documents/{doc}/listen").text
+    note = re.search(r'<p class="note" id="captures-broken">(.*?)</p>', page, re.S)
+    assert note is not None
+    said = html.unescape(note[1])
+    assert words in said
+    assert said.endswith(str(work / MARKERS))
+    assert CAPTURES not in said
     assert not (work / CAPTURES).exists()
 
 

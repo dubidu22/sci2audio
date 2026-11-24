@@ -55,7 +55,8 @@
       {%- if row.state == 'found' %}
       <p class="cp-at">{{ row.at }}</p>
       {%- else %}
-      <p class="cp-state">{{ t('captures.no_audiobook') if row.state == 'no-audiobook' else t('capture.' ~ row.state | replace('-', '_')) }}</p>
+      {#- a state the page can't act on: the Listen page's icon beside its word (#955, #1012) #}
+      <p class="cp-state">{{ icon('info', 's') }}{{ t('captures.no_audiobook') if row.state == 'no-audiobook' else t('capture.' ~ row.state | replace('-', '_')) }}</p>
       {%- endif %}
       <blockquote class="cp-text"{% if group.language %} lang="{{ group.language }}"{% endif %}>“{{ row.sentence }}”</blockquote>
       {%- if row.text %}

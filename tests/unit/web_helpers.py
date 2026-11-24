@@ -177,20 +177,11 @@ def fake_clock() -> FakeClock:
 
 
 def markers_of(work: Path) -> dict[str, Any]:
-    """A document's markers file as written (#474), for field and byte checks."""
+    """A document's v1.3 markers file as written (#474), for field and byte checks."""
     import json
 
     data: dict[str, Any] = json.loads((work / "markers.json").read_text(encoding="utf-8"))
     return data
-
-
-def set_marker(client: TestClient, doc: str, chunk: int, stamp: str, status: int = 201) -> Any:
-    """Set a marker on chunk `chunk` of the page drawn for audiobook `stamp` (#474)."""
-    response = client.post(
-        f"/api/v1/documents/{doc}/markers", json={"chunk": chunk, "audiobook": stamp}
-    )
-    assert response.status_code == status, response.text
-    return response.json()
 
 
 def set_capture(

@@ -27,7 +27,6 @@ from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
 from sci2audio.web.jobs import JobBoard, JobKind, JobRecord, JobState
-from sci2audio.web.markers import MarkerBook
 from sci2audio.web.player import (
     ChapterStates,
     PositionSaves,
@@ -110,8 +109,7 @@ class ServerState:
     board: JobBoard = field(init=False)
     kept: KeptVoice = field(init=False)  # one engine for previews and audio jobs (D-250)
     stopping: threading.Event = field(default_factory=threading.Event)
-    clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
-    markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
+    clock: Callable[[], float] = time.monotonic  # the captures' undo store; tests pass a fake
     captures: CaptureBook = field(init=False)  # every write of a captures file (#397)
     figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
     # every write of a listening position takes its turn here (#790)
@@ -138,7 +136,6 @@ class ServerState:
         self.store.clear_stale_uploads()  # left behind by a server that was killed
         self.board = JobBoard(classify)
         self.kept = KeptVoice(lambda: self.voice(self.config.models_dir))
-        self.markers = MarkerBook(self.clock)
         self.captures = CaptureBook(self.clock)
         # `sci2audio listen` serves its outside jobs and never checks (D-837)
         self.updates = UpdateCheck(
