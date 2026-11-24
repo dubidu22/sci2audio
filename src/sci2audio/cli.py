@@ -213,6 +213,14 @@ class _Formatter(argparse.HelpFormatter):
             return text
         return super()._fill_text(text, width, indent)
 
+    def _format_action_invocation(self, action: argparse.Action) -> str:
+        # Python 3.13 names the value of `-o, --output` once, 3.12 after each form; the help
+        # reads the same on both, so every option that takes a value is written the 3.12 way.
+        if not action.option_strings or action.nargs == 0:
+            return super()._format_action_invocation(action)
+        value = self._format_args(action, self._get_default_metavar_for_optional(action))
+        return ", ".join(f"{option} {value}" for option in action.option_strings)
+
 
 class _Parser(argparse.ArgumentParser):
     """argparse, writing to the env's streams instead of sys.stdout and sys.stderr."""
