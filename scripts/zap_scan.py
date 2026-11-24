@@ -918,6 +918,15 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     _check(gone not in (ids.paper, ids.note), "the throwaway document is one the walk needs")
     call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 200, headers=same)
     call("DELETE", f"{api}/documents/{gone}?keep_audiobook=false", 404, headers=same)
+    # the captures the walk set, saved as a file (#399): into a folder of its own, again
+    # (refused until the person says yes), then replaced on that yes
+    export = f"{api}/captures/export"
+    with tempfile.TemporaryDirectory(prefix="sci2audio-zap-export-") as folder:
+        body = {"format": "md", "folder": folder}
+        call("POST", export, 201, data=body, headers=same)
+        asked = call("POST", export, 409, data=body, headers=same).json()
+        yes = {**body, "overwrite": True, "file": asked["file"]}
+        call("POST", export, 201, data=yes, headers=same)
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

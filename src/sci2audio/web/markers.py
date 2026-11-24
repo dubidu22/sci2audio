@@ -341,6 +341,13 @@ class _Finder:
 
     def find(self, anchor: Anchored) -> tuple[int, int, int] | None:
         """(block, start, end) of the anchor's sentence in this document, or None."""
+        found = self.place(anchor)
+        return None if found is None else found[0]
+
+    def place(self, anchor: Anchored) -> tuple[tuple[int, int, int], tuple[int, int]] | None:
+        """As `find`, and (block, start) of the sentence's first character: a sentence the
+        layout now splits is placed in the block holding most of it, but it starts in an
+        earlier one, and an export names the page where it starts (#399)."""
         needle = _normal(anchor.text)[0]
         if not needle:
             return None
@@ -349,18 +356,21 @@ class _Finder:
         if 0 <= anchor.block < count and anchor.end <= len(self.texts[anchor.block]):
             here = self.texts[anchor.block][anchor.start : anchor.end]
             if _normal(here)[0] == needle:
-                return anchor.block, anchor.start, anchor.end
+                return (anchor.block, anchor.start, anchor.end), (anchor.block, anchor.start)
         # 2. the same text in one block, nearest the old block (and its old offset)
         for block in sorted(range(count), key=lambda b: (abs(b - anchor.block), b)):
             hay, where = self.normal(block)
             starts = _occurrences(hay, needle)
             if starts:
                 best = min(starts, key=lambda s: abs(where[s] - anchor.start))
-                return block, where[best], where[best + len(needle) - 1] + 1
+                first = where[best]
+                return (block, first, where[best + len(needle) - 1] + 1), (block, first)
         # 3. the same text across neighbouring blocks (a sentence the layout now splits)
         return self._across(anchor, needle)
 
-    def _across(self, anchor: Anchored, needle: str) -> tuple[int, int, int] | None:
+    def _across(
+        self, anchor: Anchored, needle: str
+    ) -> tuple[tuple[int, int, int], tuple[int, int]] | None:
         low = max(0, min(anchor.block, len(self.texts)) - NEAR_BLOCKS)
         high = min(len(self.texts), anchor.block + NEAR_BLOCKS + 1)
         hay: list[str] = []
@@ -384,7 +394,20 @@ class _Finder:
             shares.setdefault(block, []).append(raw)
         block = max(shares, key=lambda b: (len(shares[b]), -b))
         raws = shares[block]
-        return block, raws[0], raws[-1] + 1
+        return (block, raws[0], raws[-1] + 1), stretch[0]
+
+
+def finder(document: Document) -> Callable[[Anchored], tuple[int, int] | None]:
+    """Where an anchor's sentence starts in `document` now, as (block, offset), or None:
+    found as `locate` finds it, so an export (#399) orders captures as the pages place them
+    and names the page where each sentence starts."""
+    places = _Finder(document)
+
+    def start(anchor: Anchored) -> tuple[int, int] | None:
+        found = places.place(anchor)
+        return None if found is None else found[1]
+
+    return start
 
 
 def locate[T](

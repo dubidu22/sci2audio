@@ -403,6 +403,7 @@ function capturesPage() {
   const undoButton = document.getElementById("capture-undo");
   const TOAST_FOR = 60000; // ms the toast's Undo stays, as on the Listen page
   let kind = kinds.find((button) => button.getAttribute("aria-pressed") === "true")?.dataset.kind || "all";
+  const files = captureExport(() => ({ type: kind, document: from.value }));
   let queue = Promise.resolve();
   let undo = null; // what the toast's Undo does
   let back = null; // where the focus goes when the toast it is in goes away
@@ -442,6 +443,7 @@ function capturesPage() {
       button.querySelector("[data-count]").textContent = counts[button.dataset.kind];
     }
     none.hidden = anyShown;
+    files.shown(counts[kind]);
     summary.textContent = tr("captures.summary", {
       count: tr("captures.count", { n: total }),
       documents: tr("captures.documents", { n: documents }),
@@ -554,6 +556,165 @@ function capturesPage() {
   });
   // drawn disabled: a click before this script ran would be lost (#350)
   for (const button of root.querySelectorAll("button[data-remove]")) button.disabled = false;
+}
+
+// ---- the Captures page's files (#399, ADR-008 2.1 item 7) -------------------------------------
+// Each target saves what the filters show (`current`) into the folder typed beside it. A file
+// of that name already there is never replaced on the first press: the server refuses it,
+// and the target asks in its place. "Replace it" sends the request the question is about,
+// with the file and folder the server named, never what the field and the filters hold by
+// then; the server refuses it again if that would be another file. Typing in the field or
+// changing the filters ends the question as kept. "Keep it" and Escape leave the file and
+// say so. Every state line has an icon and a word, and is a status line for screen readers.
+function captureExport(current) {
+  const aside = document.getElementById("capture-export");
+  const none = { shown() {} };
+  if (!aside) return none;
+  const count = document.getElementById("export-count");
+  const targets = [...aside.querySelectorAll(".target")];
+  let shownNow = Number(count.dataset.n);
+  const questions = []; // each target's way to end its open question as kept
+  let shownFor = current();
+  // taken from an icon on the page: the script names no address, not even a namespace's
+  const svgSpace = aside.querySelector("svg").namespaceURI;
+
+  function icon(name) {
+    const svg = document.createElementNS(svgSpace, "svg");
+    svg.setAttribute("class", "i s");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const use = document.createElementNS(svgSpace, "use");
+    use.setAttribute("href", `#i-${name}`);
+    svg.append(use);
+    return svg;
+  }
+
+  for (const target of targets) {
+    const format = target.dataset.format;
+    const field = document.getElementById(`export-folder-${format}`);
+    const button = document.getElementById(`export-save-${format}`);
+    const state = document.getElementById(`export-state-${format}`);
+    const ask = document.getElementById(`export-ask-${format}`);
+    const askTitle = document.getElementById(`export-ask-${format}-title`);
+    const replace = ask.querySelector("button[data-replace]");
+    const keep = ask.querySelector("button[data-keep]");
+    let asked = null; // the question's file, and the request it is about
+    let busy = false;
+
+    function tell(kind, name, said) {
+      state.dataset.state = kind;
+      const words = document.createElement("span");
+      if (typeof said === "string") {
+        words.textContent = said;
+      } else {
+        words.textContent = said.text;
+        if (said.details) {
+          const details = document.createElement("span");
+          details.lang = "en";
+          details.textContent = said.details;
+          words.append(` ${tr("common.details")} `, details);
+        }
+      }
+      state.replaceChildren(icon(name), words);
+    }
+
+    function close() {
+      ask.hidden = true;
+      askTitle.textContent = "";
+      asked = null;
+    }
+
+    // `yes`: the question answered "Replace it", whose request is sent as it was asked
+    async function save(yes) {
+      // one request at a time; the button stays enabled, so the focus stays on it
+      if (busy) return;
+      busy = true;
+      close();
+      const before = { kind: state.dataset.state, children: [...state.childNodes] };
+      tell("saving", "download", tr("export.saving"));
+      const wanted = current();
+      const typed = field.value;
+      const body = yes
+        ? { ...yes.body, folder: yes.folder, file: yes.file, overwrite: true }
+        : { format, folder: field.value, type: wanted.type, document: wanted.document };
+      try {
+        const saved = await send("/api/v1/captures/export", json("POST", body));
+        tell("saved", "check", tr("export.saved", { file: saved.file, folder: saved.folder }));
+      } catch (error) {
+        const now = current();
+        const moved =
+          field.value !== typed || now.type !== wanted.type || now.document !== wanted.document;
+        if (error.kind === "export-exists" && error.data && error.data.file && moved) {
+          // the folder or the filters changed while it was on its way: a question now would
+          // be about a request the page no longer shows, so nothing is asked and nothing saved
+          tell("kept", "info", tr("export.kept", { file: error.data.file }));
+        } else if (error.kind === "export-exists" && error.data && error.data.file) {
+          const { file: _, overwrite: __, ...asking } = body;
+          asked = { file: error.data.file, folder: error.data.folder, body: asking };
+          state.dataset.state = before.kind; // nothing changed yet: the question says why
+          state.replaceChildren(...before.children);
+          askTitle.textContent = tr("export.exists", { file: asked.file });
+          ask.hidden = false;
+          askTitle.focus();
+        } else {
+          const said = explain(error);
+          const text = typeof said === "string" ? said : said.text;
+          tell("failed", "alert", {
+            text: `${tr("export.failed")} ${text}`,
+            details: typeof said === "string" ? "" : said.details,
+          });
+        }
+      } finally {
+        busy = false;
+      }
+    }
+
+    function kept(focus = true) {
+      if (!asked) return;
+      const file = asked.file;
+      close();
+      tell("kept", "info", tr("export.kept", { file }));
+      if (focus) button.focus();
+    }
+    questions.push(() => kept(false));
+
+    button.addEventListener("click", () => save(null));
+    replace.addEventListener("click", () => {
+      const yes = asked;
+      if (!yes) return;
+      button.focus(); // the question goes away with the button pressed in it
+      save(yes);
+    });
+    keep.addEventListener("click", () => kept());
+    ask.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      kept();
+    });
+    // another folder typed: the question was about the one before
+    field.addEventListener("input", () => kept(false));
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || button.disabled) return;
+      event.preventDefault();
+      save(null);
+    });
+    button.disabled = shownNow === 0; // drawn disabled: a click before this ran would be lost (#350)
+  }
+
+  return {
+    // what the filters show now: the count line, and no button that would save nothing; a
+    // question asked about what they showed before ends as kept
+    shown(n) {
+      const now = current();
+      if (n !== shownNow || now.type !== shownFor.type || now.document !== shownFor.document) {
+        for (const end of questions) end();
+      }
+      shownNow = n;
+      shownFor = current();
+      count.textContent = tr("export.count", { n });
+      for (const button of aside.querySelectorAll("button[data-export]")) button.disabled = n === 0;
+    },
+  };
 }
 
 // ---- removing a document (#120, D-359 to D-362, #470) ---------------------------------------

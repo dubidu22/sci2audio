@@ -6,6 +6,7 @@ Every error answers `{"error": <kind>, "message": <words>}` (`models.ErrorOut`).
 from __future__ import annotations
 
 import asyncio
+import errno
 import json
 import time
 from collections.abc import AsyncIterator, Callable
@@ -14,11 +15,12 @@ from pathlib import Path
 from typing import Annotated, Any, cast
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, File, Query, Response, UploadFile
+from fastapi import APIRouter, File, Query, Request, Response, UploadFile
 from fastapi import Path as Path_
 from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
+from sci2audio.app.capture_export import ExportFormat, export_captures
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.core import Anchor, Capture, CaptureType, Document, Span, SpanError
 from sci2audio.output import BookKind
@@ -31,7 +33,7 @@ from sci2audio.voices import (
     missing_files,
     voice_pack,
 )
-from sci2audio.web import models
+from sci2audio.web import exports, models
 from sci2audio.web.captures import (
     CapturedAgain,
     CaptureError,
@@ -49,6 +51,7 @@ from sci2audio.web.i18n import (
     PLAYER_SPEED_COOKIE,
     known_player_speed,
     player_speed_text,
+    strings_of,
 )
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
 from sci2audio.web.markers import (
@@ -922,6 +925,86 @@ def restore_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> 
         lambda: state.captures.restore(listening.work, listening.document, capture_id, clash)
     )
     return _capture_out(book, capture)
+
+
+FULL_DISK = frozenset({errno.ENOSPC, getattr(errno, "EDQUOT", errno.ENOSPC)})
+
+
+@router.post(
+    "/captures/export",
+    status_code=201,
+    responses={
+        **_errors(403, 404, 500, 507, *BODY),
+        409: {"model": models.ExportExistsOut, "description": "a file of that name is there"},
+    },
+    summary="Save the captures as a Markdown, RIS or CSV file in a folder",
+)
+def export_captures_file(
+    request: Request, state: State, given: models.CaptureExportIn
+) -> models.CaptureExportOut:
+    """The captures the Captures page shows (`type`, `document`), in reading order, as
+    `<folder>/<name>.<format>`: the document's title for one document, else "Captures" in
+    the page's language (#399, ADR-008 2.1 item 7). A file of that name is never replaced
+    without `overwrite` (409 `export-exists`, nothing written), and `overwrite` replaces only
+    the `file` the 409 answer named: if the request would write another file now, it is
+    refused again; the file is written whole or not at all. No network call."""
+    folder = Path(given.folder)
+    if not given.folder or not folder.is_absolute():
+        raise ApiError(422, "export-folder-needed", f"the folder must be a full path: {folder}")
+    if given.document and given.document not in exports.keys(state):
+        raise ApiError(404, "not-found", f"no document {given.document}")
+    documents = exports.exported(state, given.type, given.document)
+    count = sum(len(document.captures) for document in documents)
+    if not count:
+        raise ApiError(422, "export-empty", "no captures are shown, so there is nothing to save")
+    s = strings_of(request)
+    form = ExportFormat(given.format)
+    name = exports.stem(s, documents, bool(given.document))
+    file = f"{name}.{form.value}"
+    there = ApiError(
+        409,
+        "export-exists",
+        f"{file} is in {folder} already; it is replaced only when asked to",
+        fields={"file": file, "folder": str(folder)},
+    )
+    if given.overwrite and given.file != file:
+        raise there  # the yes was for another file: the person is asked about this one
+    try:
+        if (folder / file).is_dir():  # never offered to be replaced: it is no export
+            raise IsADirectoryError(errno.EISDIR, "a folder has the file's name", file)
+        path = export_captures(
+            folder,
+            name,
+            form,
+            documents,
+            overwrite=given.overwrite,
+            labels=exports.labels(s),
+        )
+    except FileExistsError as error:
+        raise there from error
+    except IsADirectoryError as error:
+        raise ApiError(
+            422, "export-name-is-folder", f"{folder} holds a folder named {file}"
+        ) from error
+    except (NotADirectoryError, FileNotFoundError) as error:
+        raise ApiError(
+            422, "export-folder-missing", f"{folder} is not a folder: {error.strerror}"
+        ) from error
+    except PermissionError as error:
+        raise ApiError(
+            403, "export-folder-refused", f"may not write into {folder}: {error.strerror}"
+        ) from error
+    except OSError as error:
+        if error.errno in FULL_DISK:
+            raise ApiError(507, "disk-full", f"could not save {file}: {error.strerror}") from error
+        if error.errno == errno.ENAMETOOLONG:
+            raise ApiError(
+                422, "export-name-too-long", f"{folder / file} is too long: {error.strerror}"
+            ) from error
+        raise ApiError(
+            500, "export-failed", f"could not save {file}: {error.strerror or error}"
+        ) from error
+    return models.CaptureExportOut(file=path.name, folder=str(folder), path=str(path), count=count)
 
 
 @router.delete(

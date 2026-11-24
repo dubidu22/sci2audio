@@ -1512,6 +1512,7 @@ def captures_page(
         # a file it can't read is named in its group, with nothing to filter
         group["hidden"] = not mine or not (visible or (group["off"] and kind == "all"))
     total = sum(len(group["rows"]) for group in groups)
+    saved, _ = load_settings(state.config.config_file)
     return _page(
         request,
         state,
@@ -1523,6 +1524,32 @@ def captures_page(
         chosen=chosen,
         counts=counts,
         any_shown=any(not group["hidden"] for group in groups),
+        # the files take what the filters show (#399); the folder starts as the audiobooks'
+        export_targets=[
+            {
+                "id": "ris",
+                "icon": "quote",
+                "name": s("export.ris"),
+                "text": s("export.ris_text"),
+                "save": s("export.save_ris"),
+            },
+            {
+                "id": "md",
+                "icon": "note",
+                "name": s("export.md"),
+                "text": s("export.md_text"),
+                "save": s("export.save_md"),
+            },
+            {
+                "id": "csv",
+                "icon": "skip",  # the grid of a table
+                "name": s("export.csv"),
+                "text": s("export.csv_text"),
+                "save": s("export.save_csv"),
+            },
+        ],
+        export_count=counts[kind],
+        export_folder=str(saved.output_folder or state.config.output_folder),
         summary=s(
             "captures.summary",
             count=s("captures.count", n=total),

@@ -406,3 +406,46 @@ class CaptureOut(BaseModel):
         description="found; in text this audiobook does not read; not found in it; or the "
         "document has no audiobook now (a removal or an Undo from the Captures page, #398)"
     )
+
+
+class CaptureExportIn(Strict):
+    """Save the captures the Captures page shows as one file (#399, ADR-008 2.1 item 7)."""
+
+    format: Literal["md", "ris", "csv"] = Field(
+        description="md: Markdown (Obsidian); ris: RIS (Zotero); csv: the table of captures"
+    )
+    folder: str = Field(
+        max_length=4096,
+        pattern=r"^[^\x00]*$",
+        description="the folder to save into, a full path; it must exist",
+    )
+    type: Literal["all", "note", "quote", "mark"] = Field(
+        default="all", description="the page's type filter"
+    )
+    document: str = Field(
+        default="", max_length=200, description='the page\'s document filter ("" for all)'
+    )
+    overwrite: StrictBool = Field(
+        default=False,
+        description="replace the file `file` names: only after the person said yes to it",
+    )
+    file: str = Field(
+        default="",
+        max_length=300,
+        description="with overwrite: the file the 409 answer named and the person said yes "
+        "to replacing; a request that would write another file is refused again",
+    )
+
+
+class CaptureExportOut(BaseModel):
+    file: str = Field(description="the file's name")
+    folder: str = Field(description="the folder it was saved in")
+    path: str = Field(description="the file's full path")
+    count: int = Field(description="how many captures it holds")
+
+
+class ExportExistsOut(ErrorOut):
+    """export-exists: nothing was written; the page asks before it sends `overwrite`."""
+
+    file: str = Field(description="the name of the file that is there")
+    folder: str = Field(description="the folder it is in")

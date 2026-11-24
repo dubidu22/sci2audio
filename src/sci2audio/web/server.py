@@ -101,7 +101,7 @@ def create_app(
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, error: ApiError) -> JSONResponse:
-        body: dict[str, Any] = {"error": error.kind, "message": error.message}
+        body: dict[str, Any] = {**error.fields, "error": error.kind, "message": error.message}
         if error.chapters is not None:
             body["chapters"] = error.chapters
         return JSONResponse(body, error.status)
