@@ -1455,8 +1455,8 @@ def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
     can't make the page, the markers and the player group the chunks differently.
 
     A chunk whose span says nothing (`_silent`: a lone "-" of an audiobook made before #652)
-    is a piece of the sentence before it in its chapter, or, as the chapter's first chunk,
-    leads the sentence after it, so Previous and Next never stop on it."""
+    is a piece of the sentence before it in its chapter; a run of them that opens a chapter
+    leads the sentence after it. So Previous and Next never stop on one."""
     chunks = readalong.chunks
     silent = _silent(document, readalong)
     kept_before: dict[int, int | None] = {}  # a drawn chunk -> the drawn chunk before it
@@ -1473,11 +1473,13 @@ def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
             kept_before[n] = last
             last, position = n, span.end
     starts: list[int] = []
+    leading = False  # every chunk of the chapter so far says nothing (#652)
     for n, chunk in enumerate(chunks):
         follows = chunk.joins and n > 0 and n in kept_before and kept_before[n] == n - 1
         same_chapter = n > 0 and chunks[n - 1].chapter == chunk.chapter
-        if same_chapter and (n in silent or (n - 1 in silent and starts[n - 1] == n - 1)):
-            follows = True  # says nothing (#652), or follows one that opens the chapter
+        if same_chapter and (n in silent or leading):
+            follows = True  # says nothing, or ends the silent run that opens the chapter
+        leading = n in silent and (leading or not same_chapter)
         starts.append(starts[n - 1] if follows else n)
     return starts
 
@@ -1503,16 +1505,19 @@ def _silent(document: Document, readalong: ReadAlong) -> frozenset[int]:
 
 def _place_silent(readalong: ReadAlong, element_of: list[str], silent: frozenset[int]) -> None:
     """Give a silent chunk that got no element in its block (#652: a block of only "-")
-    the element of the chunk before it in its chapter, else of the one after it: the
-    highlight stays on that sentence while it plays, never on the silent block."""
+    the element of the nearest chunk before it in its chapter that has one, else of the
+    nearest after it: the highlight stays on that sentence while it plays, never on the
+    silent block. A run of silent chunks takes it through each other."""
     chunks = readalong.chunks
+
+    def take(n: int, k: int) -> None:
+        if not element_of[n] and 0 <= k < len(chunks) and chunks[k].chapter == chunks[n].chapter:
+            element_of[n] = element_of[k]
+
     for n in sorted(silent):
-        if element_of[n]:
-            continue
-        for k in (n - 1, n + 1):
-            if 0 <= k < len(chunks) and chunks[k].chapter == chunks[n].chapter and element_of[k]:
-                element_of[n] = element_of[k]
-                break
+        take(n, n - 1)
+    for n in sorted(silent, reverse=True):
+        take(n, n + 1)
 
 
 def _piece(

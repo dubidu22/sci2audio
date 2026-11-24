@@ -265,6 +265,18 @@ def test_a_chunk_with_nothing_to_speak_that_opens_a_chapter_leads_the_sentence_a
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s2", "s2"]
     assert sentence_starts(data, document) == view.sentences == [0, 1, 1]
+    # a run of them opens the chapter (#652): all lead the sentence after them, so
+    # Next from "One." goes to the run's start and never to a chunk with no element
+    document = make_document(
+        [("paragraph", "One."), ("paragraph", "-"), ("paragraph", "\u2022"), ("paragraph", "Two.")],
+        sections=[Section("One", 1, 0, 1), Section("Two", 1, 1, 4)],
+    )
+    data = readalong(
+        [(0, 0, 4), (1, 0, 1), (2, 0, 1), (3, 0, 4)], (("One", 0), ("Two", 1)), [0, 1, 1, 1]
+    )
+    view = build_view(document, record(chunks=4), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s3", "s3", "s3"]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 1, 1]
     # in one block: the bullet before the item's words
     document = make_document([("paragraph", "\u2022\nItem one.")])
     data = readalong([(0, 0, 1), (0, 2, 11)])
@@ -771,7 +783,11 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     ]
     ids = {p.element for b in shown_blocks for p in b.pieces if p.element}
     ids |= {b.element for b in shown_blocks if b.element}
-    assert all(chunk[3] in ids or silent[n] for n, chunk in enumerate(view.chunks))
+    # a silent chunk takes a neighbour's element; only with none to take it has none
+    elements = [chunk[3] for chunk in view.chunks]
+    assert all(
+        element in ids or (silent[n] and not any(elements)) for n, element in enumerate(elements)
+    )
     # the model of #480: a chunk with text that joins the chunk before it, in the same block
     # and with text too, is that chunk's sentence; every other chunk with text is its own
     wanted: list[str] = []
@@ -807,14 +823,15 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     if not any(silent):
         assert view.sentences == [int(w.removeprefix("s")) for w in wanted]
         return
-    # a silent chunk is a piece of the sentence before it, or leads the one after it as the
-    # first chunk (#652); the chunks drawn group as the page draws them
+    # a silent chunk is a piece of the sentence before it; a run of them that opens the
+    # chapter (one chapter here) leads the chunk after it (#652); the chunks drawn group as
+    # the page draws them
     sentences = view.sentences
+    leading = True  # every chunk so far is silent
     for number in range(len(spans)):
-        if silent[number] and number:
+        if number and (silent[number] or leading):
             assert sentences[number] == sentences[number - 1]
-        elif number and silent[number - 1] and sentences[number - 1] == number - 1:
-            assert sentences[number] == number - 1
+        leading = leading and silent[number]
     drawn = [n for n, (_, start, end) in enumerate(spans) if start < end and not silent[n]]
     pairs = {(sentences[n], wanted[n]) for n in drawn}
     assert len(pairs) == len({a for a, _ in pairs}) == len({b for _, b in pairs})
