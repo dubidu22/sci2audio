@@ -48,6 +48,7 @@ import time
 import types
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from multiprocessing import resource_tracker
 from multiprocessing.connection import Connection
 from typing import Any
 
@@ -56,7 +57,10 @@ TIME_EXIT = 87  # ... and for a step that took more than twice its time
 _WATCH_SECONDS = 0.02
 START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
-_CANCEL_GRACE_SECONDS = 0.2  # how long after a child ended a cancel still counts (#367)
+# How long after a child ended a cancel still counts (#367). The command line sees Ctrl-C
+# within its 0.1 s poll; on loaded CI runners the cancel came up to 0.11 s (Windows) and
+# 0.23 s (macOS) after the reader saw its child's end, 30 tries each (#803).
+_CANCEL_GRACE_SECONDS = 1.0
 _log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
@@ -200,10 +204,16 @@ def _sigint_held() -> Iterator[None]:
     while starting ends as a reader that could not start; the child inherits the held-back
     signal, ignores SIGINT first thing and only then lets it through, so the parent's
     cancel alone ends it. Windows has no signal mask: there the child ignores SIGINT from
-    its first line of our code on."""
+    its first line of our code on.
+
+    multiprocessing's resource tracker starts first, outside the hold: the first child of
+    a program starts it inside `child.start()`, and on Python 3.12.0 to 3.12.8 its start
+    let SIGINT through in this thread again, so that child started without the hold
+    (#803)."""
     if not hasattr(signal, "pthread_sigmask"):
         yield
         return
+    resource_tracker.ensure_running()
     held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
     try:
         yield
