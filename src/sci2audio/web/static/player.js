@@ -611,9 +611,9 @@ function readAlong() {
     id ? captures.filter((c) => elementOf(c) === id && (!kind || c.type === kind)) : [];
 
   // reading order: found ones by their sentence and the dock's order, then those not read,
-  // then those not found
+  // then those not found, then those put back while the document had no audiobook (#934)
   function sortCaptures() {
-    const rank = { found: 0, "not-read": 1, "not-found": 2 };
+    const rank = { found: 0, "not-read": 1, "not-found": 2, "no-audiobook": 3 };
     captures = captures
       .map((capture, at) => [capture, at])
       .sort(
@@ -728,9 +728,20 @@ function readAlong() {
   }
 
   async function removeCapture(capture) {
+    // only the toast's Undo of "Note saved." reaches a note whose box is open (#921): text
+    // typed there is never dropped without asking, so the Undo goes back to the box
+    const open = editing === capture.id ? openBox() : null;
+    if (open && open.value !== (captures.find((c) => c.id === capture.id)?.text ?? capture.text)) {
+      toOpenBox();
+      return;
+    }
     const gone = await captureCall(`${capturesUrl}/${capture.id}`, "DELETE");
     if (!gone) return;
-    if (editing === gone.id) editing = null;
+    if (editing === gone.id) {
+      editing = null;
+      draft = null;
+      resumeVoice(); // its box closes with it, as Cancel would close it
+    }
     captures = captures.filter((c) => c.id !== gone.id);
     drawCaptures();
     tell(tr(`capture.removed_${gone.type}`), gone.type, () => restoreCapture(gone.id));
@@ -931,6 +942,18 @@ function readAlong() {
     return button;
   }
 
+  // a state the page can't act on gets an icon beside its word (Form-Not-Colour)
+  function infoIcon() {
+    const svg = document.createElementNS(captureTicks.namespaceURI, "svg");
+    svg.setAttribute("class", "i s");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const use = document.createElementNS(captureTicks.namespaceURI, "use");
+    use.setAttribute("href", "#i-info");
+    svg.append(use);
+    return svg;
+  }
+
   function quoted(sentence) {
     const quote = made("blockquote", "cp-text", sentence);
     quote.lang = text.lang;
@@ -946,8 +969,14 @@ function readAlong() {
       const [time, , chapter] = chunks[firstOf[capture.chunk]]; // the sentence's start (#480)
       item.append(made("p", "cp-at", tr("capture.at", { n: chapter + 1, time: clockOf(time) })));
     } else {
-      const notice = capture.state === "not-read" ? tr("capture.not_read") : tr("capture.not_found");
-      item.append(made("p", "cp-state", notice));
+      const words = {
+        "not-read": tr("capture.not_read"),
+        "not-found": tr("capture.not_found"),
+        "no-audiobook": tr("capture.no_audiobook"),
+      };
+      const notice = made("p", "cp-state", words[capture.state]);
+      if (capture.state === "no-audiobook") notice.prepend(infoIcon());
+      item.append(notice);
     }
     const quote = quoted(capture.sentence);
     item.append(quote);
@@ -1089,12 +1118,14 @@ function readAlong() {
 
   async function saveNewNote(value) {
     const note = composing;
-    if (!note) return;
+    if (!note || note.saving) return; // a double click or a second Ctrl+Enter sends one (#921)
     if (!value.trim()) {
       closeComposer(true); // nothing written, nothing kept
       return;
     }
+    note.saving = true;
     const capture = await addCapture("note", note.chunk, value);
+    note.saving = false;
     if (!capture) return;
     closeComposer(false);
     rowOf(capture.id)?.querySelector(".cp-edit-note")?.focus();

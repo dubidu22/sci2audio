@@ -243,18 +243,29 @@ def test_reduced_motion_and_no_highlighter_on_a_button(signed_in: Page, live: Li
 def test_at_1440_and_1280_px_and_narrower_nothing_scrolls_sideways(
     signed_in: Page, live: Live
 ) -> None:
+    """In light and dark, English and German (#934)."""
     page = signed_in
+    frames = "() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))"
     captured(page, live)
     open_captures(page)
-    for width in (1440, 1280, 1024):
-        page.set_viewport_size({"width": width, "height": 900})
-        page.evaluate(
-            "() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))"
-        )
-        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth"), width
-        flag = shown(page).first.locator(".flag").bounding_box()
-        kind = shown(page).first.locator(".cp-kind").bounding_box()
-        assert flag is not None
-        assert kind is not None
-        assert flag["x"] + flag["width"] <= kind["x"], width  # the flag hangs in the margin
+    for language in ("en", "de"):
+        page.set_extra_http_headers({"Accept-Language": language})
+        page.reload()
+        page.wait_for_load_state("load")
+        expect(page.locator("html")).to_have_attribute("lang", language)
+        for scheme in ("light", "dark"):
+            page.emulate_media(color_scheme=scheme)
+            for width in (1440, 1280, 1024):
+                where = (language, scheme, width)
+                page.set_viewport_size({"width": width, "height": 900})
+                page.evaluate(frames)
+                fits = "() => document.documentElement.scrollWidth <= innerWidth"
+                assert page.evaluate(fits), where
+                flag = shown(page).first.locator(".flag").bounding_box()
+                kind = shown(page).first.locator(".cp-kind").bounding_box()
+                assert flag is not None
+                assert kind is not None
+                assert flag["x"] + flag["width"] <= kind["x"], where  # hangs in the margin
+    page.emulate_media(color_scheme="light")
+    page.set_extra_http_headers({})
     page.set_viewport_size({"width": 1280, "height": 720})

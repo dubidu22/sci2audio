@@ -300,6 +300,52 @@ def test_without_an_audiobook_the_captures_stay_listed_and_can_be_removed_and_pu
     assert ids["quote"] in {r["id"] for r in rows(page(client))}
 
 
+@pytest.mark.parametrize("shift", [(0, 0), (1, 0), (0, -1), (2, -2)])
+def test_without_an_audiobook_undo_is_refused_when_the_sentence_has_its_type_again(
+    studied: dict[str, Any], shift: tuple[int, int]
+) -> None:
+    """One capture of a type per sentence, whatever anchor the new one holds (#934)."""
+    client, doc, ids, work = (studied[k] for k in ("client", "doc", "ids", "work"))
+    quote = next(c for c in file_of(work)["captures"] if c["id"] == ids["quote"])
+    url = f"/api/v1/documents/{doc}/captures/{ids['quote']}"
+    assert client.delete(url).status_code == 200
+    (work / AUDIO_RECORD).unlink()
+    data = file_of(work)
+    again = json.loads(json.dumps(quote))
+    again["id"] = "e" * 16
+    block_text = again["anchor"]["text"]
+    start, end = again["anchor"]["start"] + shift[0], again["anchor"]["end"] + shift[1]
+    again["anchor"].update(
+        start=start,
+        end=end,
+        text=block_text[shift[0] : len(block_text) + shift[1]],
+    )
+    data["captures"].append(again)
+    (work / CAPTURES).write_text(json.dumps(data), encoding="utf-8")
+    before = (work / CAPTURES).read_bytes()
+    refused = client.post(f"{url}/restore")
+    assert (refused.status_code, refused.json()["error"]) == (409, "captured-again")
+    assert (work / CAPTURES).read_bytes() == before
+
+
+def test_without_an_audiobook_undo_puts_back_a_capture_beside_another_sentences(
+    studied: dict[str, Any],
+) -> None:
+    """A capture of the type on the next sentence is no clash."""
+    client, doc, ids, work = (studied[k] for k in ("client", "doc", "ids", "work"))
+    url = f"/api/v1/documents/{doc}/captures/{ids['mark']}"
+    assert client.delete(url).status_code == 200
+    (work / AUDIO_RECORD).unlink()
+    data = file_of(work)
+    quote = next(c for c in data["captures"] if c["id"] == ids["quote"])
+    beside = json.loads(json.dumps(quote))
+    beside.update(id="e" * 16, type="mark")
+    data["captures"].append(beside)
+    (work / CAPTURES).write_text(json.dumps(data), encoding="utf-8")
+    back = client.post(f"{url}/restore")
+    assert back.status_code == 201, back.text
+
+
 def test_an_unreadable_file_is_named_in_its_group_and_never_written(
     studied: dict[str, Any],
 ) -> None:

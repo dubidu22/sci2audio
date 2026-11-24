@@ -64,6 +64,7 @@ from sci2audio.web.markers import (
     anchor_of,
     locate,
     place,
+    same_sentence,
 )
 from sci2audio.web.player import (
     Bounds,
@@ -599,6 +600,13 @@ def _book_or_none(state: ServerState, document_id: str) -> tuple[Listening, _Boo
         return listening, None
 
 
+def _document_or_none(listening: Listening) -> Document | None:
+    try:
+        return load_document(listening.work)
+    except (PlayerError, OSError):
+        return None
+
+
 def _book_of(listening: Listening) -> _Book:
     try:
         located = current_audiobook(listening.work, listening.document, listening.folders).located
@@ -904,8 +912,9 @@ def restore_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> 
     def clash(capture: Capture, captures: list[Capture]) -> bool:
         if any(c.anchor == capture.anchor and c.type is capture.type for c in captures):
             return True
-        if book is None:  # no audiobook to find its sentence in: the same anchor only
-            return False
+        if book is None:  # no audiobook to place it in: its sentence in the document
+            of_kind = [c.anchor for c in captures if c.type is capture.type]
+            return same_sentence(capture.anchor, of_kind, _document_or_none(listening))
         chunk, _ = _capture_chunk(book, capture)
         return _capture_on(book, chunk, capture.type, captures) is not None
 
