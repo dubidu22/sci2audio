@@ -426,9 +426,25 @@ def test_a_monospace_line_inside_prose_stays_in_the_paragraph() -> None:
 )
 def test_monospace_links_right_under_a_full_paragraph_line_are_read(rows: tuple) -> None:
     """Links set in a typewriter font under a full prose line are no listing (#599)."""
-    para = text_line(prose("The code and data are available from the authors at"), 280, end=RIGHT)
+    words = "The code and data are available from the authors at"
+    para = text_line(prose(words), 280, end=RIGHT)
     doc = build(para, *listing(*rows, top=280 + PITCH))
-    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert kinds(doc)[1:] == [("paragraph", "\n".join([words, *(text for text, _ in rows)]))]
+
+
+def test_typewriter_lines_under_a_proportional_line_in_a_typed_memo_stay_one_paragraph() -> None:
+    """In a document set mostly in a typewriter font nothing is a listing: a line in another
+    font with typed lines right under it on the pitch is one paragraph (#599)."""
+    first = "To: all staff. Subject: the move to the new building next month."
+    typed = [f"Typed text of the memo, line {k}, as it was typed." for k in range(8)]
+    lines = [text_line(prose(first), 100, end=RIGHT)] + [
+        text_line(
+            (TextRun(text, "Courier", 10.0),), 100 + PITCH * (k + 1), end=RIGHT if k < 7 else HALF
+        )
+        for k, text in enumerate(typed)
+    ]
+    doc = build_document(content(lines))
+    assert kinds(doc) == [("paragraph", "\n".join([first, *typed]))]
 
 
 def test_a_wrapped_caption_line_that_is_only_a_code_name_stays_in_the_caption() -> None:
