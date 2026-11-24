@@ -220,7 +220,8 @@ def hang(monkeypatch: pytest.MonkeyPatch):
 def collections_timed():
     """The seconds each garbage collection took inside the block, as a list that fills up.
     The guard runs a full collection after every call of a plugin, and on a loaded machine
-    one takes seconds; it has its own limit, so a bound on the call leaves its time out."""
+    one takes seconds; it has its own limit, so a bound on the call leaves its time out. Calls
+    from every thread are added, so two that overlap count twice: the sum is an upper bound."""
     collecting: list[float] = []
     collect = gc.collect
 
@@ -431,8 +432,10 @@ def test_a_slow_plugin_is_given_up_and_the_run_goes_on() -> None:
             started = time.monotonic()
             run = run_with("SlowStep", "RemovingStep", timeout=0.2)
             elapsed = time.monotonic() - started
-        # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit, no collections
-        assert elapsed - sum(collecting) < 3
+        # the hang never ends, so any finite bound proves it was given up; 10 s is far below the
+        # hang and the pytest timeout, and the sum of collections is an upper bound
+        # clock-bound: any finite bound proves the hang was given up; 10 s heavy load cannot reach
+        assert elapsed - sum(collecting) < 10
     finally:
         broken.SlowStep.release.set()
     [problem] = run.problems
