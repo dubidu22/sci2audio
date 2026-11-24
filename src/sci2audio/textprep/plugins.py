@@ -24,10 +24,14 @@ worker hands back plain built-in values (copies of the id and languages, edits r
 plain ints and strs) or the text of a failure, never what the plugin returned or raised;
 what a call left in reference cycles is freed before the worker returns, in the worker
 unless another thread's collection took it first, and never in the job's thread; if that
-cannot be made sure within `PLUGIN_COLLECT_TIMEOUT`, the call fails (#804). Not covered
-is what outlives a call: the plugin's step object lives as long as the job's steps, and
-what the plugin keeps on it or in its module's globals is freed wherever that is dropped,
-so a finalizer (`__del__`) of such an object may run in the job's thread.
+cannot be made sure within `PLUGIN_COLLECT_TIMEOUT`, the call fails (#804). Two
+exceptions: while a guard worker hangs inside its collection, later calls are accepted
+although their cycles stay, and should that finalizer ever return, they are freed in
+whichever thread collects next; and cycles a finalizer makes while the worker's own
+collection runs are left. Not covered is what outlives a call: the plugin's step object
+lives as long as the job's steps, and what the plugin keeps on it or in its module's
+globals is freed wherever that is dropped, so a finalizer (`__del__`) of such an object
+may run in the job's thread.
 """
 
 from __future__ import annotations
@@ -255,11 +259,18 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
     If it is not sure by then, the result is a _Failure."""
     global _hung_collection
     result: dict[str, Any] = {"collecting": False}
-    called, collected, settled = threading.Event(), threading.Event(), threading.Event()
+    called, collected = threading.Event(), threading.Event()
+    # plain locks, held until released: this thread passes from opening `start` to sleeping
+    # on `settled` in two C calls, with no Python between that could run a collection
+    start, settled = threading.Lock(), threading.Lock()
+    start.acquire()
+    settled.acquire()
     late: list[str] = []
     limit = PLUGIN_COLLECT_TIMEOUT
+    backstop = timeout + limit + 1.0
 
     def work() -> None:
+        start.acquire()
         try:
             result["value"] = call()
         except KeyboardInterrupt:
@@ -273,18 +284,20 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
         collected.set()
 
     def watch() -> None:
-        # the job's thread sleeps until the cycles are freed or a limit has passed: awake, it
-        # could run a collection that is due, and with it the plugin's finalizers
+        # the job's thread sleeps from before the call starts until the cycles are freed or a
+        # limit has passed: awake, it could run a collection that is due, and with it the
+        # plugin's finalizers
         if not called.wait(timeout):
             late.append("call")
         elif "interrupted" not in result and not collected.wait(limit):
             late.append("collection")
-        settled.set()
+        settled.release()
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()
     threading.Thread(target=watch, name=f"{name} (limits)", daemon=True).start()
-    if not settled.wait(timeout + limit + 1.0):  # the watch itself was held up
+    start.release()
+    if not settled.acquire(True, backstop):  # the watch itself was held up
         late.append("call" if not called.is_set() else "collection")
     if late[:1] == ["call"]:
         raise _TimedOut(worker)

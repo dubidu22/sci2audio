@@ -299,6 +299,16 @@ def test_a_young_collection_in_the_worker_is_not_taken_for_its_full_one(calls, m
     assert run.problems == ()
 
 
+def test_the_job_thread_sleeps_from_before_the_call_starts(calls) -> None:
+    """Awake while the call blocks, the job's thread would itself run the collection the
+    call's allocations made due, and with it the finalizer of the cycle the call dropped."""
+    steps = steps_of("BlocksAfterGarbageStep", timeout=5.0)
+    run = run_steps(paper(), EN, steps)
+    assert "__del__" in [dunder for dunder, _ in calls]
+    assert outside_the_guard(calls) == []
+    assert run.problems == ()
+
+
 def test_a_finalizer_that_hangs_in_the_collection_after_the_call_is_given_up(
     calls, hang, monkeypatch
 ) -> None:

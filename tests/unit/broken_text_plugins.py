@@ -3,6 +3,7 @@
 import gc
 import sys
 import threading
+import time
 from typing import ClassVar
 
 from sci2audio.textprep.api import (
@@ -480,4 +481,21 @@ class AgedCycleStep(_Plugin):
         aged.me = aged
         gc.collect(0)  # still held here: it moves on to an older generation
         del aged
+        return []
+
+
+class BlocksAfterGarbageStep(_Plugin):
+    """Drops a cycle, fills the youngest generation to just below its threshold, then blocks
+    in C: the next thread to allocate a little starts the collection that frees the cycle."""
+
+    id = "blocks-after-garbage"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        dropped = traced(object)()
+        dropped.me = dropped
+        del dropped
+        kept = []
+        while gc.get_count()[0] < gc.get_threshold()[0] - 3:
+            kept.append([])
+        time.sleep(0.2)  # any blocking call: I/O, a lock, a subprocess
         return []
