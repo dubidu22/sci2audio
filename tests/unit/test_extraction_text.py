@@ -1620,9 +1620,10 @@ def test_a_date_in_a_reference_entry_of_any_style_joins_its_entry(style: str) ->
     entry starts a block (#947)."""
     first, second = _STYLES[style]
     month = "Oktober 2020" if style == "german" else "June 2020"
-    assert tags_of(f"{first}\n{month}\n{second}\n") == tags_read("pbp")
-    listed = f"{first}\n{month}\n{second}\n{month}\n{first}\n"
-    assert tags_of(listed) == tags_read("pbpbp")
+    for date in (month, month.upper()):
+        assert tags_of(f"{first}\n{date}\n{second}\n") == tags_read("pbp"), date
+        listed = f"{first}\n{date}\n{second}\n{date}\n{first}\n"
+        assert tags_of(listed) == tags_read("pbpbp"), date
 
 
 @pytest.mark.parametrize("style", ["apa", "numbered", "vancouver", "chicago", "von"])

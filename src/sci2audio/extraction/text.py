@@ -446,6 +446,8 @@ def _title(
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
+        if reference and _starts_reference(after):
+            return True
         return not first.islower() and not (first.isdigit() and not opens and _month_line(line))
     if line.rstrip(_CLOSERS)[-1:] in _ENDS or (reference and _month_line(after)):
         return False
