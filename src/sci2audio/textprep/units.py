@@ -56,7 +56,7 @@ from sci2audio.textprep.footnotes import (
     raised_numbers,
     unread_marks,
 )
-from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
+from sci2audio.textprep.notation import DOUBLE_ARROW, FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -136,6 +136,8 @@ _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a 
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
 _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
+_LOGIC_ARROW = re.compile(DOUBLE_ARROW)
+_LOGIC_ARROW_BEFORE = re.compile(f"(?:{DOUBLE_ARROW}) *\\Z")
 # the statistics step's English readings of those signs, which count as the signs around "2x"
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
@@ -813,5 +815,15 @@ def _in_algebra(
     if compared is not None and compared.search(text, max(0, start - 24), start):
         return True  # "y less than 2x" (#358, D-646)
     before = head[-1:]
-    after = text[end : end + 3].lstrip(" ")[:1]
-    return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")
+    ahead = text[end : end + 3]
+    after = ahead.lstrip(" ")[:1]
+    after_at = end + len(ahead) - len(ahead.lstrip(" "))
+    # the "=" or ">" of an arrow of logic is no operator: the statistics step reads "=>" as
+    # "implies", and "3x" before that word is "3 times" on a second run, as "3x ⇒" is (#843)
+    if (
+        before != ""
+        and before in _OPERATORS
+        and not _LOGIC_ARROW_BEFORE.search(text, max(0, start - 16), start)
+    ):
+        return True
+    return after != "" and after in _OPERATORS + "(" and not _LOGIC_ARROW.match(text, after_at)

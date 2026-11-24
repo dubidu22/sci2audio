@@ -563,6 +563,7 @@ def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
 
 
 @given(german_notation_documents())
+@example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")], "de"))  # #957
 def test_both_steps_keep_the_contract_on_any_german_document(document: Document) -> None:
     check_text_step(NUMBERS, [document], allow_ask=False)
     check_text_step(STATISTICS, [document], allow_ask=False)
@@ -572,6 +573,11 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @example(make_document([(BlockKind.PARAGRAPH, "im Jahr 1998. Jahr")], "de"))  # #536
 @example(make_document([(BlockKind.PARAGRAPH, "um 13:30 Uhr 3. Mai")], "de"))  # #557
 @example(make_document([(BlockKind.PARAGRAPH, "←−1:1")], "de"))  # #593, seed 31337
+@example(make_document([(BlockKind.PARAGRAPH, "Jh.⇒1")], "de"))  # #924
+@example(make_document([(BlockKind.PARAGRAPH, "←−=1")], "de"))  # #924
+@example(make_document([(BlockKind.PARAGRAPH, "Kapitel I")], "de"))  # #924
+@example(make_document([(BlockKind.PARAGRAPH, "Also 3x=>A.")], "de"))  # #843
+@example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")], "de"))  # #957
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)

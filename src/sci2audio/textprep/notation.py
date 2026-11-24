@@ -67,6 +67,13 @@ def pick(candidates: Iterable[Candidate]) -> list[Candidate]:
 # double arrow ("\\Longrightarrow") comes as an equals sign and an arrow, "=⇒", "⇐=", "⇐=⇒"
 # or "⇐⇒"; the voices read "=⇒" "equals" ("gleich"), which flips the meaning (#590)
 _TWO_GLYPH_ARROW = re.compile("←\u2212+→|←\u2212+|\u2212+→|⇐=*⇒|⇐=+|=+⇒")
+# the minus signs of a pieced left arrow right before `\Z`: the numbers step reads "←−" as
+# "←", so they are no part of the sign after them on a second run ("←−=1" is "←=1", #924)
+LEFT_ARROW_TAIL = re.compile("←\u2212+\\Z")
+# the double arrows of logic the statistics step reads (#796): printed in pieces (#590), or in
+# ASCII, but not as part of a longer ASCII run ("=>>"). The units step shares it: an "=" of
+# an arrow is no operator around "2x" (#843)
+DOUBLE_ARROW = r"⇐=*⇒|⇐=+|=+⇒|[⇒⇐⇔]|(?:<=>|=>)(?![<>=])"
 # the one arrow for each first and last glyph of a run
 _ONE_ARROW = {
     ("←", "→"): "↔",

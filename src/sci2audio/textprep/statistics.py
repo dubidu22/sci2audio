@@ -30,9 +30,12 @@ import re
 from collections.abc import Iterator, Mapping
 
 from sci2audio.core import Document, Edit
+from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
+    DOUBLE_ARROW,
+    LEFT_ARROW_TAIL,
     Candidate,
     fold,
     padded,
@@ -89,13 +92,12 @@ _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
 
-# S6 (#796): the double arrows of logic. Printed in pieces as PDFs give the long ones (#590),
-# or in ASCII, but not as part of a longer ASCII run ("==>", ">=>", "=>>"; the sign before
-# is checked in `_operators`, since the "=" of a pieced arrow before it, "⇐=<=>", is no part)
+# S6 (#796): the double arrows of logic (`DOUBLE_ARROW`). An ASCII one after "<", ">" or "="
+# ("==>", ">=>") is none; the sign before is checked in `_operators`, since the "=" of a
+# pieced arrow before it, "⇐=<=>", is no part
 ARROWS = {"⇒": "implies", "⇐": "is implied by", "⇔": "if and only if"}
-_DOUBLE_ARROW = r"⇐=*⇒|⇐=+|=+⇒|[⇒⇐⇔]|(?:<=>|=>)(?![<>=])"
 # an arrow or an operator; the arrow first, so "=⇒" is one arrow and not "="
-_SIGN = re.compile(f"(?P<arrow>{_DOUBLE_ARROW})|{_OPERATOR.pattern}")
+_SIGN = re.compile(f"(?P<arrow>{DOUBLE_ARROW})|{_OPERATOR.pattern}")
 # what ends an operand before an arrow: not a sign this step reads, unless it was read (a sign
 # left as printed would be read on a second run, where the arrow is a word after it)
 _LEFT_OF_ARROW = re.compile(
@@ -377,7 +379,9 @@ def _operators(
         if not _OPERAND.match(plain, right_start):
             continue
         if op in "<>=" and (
-            before in _ARROW or (after and after in "<>=") or _arrow_after(plain, end)
+            (before in _ARROW and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
+            or (after and after in "<>=")
+            or _arrow_after(plain, end)
         ):
             continue
         # German (`word_stop`) reads "=" whatever comes before it: what comes before can be
@@ -438,21 +442,29 @@ def _operand_before_arrow(
     """True if an operand ends before the arrow at `start`, on the same line: a word, a
     number, a closing bracket or a sign read as words. An arrow at a line start is a list
     bullet, even if the line before ends in a word; but not after a sign read in English,
-    whose reading takes the line break along ("A ⇒\n=> B" is "A implies => B" then)."""
+    whose reading takes the line break along ("A ⇒\n=> B" is "A implies => B" then). In
+    German (`word_stop`) an abbreviation the abbreviations step reads with its full stop ends
+    one too, as before "=" (#130): a second run sees the word ("Jh." as "Jahrhundert", #924)."""
     if left and left == read_end:
         return word_stop is False or _LINE_BREAKS.isdisjoint(plain[left:start])
     if not left or not _LINE_BREAKS.isdisjoint(plain[left:start]):
         return False
+    if word_stop and plain[left - 1] == "." and reads_full_stop(plain, left, "de"):
+        return True
     return bool(_LEFT_OF_ARROW.match(plain, left - 1))
 
 
 def _named_in_prose(plain: str, left: int, right_start: int) -> bool:
     """True if an ordinary prose word ends at `left` and another starts at `right_start`
     ("where ⇒ marks", "The arrow ⇒ denotes"): the arrow between them is named, not read as
-    a connective. A symbol is no prose word ("A", "x", "α", "αXγ")."""
+    a connective. A symbol is no prose word ("A", "x", "α", "αXγ"). The word before may be
+    an abbreviation with its full stop (German, #924): "Jh. ⇒ Das" is named as "Jahrhundert ⇒
+    Das" is on a second run."""
     after = right_start
     while after < len(plain) and after - right_start < _PROSE_REACH and _in_word(plain[after]):
         after += 1
+    if left and plain[left - 1] == ".":
+        left -= 1
     before = left
     while before > 0 and left - before < _PROSE_REACH and _in_word(plain[before - 1]):
         before -= 1
