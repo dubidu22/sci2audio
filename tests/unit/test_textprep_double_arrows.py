@@ -108,7 +108,7 @@ def test_each_arrow_edit_quotes_the_printed_arrow() -> None:
     assert edit.reason == '"=⇒" read as "implies"'
 
 
-_PIECES = ["A", "B", "p", "q", "y", "3.5", "f(x)", "(p", "q)", "[a]", "¬b", "is",
+_PIECES = ["A", "B", "p", "q", "y", "3.5", "f(x)", "(p", "q)", "[a]", "¬b", "is", "where", "Der",
            "⇒", "⇐", "⇔", "=⇒", "⇐=", "⇐=⇒", "⇐⇒", "=>", "<=>", "==>", "->",
            "=", "<", "≤", "±", "−", ":", ".", ",", "%", "¨"]  # fmt: skip
 _GAPS = ["", " ", " ", "\n", "\u00a0", "\u00ad", "\u00ad\n"]
@@ -126,4 +126,38 @@ def arrow_texts(draw: st.DrawFn) -> str:
 def test_arrows_and_signs_read_the_same_on_a_second_run(text: str, language: str) -> None:
     """D-577 for #796: whether an arrow is read depends on nothing a first run changes."""
     first, second = first_and_second_run(text, language)
+    assert second == first
+
+
+@pytest.mark.parametrize(
+    ("language", "printed"),
+    [
+        ("en", "such that α ⇒ · · · ⇒ β, where ⇒ marks a derivation step."),
+        ("en", "The arrow ⇒ denotes implication."),
+        ("en", "We write ⇒ for implication."),
+        ("en", "Here ⇔ is the biconditional."),
+        ("de", "wobei ⇒ einen Ableitungsschritt markiert."),
+        ("de", "Der Pfeil ⇔ steht für die Äquivalenz."),
+    ],
+)
+def test_an_arrow_named_in_prose_is_left_as_printed(language: str, printed: str) -> None:
+    """#796: an arrow between two ordinary prose words is a named symbol, not a
+    connective ("where ⇒ marks a derivation step" is no "where implies marks")."""
+    first, second = first_and_second_run(printed, language)
+    assert first == printed
+    assert second == first
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        ("en", "Then α ⇒ β holds.", "Then α implies β holds."),
+        ("en", "So A ⇒ B and x ⇒ y.", "So A implies B and x implies y."),
+        ("en", "the rule p(αXγ ⇒ αβγ) applies", "the rule p(αXγ implies αβγ) applies"),
+        ("de", "Dann gilt α ⇒ β und x ⇒ y.", "Dann gilt α daraus folgt β und x daraus folgt y."),
+    ],
+)
+def test_an_arrow_between_symbols_is_still_read(language: str, printed: str, said: str) -> None:
+    first, second = first_and_second_run(printed, language)
+    assert first == said
     assert second == first

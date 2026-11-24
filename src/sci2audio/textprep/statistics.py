@@ -360,6 +360,8 @@ def _operators(
                 continue
             if not _operand_before_arrow(plain, left, start, read_end, word_stop):
                 continue  # a list bullet, an arrow at a line start: no sentence word
+            if left != read_end and _named_in_prose(plain, left, right_start):
+                continue  # "where ⇒ marks", "The arrow ⇒ denotes": the symbol itself
             words = arrows[_one_arrow(op)]
             span_start, span_end = _span(left, start, end, right_start, taken, word_stop)
             taken, read_end = span_end, end
@@ -442,6 +444,42 @@ def _operand_before_arrow(
     if not left or not _LINE_BREAKS.isdisjoint(plain[left:start]):
         return False
     return bool(_LEFT_OF_ARROW.match(plain, left - 1))
+
+
+def _named_in_prose(plain: str, left: int, right_start: int) -> bool:
+    """True if an ordinary prose word ends at `left` and another starts at `right_start`
+    ("where ⇒ marks", "The arrow ⇒ denotes"): the arrow between them is named, not read as
+    a connective. A symbol is no prose word ("A", "x", "α", "αXγ")."""
+    after = right_start
+    while after < len(plain) and after - right_start < _PROSE_REACH and _in_word(plain[after]):
+        after += 1
+    before = left
+    while before > 0 and left - before < _PROSE_REACH and _in_word(plain[before - 1]):
+        before -= 1
+    return _prose_word(plain[right_start:after]) and _prose_word(plain[before:left])
+
+
+_PROSE_REACH = 40  # a word looked at is at most this long, so long blocks stay linear
+
+
+def _in_word(char: str) -> bool:
+    return char.isalnum() or char == "_" or char == "\u00ad" or char in ACCENTS
+
+
+def _prose_word(word: str) -> bool:
+    """True for an ordinary word: two or more letters (an accent printed apart is part of its
+    letter, as the Unicode step joins them), a capital at most first, no Greek letter."""
+    letters = [c for c in word if c != "\u00ad" and c not in ACCENTS]
+    return (
+        0 < len(word) < _PROSE_REACH
+        and len(letters) >= 2
+        and all(c.isalpha() and not _greek(c) for c in letters)
+        and all(c.islower() for c in letters[1:])
+    )
+
+
+def _greek(char: str) -> bool:
+    return "\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff"
 
 
 def _left_end(plain: str, start: int) -> int:
