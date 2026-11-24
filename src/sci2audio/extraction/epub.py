@@ -369,8 +369,9 @@ def _decode(data: bytes) -> str:
             codec = "utf-8"  # punycode on Python 3.13 decodes to nothing instead of failing
     try:
         return data.decode(codec, errors="replace")
-    except (LookupError, ValueError):  # not a text codec (hex, base64) or one that can't
-        return data.decode("utf-8", errors="replace")  # replace (idna, punycode)
+    except (LookupError, ValueError):  # not a text codec (hex, base64), or idna, which reads the
+        # declaration as it is, so _reads_ascii lets it pass, but raises on errors="replace"
+        return data.decode("utf-8", errors="replace")
 
 
 def _reads_ascii(codec: str, declaration: bytes) -> bool:
