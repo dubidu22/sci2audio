@@ -143,3 +143,37 @@ def test_convert_keep_settings_with_script_keeps_the_language(
     assert result.code == 0, result.err
     report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
     assert report["settings"]["language"] == "en"
+
+
+def test_convert_keep_settings_with_script_covers_the_chapters_the_audio_holds(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#784: the audio holds the chapters made before and the new ones, so the script and
+    report cover those, in book order, not only this run's choice."""
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [0, 1]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "not spoken" not in script.split("# 3. Gamma")[0]  # Alpha and Beta are heard
+    assert script.index("# 1. Alpha") < script.index("# 2. Beta")
+    assert "# 3. Gamma (not spoken)" in script
+
+
+@pytest.mark.parametrize("flags", [(), ("--overwrite",), ("--keep-settings", "--overwrite")])
+def test_convert_with_script_without_keeping_covers_the_chosen_chapters_only(
+    cli: Cli, source: Path, tmp_path: Path, flags: tuple[str, ...]
+) -> None:
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli("convert", source, "-o", out, "-q", "--chapters", "2", "--with-script", *flags)
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [1]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "# 1. Alpha (not spoken)" in script
+    assert "# 2. Beta (not spoken)" not in script
