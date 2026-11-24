@@ -8,7 +8,8 @@ all its files before it renames any, so a full disk leaves every earlier file as
 and without `overwrite` it puts either all of its files in place or none.
 An existing file is only replaced with `overwrite=True`; without it, a file that appeared
 at the target during the run is never replaced either. A run killed outright may leave a
-partial file behind; the next write of that file removes it once its process is gone.
+partial file behind; the next write of that file removes it once its process is gone and
+it is an hour old (`STALE_AFTER_SECONDS`).
 """
 
 from __future__ import annotations
@@ -18,8 +19,15 @@ import os
 import re
 import secrets
 import sys
+import time
 from collections.abc import Mapping
 from pathlib import Path
+
+STALE_AFTER_SECONDS = 3600
+"""A partial file is swept only when it is older than this. A process id means something
+only on its own machine and in its own PID namespace; in a folder shared with another
+machine or a container, a live writer's file may name a process that looks gone here, and
+a live writer finishes within seconds, so an hour old is a leftover."""
 
 
 def partial_path(target: Path) -> Path:
@@ -52,8 +60,8 @@ def _process_is_gone(pid: int) -> bool:
 
 def _remove_left_behind(target: Path) -> None:
     """Remove the partial files that a run killed outright left for `target`: those named
-    for a process that is gone. Never one of this process (another thread may be writing)
-    nor of a live process."""
+    for a process that is gone and that are older than `STALE_AFTER_SECONDS`. Never one of
+    this process (another thread may be writing), of a live process, or a young one."""
     pattern = re.compile(rf"\.{re.escape(target.name)}\.([0-9a-f]+)-[0-9a-f]{{8}}\.partial")
     with contextlib.suppress(OSError):
         for entry in os.scandir(target.parent):
@@ -61,8 +69,11 @@ def _remove_left_behind(target: Path) -> None:
             if found is None:
                 continue
             pid = int(found.group(1), 16)
-            if pid != os.getpid() and _process_is_gone(pid):
-                with contextlib.suppress(OSError):
+            if pid == os.getpid():
+                continue
+            with contextlib.suppress(OSError):  # gone meanwhile, or not ours to remove
+                old = time.time() - entry.stat().st_mtime > STALE_AFTER_SECONDS
+                if old and _process_is_gone(pid):
                     os.unlink(entry.path)
 
 

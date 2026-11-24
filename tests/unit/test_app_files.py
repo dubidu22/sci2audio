@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -89,23 +90,56 @@ def _finished_pid() -> int:
     return child.pid
 
 
-def test_a_write_removes_the_partial_file_of_a_process_that_is_gone(tmp_path: Path) -> None:
+def _leave(path: Path, *, age: float) -> Path:
+    """A partial file left behind, last written `age` seconds ago."""
+    path.write_text("half", encoding="utf-8")
+    then = time.time() - age
+    os.utime(path, (then, then))
+    return path
+
+
+OLD = files.STALE_AFTER_SECONDS + 60
+YOUNG = 60
+
+
+def test_a_write_removes_an_old_partial_file_of_a_process_that_is_gone(tmp_path: Path) -> None:
     dead = _finished_pid()
     target = tmp_path / "x.json"
-    left = tmp_path / f".x.json.{dead:x}-0123abcd.partial"
-    left.write_text("half", encoding="utf-8")
-    other = tmp_path / f".y.json.{dead:x}-0123abcd.partial"  # of another file: not touched
-    other.write_text("half", encoding="utf-8")
+    _leave(tmp_path / f".x.json.{dead:x}-0123abcd.partial", age=OLD)
+    other = _leave(tmp_path / f".y.json.{dead:x}-0123abcd.partial", age=OLD)  # another file
     files.write_texts({target: "whole"}, overwrite=True)
     assert sorted(p.name for p in tmp_path.iterdir()) == sorted([target.name, other.name])
 
 
+def test_a_write_keeps_a_young_partial_file_even_if_its_process_looks_gone(
+    tmp_path: Path,
+) -> None:
+    """The process id may belong to another machine or PID namespace sharing the folder."""
+    dead = _finished_pid()
+    young = _leave(tmp_path / f".x.json.{dead:x}-0123abcd.partial", age=YOUNG)
+    files.write_texts({tmp_path / "x.json": "whole"}, overwrite=True)
+    assert young.exists()
+
+
 def test_a_write_keeps_the_partial_files_of_live_processes(tmp_path: Path) -> None:
     target = tmp_path / "x.json"
-    own = tmp_path / f".x.json.{os.getpid():x}-0123abcd.partial"  # another thread of ours
-    parent = tmp_path / f".x.json.{os.getppid():x}-0123abcd.partial"  # a process that lives
-    for path in (own, parent):
-        path.write_text("busy", encoding="utf-8")
+    own = _leave(tmp_path / f".x.json.{os.getpid():x}-0123abcd.partial", age=OLD)  # our thread
+    parent = _leave(tmp_path / f".x.json.{os.getppid():x}-0123abcd.partial", age=OLD)  # alive
     files.write_texts({target: "whole"}, overwrite=True)
     assert own.exists()
     assert parent.exists()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="os.kill(pid, 0) is the POSIX check")
+def test_a_write_keeps_a_partial_file_when_the_process_check_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Doubt means keep: a process of another user answers PermissionError."""
+
+    def refused(pid: int, sig: int) -> None:
+        raise PermissionError(1, "Operation not permitted")
+
+    monkeypatch.setattr(files.os, "kill", refused)
+    held = _leave(tmp_path / ".x.json.1-0123abcd.partial", age=OLD)
+    files.write_texts({tmp_path / "x.json": "whole"}, overwrite=True)
+    assert held.exists()
