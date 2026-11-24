@@ -77,6 +77,14 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("the 1234 cells", "the 1,234 cells"),
         ("2050 people", "2,050 people"),
         ("1905 children", "1,905 children"),
+        # ... and before a sign or the word a second run sees for it, unless year-like (#844)
+        ("1234 = A", "1,234 = A"),
+        ("1234×", "1,234×"),
+        ("1234x larger", "1,234x larger"),
+        ("1234 times", "1,234 times"),
+        ("2019 = A", "2019 = A"),
+        ("2019 equals A", "2019 equals A"),
+        ("1234 == A", "1234 == A"),
         # N4 trailing zeros
         ("2.50", "2 point 5 0"),
         ("1.00", "1 point 0 0"),

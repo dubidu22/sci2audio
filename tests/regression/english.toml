@@ -606,6 +606,32 @@ goal = "Years, round hundreds and model numbers left to misaki (TP-09, D-176, D-
 blocks = [{ kind = "paragraph", text = "In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti." }]
 expected = ["In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti."]
 
+# #844: a four-digit number before a sign, and before the word a second run sees in its place
+
+[[case]]
+id = "four-digit-count-before-a-sign"
+audit = 0
+issue = 844
+goal = "A four-digit number before '=', '×' or an 'x' read as 'times' is a number, read with its comma on the first run as on a second run, which sees 'equals' and 'times' (D-182, D-577)."
+blocks = [{ kind = "paragraph", text = "We set 1234 = A and 1234=B; it grew 1234× and 1234x larger, 1234 × 5 in all." }]
+expected = ["We set 1,234 equals A and 1,234 equals B; it grew 1,234 times and 1,234 times larger, 1,234 times 5 in all."]
+
+[[case]]
+id = "four-digit-count-before-a-said-sign"
+audit = 0
+issue = 844
+goal = "A four-digit number before 'equals' or 'times' printed as words is read as before the sign (D-182)."
+blocks = [{ kind = "paragraph", text = "We set 1234 equals A; it grew 1234 times." }]
+expected = ["We set 1,234 equals A; it grew 1,234 times."]
+
+[[case]]
+id = "four-digit-year-before-a-sign"
+audit = 0
+issue = 844
+goal = "A year-like four-digit number (1500 to 2099) before a sign or its word is left as printed on both runs, as '2019 = A' was before (D-182, D-577)."
+blocks = [{ kind = "paragraph", text = "We set 2019 = A and 2019 equals B; it grew 2019× and 2019 times." }]
+expected = ["We set 2019 equals A and 2019 equals B; it grew 2019 times and 2019 times."]
+
 [[case]]
 id = "ordinary-numbers"
 audit = 0
