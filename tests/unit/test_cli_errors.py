@@ -4,14 +4,23 @@ can't show every character (D-225)."""
 
 from __future__ import annotations
 
+import argparse
 import io
 from pathlib import Path
+from typing import Any
 
 import pytest
 from cli_helpers import BROKEN, SEABORN, Cli, small_pdf
 from pdf_maker import glyph_number_pdf
 
-from sci2audio.cli import COMMANDS, EXIT_CODES_HELP, CliEnv, Exit, _never_fail_on_characters
+from sci2audio.cli import (
+    COMMANDS,
+    EXIT_CODES_HELP,
+    CliEnv,
+    Exit,
+    _never_fail_on_characters,
+    _Parser,
+)
 
 
 @pytest.fixture
@@ -234,3 +243,34 @@ def test_an_unknown_choice_of_an_option_lists_the_choices_quoted(cli: Cli, tmp_p
         "sci2audio convert: error: argument --format: invalid choice: 'wav' "
         "(choose from 'both', 'm4b', 'mp3')"
     )
+
+
+@pytest.mark.parametrize(
+    ("choices", "kind", "given", "expected"),
+    [
+        ({"fast": 1, "slow": 2}, str, "mid", "'mid' (choose from 'fast', 'slow')"),
+        (range(1, 4), int, "7", "'7' (choose from '1', '2', '3')"),
+        ([10, 20, 30], int, "25", "'25' (choose from '10', '20', '30')"),
+    ],
+    ids=["dict", "range", "int-list"],
+)
+def test_an_invalid_choice_lists_any_kind_of_choices_quoted(
+    choices: Any, kind: type, given: str, expected: str
+) -> None:
+    env = CliEnv.real()
+    env.err = io.StringIO()
+    parser = _Parser(prog="tool", env=env)
+    parser.add_argument("--pick", type=kind, choices=choices)
+    with pytest.raises(SystemExit) as stopped:
+        parser.parse_args(["--pick", given])
+    assert stopped.value.code == 2
+    assert env.err.getvalue().splitlines()[-1] == (
+        f"tool: error: argument --pick: invalid choice: {expected}"
+    )
+
+
+def test_a_valid_choice_of_any_kind_is_accepted() -> None:
+    parser = _Parser(prog="tool", env=CliEnv.real())
+    parser.add_argument("--a", type=int, choices=range(1, 4))
+    parser.add_argument("--b", choices={"fast": 1})
+    assert parser.parse_args(["--a", "3", "--b", "fast"]) == argparse.Namespace(a=3, b="fast")
