@@ -271,21 +271,24 @@ def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
     """D-219: the first Ctrl-C asks the job to stop after the sentence; a second one does
     not wait for it."""
     pressed = threading.Event()
+    second_pressed: list[float] = []
 
     def press_twice_then_take_long(text: str) -> bool:
         if not pressed.is_set():
             pressed.set()
             _thread.interrupt_main()
             wait_for_stopping(cli)  # the first Ctrl-C is taken; now the second
+            second_pressed.append(time.monotonic())
             _thread.interrupt_main()
             threading.Event().wait(10)  # a sentence that takes long
         return False
 
     cli = Cli(tmp_path, voice=FakeVoice(fail_on=press_twice_then_take_long))
-    started = time.monotonic()
     result = cli("convert", source, "-o", tmp_path / "b", "-q")
-    # clock-bound: it did not wait for the sentence to end, which takes 10 s
-    assert time.monotonic() - started < 5
+    stopped = time.monotonic()
+    # clock-bound: counted from the second Ctrl-C, not from the start (reading the file takes
+    # seconds on a loaded machine); it did not wait for the sentence to end, which takes 10 s
+    assert stopped - second_pressed[0] < 5
     assert result.code == 130
     assert result.err == (
         "sci2audio: stopping after the current sentence; finished sentences are kept\n"
