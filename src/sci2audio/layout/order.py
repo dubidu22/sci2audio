@@ -5,8 +5,11 @@ page into bands at their middle. A graphic around several items (a frame, a page
 cuts at its top and bottom edges instead and is read before what it holds. Inside a band, a
 gutter is a vertical strip of white that hardly any item crosses (a centred author line may),
 with enough on both sides to be a column; the items that do cross it cut the band once more,
-the same way. Each column is read from the top, row by row. The cut is not repeated inside a
-column (no nested columns; Issue #32).
+the same way. Inside each column found, the same cut into bands and columns is tried again,
+with "wide" now measured against that column, down to `column_depth` levels (#32, D-67): a
+block of two short columns of running text inside one column of the page is read one column
+after the other. A table's cells or a plot's labels inside a column leave a ragged edge and
+are not cut there. A column with no columns inside it is read from the top, row by row.
 
 A display formula set across both columns of a page leaves no white wide enough to cut it,
 so a gutter would run through it (#34). An equation number at the right edge of the text
@@ -184,7 +187,8 @@ def reading_order(
     for band, after in _bands(rest, _edges(wide, elements, settings)):
         cuts = gutters(band, width, size, settings)
         band = across(band, cuts, width, size, settings)
-        reading.ordered += _read_band(band, cuts, settings, reading.sides)
+        depth = settings.column_depth - 1
+        reading.ordered += _read_band(band, cuts, size, settings, reading.sides, depth)
         mine = counted(band)
         if _text(mine) >= settings.column_text * total and _filled(mine, cuts, settings):
             reading.columns = max(reading.columns, len(cuts) + 1)
@@ -410,9 +414,15 @@ def _is_column(side: list[Element], width: float, settings: LayoutSettings) -> b
 
 
 def _read_band(
-    elements: list[Element], cuts: Cuts, settings: LayoutSettings, sides: Sides
+    elements: list[Element],
+    cuts: Cuts,
+    size: float,
+    settings: LayoutSettings,
+    sides: Sides,
+    depth: int,
 ) -> list[Element]:
-    """Columns left to right, cut again where an element crosses a gutter."""
+    """Columns left to right, cut again where an element crosses a gutter; inside each
+    column, columns of its own are looked for `depth` more levels down."""
     crossers = [e for e in elements if _spans(e, cuts)]
     taken = {id(e) for e in crossers}
     rest = [e for e in elements if id(e) not in taken]
@@ -420,12 +430,70 @@ def _read_band(
     edges: list[float | None] = [None, *(x for cut in cuts for x in cut), None]
     for band, after in _bands(rest, _edges(crossers, elements, settings)):
         for index, column in enumerate(_columns(band, cuts)):
-            if cuts:
-                sides.update((id(e), (edges[2 * index], edges[2 * index + 1])) for e in column)
-            ordered += by_rows(column, settings.row_overlap)
+            if not cuts:
+                ordered += by_rows(column, settings.row_overlap)
+                continue
+            outer = (edges[2 * index], edges[2 * index + 1])
+            sides.update((id(e), outer) for e in column)
+            ordered += _read_column(column, outer, size, settings, sides, depth)
         if after:
             ordered.append(after)
     return ordered
+
+
+def _read_column(
+    elements: list[Element],
+    outer: tuple[float | None, float | None],
+    size: float,
+    settings: LayoutSettings,
+    sides: Sides,
+    depth: int,
+) -> list[Element]:
+    """One column found on the page, in reading order (#32, D-67).
+
+    The column is cut as a page is: what is wider than `wide` of the column cuts it into
+    bands, and gutters cut each band into columns of running text. If no band has such a
+    gutter, or `depth` is used up, the column is read row by row as it is. An element read in
+    a column inside it takes that column's gutters as its sides, and the outer column's
+    (`outer`) at its edges.
+    """
+    if depth <= 0 or len(elements) < 2 * settings.column_items:
+        return by_rows(elements, settings.row_overlap)
+    width = max(e.box.x1 for e in elements) - min(e.box.x0 for e in elements)
+    wide = [e for e in elements if e.box.x1 - e.box.x0 > settings.wide * width]
+    taken = {id(e) for e in wide}
+    rest = [e for e in elements if id(e) not in taken]
+    bands = []
+    for band, after in _bands(rest, _edges(wide, elements, settings)):
+        cuts = gutters(band, width, size, settings)
+        bands.append((band, after, cuts if _running(band, cuts, size, settings) else []))
+    if not any(cuts for _, _, cuts in bands):
+        return by_rows(elements, settings.row_overlap)
+    ordered: list[Element] = []
+    inner: Sides = {}
+    for band, after, cuts in bands:
+        band = across(band, cuts, width, size, settings)
+        ordered += _read_band(band, cuts, size, settings, inner, depth - 1)
+        if after:
+            ordered.append(after)
+    for key, (left, right) in inner.items():
+        sides[key] = (outer[0] if left is None else left, outer[1] if right is None else right)
+    return ordered
+
+
+def _running(band: list[Element], cuts: Cuts, size: float, settings: LayoutSettings) -> bool:
+    """True if each column the gutters (`cuts`) make in a band inside a column is running
+    text: `column_fill` of its letters in lines that start and end within `fill_slack` of
+    its edges (#32). The cells of a table, the labels of a plot and the words of one line
+    set apart leave a ragged edge, so they are still read row by row."""
+    slack = settings.fill_slack * size
+    for column in _columns([e for e in band if e.line], cuts):
+        left = min((e.box.x0 for e in column), default=0.0)
+        right = max((e.box.x1 for e in column), default=0.0)
+        full = [e for e in column if e.box.x0 <= left + slack and e.box.x1 >= right - slack]
+        if not column or _text(full) < settings.column_fill * _text(column):
+            return False
+    return True
 
 
 def by_rows(elements: list[Element], overlap: float) -> list[Element]:
