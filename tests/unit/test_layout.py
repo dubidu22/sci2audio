@@ -1427,6 +1427,29 @@ def test_a_middle_figure_s_caption_and_lines_are_read_between_its_columns_when_t
     assert holding(doc, BlockKind.CAPTION) == [[caption[0].id]]
 
 
+@pytest.mark.parametrize(
+    ("end", "first"), [("the measure-", "ment of the"), ("die Mess-", "ung der Werte")]
+)
+def test_a_word_split_over_a_middle_figure_s_column_is_not_cut(end: str, first: str) -> None:
+    """#966: the #966 page, but the left column's last line ends in a word split by a
+    hyphen that the right column's first line goes on with. Reading the middle column
+    between them would put the caption and that column inside the word, so the paragraph
+    goes on in the right column with the word whole, and the float follows it (#61)."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    caption = line("Figure 1: a thing", x0, 80 + 14 * 24, x0 + 90)
+    middle = [line("c1r25", x0, 80 + 14 * 25, x0 + width), line("c1r26", x0, 444, x0 + 80)]
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line(end, LEFT, 80 + 14 * 26, LEFT + width)
+    right[0] = line(first, right[0].box.x0, right[0].box.y0, right[0].box.x1)
+    drawing = Drawing("fig", Box(x0, 80, x0 + width, 80 + 14 * 23))
+    doc = build_document(content([*left, caption, *middle, *right], drawings=(drawing,)))
+    assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+    read = [p.item for b in doc.blocks for p in b.parts]
+    assert read.index(caption.id) > read.index(right[0].id)
+
+
 @pytest.mark.parametrize("where", ["top of the right column", "foot of the left column"])
 def test_a_note_under_a_caption_in_the_paragraph_s_own_columns_waits_for_it(where: str) -> None:
     """#966, #61: two columns, the left one's last line running on into the right one. A

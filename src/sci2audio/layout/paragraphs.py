@@ -905,10 +905,12 @@ class Paragraphs:
         leave the page's order (#966). A float's own lines under its caption (an algorithm's,
         a note's) stand in the column the paragraph runs on from or goes on in (nowak p5:
         on the next page, left of where it goes on), and still wait for it, as does the
-        caption alone (#61, #958)."""
+        caption alone (#61, #958). A word split by a hyphen over the break is never cut:
+        the hyphen step rejoins it only inside one block."""
         last, first = self.aside[-1], self.open[0] if self.open else None
         return (
             first is not None
+            and not _split_word(last, row)
             and first is not self.caption
             and self._float(first)
             and last.right <= first.left
