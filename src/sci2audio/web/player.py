@@ -270,11 +270,6 @@ class Bounds:
         return first <= position.time < last
 
 
-def fits(readalong: ReadAlong, position: Position) -> bool:
-    """True if the position is a time of this audiobook inside the chapter it names."""
-    return Bounds.of(readalong).fits(position)
-
-
 def audiobook_bounds(readalong: Path) -> Bounds:
     """The bounds of the read-along file at this path, read once per version of the file
     (kept as `audiobook_stamp` keeps its stamp) and kept small, so the shelf on every page

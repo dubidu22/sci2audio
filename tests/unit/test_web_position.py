@@ -139,14 +139,14 @@ def test_nothing_is_offered_before_the_first_sentence_ends_or_after_the_last(
 
 
 def test_a_position_must_lie_in_the_book() -> None:
-    data = two_chapters()
-    assert player.fits(data, Position(0, 0.0))
-    assert player.fits(data, Position(1, 10.0))  # the end is saved when the book ends
-    assert not player.fits(data, Position(1, 10.5))
-    assert not player.fits(data, Position(0, 5.5))
-    assert not player.fits(data, Position(2, 6.0))
-    assert not player.fits(data, Position(0, float("nan")))
-    assert not player.fits(data, Position(0, float("inf")))
+    fits = player.Bounds.of(two_chapters()).fits
+    assert fits(Position(0, 0.0))
+    assert fits(Position(1, 10.0))  # the end is saved when the book ends
+    assert not fits(Position(1, 10.5))
+    assert not fits(Position(0, 5.5))
+    assert not fits(Position(2, 6.0))
+    assert not fits(Position(0, float("nan")))
+    assert not fits(Position(0, float("inf")))
 
 
 def test_a_time_just_past_a_chapters_end_is_its_end() -> None:

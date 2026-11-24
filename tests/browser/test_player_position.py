@@ -13,7 +13,7 @@ from test_player import chunk_id, highlighted, make_audiobook, paused, watch_sta
 
 from conftest import Live, SlowFetch, check_axe, inside, serve, tab_key
 from sci2audio.output import read_readalong
-from sci2audio.web.player import POSITION, recorded_folder
+from sci2audio.web.player import POSITION, TIME_TOLERANCE, recorded_folder
 
 
 def wait_until_saved(page: Page, live: Live, document: str, time: float) -> None:
@@ -182,21 +182,27 @@ def test_the_end_of_the_audio_sends_one_save(signed_in: Page, live: Live) -> Non
         "() => { const a = document.getElementById('audio'); a.currentTime = a.duration - 0.3; }"
     )
     page.wait_for_function("() => document.getElementById('audio').ended")
-    page.wait_for_timeout(500)  # a second save, if there were one, is sent by now
-    assert saves
-    assert len(saves) == len(set(saves)), saves  # no place was sent twice
-    assert json.loads(saves[-1])["chapter"] == 1
-    for _ in range(100):  # every save was answered
-        if len(answers) == len(saves):
-            break
-        page.wait_for_timeout(50)
-    # every save was kept (#779: the one at the end lies a frame's padding past the
-    # read-along's end in Chromium and was refused), none failed because of another
-    assert answers == [204] * len(saves), (answers, saves)
     work = live.state.store.get(document).folder
     folder = recorded_folder(work, document)
     assert folder is not None
     (found,) = folder.glob("*.readalong.json")
     end = read_readalong(found).duration
+    # wait for the end's save to be sent and answered: WebKit says `ended` well before it
+    # fires the `pause` and `ended` events that send it
+    for _ in range(200):
+        if (
+            saves
+            and json.loads(saves[-1])["time"] >= end - TIME_TOLERANCE
+            and len(answers) == len(saves)
+        ):
+            break
+        page.wait_for_timeout(50)
+    page.wait_for_timeout(500)  # a second save, if there were one, is sent by now
+    assert saves
+    assert len(saves) == len(set(saves)), saves  # no place was sent twice
+    assert json.loads(saves[-1])["chapter"] == 1
+    # every save was kept (#779: the one at the end lies a frame's padding past the
+    # read-along's end in Chromium and was refused), none failed because of another
+    assert answers == [204] * len(saves), (answers, saves)
     kept = json.loads((work / POSITION).read_text(encoding="utf-8"))
     assert (kept["chapter"], kept["time"]) == (1, end), (kept, saves)
