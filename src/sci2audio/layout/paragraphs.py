@@ -20,19 +20,23 @@ change between italic and upright ends the paragraph (#454).
 A paragraph goes on across a column or page break when its last line fills the column and
 the next column starts with a line in the same style that is not indented. Figures and
 furniture met while a paragraph is open wait until it closes, and so does text that
-interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Of what
-waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
-after it (#648). A figure in a wide gutter is read as a column of its own between two
-columns of text (#873, #938): the rows read in that column right after it, if they are its
-labels (on it or close by it, #945; a row of ticks may span it, #933) and caption (under
-them, or above the figure and read before it, #933) and no running text, interrupt a
-paragraph and never go on with one, nor set one aside (#905); the paragraph open there ends
-at the figure, its labels are read into its block (#932) and its caption is a block of its
-own. If the row before the figure ends no sentence (an abbreviation's full stop ends none),
-its labels must lie on it, and its rows are the figure's only where the paragraph read
-before them would not be set aside to go on after them (#958). The rows lying on a figure
-at a column's top (its labels, set in any size) neither go on with a paragraph nor it with
-them: they may interrupt it, and are read as blocks of their own after the figure (#932).
+interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Text under
+a float's caption in a column printed between the paragraph's column and the one it would
+go on in is no float's but that column's: the paragraph ends before it, and the columns are
+read in their order (#966). Of what waited, the marks drawn in the paragraph's own lines (a
+fraction bar) come out first, right after it (#648). A figure in a wide gutter is read as a
+column of its own between two columns of text (#873, #938): the rows read in that column
+right after it, if they are its labels (on it or close by it, #945; a row of ticks may span
+it, #933) and caption (under them, or above the figure and read before it, #933) and no
+running text, interrupt a paragraph and never go on with one, nor set one aside (#905); the
+paragraph open there ends at the figure, its labels are read into its block (#932) and its
+caption is a block of its own. If the row before the figure ends no sentence (an
+abbreviation's full stop ends none), its labels must lie on it, and its rows are the
+figure's only where the paragraph read before them would not be set aside to go on after
+them (#958); its labels are then read into its block all the same (#1017). The rows lying
+on a figure at a column's top (its labels, set in any size) neither go on with a paragraph
+nor it with them: they may interrupt it, and are read as blocks of their own after the
+figure (#932).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -134,6 +138,8 @@ class Held:
     box: Box | None = None  # where a figure is drawn: its labels lie on it or by it (#945)
     # each of its graphics' boxes: one that holds all the text on it is a background (D-840)
     graphics: tuple[Box, ...] = ()
+    # those of them that are pictures: an image is no fill set behind text (#1017)
+    pictures: tuple[Box, ...] = ()
 
 
 Unit = Row | Held
@@ -526,6 +532,7 @@ class Paragraphs:
         self.pitch = _pitch(rows, settings) or settings.line_pitch
         judged = body or body_text(piece for row in rows for piece in row.pieces)
         self.body, self.typed = judged.size, judged.typed
+        self.rows = rows
         self._neighbours(rows)
         self.gutter: set[int] = set()  # (`continues` reads it while it is being found)
         # the labels of figures at a column's top: they neither go on with running text nor
@@ -534,6 +541,8 @@ class Paragraphs:
         # a figure's rows in a gutter read after a row that ends no sentence, by the id of
         # the first: they join `gutter` when it is read, if it sets no paragraph aside
         self.pending: dict[int, list[Row]] = {}
+        # of those, the figure and its labels, read into its block if the run joins (#1017)
+        self.late: dict[int, tuple[Held, list[Row]]] = {}
         # the labels read into a figure's block, by the id of its unit (#932)
         self.labels: dict[int, list[Row]] = {}
         # figures in a gutter read between two paragraphs, by the id of their unit: the
@@ -544,6 +553,28 @@ class Paragraphs:
         self.folded = {id(row) for found in self.labels.values() for row in found}
         if self.folded:  # the rows read on either side of a figure's labels meet
             self._neighbours([row for row in rows if id(row) not in self.folded])
+
+    def _join_gutter(self, row: Row) -> None:
+        """The figure's rows in a gutter waiting in `pending` from `row` on join `gutter` if
+        `row`, read as any other, would set no paragraph aside (#958). Its labels are then
+        read into its block, as after a sentence end, and the paragraph open there ends at
+        the figure, as it would at the first of them (#1017)."""
+        run = self.pending.pop(id(row), None)
+        if run is None or self._sets_aside(row, self.figure and opens_caption(row.pieces[0])):
+            return
+        figure, labels = self.late.get(id(row), (None, []))
+        folded = {id(label) for label in labels}
+        self.gutter |= {id(r) for r in run if id(r) not in folded}
+        if figure is None or not labels:
+            return
+        self.labels[id(figure)] = labels
+        self.folded |= folded
+        self._neighbours([r for r in self.rows if id(r) not in self.folded])
+        held = _with_labels(figure, labels, self.settings).block
+        # the figure came before its labels, so it has gone out or waits already
+        for blocks in (self.waiting, self.held, self.out):
+            blocks[:] = [held if b is figure.block else b for b in blocks]
+        self._finish()
 
     def _neighbours(self, rows: list[Row]) -> None:
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
@@ -597,6 +628,8 @@ class Paragraphs:
                     self.labels[id(unit)] = labels
             else:
                 self.pending[id(rows[0])] = rows
+                if isinstance(unit, Held):
+                    self.late[id(rows[0])] = (unit, labels)
         return found
 
     def _above(self, units: list[Unit], k: int) -> list[Row]:
@@ -654,8 +687,9 @@ class Paragraphs:
         """The labels of each figure that opens its column, by id: the rows read right after
         it in the column under it that lie on it (`_label` with no reach). Not if the next
         row read in that column lies on it too (running text on a shaded box), a single
-        graphic of it holds them all (a background or a frame, D-840) or it is lines or a
-        mark only (`geometry.minor`). Without this, the paragraph of the column before goes
+        drawing of it holds them all (a background or a frame, D-840; a picture holding them
+        is a chart printed as an image, #1017) or it is lines or a mark only
+        (`geometry.minor`). Without this, the paragraph of the column before goes
         on in them (#932). They stay text: without a caption, a figure at a column's top is
         not told from a table with a shaded head, whose cells are read. A figure whose rows
         the gutter's rule judged (`_gutter_figures`) is left as that rule has it."""
@@ -691,7 +725,8 @@ class Paragraphs:
             rest = units[end] if end < len(units) else None
             if isinstance(rest, Row) and _column(rest) == column and _meets(rest.box, box):
                 continue
-            if not any(all(holds(g, r.box) for r in labels) for g in unit.graphics):
+            fills = [g for g in unit.graphics if g not in unit.pictures]
+            if not any(all(holds(g, r.box) for r in labels) for g in fills):
                 found |= {id(row) for row in labels}
         return found
 
@@ -727,6 +762,7 @@ class Paragraphs:
                         self._release()
                 self._hold(self._with_labels(unit))
                 continue
+            self._join_gutter(unit)
             if id(unit) in self.folded:
                 continue
             self._take(unit)
@@ -737,21 +773,12 @@ class Paragraphs:
         return self.out
 
     def _with_labels(self, unit: Held) -> Held:
-        """The figure with its labels read into its block (`labels`): their text, and its
-        graphics at its start (#932)."""
         labels = self.labels.get(id(unit))
-        if not labels:
-            return unit
-        text = _paragraph(labels, self.settings)
-        graphics = tuple(Part(p.item) for p in unit.block.parts)
-        return replace(unit, block=Block(BlockKind.FIGURE, text.text, graphics + text.parts))
+        return _with_labels(unit, labels, self.settings) if labels else unit
 
     def _take(self, row: Row) -> None:
         # a caption right after a float (a formula across the page, #34) starts afresh
         after_float = self.figure and opens_caption(row.pieces[0])
-        run = self.pending.pop(id(row), None)
-        if run is not None and not self._sets_aside(row, after_float):
-            self.gutter |= {id(r) for r in run}
         if self.open and not after_float and self.continues(self.open, row):
             self.open.append(row)
             if self.aside and not self._interrupts(row, self.aside[-1]) and not self._float(row):
@@ -868,6 +895,24 @@ class Paragraphs:
             and (after is None or self.continues([row], after))  # not a formula's full row
             and (earlier is None or (not earlier.bold and self._apart(earlier, row)))
             and self.continues(self.aside, row, spacing=False)
+            and not self._column_between(row)
+        )
+
+    def _column_between(self, row: Row) -> bool:
+        """True if the lines read under the caption that interrupted the set-aside paragraph
+        stand in a column between the paragraph's and the row's: the text of a middle
+        column under a figure, printed between its neighbours. Read after the row, it would
+        leave the page's order (#966). A float's own lines under its caption (an algorithm's,
+        a note's) stand in the column the paragraph runs on from or goes on in (nowak p5:
+        on the next page, left of where it goes on), and still wait for it, as does the
+        caption alone (#61, #958)."""
+        last, first = self.aside[-1], self.open[0] if self.open else None
+        return (
+            first is not None
+            and first is not self.caption
+            and self._float(first)
+            and last.right <= first.left
+            and first.right <= row.left
         )
 
     def _apart(self, upper: Row, lower: Row) -> bool:
@@ -1170,6 +1215,14 @@ def _meets(a: Box, b: Box) -> bool:
 def _figure(unit: Unit) -> bool:
     """True for a figure in the reading order (not a mark drawn in a line)."""
     return isinstance(unit, Held) and not unit.inline and unit.block.kind is BlockKind.FIGURE
+
+
+def _with_labels(unit: Held, labels: list[Row], settings: LayoutSettings) -> Held:
+    """The figure with its labels read into its block: their text, and its graphics at its
+    start (#932)."""
+    text = _paragraph(labels, settings)
+    graphics = tuple(Part(p.item) for p in unit.block.parts)
+    return replace(unit, block=Block(BlockKind.FIGURE, text.text, graphics + text.parts))
 
 
 def _paragraph(rows: list[Row], settings: LayoutSettings) -> Block:

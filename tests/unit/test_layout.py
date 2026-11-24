@@ -1375,8 +1375,7 @@ def test_lines_under_a_figure_atop_a_middle_column_are_read_after_the_left_colum
     so the white from the left column to the right one is one strip; the white on each side
     of the figure is a gutter all the same. The left column is read whole, then the
     figure's column, then the right column. (The left column's paragraph ends in a
-    sentence: one that runs on into the right column is never cut by the float, which
-    then follows it, #61.)"""
+    sentence; for one that runs on into the right column, see the #966 test below.)"""
     width = (RIGHT - LEFT - 2 * GUTTER) / 3
     x0 = LEFT + width + GUTTER
     top = 23 - count
@@ -1395,6 +1394,74 @@ def test_lines_under_a_figure_atop_a_middle_column_are_read_after_the_left_colum
     read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
     assert read == [li.text for li in left + caption + middle + right]
     assert columns_per_page(found) == [2]
+
+
+@pytest.mark.parametrize("end", ["c0r26", "c0r26,", "c0r26 2023"])
+@pytest.mark.parametrize("count", [1, 2, 4])
+def test_a_middle_figure_s_caption_and_lines_are_read_between_its_columns_when_the_left_runs_on(
+    count: int, end: str
+) -> None:
+    """#966: the #938 page with a caption under the figure atop the middle column and 1 to
+    4 lines under it, the last of them ragged, while the left column's last line fills it
+    and ends no sentence, and the right column's first line fills it too. The middle
+    column is printed between its neighbours, and its lines are running text, not the
+    float's: they are read after the left column and before the right one, the caption
+    before them, though the left column's paragraph would go on in the right column."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    top = 27 - count - 1
+    caption = [line("Figure 1: a thing", x0, 80 + 14 * top, x0 + 90)]
+    middle = [
+        line(f"c1r{row}", x0, 80 + 14 * row, x0 + (0.6 if row == 26 else 1.0) * width)
+        for row in range(top + 1, 27)
+    ]
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line(end, LEFT, 80 + 14 * 26, LEFT + width)
+    drawing = Drawing("fig", Box(x0, 80, x0 + width, 80 + 14 * (top - 1)))
+    found = content(left + caption + middle + right, drawings=(drawing,))
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + caption + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + caption + middle + right]
+    assert holding(doc, BlockKind.CAPTION) == [[caption[0].id]]
+
+
+@pytest.mark.parametrize("where", ["top of the right column", "foot of the left column"])
+def test_a_note_under_a_caption_in_the_paragraph_s_own_columns_waits_for_it(where: str) -> None:
+    """#966, #61: two columns, the left one's last line running on into the right one. A
+    figure with its caption and a note under the caption (at the line pitch, as a float's
+    own lines stand) at the top of the right column, or at the foot of the left one, is in
+    no column between the two: the paragraph goes on in the right column, and the figure,
+    the caption and the note follow it."""
+    rows = 30 if where == "top of the right column" else 24
+    left = [line("L" if k == rows - 1 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(rows)]
+    if where == "top of the right column":
+        x0, y0, top = 306, 80, 230
+    else:
+        x0, y0, top = 70, 80 + 14 * rows + 24, 80
+    drawing = Drawing("fig", Box(x0, y0, x0 + 220, y0 + 100))
+    caption = line("Figure 1: a thing", x0, y0 + 106, x0 + 110)
+    note = line("Source: own data", x0, y0 + 120, x0 + 90)
+    right = [line(f"R{k}{'.' if k == 15 else ''}", 306, top + 14 * k, 526) for k in range(16)]
+    doc = build_document(content([*left, caption, note, *right], drawings=(drawing,)))
+    assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+    read = [p.item for b in doc.blocks for p in b.parts]
+    assert read == [li.id for li in left + right] + ["fig", caption.id, note.id]
+
+
+def test_labels_under_a_gutter_figure_after_a_column_that_runs_on_wait_for_its_paragraph() -> None:
+    """#966, #958: on the #895 page with no caption, a row of labels 2 pt under the drawing
+    (not on it, so not taken for its labels after a left column that ends no sentence)
+    stands in the column between the left and the right one. It is no text under a
+    caption: the left column's paragraph goes on in the right column, and the labels
+    follow it, as an interruption that is not running text does (#61)."""
+    labels = [line(t, 244 + 28 * k, 262, 258 + 28 * k) for k, t in enumerate(("x", "10", "time"))]
+    found, left, right = gutter_page("L29", labels)
+    doc = build_document(found)
+    assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+    read = [p.item for b in doc.blocks for p in b.parts]
+    assert read.index(labels[0].id) > read.index(right[-1].id)
 
 
 def middle_figure_page(
@@ -1793,6 +1860,73 @@ def test_a_gutter_figure_on_two_pages_in_one_place_is_no_running_head() -> None:
     assert [f[0] for f in figures] == ["fig1", "fig2"]
     assert all(len(f) == 7 for f in figures)
     assert not [b for b in doc.blocks if b.kind is BlockKind.FURNITURE]
+
+
+@pytest.mark.parametrize("short", [False, True])
+@pytest.mark.parametrize("end", ["L29", "L29,", "L29 2023", "L29 et al.", "L29."])
+def test_an_uncaptioned_gutter_figure_holds_its_labels_when_the_left_column_runs_on(
+    end: str, short: bool
+) -> None:
+    """#1017: the #895 page with no caption, the left column's last line ending inside a
+    sentence (a word, a comma, a number, an abbreviation) or ending one, filling the column
+    or ending short. The labels lie on the drawing, so they go into its FIGURE block as
+    after a sentence end (#932), and the text is read left column, figure, right column."""
+    labels = gutter_labels()
+    left = [
+        line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 150 if short and k == 29 else 228)
+        for k in range(30)
+    ]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    doc = build_document(
+        content(left + right + labels, drawings=(Drawing("fig", Box(236, 190, 360, 260)),))
+    )
+    upper, lower = [li.id for li in labels[::2]], [li.id for li in labels[1::2]]
+    assert holding(doc, BlockKind.FIGURE) == [["fig", *upper, *lower]]
+    assert unmixed(doc, left + right)
+    read = [p.item for b in doc.blocks for p in b.parts]
+    assert read == [li.id for li in left] + ["fig", *upper, *lower] + [li.id for li in right]
+
+
+def test_the_lines_around_a_gutter_figure_s_labels_are_measured_against_each_other() -> None:
+    """#1017: on the #895 page with no caption and the left column running on, the labels'
+    last row ends 30 pt short of the figure's edge, and the right column opens with the
+    short last line of a sentence, 30 pt short too, over a full line. With the labels read
+    into the figure's block, the short line is measured against the left column's last line,
+    as after a sentence end (#932): it ends its paragraph, and the full line starts one."""
+    spots = ((240, 200), (250, 210), (280, 200), (314, 210))
+    labels = [line(f"lab{k}", x, y, x + 16) for k, (x, y) in enumerate(spots)]
+    _, left, right = gutter_page("L29", labels)
+    right[0] = line("R0 ends.", 368, 80, 496)
+    doc = build_document(
+        content(left + right + labels, drawings=(Drawing("fig", Box(236, 190, 360, 260)),))
+    )
+    assert holding(doc, BlockKind.FIGURE) == [
+        ["fig", *[li.id for li in labels[::2]]] + [li.id for li in labels[1::2]]
+    ]
+    assert right[1].id not in {p.item for p in block_of(doc, right[0].id).parts}
+
+
+@pytest.mark.parametrize("end", ["L29", "L29."])
+def test_labels_on_a_single_picture_at_a_column_top_stay_with_it(end: str) -> None:
+    """#1017: a chart printed as one picture at the top of the right column, with two rows of
+    labels in the body size set on it, and the left column ending in a full line, whether
+    it ends a sentence or runs on. One graphic holds all the labels, as a shaded box holds
+    its text (D-840), but a picture is no fill behind text: each row of labels is a block of
+    its own right after the FIGURE block, not in the left column's paragraph, which goes on
+    in the right column if its sentence does."""
+    left = [line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 19 else ''}", 306, 214 + 14 * k, 526) for k in range(20)]
+    labels = chart_labels(310)
+    chart = Picture("chart", Box(310, 84, 520, 197))
+    doc = build_document(content(left + right + labels, pictures=(chart,)))
+    (figure,) = [k for k, b in enumerate(doc.blocks) if b.kind is BlockKind.FIGURE]
+    assert doc.blocks[figure].parts[0].item == "chart"
+    upper, lower = [li.id for li in labels[::2]], [li.id for li in labels[1::2]]
+    after = doc.blocks[figure + 1 : figure + 3]
+    assert [[p.item for p in b.parts] for b in after] == [upper, lower]
+    assert unmixed(doc, left + right)
+    if end == "L29":
+        assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
 
 
 def three_columns(rows: tuple[int, int, int]) -> list[TextLine]:
