@@ -633,6 +633,7 @@ function captureExport(current) {
       const before = { kind: state.dataset.state, children: [...state.childNodes] };
       tell("saving", "download", tr("export.saving"));
       const wanted = current();
+      const typed = field.value;
       const body = yes
         ? { ...yes.body, folder: yes.folder, file: yes.file, overwrite: true }
         : { format, folder: field.value, type: wanted.type, document: wanted.document };
@@ -640,7 +641,14 @@ function captureExport(current) {
         const saved = await send("/api/v1/captures/export", json("POST", body));
         tell("saved", "check", tr("export.saved", { file: saved.file, folder: saved.folder }));
       } catch (error) {
-        if (error.kind === "export-exists" && error.data && error.data.file) {
+        const now = current();
+        const moved =
+          field.value !== typed || now.type !== wanted.type || now.document !== wanted.document;
+        if (error.kind === "export-exists" && error.data && error.data.file && moved) {
+          // the folder or the filters changed while it was on its way: a question now would
+          // be about a request the page no longer shows, so nothing is asked and nothing saved
+          tell("kept", "info", tr("export.kept", { file: error.data.file }));
+        } else if (error.kind === "export-exists" && error.data && error.data.file) {
           const { file: _, overwrite: __, ...asking } = body;
           asked = { file: error.data.file, folder: error.data.folder, body: asking };
           state.dataset.state = before.kind; // nothing changed yet: the question says why

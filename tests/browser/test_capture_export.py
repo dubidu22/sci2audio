@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from test_captures_page import HIGHLIGHTERS, captured, open_captures
 
 from conftest import Live, check_axe, tab_key
@@ -138,6 +138,54 @@ def test_replace_it_replaces_only_the_file_the_question_named(signed_in: Page, l
     assert (b / "paper.ris").read_bytes().startswith(b"TY  - GEN\r\n")
     assert (b / "Captures.ris").read_bytes() == b"mine"
     assert (a / "paper.ris").read_bytes() == b"mine too"
+
+
+def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
+    signed_in: Page, live: Live
+) -> None:
+    """The request is held while the person types another folder or picks another type: the
+    409 that then comes is about a request the page no longer shows, so no question opens
+    and no "Replace it" can reach the old target."""
+    page = signed_in
+    captured(page, live)
+    open_captures(page)
+    a, b = folder_of(live) / "a", folder_of(live) / "b"
+    for folder in (a, b):
+        folder.mkdir()
+        (folder / "Captures.ris").write_bytes(b"mine")
+    held: list[Route] = []
+
+    def hold(route: Route) -> None:
+        held.append(route)
+
+    page.route("**/api/v1/captures/export", hold)
+    field, save = page.locator("#export-folder-ris"), page.locator("#export-save-ris")
+    ask = page.locator("#export-ask-ris")
+    kept = "Nothing saved. Captures.ris stays as it was."
+    for change in ("folder", "type"):
+        field.fill(str(a))
+        save.click()
+        expect(state(page, "ris")).to_have_text("Saving…")
+        for _ in range(200):  # the handler runs while the page is waited on
+            if held:
+                break
+            page.wait_for_timeout(25)
+        assert len(held) == 1, change
+        if change == "folder":
+            field.fill(str(b))
+        else:
+            page.locator('.cap-kinds button[data-kind="quote"]').click()
+        held.pop().continue_()
+        expect(state(page, "ris")).to_have_text(kept)
+        expect(ask).to_be_hidden()
+        page.locator('.cap-kinds button[data-kind="all"]').click()
+    page.unroute("**/api/v1/captures/export")
+    for folder in (a, b):
+        assert (folder / "Captures.ris").read_bytes() == b"mine"
+    # unchanged while it was on its way: the question comes as before
+    field.fill(str(a))
+    save.click()
+    expect(ask).to_be_visible()
 
 
 def test_the_files_by_keyboard(signed_in: Page, live: Live) -> None:
