@@ -4,7 +4,7 @@
     Import it "with context". -#}
 {% from "_icons.html" import icon %}
 {% macro segments(list) -%}
-{% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<span class="seg{% if kind %} {{ kind }}{% endif %}"></span>{% endfor %}</span>{% endif %}
+{% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<span class="job-seg{% if kind %} {{ kind }}{% endif %}"></span>{% endfor %}</span>{% endif %}
 {%- endmacro %}
 {#- Freeing the cache deletes every spoken sentence, so it asks first, as Cancel does (D-733) -#}
 {% macro free_button(card) -%}

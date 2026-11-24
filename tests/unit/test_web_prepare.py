@@ -312,9 +312,9 @@ def test_the_card_of_a_job_that_failed_while_writing_the_files(
     failed = card(client.get(f"/jobs/{job}").text)
     assert "Making the audiobook stopped while writing the files" in failed
     assert "Every chapter is spoken and kept. Making it again only writes the files." in failed
-    assert failed.count('class="seg done"') == 2
-    assert 'class="seg"' not in failed
-    assert 'class="seg now"' not in failed
+    assert failed.count('class="job-seg done"') == 2
+    assert 'class="job-seg"' not in failed
+    assert 'class="job-seg now"' not in failed
 
 
 def test_the_running_card_while_the_files_are_written(
@@ -334,9 +334,9 @@ def test_the_running_card_while_the_files_are_written(
             time.sleep(0.02)
         running = card(client.get(f"/jobs/{job}").text)
         assert 'data-state="running"' in running
-        assert running.count('class="seg done"') == 2
-        assert 'class="seg"' not in running
-        assert 'class="seg now"' not in running
+        assert running.count('class="job-seg done"') == 2
+        assert 'class="job-seg"' not in running
+        assert 'class="job-seg now"' not in running
     finally:
         gate.set()
     assert wait(client, job)["state"] == "done"

@@ -1291,7 +1291,7 @@ function drawSegments(box, chapters, now) {
   if (!box) return;
   while (box.children.length < chapters) {
     const seg = document.createElement("span");
-    seg.className = "seg";
+    seg.className = "job-seg";
     box.append(seg);
   }
   Array.from(box.children).forEach((seg, n) => {
