@@ -646,6 +646,23 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         # the verb "stand" is no edition word; a year outside 1100 to 1999 is left alone
         ("er stand 1500 dort", "er stand 1500 dort"),
         ("(Ausgabe 2018)", "(Ausgabe 2018)"),
+        # #782: with a colon after the edition word, as without; after another word a count
+        ("(Stand: 1998)", "(Stand: 19 hundert 98)"),
+        ("Fassung: 1998 gilt", "Fassung: 19 hundert 98 gilt"),
+        ("(Auflage: 1985)", "(Auflage: 19 hundert 85)"),
+        ("Anzahl: 1998", "Anzahl: 1998"),
+        ("Summe: 1998.", "Summe: 1998."),
+        ("seit: 1998", "seit: 1998"),
+        ("Stand: 1500 Punkte", "Stand: 1500 Punkte"),
+        ("Die Auflage: 1500 wurde verkauft.", "Die Auflage: 1500 wurde verkauft."),
+        ("er stand: 1998", "er stand: 1998"),
+        # #806: a joined run after "Auflage" reads the same before ")" and "."
+        ("Auflage 1998 und 1999.", "Auflage 19 hundert 98 und 19 hundert 99."),
+        ("Auflage 1998 bis 1999.", "Auflage 19 hundert 98 bis 19 hundert 99."),
+        ("Auflage 1998 oder 1999.", "Auflage 19 hundert 98 oder 19 hundert 99."),
+        ("(Auflage 1998 und 1999)", "(Auflage 19 hundert 98 und 19 hundert 99)"),
+        ("Auflage 1998 und 1999. Dann", "Auflage 19 hundert 98 und 19 hundert 99. Dann"),
+        ("Auflage 1500 und 1600 wurde verkauft.", "Auflage 1500 und 1600 wurde verkauft."),
     ],
 )
 def test_a_year_after_an_edition_word(printed: str, said: str) -> None:
