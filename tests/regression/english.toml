@@ -3250,8 +3250,8 @@ blocks = [
     { kind = "paragraph", text = "It holds (Winter et al. 2021; Summer and Lee 2019; see Winter 2021)." },
 ]
 expected = [
-    "The data and the courses show it.",
-    "The survey shows it.",
+    "The data (Summer 2019) and the courses (Fall 2018) show it.",
+    "The survey (Spring and Summer 2019) shows it.",
     "It holds.",
 ]
 

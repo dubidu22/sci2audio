@@ -164,6 +164,20 @@ def test_and_so_on_makes_an_aside() -> None:
         ("Origin (Smith 2001, pp. iv–vi). Next.", "Origin. Next."),
         ("Origin (Smith 2001, p. xii). Next.", "Origin. Next."),
         ("Origin (WHO 2020, p. 3). Next.", "Origin. Next."),
+        # #588: a season's or term's word still cites with a second author, "et al.", a lead
+        # word, a locator, a comma, a letter after the year or another citation beside it
+        ("It holds (Winter et al. 2021). Next.", "It holds. Next."),
+        ("It holds (Summer and Lee 2019). Next.", "It holds. Next."),
+        ("It holds (see Winter 2021). Next.", "It holds. Next."),
+        ("It holds (cf. Winter 2021). Next.", "It holds. Next."),
+        ("It holds (Winter 2021, p. 3). Next.", "It holds. Next."),
+        ("It holds (Summer, 2019). Next.", "It holds. Next."),
+        ("It holds (Summer 2019a). Next.", "It holds. Next."),
+        ("It holds (Summer 2019; Lee 2020). Next.", "It holds. Next."),
+        ("It holds (Lee 2020; Summer 2019). Next.", "It holds. Next."),
+        ("It holds (Smith, 2019). Next.", "It holds. Next."),
+        ("It holds (Smith 2019). Next.", "It holds. Next."),
+        ("It holds (Smith and Lee, 2019). Next.", "It holds. Next."),
     ],
 )
 def test_a_bracket_of_citations_is_removed(text: str, spoken: str) -> None:
@@ -242,6 +256,12 @@ def test_a_bracketed_citation_the_sentence_needs_keeps_its_names(text: str, spok
         "This held (Smith 2001, p. Dix) too.",
         # a year range is no reprint (#481)
         "It ran (Fall 2019/2020) here.",
+        # #588: a season or a term and a year date something
+        "The data (Summer 2019) and (Fall 2018) show it.",
+        "The data (Spring 2020), (Autumn 2019) and (Winter 2021) show it.",
+        "The courses (Semester 2019), (Term 2019) and (Quarter 2019) show it.",
+        "The survey (Spring and Summer 2019) and (Fall/Winter 2019) shows it.",
+        "The survey (Spring to Summer 2019) shows it.",
     ],
 )
 def test_dates_events_and_other_brackets_are_not_citations(text: str) -> None:

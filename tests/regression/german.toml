@@ -2724,7 +2724,7 @@ blocks = [
     { kind = "paragraph", text = "Das zeigen frühere Arbeiten (Sommer und Koch 2019)." },
 ]
 expected = [
-    "Die Daten und gelten, ebenso der Bericht.",
+    "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020).",
     "Das zeigen frühere Arbeiten.",
 ]
 
