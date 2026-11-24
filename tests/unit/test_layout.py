@@ -179,6 +179,61 @@ def test_a_centred_heading_atop_a_short_column_is_read_in_its_column() -> None:
     assert columns_of(doc) == [2]
 
 
+def nested_columns_page() -> tuple[Content, list[str]]:
+    """A two-column page whose left column holds, between running text above and below, a
+    block of two short columns of its own; the lines stored across the page, row by row.
+    In reading order: the left column's text above, the block's left column, its right
+    column, the left column's text below, then the page's right column (#32, D-67)."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    inner = (lx1 - LEFT - GUTTER) / 2
+    above = column("above-", LEFT, lx1, 100, 6)
+    block_left = column("block-left-", LEFT, LEFT + inner, 100 + 14 * 6, 8)
+    block_right = column("block-right-", lx1 - inner, lx1, 100 + 14 * 6, 8)
+    below = column("below-", LEFT, lx1, 100 + 14 * 14, 6)
+    left = [*above, *interleaved(block_left, block_right), *below]
+    right = column("right-", rx0, RIGHT, 100, len(left))
+    page = [li for pair in zip(left, right, strict=True) for li in pair]
+    order = [*above, *block_left, *block_right, *below, *right]
+    return content(page), [li.text for li in order]
+
+
+def test_two_columns_inside_a_column_are_read_one_after_the_other() -> None:
+    """#32, D-67: the cut into bands and columns is tried again inside each column found."""
+    page, expected = nested_columns_page()
+    doc = build_document(page)
+    assert texts(doc) == expected
+    assert columns_of(doc) == [2]
+
+
+def test_the_cut_inside_a_column_stops_at_the_depth_limit() -> None:
+    """With `column_depth` at 1 only the page's own columns are cut: the block inside the
+    left column is read row by row across its two columns, as before #32."""
+    page, _ = nested_columns_page()
+    doc = build_document(page, LayoutSettings(column_depth=1))
+    found = texts(doc)
+    assert found.index("block-right-0") < found.index("block-left-1")
+
+
+def test_a_table_inside_a_column_is_still_read_row_by_row() -> None:
+    """#32: a gutter between a table's cells inside a column (as in Hardt's Table 1) does
+    not cut it, as the cells leave a ragged edge; only columns of running text are cut."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    above = column("above-", LEFT, lx1, 100, 6)
+    rows = []
+    for k, (label, cell) in enumerate(((50, 40), (53, 96), (20, 63), (48, 79), (56, 99), (30, 57))):
+        y = 100 + 14 * (6 + k)
+        rows += [
+            line(f"label-{k}", LEFT, y, LEFT + label),
+            line(f"cell-{k}", LEFT + 75, y, LEFT + 75 + cell),
+        ]
+    below = column("below-", LEFT, lx1, 100 + 14 * 12, 6)
+    left = [*above, *rows, *below]
+    right = column("right-", rx0, RIGHT, 100, len(left))
+    doc = build_document(content([*left, *right]))
+    words = " ".join(texts(doc)).split()  # a row's cells may be joined into one line
+    assert words == [li.text for li in [*above, *rows, *below, *right]]
+
+
 def test_a_page_background_or_a_frame_does_not_cut_the_columns() -> None:
     for box in (Box(0, 0, 600, 800), Box(60, 90, 536, 520)):
         left, right = two_columns("a", 100, 30)

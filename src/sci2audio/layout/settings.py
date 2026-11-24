@@ -58,6 +58,9 @@ class LayoutSettings:
     figure_reach: float = 2.0  # points: pictures and drawings this close form one figure
     column_snap: float = 1.0  # em: column edges this close in two bands are one column's
     column_spread: float = 0.25  # a column reaches as far as this share of its lines do
+    column_depth: int = 3  # columns of running text are looked for inside a column found,
+    #                        and inside those, down to this many levels (1: the page's own
+    #                        columns only; #32)
 
     # Counting a page's columns
     column_text: float = 0.2  # a band counts if it holds this share of the page's text ...
