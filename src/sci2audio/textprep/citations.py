@@ -427,6 +427,8 @@ class CitationStep(TextStep):
             ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
             language,
             listed_keys(document),
+            # with links switched off a link is read: no join word goes past it (#628)
+            links_read=Category.LINKS in context.switched_off,
         )
         hidden = hidden_removals(document, context)  # read as a second run reads (#434)
         edits = []
@@ -457,8 +459,10 @@ class _Rules:
         abbreviations: frozenset[str],
         language: str = "en",
         keys: frozenset[str] = frozenset(),
+        links_read: bool = False,
     ) -> None:
         self.words = words
+        self.links_read = links_read  # the links category is off: links stay in the script
         self.keys = keys  # the keys the document's entries print (#254, #377)
         self.wording = wording
         self.abbreviations = abbreviations
@@ -633,7 +637,11 @@ class _Rules:
         for start, end, kind, replacement, reason in found:
             if kind is EditKind.REMOVE and self.join_after.match(text, end):
                 before = start  # past the removed links right before it
-                while before in self._link_starts and self._link_starts[before] >= kept_end:
+                while (
+                    not self.links_read
+                    and before in self._link_starts
+                    and self._link_starts[before] >= kept_end
+                ):
                     before = self._link_starts[before]
                 window = max(kept_end, before - _LOOK_BACK)
                 left = self.join_before.search(text, window, before)
@@ -1784,7 +1792,7 @@ class _Rules:
 
     def _glued_word(self, text: str, position: int) -> bool:
         """True if a word stands right at `position`, past the removed links that start there."""
-        while position in self._link_ends:
+        while not self.links_read and position in self._link_ends:
             position = self._link_ends[position]
         return text[position : position + 1].isalnum()
 
