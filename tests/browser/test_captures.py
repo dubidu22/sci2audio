@@ -968,8 +968,9 @@ def test_the_v13_markers_show_on_the_listen_page_as_captures_after_the_carry_ove
     capture on its sentence: one without a note a mark, one with a note a note, each with
     its anchor's sentence; markers.json stays as it was."""
     from test_captures_page import captured
+    from web_helpers import Marker, markers_text
 
-    from sci2audio.web.markers import Anchor, Marker, markers_text
+    from sci2audio.web.markers import Anchor
 
     page = signed_in
     made = captured(page, live)
@@ -1015,8 +1016,9 @@ def test_markers_whose_carry_over_cannot_be_written_say_so_on_n_q_and_m(
     """#910: a full disk while the v1.3 markers are carried over: the page names
     markers.json, and N, Q and M each say the captures could not be saved, never that a
     captures file can't be read."""
+    from web_helpers import markers_text
+
     from sci2audio.app import files
-    from sci2audio.web.markers import markers_text
 
     def full(partial: Path, content: str | bytes) -> None:
         raise OSError(errno.ENOSPC, "No space left on device")

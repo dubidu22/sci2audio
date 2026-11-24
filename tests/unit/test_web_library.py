@@ -22,11 +22,21 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from web_helpers import ORIGIN, app_and_config, browser, paper_bytes, pdf_bytes, upload, wait
+from web_helpers import (
+    ORIGIN,
+    Marker,
+    app_and_config,
+    browser,
+    markers_text,
+    paper_bytes,
+    pdf_bytes,
+    upload,
+    wait,
+)
 from web_helpers import offline as offline
 
 from sci2audio.app import files
-from sci2audio.app.captures import CAPTURES, write_captures
+from sci2audio.app.captures import CAPTURES, MARKERS, write_captures
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType, SourceFormat
 from sci2audio.testing.documents import make_document
 from sci2audio.web import library, pages, player
@@ -48,7 +58,6 @@ from sci2audio.web.library import (
     write_about,
     write_opened,
 )
-from sci2audio.web.markers import MARKERS, Marker, markers_text
 from sci2audio.web.markers import Anchor as MarkerAnchor
 from sci2audio.web.player import POSITION, Position, audiobook_stamp, write_position
 

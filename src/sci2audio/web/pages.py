@@ -29,7 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from sci2audio import __version__
 from sci2audio.app import find_chapters, load_settings, shown_original
-from sci2audio.app.captures import CAPTURES
+from sci2audio.app.captures import CAPTURES, MARKERS
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.updates import RELEASES_URL, Outcome, release_page
 from sci2audio.app.voice import primary_language
@@ -90,7 +90,7 @@ from sci2audio.web.library import (
     when,
     write_opened,
 )
-from sci2audio.web.markers import MARKERS, count_captures, locate
+from sci2audio.web.markers import count_captures, locate
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     ChapterStates,
@@ -850,19 +850,50 @@ def _phase_words(s: Strings, phase: Any) -> str:
     return (words[:1].upper() + words[1:]) if words else s("job.state_running")
 
 
+def _chapter_now(progress: Mapping[str, Any]) -> tuple[int, float, bool]:
+    """The running job's current chapter, counted from 1 (0 before the first chunk, one past
+    the last once every chapter is written), how far it is (0 to 1), and whether its files are
+    being written (#1054). The last chunk's event of a chapter comes before its files are
+    written, which for a long chapter takes minutes: until the chapter is playable it is the
+    current one, at its end, and the next one has not begun."""
+    phase = progress.get("phase")
+    chapters = int(progress.get("chapters") or 0)
+    if phase in ("encoding", "done"):
+        return chapters + 1, 0.0, False
+    number = int(progress.get("chapter_number") or 0)
+    if phase != "speaking" or not number:
+        return 0, 0.0, False
+    if progress.get("chapter_done"):
+        if progress.get("chapter") not in (progress.get("playable") or ()):
+            return number, 1.0, True
+        return number + 1, 0.0, False  # one past the last: every chapter is written
+    total = int(progress.get("chapter_chunks_total") or 0)
+    done = int(progress.get("chapter_chunks_done") or 0)
+    return number, (min(1.0, done / total) if total else 0.0), False
+
+
 def _running_lines(s: Strings, progress: Mapping[str, Any]) -> dict[str, Any]:
     """The running card's words, drawn as the script draws them (`cardShown` in app.js)."""
     phase = progress.get("phase")
-    where, number = _stopped_in(progress)  # while writing the files: every chapter is done
     chapters = int(progress.get("chapters") or 0)
-    if phase == "speaking" and where == "chapter":
-        head = s("making.speaking", n=number, total=chapters)
+    current, part, saving = _chapter_now(progress)
+    in_chapter = phase == "speaking" and 1 <= current <= chapters
+    if saving:
+        head = s("making.saving", n=current, total=chapters)
+    elif in_chapter:
+        head = s("making.speaking", n=current, total=chapters)
     else:
         head = _phase_words(s, phase)
-    part = progress_fraction(progress)
+    chapter_part = int(100 * part)
+    chapter_line = (
+        s("making.chapter_part", n=current, total=chapters, part=s("js.percent", n=chapter_part))
+        if in_chapter
+        else ""
+    )
+    whole = progress_fraction(progress)
     left = []
-    if part is not None:
-        left.append(s("js.percent", n=int(100 * part)))
+    if whole is not None:
+        left.append(s("js.percent", n=int(100 * whole)))
     if phase == "speaking":
         seconds = progress.get("seconds_left")
         if seconds is None:
@@ -871,13 +902,14 @@ def _running_lines(s: Strings, progress: Mapping[str, Any]) -> dict[str, Any]:
             left.append(s("js.minutes_left", n=max(1, math.ceil(seconds / 60))))
     total = int(progress.get("chunks_total") or 0)
     done = int(progress.get("chunks_done") or 0)
-    current = number if where == "chapter" else (chapters + 1 if where == "writing" else 0)
     return {
         "head": head,
         "left": " · ".join(left),
-        "percent": None if part is None else int(100 * part),
+        "percent": None if whole is None else int(100 * whole),
         "sentences": s("js.sentences", done=done, n=total) if total else "",
+        "chapter_line": chapter_line,
         "segments": _segments(chapters, current),
+        "chapter_part": chapter_part,
     }
 
 
@@ -1033,6 +1065,7 @@ def _prepare(
     language = str(report_settings.get("language", saved.language) or "")
     ordered, chosen = _chapter_order(chapters, report_settings.get("chapters"))
     made = _made_chapters(state, found.id, chapters)
+    card = None if job is None else making_card(state, s, job, found)
     shown = {
         "switched_off": sorted(switched_off),
         "chapters": chosen,
@@ -1052,11 +1085,13 @@ def _prepare(
             about=about,
             report=report,
             got=got,
-            has_audio=found.has_audio,
+            # the job's chapters are listened to as they are made (#724): the record of the
+            # audiobook comes only at its end (#1054)
+            has_audio=found.has_audio or bool(card and card["playable"]),
             prepare=True,
         ),
         side=_side(s, found, about, report),
-        card=None if job is None else making_card(state, s, job, found),
+        card=card,
         report=report,
         text_language=_text_language(report),
         language_note=_language_note(report, s),

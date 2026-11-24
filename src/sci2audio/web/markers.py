@@ -1,10 +1,10 @@
-"""The v1.3 markers (#474, D-722, D-728), read only, and finding a sentence again.
+"""The library's count of a document's captures, and finding a sentence again.
 
 v1.3 kept markers with an optional note in the web layer's own file `markers.json` in the
-document's working folder. The captures (#397) replace them: the server no longer writes
-that file, and the carry-over (`app.captures`, #475) turns its markers into captures. This
-module keeps v1.3's reader, which the library's counts use until a document's markers are
-carried over (`count_captures`), and the file's text as v1.3 wrote it (`markers_text`).
+document's working folder (#474, D-722, D-728). The captures (#397) replace them, and the
+carry-over (`app.captures`, #475) is the one reader of that file: the library counts a
+document's markers as a load would carry them over (`count_captures`), so the two can never
+judge one file in two ways (#887).
 
 An anchor is tied to the text, never to one audiobook: its sentence's block, its character
 offsets in that block's text and the text itself as printed. On every page it is looked for
@@ -15,44 +15,22 @@ dropped. The stored anchor is never rewritten.
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
-from sci2audio.app.captures import CapturesBroken, read_captures
+from sci2audio.app.captures import (
+    CapturesBroken,
+    MarkersNotCarried,
+    peek_carry_over,
+    read_captures,
+)
 from sci2audio.core import CaptureType, Document, Span
 
-MARKERS = "markers.json"
-MARKERS_FORMAT = "sci2audio-web-markers"
-MARKERS_VERSION = 1
-MAX_MARKERS = 2000
-FILE_LIMIT = 2_000_000  # bytes
-NOTE_LIMIT = 4000  # characters
 NEAR_BLOCKS = 20  # how far from its block a sentence cut differently is looked for
 
 State = Literal["found", "not-read", "not-found"]
-_ID_DIGITS = frozenset("0123456789abcdef")
-_ANCHOR_KEYS = frozenset({"block", "start", "end", "text"})
-_MARKER_KEYS = frozenset({"id", "created", "changed", "anchor", "note"})
-_FILE_KEYS = frozenset({"format", "version", "document", "markers"})
-
-
-class MarkerError(Exception):
-    """A markers file this version would not write: it could not read it back."""
-
-
-class MarkersBroken(MarkerError):
-    """The file is there but this version can't read it; it is left as it is."""
-
-
-class MarkerLimit(MarkerError):
-    """Too many markers, or the file would grow past its limit."""
-
-
-class MarkersTooLarge(MarkerLimit):
-    """The file would grow past its limit."""
 
 
 @dataclass(frozen=True)
@@ -66,7 +44,7 @@ class Anchor:
 
 
 class Anchored(Protocol):
-    """What finding a sentence again needs: a marker's anchor or a capture's (#397)."""
+    """What finding a sentence again needs: a capture's anchor (#397)."""
 
     @property
     def block(self) -> int: ...
@@ -78,140 +56,20 @@ class Anchored(Protocol):
     def text(self) -> str: ...
 
 
-@dataclass(frozen=True)
-class Marker:
-    id: str
-    created: str
-    changed: str
-    anchor: Anchor
-    note: str = ""
-
-
 def anchor_of(document: Document, span: Span) -> Anchor:
     """The anchor of the sentence `span` reads. The span must be valid for the document."""
     text = document.blocks[span.block].text
     return Anchor(span.block, span.start, span.end, text[span.start : span.end])
 
 
-def note_problem(note: str) -> str | None:
-    """Why a note can't be kept, or None."""
-    if len(note) > NOTE_LIMIT:
-        return f"a note holds at most {NOTE_LIMIT} characters"
-    if "\x00" in note:
-        return "a note can't hold a NUL character"
-    return None
-
-
-# ---- the file, as v1.3 wrote and read it ------------------------------------------------
-
-
-def _no_constant(name: str) -> None:
-    raise ValueError(f"{name} is not a number")
-
-
-def _is_int(value: object) -> bool:
-    return type(value) is int
-
-
-def _anchor(data: object) -> Anchor:
-    if not isinstance(data, dict) or set(data) != _ANCHOR_KEYS:
-        raise ValueError("an anchor has block, start, end and text")
-    block, start, end, text = data["block"], data["start"], data["end"], data["text"]
-    if not (_is_int(block) and _is_int(start) and _is_int(end) and isinstance(text, str)):
-        raise ValueError("an anchor's block and offsets are whole numbers, its text a text")
-    if block < 0 or start < 0 or end < start or not text:
-        raise ValueError("an anchor's offsets don't fit")
-    return Anchor(block, start, end, text)
-
-
-def _marker(data: object) -> Marker:
-    if not isinstance(data, dict) or set(data) != _MARKER_KEYS:
-        raise ValueError("a marker has id, created, changed, anchor and note")
-    marker_id, created, changed, note = data["id"], data["created"], data["changed"], data["note"]
-    if not (isinstance(marker_id, str) and len(marker_id) == 16 and set(marker_id) <= _ID_DIGITS):
-        raise ValueError("a marker's id is 16 hex digits")
-    if not (isinstance(created, str) and isinstance(changed, str) and isinstance(note, str)):
-        raise ValueError("a marker's times and note are texts")
-    if len(created) > 40 or len(changed) > 40 or note_problem(note):
-        raise ValueError("a marker's times or note are too long")
-    return Marker(marker_id, created, changed, _anchor(data["anchor"]), note)
-
-
-def read_markers(work: Path, document_id: str) -> list[Marker]:
-    """The markers of the document, in the file's order; [] if there is no file. Raises
-    MarkersBroken if the file is there and this version can't read it (it is not touched),
-    OSError if it can't be read at all."""
-    path = work / MARKERS
-    if not path.exists() and not path.is_symlink():
-        return []
-    if path.is_symlink() or not path.is_file():
-        raise MarkersBroken(f"{path} is not a plain file")
-    if path.stat().st_size > FILE_LIMIT:
-        raise MarkersBroken(f"{path} is larger than {FILE_LIMIT} bytes")
-    try:
-        return _parse(path.read_bytes().decode("utf-8"), document_id)
-    except ValueError as error:  # UnicodeDecodeError is a ValueError
-        raise MarkersBroken(f"{path} can't be read: {error}") from None
-
-
-def _parse(text: str, document_id: str) -> list[Marker]:
-    """The markers of a file's text. Raises ValueError if this version can't read it."""
-    try:
-        data = json.loads(text, parse_constant=_no_constant)
-        if not isinstance(data, dict) or set(data) != _FILE_KEYS:
-            raise ValueError("not a markers file")
-        if data["format"] != MARKERS_FORMAT or data["version"] != MARKERS_VERSION:
-            raise ValueError("another format or version")
-        if data["document"] != document_id:
-            raise ValueError("the markers of another document")
-        entries = data["markers"]
-        if not isinstance(entries, list) or len(entries) > MAX_MARKERS:
-            raise ValueError(f"the markers are not a list of at most {MAX_MARKERS}")
-        markers = [_marker(entry) for entry in entries]
-    except RecursionError:
-        raise ValueError("nested too deeply") from None
-    if len({marker.id for marker in markers}) != len(markers):
-        raise ValueError("one marker is named twice")
-    return markers
-
-
-def _data(marker: Marker) -> dict[str, Any]:
-    a = marker.anchor
-    return {
-        "id": marker.id,
-        "created": marker.created,
-        "changed": marker.changed,
-        "anchor": {"block": a.block, "start": a.start, "end": a.end, "text": a.text},
-        "note": marker.note,
-    }
-
-
-def markers_text(document_id: str, markers: Sequence[Marker]) -> str:
-    """The file's text for these markers. Raises MarkerLimit past the limits."""
-    if len(markers) > MAX_MARKERS:
-        raise MarkerLimit(f"a document holds at most {MAX_MARKERS} markers")
-    data = {
-        "format": MARKERS_FORMAT,
-        "version": MARKERS_VERSION,
-        "document": document_id,
-        "markers": [_data(marker) for marker in markers],
-    }
-    text = json.dumps(data, ensure_ascii=False, indent=1) + "\n"
-    if len(text.encode("utf-8")) > FILE_LIMIT:
-        raise MarkersTooLarge(f"the markers file would be larger than {FILE_LIMIT} bytes")
-    try:  # never write a file this version could not read back
-        _parse(text, document_id)
-    except ValueError as error:
-        raise MarkerError(f"the markers would not be readable: {error}") from None
-    return text
-
-
 def count_captures(work: Path, document_id: str) -> dict[str, Any]:
     """The document's captures by type (`note`, `quote`, `mark`), for the removal box
     (ADR-008 2.1 item 4, #396), counted as the box is drawn: from `captures.json`, or,
-    while there is none, from `markers.json` as the carry-over (#475) will map them: a
-    marker with a note as a note, one without as a mark. `unread` names the file that
-    is there but can't be read (`captures` or `markers`), else None."""
+    while there is none, the v1.3 markers as the carry-over (#475) would make them, with
+    nothing written. `unread` names the file that is there but can't be used (`captures`
+    or `markers`), else None: markers a load refuses to carry over are `markers` too.
+
+    Not `peek_captures`: its OSError does not say which of the two files failed."""
     counts: dict[str, Any] = {**dict.fromkeys(CaptureType, 0), "unread": None}
     try:
         captures = read_captures(work, document_id)
@@ -220,11 +78,14 @@ def count_captures(work: Path, document_id: str) -> dict[str, Any]:
     if captures is not None:  # markers.json is not read while captures.json is there
         return counts | captures.count()
     try:
-        markers = read_markers(work, document_id)
-    except (MarkersBroken, OSError):
+        carried = peek_carry_over(work, document_id)
+    except MarkersNotCarried:  # a CapturesBroken, so it is caught first
         return counts | {"unread": "markers"}
-    noted = sum(1 for marker in markers if marker.note)
-    return counts | {CaptureType.NOTE: noted, CaptureType.MARK: len(markers) - noted}
+    except CapturesBroken:  # a captures.json put in place since, that can't be read
+        return counts | {"unread": "captures"}
+    except OSError:
+        return counts | {"unread": "markers"}
+    return counts if carried is None else counts | carried.count()
 
 
 # ---- finding a marker again (plan section 3) ----------------------------------------------

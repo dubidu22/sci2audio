@@ -1,13 +1,16 @@
 """Shared helpers for the web tests: a server app with its folders in a temporary
-directory, clients that authenticate like the browser or a program, a small PDF."""
+directory, clients that authenticate like the browser or a program, a small PDF, and the
+v1.3 markers file as v1.3 wrote and read it."""
 
 from __future__ import annotations
 
+import json
 import socket
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -16,8 +19,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pdf_maker import Text, make_pdf
 
+from sci2audio.app.captures import MARKERS
 from sci2audio.testing import no_network
 from sci2audio.web import ServerConfig, create_app, new_token
+from sci2audio.web.markers import Anchor
 from sci2audio.web.project import folder_name
 
 PORT = 8123
@@ -178,10 +183,160 @@ def fake_clock() -> FakeClock:
 
 def markers_of(work: Path) -> dict[str, Any]:
     """A document's v1.3 markers file as written (#474), for field and byte checks."""
-    import json
-
-    data: dict[str, Any] = json.loads((work / "markers.json").read_text(encoding="utf-8"))
+    data: dict[str, Any] = json.loads((work / MARKERS).read_text(encoding="utf-8"))
     return data
+
+
+# ---- the v1.3 markers file (#474), as v1.3 wrote and read it --------------------------------
+# Nothing in the server writes it since the captures (#397), and only the carry-over in
+# `app.captures` reads it (#887). The tests keep v1.3's writer to make the files a person
+# brings from v1.3, and its reader to hold the carry-over to v1.3's verdict on each file.
+
+MARKERS_FORMAT = "sci2audio-web-markers"
+MARKERS_VERSION = 1
+MAX_MARKERS = 2000
+FILE_LIMIT = 2_000_000  # bytes
+NOTE_LIMIT = 4000  # characters
+_ID_DIGITS = frozenset("0123456789abcdef")
+_ANCHOR_KEYS = frozenset({"block", "start", "end", "text"})
+_MARKER_KEYS = frozenset({"id", "created", "changed", "anchor", "note"})
+_FILE_KEYS = frozenset({"format", "version", "document", "markers"})
+
+
+class MarkerError(Exception):
+    """A markers file v1.3 would not write: it could not read it back."""
+
+
+class MarkersBroken(MarkerError):
+    """The file is there but v1.3 can't read it."""
+
+
+class MarkerLimit(MarkerError):
+    """Too many markers, or the file would grow past its limit."""
+
+
+class MarkersTooLarge(MarkerLimit):
+    """The file would grow past its limit."""
+
+
+@dataclass(frozen=True)
+class Marker:
+    id: str
+    created: str
+    changed: str
+    anchor: Anchor
+    note: str = ""
+
+
+def note_problem(note: str) -> str | None:
+    """Why v1.3 can't keep a note, or None."""
+    if len(note) > NOTE_LIMIT:
+        return f"a note holds at most {NOTE_LIMIT} characters"
+    if "\x00" in note:
+        return "a note can't hold a NUL character"
+    return None
+
+
+def _no_constant(name: str) -> None:
+    raise ValueError(f"{name} is not a number")
+
+
+def _is_int(value: object) -> bool:
+    return type(value) is int
+
+
+def _anchor(data: object) -> Anchor:
+    if not isinstance(data, dict) or set(data) != _ANCHOR_KEYS:
+        raise ValueError("an anchor has block, start, end and text")
+    block, start, end, text = data["block"], data["start"], data["end"], data["text"]
+    if not (_is_int(block) and _is_int(start) and _is_int(end) and isinstance(text, str)):
+        raise ValueError("an anchor's block and offsets are whole numbers, its text a text")
+    if block < 0 or start < 0 or end < start or not text:
+        raise ValueError("an anchor's offsets don't fit")
+    return Anchor(block, start, end, text)
+
+
+def _marker(data: object) -> Marker:
+    if not isinstance(data, dict) or set(data) != _MARKER_KEYS:
+        raise ValueError("a marker has id, created, changed, anchor and note")
+    marker_id, created, changed, note = data["id"], data["created"], data["changed"], data["note"]
+    if not (isinstance(marker_id, str) and len(marker_id) == 16 and set(marker_id) <= _ID_DIGITS):
+        raise ValueError("a marker's id is 16 hex digits")
+    if not (isinstance(created, str) and isinstance(changed, str) and isinstance(note, str)):
+        raise ValueError("a marker's times and note are texts")
+    if len(created) > 40 or len(changed) > 40 or note_problem(note):
+        raise ValueError("a marker's times or note are too long")
+    return Marker(marker_id, created, changed, _anchor(data["anchor"]), note)
+
+
+def read_markers(work: Path, document_id: str) -> list[Marker]:
+    """The document's markers as v1.3 read them, in the file's order; [] if there is no
+    file. Raises MarkersBroken if v1.3 can't read the file, OSError if it can't be read at
+    all."""
+    path = work / MARKERS
+    if not path.exists() and not path.is_symlink():
+        return []
+    if path.is_symlink() or not path.is_file():
+        raise MarkersBroken(f"{path} is not a plain file")
+    if path.stat().st_size > FILE_LIMIT:
+        raise MarkersBroken(f"{path} is larger than {FILE_LIMIT} bytes")
+    try:
+        return _parse_markers(path.read_bytes().decode("utf-8"), document_id)
+    except ValueError as error:  # UnicodeDecodeError is a ValueError
+        raise MarkersBroken(f"{path} can't be read: {error}") from None
+
+
+def _parse_markers(text: str, document_id: str) -> list[Marker]:
+    """The markers of a file's text. Raises ValueError if v1.3 can't read it."""
+    try:
+        data = json.loads(text, parse_constant=_no_constant)
+        if not isinstance(data, dict) or set(data) != _FILE_KEYS:
+            raise ValueError("not a markers file")
+        if data["format"] != MARKERS_FORMAT or data["version"] != MARKERS_VERSION:
+            raise ValueError("another format or version")
+        if data["document"] != document_id:
+            raise ValueError("the markers of another document")
+        entries = data["markers"]
+        if not isinstance(entries, list) or len(entries) > MAX_MARKERS:
+            raise ValueError(f"the markers are not a list of at most {MAX_MARKERS}")
+        markers = [_marker(entry) for entry in entries]
+    except RecursionError:
+        raise ValueError("nested too deeply") from None
+    if len({marker.id for marker in markers}) != len(markers):
+        raise ValueError("one marker is named twice")
+    return markers
+
+
+def _marker_data(marker: Marker) -> dict[str, Any]:
+    a = marker.anchor
+    return {
+        "id": marker.id,
+        "created": marker.created,
+        "changed": marker.changed,
+        "anchor": {"block": a.block, "start": a.start, "end": a.end, "text": a.text},
+        "note": marker.note,
+    }
+
+
+def markers_text(document_id: str, markers: Sequence[Marker]) -> str:
+    """The file's text for these markers, as v1.3 wrote it. Raises MarkerLimit past the
+    limits."""
+    if len(markers) > MAX_MARKERS:
+        raise MarkerLimit(f"a document holds at most {MAX_MARKERS} markers")
+    data = {
+        "format": MARKERS_FORMAT,
+        "version": MARKERS_VERSION,
+        "document": document_id,
+        "markers": [_marker_data(marker) for marker in markers],
+    }
+    text = json.dumps(data, ensure_ascii=False, indent=1) + "\n"
+    if len(text.encode("utf-8")) > FILE_LIMIT:
+        raise MarkersTooLarge(f"the markers file would be larger than {FILE_LIMIT} bytes")
+    try:  # v1.3 never wrote a file it could not read back
+        _parse_markers(text, document_id)
+    except ValueError as error:
+        raise MarkerError(f"the markers would not be readable: {error}") from None
+    return text
 
 
 def set_capture(
