@@ -127,8 +127,47 @@ def arrow_texts(draw: st.DrawFn) -> str:
 @example("cf.\u21d2A", "en")  # #972
 @example("A \u21d0==> 3x", "de")  # #984
 @example("A \u21d0==> 3x", "en")  # #984
+@example("A > 3x", "en")  # #988
+@example("e.g. < 3x", "en")  # #988
+@example("A = \u2212 3x", "en")  # #997
 def test_arrows_and_signs_read_the_same_on_a_second_run(text: str, language: str) -> None:
     """D-577 for #796: whether an arrow is read depends on nothing a first run changes."""
+    first, second = first_and_second_run(text, language)
+    assert second == first
+
+
+_BEFORE_SIGN = ["", "A", "y", "I", "a", "B", "(a)", "f(x)", "e.g.", "z. B.", "2 s", "It is",
+                "A \u21d2", "A \u21d0=", "x", "the cost"]  # fmt: skip
+# "=" glued before a spaced minus ("A=\u2212 3") is a statistics difference of its own, with or
+# without "Nx", so "=" and "\u2212" come here spaced apart
+_SIGNS_BEFORE_NX = ["<", ">", "\u2212", "-", "=", "\u2264", "\u00b1", "<<", "<=", "->", "\u21d2",
+                    "\u21d0==>", "= \u2212", "\u21d2 \u2212"]  # fmt: skip
+_AFTER_NX = ["", ".", " and B.", " faster.", " here", ", and", " + 1", " \u21d2 B"]
+
+
+@st.composite
+def signs_before_nx(draw: st.DrawFn) -> str:
+    gap = st.sampled_from(["", " "])
+    return (
+        draw(st.sampled_from(_BEFORE_SIGN))
+        + draw(gap)
+        + draw(st.sampled_from(_SIGNS_BEFORE_NX))
+        + draw(gap)
+        + draw(st.sampled_from(["3", "2.5", "10"]))
+        + draw(st.sampled_from(["x", " x"]))
+        + draw(st.sampled_from(_AFTER_NX))
+    )
+
+
+@given(signs_before_nx(), st.sampled_from(["en", "de"]))
+@example("A < 3x", "en")  # #988
+@example("e.g. > 3x", "en")  # #988
+@example("A \u2212 3x", "en")  # #997
+@example("A \u21d2 \u2212 3x", "en")  # #997
+@example("\u2212 3x", "en")  # #997
+def test_a_sign_before_nx_reads_the_same_on_a_second_run(text: str, language: str) -> None:
+    """D-577 for #988 and #997: a sign before "Nx", "<", ">" and "\u2212" among them, makes it a
+    variable or "N times" the same way on both runs."""
     first, second = first_and_second_run(text, language)
     assert second == first
 

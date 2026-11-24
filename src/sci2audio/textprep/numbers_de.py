@@ -1280,6 +1280,12 @@ _ROMAN_RUN = re.compile(
     + _ROMAN
     + ")"
 )
+# a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis
+# III."): the first numeral is no part number on its own, so the list stays as printed as a
+# whole, as "Teil II und III." does (#996)
+_LIST_AFTER_STOP = re.compile(
+    r"\.(?:,\s*|\s+(?:und|oder|&|bis)\s+|\s*[/\u2013-]\s*)" + _ROMAN + r"(?!\w)"
+)
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
 _UNITS = {"": 0, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9}
@@ -1311,9 +1317,10 @@ def _roman_numerals(plain: str) -> list[Candidate]:
         if plain[match.end("run") : match.end("run") + 1] == "." and (
             match["keyword"].lower() not in _PART_KEYWORDS
             or len(parts) > 1
+            or _LIST_AFTER_STOP.match(plain, match.end("run"))
             or _ordinal_on_a_second_run(plain, *match.span("run"), str(_roman_value(match["run"])))
         ):
-            continue  # "Typ I.", "Teil II und III.", "Kapitel I. Teil": left as printed
+            continue  # "Typ I.", "Teil II und III.", "Kapitel I. und II.", "Kapitel I. Teil"
         for part in parts:
             start, end = offset + part.start(), offset + part.end()
             if part["numeral"]:
