@@ -2965,12 +2965,29 @@ issue = 843
 goal = "Vor oder nach den Wörtern, die der Statistikschritt für einen Logikpfeil liest ('daraus folgt', 'folgt aus', 'genau dann, wenn', #796), ist '3x' eine Variable wie neben dem gedruckten Pfeil, sodass ein zweiter Lauf es liest wie der erste; '3x schneller' und '3 × 4' lesen weiter 'mal' (#843)."
 language = "de"
 blocks = [
-    { kind = "paragraph", text = "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C." },
+    { kind = "paragraph", text = "Also 3x daraus folgt A, B folgt aus 2x, und 4x genau dann, wenn C." },
     { kind = "paragraph", text = "Es läuft 3x schneller und 3 × 4 ist 12." },
-    { kind = "paragraph", text = "Also 3x=>A, B ⇐ 2x und 4x ⇔ C." },
+    { kind = "paragraph", text = "Also 3x=>A, B ⇐ 2x, und 4x ⇔ C." },
 ]
 expected = [
-    "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C.",
+    "Also 3x daraus folgt A, B folgt aus 2x, und 4x genau dann, wenn C.",
     "Es läuft 3 mal schneller und 3 mal 4 ist 12.",
-    "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C.",
+    "Also 3x daraus folgt A, B folgt aus 2x, und 4x genau dann, wenn C.",
+]
+
+[[case]]
+id = "de-units-x-after-a-read-arrow-in-prose-is-mal"
+audit = 0
+issue = 843
+goal = "Ein gelesener Pfeil ('folgt aus', 'genau dann, wenn', 'daraus folgt') vor '3x' macht es nicht zur Variable, wenn nach dem x ein Wort der Prosa folgt: '3x so vielen' ist '3 mal so vielen', in beiden Läufen (#843, Review)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das folgt aus 3x so vielen Messungen." },
+    { kind = "paragraph", text = "Der Test gilt genau dann, wenn 3x so viele Proben vorliegen." },
+    { kind = "paragraph", text = "Wir messen doppelt, daraus folgt 2x so viel Arbeit." },
+]
+expected = [
+    "Das folgt aus 3 mal so vielen Messungen.",
+    "Der Test gilt genau dann, wenn 3 mal so viele Proben vorliegen.",
+    "Wir messen doppelt, daraus folgt 2 mal so viel Arbeit.",
 ]

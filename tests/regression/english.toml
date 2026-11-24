@@ -3174,12 +3174,30 @@ audit = 0
 issue = 843
 goal = "Before or after the words the statistics step reads for a logic arrow ('implies', 'is implied by', 'if and only if', #796), '3x' is a variable, as it is beside the printed arrow, so a second run reads it as the first did; '3x faster' and '3 × 4' still read 'times' (#843)."
 blocks = [
-    { kind = "paragraph", text = "So 3x implies A, B is implied by 2x and 4x if and only if C." },
+    { kind = "paragraph", text = "So 3x implies A, B is implied by 2x, and 4x if and only if C." },
     { kind = "paragraph", text = "It runs 3x faster and 3 × 4 is 12." },
-    { kind = "paragraph", text = "So 3x=>A, B ⇐ 2x and 4x ⇔ C." },
+    { kind = "paragraph", text = "So 3x=>A, B ⇐ 2x, and 4x ⇔ C." },
 ]
 expected = [
-    "So 3x implies A, B is implied by 2x and 4x if and only if C.",
+    "So 3x implies A, B is implied by 2x, and 4x if and only if C.",
     "It runs 3 times faster and 3 times 4 is 12.",
-    "So 3x implies A, B is implied by 2x and 4x if and only if C.",
+    "So 3x implies A, B is implied by 2x, and 4x if and only if C.",
+]
+
+[[case]]
+id = "units-x-after-a-read-arrow-in-prose-is-times"
+audit = 0
+issue = 843
+goal = "A read arrow ('implies', 'is implied by', 'if and only if') before '3x' makes no variable of it when a prose word follows the x: '3x more memory' is '3 times more memory', on both runs (#843 review)."
+blocks = [
+    { kind = "paragraph", text = "This implies 3x more memory." },
+    { kind = "paragraph", text = "Doubling the batch implies 2x the training time." },
+    { kind = "paragraph", text = "The result is implied by 3x larger samples." },
+    { kind = "paragraph", text = "It holds if and only if 2x more data is used." },
+]
+expected = [
+    "This implies 3 times more memory.",
+    "Doubling the batch implies 2 times the training time.",
+    "The result is implied by 3 times larger samples.",
+    "It holds if and only if 2 times more data is used.",
 ]
