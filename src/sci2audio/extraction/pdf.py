@@ -29,7 +29,7 @@ import threading
 import unicodedata
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import pypdfium2 as pdfium
@@ -115,6 +115,8 @@ _ITALIC_NAME = re.compile(
     rf"ital|oblique|cmti|cmbxti|cmsl|cmmi|{_TEX_CUT}(?:sl|ti|ci|sc|bl|bi|oc|si|so|it|st|vi)\d{{4}}",
     re.IGNORECASE,
 )
+# the "1)" number of an IEEE third-level heading, then its title (#798, #826)
+_RUN_IN_HEADING = re.compile(r"\d{1,2}\) +\S")
 _LINE_END_HYPHEN = 0x02  # how PDFium reports a hyphen printed at a line end
 _SOFT_HYPHEN = "\u00ad"  # kept as it is: joining words is a text step (TP-02)
 _UNKNOWN = "\ufffd"  # a glyph PDFium can't map to Unicode: recorded, not dropped
@@ -860,10 +862,39 @@ def _lines(
         space = None
     placed = _accents_onto_letters(lines)
     return tuple(
-        _text_line(line, f"p{number}-l{i}")
+        cut
         for i, line in enumerate(lines, 1)
         if i - 1 not in placed  # the page keeps its numbering: the accent's id goes missing
+        for cut in _run_in(_text_line(line, f"p{number}-l{i}"))
     ), unmapped
+
+
+def _run_in(line: TextLine) -> tuple[TextLine, ...]:
+    """The line cut after a heading run into its paragraph ("1) Hardware: The board …",
+    #826): a block holds whole lines, so layout can make the heading its own block only when
+    extraction gives it its own line. The heading is the bold or italic runs that start the
+    line up to one ending in a colon, and starts with a number of the "1)" heading kind
+    (#798): other lead-ins ("DOI:", "Abstract:", "Figure 1:", "Q:") are labels and captions,
+    not headings, and stay whole. Regular text must come right after. The heading keeps the
+    line's id, the rest gets it with "b" added."""
+    runs = line.runs
+    for end, run in enumerate(runs[:-1], 1):
+        if not (run.bold or run.italic):
+            return (line,)
+        if run.text.rstrip().endswith(":"):
+            after = runs[end]
+            heading = "".join(r.text for r in runs[:end]).rstrip()[:-1]
+            if after.bold or after.italic or not _RUN_IN_HEADING.match(heading):
+                return (line,)
+            rest = (replace(after, text=after.text.lstrip()), *runs[end + 1 :])
+            if not rest[0].text:
+                return (line,)
+            return _cut(line.id, runs[:end]), _cut(f"{line.id}b", rest)
+    return (line,)
+
+
+def _cut(line_id: str, runs: tuple[TextRun, ...]) -> TextLine:
+    return TextLine(line_id, runs, _union([run.box for run in runs if run.box]))
 
 
 def _accents_onto_letters(lines: list[_Line]) -> set[int]:

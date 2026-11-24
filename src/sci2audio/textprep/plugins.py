@@ -22,10 +22,16 @@ No object of the plugin's leaves a worker (#693): any of them may run plugin cod
 is compared, hashed, shown or dropped, and only the worker is under the time limit. So the
 worker hands back plain built-in values (copies of the id and languages, edits rebuilt from
 plain ints and strs) or the text of a failure, never what the plugin returned or raised;
-what a call left in reference cycles is collected there too. Not covered is what outlives
-a call: the plugin's step object lives as long as the job's steps, and what the plugin
-keeps on it or in its module's globals is freed wherever that is dropped, so a finalizer
-(`__del__`) of such an object may run in the job's thread.
+what a call left in reference cycles is freed before the worker returns, in the worker
+unless another thread's collection took it first, and never in the job's thread; if that
+cannot be made sure within `PLUGIN_COLLECT_TIMEOUT`, the call fails (#804). Two
+exceptions: while a guard worker hangs inside its collection, later calls are accepted
+although their cycles stay, and should that finalizer ever return, they are freed in
+whichever thread collects next; and cycles a finalizer makes while the worker's own
+collection runs are left. Not covered is what outlives a call: the plugin's step object
+lives as long as the job's steps, and what the plugin keeps on it or in its module's
+globals is freed wherever that is dropped, so a finalizer (`__del__`) of such an object
+may run in the job's thread.
 """
 
 from __future__ import annotations
@@ -33,6 +39,8 @@ from __future__ import annotations
 import copy
 import gc
 import threading
+import time
+import weakref
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from importlib.metadata import EntryPoint, entry_points
@@ -55,6 +63,9 @@ PLUGIN_TIMEOUT = 60.0  # seconds per plugin per document; built-in steps take we
 # seconds per entry point: on the start-up path of every command, yet room for a heavy import
 # on a slow disk (D-845)
 PLUGIN_LOAD_TIMEOUT = 30.0
+# seconds the guard waits, after a plugin's call and on top of its limit, for the cycles the
+# call left to be freed; past it the call fails rather than leave them to the job (#804)
+PLUGIN_COLLECT_TIMEOUT = 5.0
 
 
 @dataclass(frozen=True)
@@ -228,35 +239,135 @@ class _Failure:
     raised: bool = False  # the plugin's find raised an Exception; `message` is its text
 
 
+# The guard worker whose collection after a call did not end, and its state. While it stays
+# inside that collection the collector frees nothing in any thread, the job's included, so
+# later calls do not wait for it. One per process, as the collector is (#804).
+_hung_collection: tuple[threading.Thread, dict[str, Any]] | None = None
+
+
 def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Failure:
     """`call()` in a daemon thread: its result, which must hold only built-in values, or a
-    _Failure; _TimedOut if it is still running after `timeout` seconds. What the call
+    _Failure; _TimedOut if the call is still running after `timeout` seconds. What the call
     raised never reaches this thread, only its text: an exception holds the frames it
-    passed, and so the plugin's objects. Garbage the call left in cycles is collected
-    in the thread before it ends. Ctrl+C there is raised here anew. The thread cannot be
-    stopped and is left to finish on its own; a daemon thread never keeps the program
-    from ending."""
-    result: dict[str, Any] = {}
+    passed, and so the plugin's objects. Ctrl+C there is raised here anew. The thread
+    cannot be stopped and is left to finish on its own; a daemon thread never keeps the
+    program from ending.
+
+    After the call the thread makes sure the garbage the call left in cycles is freed, and
+    this thread sleeps until then, up to `PLUGIN_COLLECT_TIMEOUT` seconds more: the limit
+    is for the plugin's code, and a full collection of a large program takes its own time.
+    If it is not sure by then, the result is a _Failure."""
+    global _hung_collection
+    result: dict[str, Any] = {"collecting": False}
+    called, collected = threading.Event(), threading.Event()
+    # plain locks, held until released: this thread passes from opening `start` to sleeping
+    # on `settled` in two C calls, with no Python between that could run a collection
+    start, settled = threading.Lock(), threading.Lock()
+    start.acquire()
+    settled.acquire()
+    late: list[str] = []
+    limit = PLUGIN_COLLECT_TIMEOUT
+    backstop = timeout + limit + 1.0
 
     def work() -> None:
+        start.acquire()
         try:
             result["value"] = call()
         except KeyboardInterrupt:
             result["interrupted"] = True
         except BaseException as error:  # a path the call does not turn into a _Failure
             result["value"] = _Failure(f"failed: {_said(error)}")
+        called.set()
         # what the call left in reference cycles is freed only by the collector, which would
         # otherwise run its finalizers in whatever thread triggers it next: the job's
-        gc.collect()
+        result["freed"] = _cycles_freed(limit, result)
+        collected.set()
+
+    def watch() -> None:
+        # the job's thread sleeps from before the call starts until the cycles are freed or a
+        # limit has passed: awake, it could run a collection that is due, and with it the
+        # plugin's finalizers
+        if not called.wait(timeout):
+            late.append("call")
+        elif "interrupted" not in result and not collected.wait(limit):
+            late.append("collection")
+        settled.release()
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()
-    worker.join(timeout)
-    if worker.is_alive():
+    threading.Thread(target=watch, name=f"{name} (limits)", daemon=True).start()
+    start.release()
+    if not settled.acquire(True, backstop):  # the watch itself was held up
+        late.append("call" if not called.is_set() else "collection")
+    if late[:1] == ["call"]:
         raise _TimedOut(worker)
     if "interrupted" in result:
         raise KeyboardInterrupt
+    if late and result["collecting"]:  # inside its own collection: a finalizer of it hangs
+        _hung_collection = (worker, result)
+        return _Failure(
+            f"its objects were not freed within {limit:g} s after its call: the collection "
+            f"after it did not end"
+        )
+    if late or not result["freed"]:
+        return _Failure(
+            f"its objects were not freed within {limit:g} s after its call: another thread "
+            f"kept the garbage collector busy"
+        )
     return result["value"]
+
+
+def _cycles_freed(limit: float, state: dict[str, Any]) -> bool:
+    """True once every reference cycle that existed when this was called is freed, False if
+    that cannot be made sure within `limit` seconds. `state["collecting"]` is True while
+    this thread is inside `gc.collect()`.
+
+    While another thread is inside a collection, `gc.collect()` returns 0 at once and frees
+    nothing (#804), so only a call that found something was a collection of this thread's
+    own, and that is a full one, started after the call; a garbage canary makes sure there
+    is something to find. That the canary is gone proves nothing: a collection that is due
+    runs in whichever thread checks for one, this one included, and is often a young one
+    that leaves older cycles. Two more full collections ended anywhere prove it too: the
+    second started after the first ended, so after this was called. While a guard worker
+    hangs inside its collection nothing is freed anywhere, so this does not wait for it.
+    """
+    full_before = _full_collections()
+    deadline = time.monotonic() + limit
+    canary = _canary()
+    while True:
+        if canary() is None:
+            canary = _canary()
+        state["collecting"] = True
+        found = gc.collect()
+        state["collecting"] = False
+        if found or _full_collections() >= full_before + 2:
+            return True
+        if _collector_held_by_a_hung_worker():
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.001)  # lets the thread that is collecting finish
+
+
+def _full_collections() -> int:
+    """How many full collections have ended; CPython counts one as it ends."""
+    return gc.get_stats()[2]["collections"]
+
+
+def _collector_held_by_a_hung_worker() -> bool:
+    hung = _hung_collection
+    return hung is not None and hung[0].is_alive() and hung[1]["collecting"]
+
+
+class _Canary:
+    me: object
+
+
+def _canary() -> weakref.ref[_Canary]:
+    """A weakref to a new cycle of no use, left for the collector."""
+    canary = _Canary()
+    canary.me = canary
+    return weakref.ref(canary)
 
 
 def _distribution(point: EntryPoint) -> tuple[str, str]:

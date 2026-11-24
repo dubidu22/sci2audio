@@ -1232,6 +1232,204 @@ def test_a_figure_in_a_wide_gutter_keeps_its_labels_and_caption_apart_from_the_c
     ]
 
 
+@pytest.mark.parametrize("share", [1.0, 0.6])
+@pytest.mark.parametrize("captioned", [False, True])
+@pytest.mark.parametrize("count", [1, 2, 3])
+def test_lines_under_a_figure_atop_a_middle_column_are_read_after_the_left_column(
+    count: int, captioned: bool, share: float
+) -> None:
+    """#938: a figure fills the top of the middle column of three, with 1 to 3 lines under
+    it (and a caption above them). Figure and lines are fewer items than a gutter may hold,
+    so the white from the left column to the right one is one strip; the white on each side
+    of the figure is a gutter all the same. The left column is read whole, then the
+    figure's column, then the right column. (The left column's paragraph ends in a
+    sentence: one that runs on into the right column is never cut by the float, which
+    then follows it, #61.)"""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    top = 23 - count
+    caption = [line("Figure 1: a thing", x0, 80 + 14 * top, x0 + 90)] if captioned else []
+    middle = [
+        line(f"c1r{row}", x0, 80 + 14 * row, x0 + share * width)
+        for row in range(top + len(caption), top + len(caption) + count)
+    ]
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line("c0r26.", LEFT, 80 + 14 * 26, LEFT + width)
+    drawing = Drawing("fig", Box(x0, 80, x0 + width, 80 + 14 * (top - 1)))
+    found = content(left + caption + middle + right, drawings=(drawing,))
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + caption + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + caption + middle + right]
+    assert columns_per_page(found) == [2]
+
+
+def middle_figure_page(
+    end: str, starts: tuple[str, str], gap: float, rows: int = 4
+) -> tuple[Content, list[TextLine], list[TextLine], list[TextLine]]:
+    """Three columns of 27 lines, the left one ending in the line `end`, a figure atop the
+    middle one from y 80 to y 388 and `rows` (up to four) ragged lines under it, the first
+    `gap` points under the figure and opening with `starts[0]`; the right column's first
+    line opens with `starts[1]`."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    first, right_start = starts
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line(end, LEFT, 80 + 14 * 26, LEFT + width)
+    right[0] = line(f"{right_start} weiter", x0 + width + GUTTER, 80, RIGHT)
+    texts = [f"{first} m0", "m1 goes", "m2 goes", "m3 goes"][:rows]
+    middle = [
+        line(text, x0, 388 + gap + 14 * k, x0 + share * width)
+        for k, (text, share) in enumerate(zip(texts, (0.86, 0.93, 0.80, 0.90), strict=False))
+    ]
+    drawing = Drawing("fig", Box(x0, 80, x0 + width, 388))
+    return content(left + middle + right, drawings=(drawing,)), left, middle, right
+
+
+def block_of(doc: Document, item: str) -> Block:
+    (block,) = [b for b in doc.blocks if any(p.item == item for p in b.parts)]
+    return block
+
+
+@pytest.mark.parametrize("gap", [14.0, 11.0])
+@pytest.mark.parametrize(
+    "starts",
+    [("Measurement", "and so on"), ("Messung", "und so weiter")],
+)
+def test_running_text_under_a_middle_figure_goes_on_into_the_right_column(
+    starts: tuple[str, str], gap: float
+) -> None:
+    """#945: the left column ends a sentence, and four ragged lines under a figure atop the
+    middle column open a sentence with a capital that runs on into the right column. They
+    are running text, not the figure's labels: they stand further under the figure than
+    its labels would (more than `float_gap`, 1 em), so their last line and the right
+    column's first are one paragraph."""
+    found, left, middle, right = middle_figure_page("so it ends.", starts, gap)
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + middle + right]
+    assert right[0].id in {p.item for p in block_of(doc, middle[-1].id).parts}
+
+
+@pytest.mark.parametrize(
+    ("end", "starts"),
+    [
+        ("Werte wie z. B.", ("Messung", "und so weiter")),
+        ("Werte, d. h.", ("Messung", "und so weiter")),
+        ("Werte u. a.", ("Messung", "und so weiter")),
+        ("Werte in Abb.", ("Messung", "und so weiter")),
+        ("Werte am 3.", ("Mai", "und so weiter")),
+        ("values by Smith et al.", ("Measurement", "and so on")),
+        ("values, e.g.", ("Measurement", "and so on")),
+        ("values, i.e.", ("Measurement", "and so on")),
+        ("values in Fig.", ("Measurement", "and so on")),
+    ],
+)
+@pytest.mark.parametrize("rows", [4, 1])
+def test_an_abbreviation_ending_the_left_column_is_no_sentence_end_for_a_middle_figure(
+    end: str, starts: tuple[str, str], rows: int
+) -> None:
+    """#945: the left column of three ends in an abbreviation, a figure fills the top of the
+    middle column and one to four ragged lines stand close under it, within `float_gap`.
+    The abbreviation ends no sentence, and the lines do not lie on the figure, so they are
+    not taken for its labels: the left column's last line and the first line under the
+    figure are one paragraph."""
+    found, left, middle, right = middle_figure_page(end, starts, 4.0, rows)
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + middle + right]
+    assert middle[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+
+
+@pytest.mark.parametrize("ended", [False, True])
+@pytest.mark.parametrize("captioned", [True, False])
+@pytest.mark.parametrize("end", ["L29", "L29,", "L29 2023", "L29.“", "L29.»"])
+def test_a_gutter_figure_keeps_its_labels_when_the_left_column_runs_on(
+    end: str, captioned: bool, ended: bool
+) -> None:
+    """#958: the #895 page with the left column's last line running on past the break (a
+    word, a comma, a number), or ending a sentence in a German closing quote or guillemet,
+    whether it fills the column or ends short (`ended`). The labels lie on the drawing, so
+    they are the figure's: no block mixes them or the caption with the columns' lines, the
+    caption block holds the caption alone, and the text is read in the page's order."""
+    left = [
+        line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228)
+        for k in range(30)
+    ]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    labels = [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
+    caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
+    found = content(
+        left + right + labels + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
+    )
+    doc = build_document(found)
+    assert columns_per_page(found) == [2]
+    text = {li.id for li in left + right}
+    for block in doc.blocks:
+        items = {p.item for p in block.parts}
+        assert not (items & text and items - text), block
+    ids = {li.id: li.text for li in [*left, *right, *labels, *caption]}
+    upper, lower = [li.text for li in labels[::2]], [li.text for li in labels[1::2]]
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left] + upper + lower + [li.text for li in caption] + [
+        li.text for li in right
+    ]
+    if captioned:
+        figures = [b for b in doc.blocks if b.kind is BlockKind.FIGURE]
+        assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [
+            ["fig", *upper, *lower]
+        ]
+        captions = [b for b in doc.blocks if b.kind is BlockKind.CAPTION]
+        assert [[p.item for p in b.parts] for b in captions] == [[caption[0].id]]
+
+
+def test_a_caption_in_a_gutter_after_a_column_that_runs_on_waits_for_its_paragraph() -> None:
+    """#958: on the #895 page with no labels, the left column's last line fills it and ends
+    no sentence. The caption right after the figure sets the paragraph aside, and the right
+    column goes on with it: the caption is read after the paragraph, as after any float
+    (#61). Reading it as the figure's, between the columns, would move the paragraph's end
+    before it."""
+    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    caption = line("Figure 1: a thing", 240, 280, 310)  # short: no running text
+    found = content(left + right + [caption], drawings=(Drawing("fig", Box(236, 190, 360, 260)),))
+    doc = build_document(found)
+    ids = {li.id: li.text for li in [*left, *right, caption]}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + right] + [caption.text]
+    assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_tick_labels_under_a_gutter_figure_after_a_sentence_end_are_the_figures(
+    captioned: bool,
+) -> None:
+    """#945: on the #895 page with a row of ticks just under the drawing's box (within
+    `float_gap`) and the axis's name under them (within `float_gap` of the ticks, not of
+    the drawing), and the left column ending a sentence, ticks and name are the figure's
+    labels: no block mixes them or the caption with the columns' lines."""
+    left = [line(f"L{k}{'.' if k == 29 else ''}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    ticks = [line(f"tick{k}", 240 + 28 * k, 262, 252 + 28 * k) for k in range(4)]
+    ticks.append(line("time (s)", 280, 276, 320))
+    caption = [line("Figure 1: a thing", 240, 296, 356)] if captioned else []
+    found = content(
+        left + right + ticks + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
+    )
+    doc = build_document(found)
+    text = {li.id for li in left + right}
+    for block in doc.blocks:
+        items = {p.item for p in block.parts}
+        assert not (items & text and items - text), block
+    ids = {li.id: li.text for li in [*left, *right, *ticks, *caption]}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + ticks + caption + right]
+
+
 def three_columns(rows: tuple[int, int, int]) -> list[TextLine]:
     """Three columns of full lines, `rows` lines in each, from y 80 down."""
     width = (RIGHT - LEFT - 2 * GUTTER) / 3

@@ -32,6 +32,7 @@ from sci2audio.core import (
 )
 from sci2audio.core import Page as PdfPage
 from sci2audio.layout import build_document
+from sci2audio.layout.build import columns_per_page
 from sci2audio.layout.headings import title
 from sci2audio.layout.tagged import positioned
 
@@ -1186,6 +1187,133 @@ def test_the_outline_reads_no_parenthesised_number_without_a_letter_before_it() 
     doc = page.build(OutlineEntry("1) Fine print", 1, 1))
     assert headings(doc)[-1] == ("1) Fine print", "")
     assert [s.level for s in walk(doc.sections)] == [1, 1, 1]
+
+
+# An IEEE third-level heading run into its paragraph, "1) Hardware: The board …" (#826, #963).
+# Extraction cuts the printed line after the emphasised "1) Hardware:" into two lines on one
+# baseline: the heading keeps the line's id, the rest gets it with "b" added and loses its
+# leading space; their boxes overlap by about 0.6 point (glyph boxes, PR #964).
+
+RUN_IN_REST = "The board is small and runs on one cell of power"
+
+
+def run_in(
+    page: Page, head: str, rest: str = RUN_IN_REST, italic: bool = False, rows: int = 2
+) -> Page:
+    """The two lines extraction makes of a run-in heading's printed line, a full row, then
+    `rows` more rows of its paragraph."""
+    font = "Times-Italic" if italic else "Times-Bold"
+    y, n = page.y, next(_ids)
+    run = TextRun(head, font, 10.0, bold=not italic, italic=italic)
+    page.lines.append(TextLine(f"p1-l{n}", (run,), Box(LEFT, y, 108.0, y + 10.0)))
+    rest_run = TextRun(rest, "Times", 10.0)
+    page.lines.append(TextLine(f"p1-l{n}b", (rest_run,), Box(107.4, y, RIGHT, y + 10.0)))
+    page.y += PITCH
+    return page.body(rows) if rows else page
+
+
+def ieee_run_ins(italic: bool = False) -> Page:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    run_in(page, "1) Hardware:", italic=italic)
+    run_in(page, "2) Software:", "The code is written in a language of its own", italic)
+    return page.heading("B. Data", 10.0).body(2).heading("III. Results").body(2)
+
+
+def test_a_run_in_heading_cut_from_its_line_is_level_three() -> None:
+    doc = ieee_run_ins().build()
+    assert headings(doc)[2:5] == [("A. Setup", "A"), ("1) Hardware:", "1)"), ("2) Software:", "2)")]
+    assert tree(doc.sections) == [
+        ("I. Introduction", 1),
+        ("II. Method", 1),
+        [("A. Setup", 2), [("1) Hardware", 3), ("2) Software", 3)], ("B. Data", 2)],
+        ("III. Results", 1),
+    ]
+    at = [b.text for b in doc.blocks].index("1) Hardware:")
+    rest = doc.blocks[at + 1]
+    assert rest.kind is BlockKind.PARAGRAPH
+    assert rest.text.split("\n")[0] == RUN_IN_REST
+    assert len(rest.text.split("\n")) == 3
+
+
+def test_an_italic_run_in_heading_is_level_three() -> None:
+    doc = ieee_run_ins(italic=True).build()
+    assert [s.title for s in walk(doc.sections)][3:5] == ["1) Hardware", "2) Software"]
+    assert [s.level for s in walk(doc.sections)][3:5] == [3, 3]
+
+
+def test_the_overlapping_halves_of_a_run_in_line_are_one_column_read_heading_first() -> None:
+    """The heading's box ends 0.6 point right of where the rest's box starts: one column,
+    one row, read heading then rest."""
+    page = ieee_run_ins()
+    assert columns_per_page(content(page.lines)) == [1]
+    texts = [b.text for b in page.build().blocks]
+    at = texts.index("1) Hardware:")
+    assert texts[at + 1].startswith(RUN_IN_REST)
+
+
+def test_a_run_in_heading_after_a_full_row_starts_its_own_block() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(1)
+    full = TextRun("running text that fills the whole row of the column goes on", "Times", 10.0)
+    page.lines.append(TextLine("full", (full,), Box(LEFT, page.y, RIGHT, page.y + 10.0)))
+    page.y += PITCH
+    run_in(page, "1) Hardware:")
+    run_in(page, "2) Software:")
+    page.heading("B. Data", 10.0).body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "1)", "2)", "B"]
+    assert all(b.text != "1) Hardware:" or b.kind is BlockKind.HEADING for b in doc.blocks)
+
+
+def test_a_run_in_line_that_is_no_heading_reads_as_one_line_with_a_space() -> None:
+    """In an Arabic document "1)" numbers no heading: the two halves stay one block, as the
+    whole line would, joined by the space the page prints after the colon."""
+    page = Page().heading("1 Introduction").body(2).heading("1.1 Setup", 10.0).body(2)
+    run_in(page, "1) Hardware:")
+    run_in(page, "2) Software:")
+    page.heading("2 Method").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["1", "1.1", "2"]
+    joined = [b for b in doc.blocks if b.text.startswith("1) Hardware")]
+    assert [b.text.split("\n")[0] for b in joined] == [f"1) Hardware: {RUN_IN_REST}"]
+    assert joined[0].kind is BlockKind.LIST_ITEM
+
+
+def test_a_run_in_line_in_the_top_headings_style_is_no_unnumbered_heading() -> None:
+    """Level-1 headings set bold in the body size: a run-in "1) Hardware:" in that style is
+    no unnumbered level-1 heading, as the whole line ending in a colon never was."""
+    page = Page().heading("1 Introduction", 10.0).body(2).heading("2 Method", 10.0).body(2)
+    run_in(page, "1) Hardware:")
+    page.heading("3 Results", 10.0).body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["1", "2", "3"]
+    assert any(b.text.startswith(f"1) Hardware: {RUN_IN_REST}") for b in doc.blocks)
+
+
+def test_a_run_in_heading_without_a_letter_over_it_stays_in_its_paragraph() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    run_in(page, "1) Hardware:")
+    run_in(page, "2) Software:")
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "II", "III"]
+    assert any(b.text.startswith(f"1) Hardware: {RUN_IN_REST}") for b in doc.blocks)
+
+
+def test_body_style_numbered_items_stay_list_items_beside_run_in_headings() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    run_in(page, "1) Hardware:")
+    for text in ("1) The first entry of the list.", "2) The second entry of the list."):
+        page.lines.append(set_line(text, page.y))
+        page.y += PITCH
+    run_in(page, "2) Software:")
+    page.heading("B. Data", 10.0).body(2)
+    doc = page.build()
+    items = [b.text for b in doc.blocks if b.kind is BlockKind.LIST_ITEM]
+    assert items == ["1) The first entry of the list.", "2) The second entry of the list."]
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "1)", "2)", "B"]
 
 
 # The publisher's front matter named by the outline (#456, D-755)
