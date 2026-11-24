@@ -140,7 +140,6 @@ _DATE_LEADS = frozenset(
     )
 )
 _WORD = re.compile(r"[^\W\d_]+")
-_LAST_WORD = re.compile(r"[^\W\d_]+\Z")
 # a word and at most a year as the whole of a line: "OKTOBER", "(Oktober 2020" (#893)
 _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+\d{1,4})?\W*")
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
@@ -311,7 +310,13 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
             out.append(element)
         elif (
             k
-            and not _title(paragraph[k - 1], text, longest, paragraph[k - 2] if k > 1 else None)
+            and not _title(
+                paragraph[k - 1],
+                text,
+                longest,
+                paragraph[k - 2] if k > 1 else None,
+                paragraph[k + 1] if k + 1 < len(paragraph) else None,
+            )
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
             out.append((*element, "br"))
@@ -347,7 +352,7 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int, before: str | None) -> bool:
+def _title(line: str, after: str, longest: int, before: str | None, beyond: str | None) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
     has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
@@ -366,11 +371,21 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     A long line ending in a word that leads into no date (`_DATE_LEADS`) before a month line
     is a title or author line, and its date a line of its own (#922): "A Study of ... on
     Phones" / "April 2020" / "The ..." cuts before and after the date, "... im" / "Oktober
-    2020" / "Die ..." runs on. A line ending in punctuation or a number keeps the rules
-    above."""
+    2020" / "Die ..." runs on. Only a date line without punctuation at its end before
+    `beyond`, the line after it, starting with a capital: a date ending in a stop ("...
+    dated" / "June 2020." / "The ...") or before a lower-case line ("... den Stand" /
+    "Oktober 2020" / "wieder und ...") ends or goes on with the sentence it is in. A line
+    ending in punctuation or a number keeps the rules above."""
     first = after.lstrip(_OPENERS)[:1]
     if not _short(line, longest):
-        return first.isupper() and _month_line(after) and _titled(line)
+        return (
+            first.isupper()
+            and beyond is not None
+            and beyond.lstrip(_OPENERS)[:1].isupper()
+            and after.rstrip(_CLOSERS)[-1:] not in _ENDS
+            and _month_line(after)
+            and _titled(line)
+        )
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
@@ -391,8 +406,10 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
 def _titled(line: str) -> bool:
     """True if `line` ends in a word that is no lead into a date (`_DATE_LEADS`), looking
     through closing quotes and brackets: a title or author line before a date (#922)."""
-    word = _LAST_WORD.search(line.rstrip().rstrip(_CLOSERS))
-    return word is not None and word[0].lower() not in _DATE_LEADS
+    # Matched from the end of the reversed line: a search for a word at the line's end would
+    # retry at every letter of the last word (quadratic). No lead is near 32 letters long.
+    tail = _WORD.match(line.rstrip().rstrip(_CLOSERS)[-32:][::-1])
+    return tail is not None and tail[0][::-1].lower() not in _DATE_LEADS
 
 
 def _month_line(line: str) -> bool:
@@ -426,7 +443,13 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
         line.lstrip(_OPENERS)[:1].isupper()
         and not _capitals(line)
         and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
-        and _title(line, after, longest, paragraph[k - 1])
+        and _title(
+            line,
+            after,
+            longest,
+            paragraph[k - 1],
+            paragraph[k + 2] if k + 2 < len(paragraph) else None,
+        )
     )
 
 
