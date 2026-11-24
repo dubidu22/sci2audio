@@ -3,8 +3,9 @@
 Each file is written under a temporary name of its own (`.<name>.<pid>-<random>.partial`)
 next to its target and renamed when complete, so two writers of the same file never share
 a temporary file and the last rename wins (#778); on Windows, a replace refused while
-another writer replaces the same file is tried again a few times (#828). On any error the
-partial files are removed. `write_texts` writes
+another writer replaces the same file is tried again a few times (#828), and a rename
+without `overwrite` refused there because the file exists is raised as FileExistsError, as
+on POSIX (#850). On any error the partial files are removed. `write_texts` writes
 all its files before it renames any, so a full disk leaves every earlier file as it was,
 and without `overwrite` it puts either all of its files in place or none.
 An existing file is only replaced with `overwrite=True`; without it, a file that appeared
@@ -21,7 +22,7 @@ import re
 import secrets
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 STALE_AFTER_SECONDS = 3600
@@ -44,6 +45,15 @@ well under a second (all pauses together come to about 0.43 s)."""
 
 _REPLACE_IS_RETRIED = sys.platform == "win32"
 """Elsewhere a refused replace is a real permission problem and is raised at once."""
+
+_IS_WINDOWS = sys.platform == "win32"
+"""Windows has no hard links to rely on, and its rename refuses an existing target."""
+
+# The calls the retry makes, looked up at call time so that tests patch them here only,
+# never `os` or `time` for the whole process (#860).
+_replace_once = os.replace
+_rename_once = os.rename
+_sleep = time.sleep
 
 
 def partial_path(target: Path) -> Path:
@@ -154,24 +164,46 @@ def _write_partial(partial: Path, content: str | bytes) -> None:
 
 def _replace(partial: Path, target: Path) -> None:
     """`os.replace`, tried again on Windows while another writer replaces `target`."""
+    _retry_refused(lambda: _replace_once(partial, target))
+
+
+def _rename_new(partial: Path, target: Path) -> None:
+    """`os.rename` on Windows, which refuses an existing target. While another writer
+    replaces `target`, Windows says access denied instead; with a file at the target that
+    is the same answer as POSIX gives, so it is raised as FileExistsError (#850)."""
+
+    def rename() -> None:
+        try:
+            _rename_once(partial, target)
+        except PermissionError as refused:
+            if os.path.lexists(target):
+                raise FileExistsError(f"file appeared during the run: {target}") from refused
+            raise
+
+    _retry_refused(rename)
+
+
+def _retry_refused(move: Callable[[], None]) -> None:
+    """Run `move`; on Windows a `PermissionError` is tried again up to `REPLACE_ATTEMPTS`
+    times in all (#828). Any other error, and every error elsewhere, is raised at once."""
     pause = REPLACE_FIRST_PAUSE
     for attempt in range(1, REPLACE_ATTEMPTS + 1):
         try:
-            os.replace(partial, target)
+            move()
         except PermissionError:
             if not _REPLACE_IS_RETRIED or attempt == REPLACE_ATTEMPTS:
                 raise
         else:
             return
-        time.sleep(pause)
+        _sleep(pause)
         pause = min(pause * 2, REPLACE_MAX_PAUSE)
 
 
 def _commit(partial: Path, target: Path, overwrite: bool) -> None:
     if overwrite:
         _replace(partial, target)
-    elif sys.platform == "win32":
-        os.rename(partial, target)  # refuses an existing target on Windows
+    elif _IS_WINDOWS:
+        _rename_new(partial, target)
     else:
         try:
             os.link(partial, target)  # refuses an existing target
