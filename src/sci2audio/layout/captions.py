@@ -13,9 +13,11 @@ a paragraph for now (the pseudocode is #38). A listing's caption ends where its 
 set wholly in a typewriter font starts, with another such line right under it: those lines
 are the listing's (#281). A single such line is the caption's, a code name wrapped onto a
 line of its own (#603), and a caption whose own first line is so set is not cut. A
-typewriter line larger than the body text is no code, so it cuts nothing. A table's or
-figure's caption is never cut. Which block a caption names (`describes`) is set with the
-placeholders in PR D (D-86); a listing's caption names its CODE block (`code`).
+typewriter line larger than the body text is no code, so it cuts nothing, and in a typed
+document (mostly typewriter type, `code.BodyText`, #794) no line is code, so no listing's
+caption is cut (#832). A table's or figure's caption is never cut. Which block a caption
+names (`describes`) is set with the placeholders in PR D (D-86); a listing's caption names
+its CODE block (`code`).
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from bisect import bisect_right
 from dataclasses import replace
 
 from sci2audio.core import Block, BlockKind, Content, Part, TextLine
-from sci2audio.layout.code import LISTING, monospace_line
+from sci2audio.layout.code import LISTING, BodyText, monospace_line
 from sci2audio.layout.split import line_starts, split_at
 
 # English and German names, for a document in any language (#235, D-506): "Abb. 1" never
@@ -45,10 +47,10 @@ _CODE_LINE = re.compile(r"\d{1,3}:(?:\s|$)")
 _ALGORITHM = ("Algorithm", "ALGORITHM")
 
 
-def find_captions(blocks: list[Block], content: Content, size: float = 0.0) -> list[Block]:
+def find_captions(blocks: list[Block], content: Content, body: BodyText) -> list[Block]:
     """The blocks with each caption marked (kind CAPTION, its label), an algorithm's
-    numbered lines or a listing's code lines cut off into a paragraph of their own; `size`
-    is the body text's font size (0 if unknown)."""
+    numbered lines or a listing's code lines cut off into a paragraph of their own; `body`
+    is the document's judgement of code (`code.body_text`), the one `find_code` uses."""
     lines = {line.id: line for page in content.pages for line in page.lines}
     out: list[Block] = []
     for block in blocks:
@@ -57,7 +59,7 @@ def find_captions(blocks: list[Block], content: Content, size: float = 0.0) -> l
             out.append(block)
             continue
         if label.startswith(LISTING):
-            cuts = _listing_starts(block, lines, size)
+            cuts = [] if body.typed else _listing_starts(block, lines, body.size)
         else:
             starts = line_starts(block)[1:] if label.startswith(_ALGORITHM) else []
             cuts = [k for k in starts if _CODE_LINE.match(block.text, k)]

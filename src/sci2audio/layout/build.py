@@ -74,7 +74,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
         if isinstance(unit, Row)
         for piece in unit.pieces
     }
-    captioned = find_captions(blocks, content, layout.body.size)
+    captioned = find_captions(blocks, content, layout.body)
     blocks, links = find_graphics(captioned, content, layout.size, settings, columns)
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
