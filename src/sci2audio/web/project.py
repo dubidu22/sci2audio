@@ -14,6 +14,8 @@ own record of these folders and files, `project.json` in the project data folder
 - A folder is only ever recorded when this code made it (`mkdir` without `exist_ok`): a
   folder that exists already, whatever its name or case, is never taken over; the next
   free name `<name> (2)`, `(3)`… is made instead. So every recorded folder is sci2audio's.
+  A name the output volume refuses (EILSEQ) is numbered the same way from its old
+  characters, then from `audiobook` (#584); the record keeps the project's name.
 - A file is recorded with its size and SHA-256 after a finished audio job, replacing the
   entry of the same name; entries of earlier runs stay while their file is there.
 - Whether a file is still the one sci2audio wrote is decided by size and SHA-256 only,
@@ -28,6 +30,7 @@ The audio job, the command line and the app never read or write this file.
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -36,7 +39,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from sci2audio.app.files import write_texts
-from sci2audio.output.names import clean, cut
+from sci2audio.output.names import clean, cut, retried
 
 PROJECT = "project.json"
 PROJECT_FORMAT = "sci2audio-web-project"
@@ -209,6 +212,21 @@ def audiobook_folder(work: Path, document_id: str, document_name: str, output: P
 
 
 def _make_folder(output: Path, name: str) -> Path:
+    """Make `<name>`, `<name> (2)`… in `output`. A name the output volume refuses as an
+    illegal byte sequence (EILSEQ, #584) is made again from its old characters, then as
+    `audiobook`: an output folder on another disk or a share can have an older Unicode
+    table than sci2audio's data folder, which accepted the name (#493)."""
+    *first, last = dict.fromkeys((name, _cleaned(retried(name, "audiobook")), "audiobook"))
+    for base in first:
+        try:
+            return _numbered_folder(output, base)
+        except OSError as error:
+            if error.errno != errno.EILSEQ:
+                raise
+    return _numbered_folder(output, last)
+
+
+def _numbered_folder(output: Path, name: str) -> Path:
     for number in range(1, MAX_TRIES + 1):
         folder = output / _numbered(name, number)
         if folder.parent != output or folder.name in ("", ".", ".."):
