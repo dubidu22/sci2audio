@@ -35,6 +35,7 @@ from __future__ import annotations
 import codecs
 import hashlib
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -141,7 +142,13 @@ _DATE_LEADS = frozenset(
 )
 _WORD = re.compile(r"[^\W\d_]+")
 # a word and at most a year as the whole of a line: "OKTOBER", "(Oktober 2020" (#893)
-_MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+\d{1,4})?\W*")
+_MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+(\d{1,4}))?\W*")
+# The start of a reference entry: "[12] ...", or a surname, a comma and an initial ("Smith,
+# J.", "12. Mustermann, M.") as APA, Harvard and DIN write it. Such a line before a date is
+# an entry wrapped before its year, not a title (#930). Matched at the line's start only.
+_REFERENCE = re.compile(
+    r"\[\d{1,4}\]|(?:\d{1,4}[.)]\s*)?[^\W\d_]+(?:[-'\u2019][^\W\d_]+)*,\s*[^\W\d_]\."
+)
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -271,8 +278,14 @@ def read_text(data: bytes, name: str) -> Content:
 def document_tags(paragraphs: list[list[str]]) -> list[list[tuple[str, ...]]]:
     """The tags of each line of each plain-text paragraph (`_paragraph_tags`), and a cut before
     each mixed-case heading between two prose lines (`_mixed_heading`, #812) when the document
-    holds at least two of them: one stray short line is a wrapped line, not a heading."""
-    tagged = [_paragraph_tags(paragraph) for paragraph in paragraphs]
+    holds at least two of them: one stray short line is a wrapped line, not a heading.
+
+    Lines are judged in NFC (#942): "während" written with a combining mark is still a
+    word that leads into a date, "März" still a month. The lines themselves are kept."""
+    tagged = [
+        _paragraph_tags([unicodedata.normalize("NFC", text) for text in paragraph])
+        for paragraph in paragraphs
+    ]
     if sum(len(found) for _, found in tagged) >= 2:
         for tags, found in tagged:
             for k in found:
@@ -316,6 +329,7 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
                 longest,
                 paragraph[k - 2] if k > 1 else None,
                 paragraph[k + 1] if k + 1 < len(paragraph) else None,
+                opens=out[k - 1] == ("p",),
             )
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
@@ -352,7 +366,9 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int, before: str | None, beyond: str | None) -> bool:
+def _title(
+    line: str, after: str, longest: int, before: str | None, beyond: str | None, *, opens: bool
+) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
     has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
@@ -368,39 +384,75 @@ def _title(line: str, after: str, longest: int, before: str | None, beyond: str 
     / "Die ..."). A month line in capitals before a capital keeps its cut after it: after a
     number's stop it may be a heading the date rule joined to the line before (#900).
 
-    A long line ending in a word that leads into no date (`_DATE_LEADS`) before a month line
-    is a title or author line, and its date a line of its own (#922): "A Study of ... on
-    Phones" / "April 2020" / "The ..." cuts before and after the date, "... im" / "Oktober
-    2020" / "Die ..." runs on. Only a date line without punctuation at its end before
-    `beyond`, the line after it, starting with a capital: a date ending in a stop ("...
-    dated" / "June 2020." / "The ...") or before a lower-case line ("... den Stand" /
-    "Oktober 2020" / "wieder und ...") ends or goes on with the sentence it is in. A line
-    ending in punctuation or a number keeps the rules above."""
+    A long line that `opens` a block (the paragraph's first line, or the one after a title
+    line) and ends in a word that leads into no date (`_DATE_LEADS`) before a short date
+    line is a title or author line, and its date a line of its own (#922, #942): "A Study
+    of ... on Phones" / "April 2020" / "The ..." cuts before and after the date (`_dated`).
+    The same long line inside a paragraph is prose: the date joins it, and the date line
+    is cut after by the short-line rule below (#942). So is a reference entry wrapped
+    before its date ("Smith, J. ... Journal" / "June 2020" / "Brown, B. ...", #930).
+
+    A short line after a long line that does not end a sentence runs on into the next line
+    if it is a date in that sentence (`_runs_on`): "... im" / "Oktober 2020" / "Die ..."
+    (#893, #903). A month line in capitals that opens a block, cut from the title before
+    it, keeps its cut before a line starting with a number ("ANNUAL REPORT" / "JUNE" /
+    "2020 marked ...", #930)."""
     first = after.lstrip(_OPENERS)[:1]
     if not _short(line, longest):
-        return (
-            first.isupper()
-            and beyond is not None
-            and beyond.lstrip(_OPENERS)[:1].isupper()
-            and after.rstrip(_CLOSERS)[-1:] not in _ENDS
-            and _month_line(after)
-            and _titled(line)
-        )
+        return opens and _dated(line, after, longest, beyond)
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
-        return not first.islower() and not (first.isdigit() and _month_line(line))
+        return not first.islower() and not (first.isdigit() and not opens and _month_line(line))
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     if (
         before is not None
         and not _short(before, longest)  # a title line before the date ends no sentence either
-        and _month_line(line)
         and not _ends_sentence(before, line)
-        and not _titled(before)
+        and _runs_on(before, line)
     ):
         return False
     return first.isupper()
+
+
+def _dated(line: str, after: str, longest: int, beyond: str | None) -> bool:
+    """True if `after` is the date line of a long title or author line `line` (#922): a
+    short month line without punctuation at its end, after a line ending in a word that
+    leads into no date and that starts no reference entry (`_REFERENCE`, #930). A month and
+    a year before `beyond`, the line after it, starting with a capital; a month in capitals
+    before a capital, or alone before a number ("JUNE" / "2020 marked ...", #930). A date
+    ending in a stop ("... dated" / "June 2020." / "The ...") or before a lower-case line
+    ("... den Stand" / "Oktober 2020" / "wieder und ...") ends or goes on with the sentence
+    it is in, and a lone mixed-case month may be no date at all (the modal "May", #930)."""
+    if beyond is None or after.rstrip(_CLOSERS)[-1:] in _ENDS or not _short(after, longest):
+        return False
+    found = _MONTH_LINE.fullmatch(after)
+    if found is None or found[1].lower() not in _DATE_MONTHS:
+        return False
+    next_first = beyond.lstrip(_OPENERS)[:1]
+    if _capitals(after):
+        dated = next_first.isupper() or (found[2] is None and next_first.isdigit())
+    else:
+        dated = found[2] is not None and after.lstrip(_OPENERS)[:1].isupper()
+        dated = dated and next_first.isupper()
+    return dated and _titled(line) and not _REFERENCE.match(line.lstrip())
+
+
+def _runs_on(before: str, line: str) -> bool:
+    """True if the month line `line` goes on with the sentence of the long line `before`,
+    which ends no sentence: after a word that leads into a date, or a number or a sign
+    ("... im" / "Oktober 2020", "... in" / "June", #893, #903). After any other word a
+    month and a year is a title's or author's date (#922), cut from the line after it; a
+    German month alone runs on as before #922, and an English one is any short line, so the
+    modal "May" before a capital keeps its cut (#930)."""
+    found = _MONTH_LINE.fullmatch(line)
+    if found is None:
+        return False
+    month = found[1].lower()
+    if not _titled(before):
+        return month in _DATE_MONTHS
+    return found[2] is None and month in _MONTHS
 
 
 def _titled(line: str) -> bool:
@@ -442,6 +494,7 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
     return (
         line.lstrip(_OPENERS)[:1].isupper()
         and not _capitals(line)
+        and _short(line, longest)  # a long title and its date inside prose is none (#942)
         and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
         and _title(
             line,
@@ -449,6 +502,7 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
             longest,
             paragraph[k - 1],
             paragraph[k + 2] if k + 2 < len(paragraph) else None,
+            opens=False,
         )
     )
 
