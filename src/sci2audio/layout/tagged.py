@@ -33,8 +33,11 @@ D-340 to D-344). Layout reads each page in that order:
   caption's label ("Table 2"), a display formula's number as PDF formulas have it ("(2)"
   after white space at its end) or a TeX ``\\tag{2}``, a note's mark only where its text
   opens with the mark its noteref links to as a word of its own ("1 Text", "1. Text"; not
-  "1984 ...") (D-406). A list marker
-  that HTML numbering adds is not text, so list items carry none.
+  "1984 ...") (D-406). A list item carries its marker as label where its text opens with
+  one, as PDF list items do (#571): the bullets and numbering `lists` reads, and the
+  plain-text bullets "-" and "*"; the marker stays in the text. A list marker that HTML
+  numbering adds is not text, so a Markdown or EPUB item without a printed marker carries
+  none.
 - Heading levels are counted per page, an EPUB spine document or a whole Markdown file
   (D-407): the page's highest rank (``h1`` before ``h2``) gets the page's base level and each
   lower rank one more, gaps closed. The base level is the level of the first outline entry
@@ -49,6 +52,7 @@ D-340 to D-344). Layout reads each page in that order:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 
 from sci2audio.core import (
@@ -73,6 +77,7 @@ from sci2audio.layout.headings import (
     title_key,
 )
 from sci2audio.layout.language import choose_language
+from sci2audio.layout.lists import printed_marker
 from sci2audio.layout.maths import number_at_end, number_tagged
 from sci2audio.layout.settings import LayoutSettings
 
@@ -95,6 +100,8 @@ _MATHS = frozenset({"math", "role:math"})
 # kinds whose element may hold a picture: one standing between two of their lines joins them
 _HOLD_PICTURES = frozenset({BlockKind.TABLE, BlockKind.FOOTNOTE, BlockKind.FIGURE})
 _BEFORE, _AFTER = -1, 1  # where a caption looks first for what it describes
+# a plain-text bullet `lists` does not read, followed by the item's text (#571)
+_TEXT_BULLET = re.compile(r"[-*](?=[^\S\n]+\S)")
 
 
 def positioned(content: Content) -> bool:
@@ -297,7 +304,15 @@ def _block(unit: _Unit, lines: dict[str, TextLine]) -> Block:
         label = caption_label(block, lines) or ""
     elif kind is BlockKind.FORMULA:
         label = _formula_number([i for i in unit.items if isinstance(i, TextLine)])
+    elif kind is BlockKind.LIST_ITEM:
+        label = _list_marker(text)
     return Block(kind, text, tuple(parts), role=unit.role, label=label) if label else block
+
+
+def _list_marker(text: str) -> str:
+    """The marker a list item's text opens with, as PDF list items carry it (#571), or ""."""
+    bullet = _TEXT_BULLET.match(text)
+    return bullet.group(0) if bullet else printed_marker(text)
 
 
 def _formula_number(lines: list[TextLine]) -> str:

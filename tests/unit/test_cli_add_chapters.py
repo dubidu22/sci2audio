@@ -143,3 +143,90 @@ def test_convert_keep_settings_with_script_keeps_the_language(
     assert result.code == 0, result.err
     report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
     assert report["settings"]["language"] == "en"
+
+
+def test_convert_keep_settings_with_script_covers_the_chapters_the_audio_holds(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#784: the audio holds the chapters made before and the new ones, so the script and
+    report cover those, in book order, not only this run's choice."""
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [0, 1]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "not spoken" not in script.split("# 3. Gamma")[0]  # Alpha and Beta are heard
+    assert script.index("# 1. Alpha") < script.index("# 2. Beta")
+    assert "# 3. Gamma (not spoken)" in script
+
+
+@pytest.mark.parametrize("flags", [(), ("--overwrite",), ("--keep-settings", "--overwrite")])
+def test_convert_with_script_without_keeping_covers_the_chosen_chapters_only(
+    cli: Cli, source: Path, tmp_path: Path, flags: tuple[str, ...]
+) -> None:
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli("convert", source, "-o", out, "-q", "--chapters", "2", "--with-script", *flags)
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [1]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "# 1. Alpha (not spoken)" in script
+    assert "# 2. Beta (not spoken)" not in script
+
+
+def test_convert_keep_settings_with_script_still_warns_of_a_chapter_the_book_lacks(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#784: the script keeps the chosen numbers the document lacks, so the report
+    still warns of them."""
+    out = tmp_path / "out"
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2,9", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [1, 8]
+    assert any("chapter 9 was chosen" in warning for warning in report["warnings"])
+
+
+def test_convert_keep_settings_with_script_without_chapters_on_a_new_project(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    result = cli("convert", source, "-o", out, "-q", "--keep-settings", "--with-script")
+    assert result.code == 0, result.err
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "# 1. Alpha" in script
+    assert "not spoken" not in script
+
+
+def test_convert_keep_settings_with_script_without_chapters_adds_to_the_project(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli("convert", source, "-o", out, "-q", "--keep-settings", "--with-script")
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [0, 1, 2]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "not spoken" not in script
+
+
+def test_convert_keep_settings_with_script_keeps_the_chosen_order(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "3,1", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [2, 0]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert script.index("# 3. Gamma") < script.index("# 1. Alpha")

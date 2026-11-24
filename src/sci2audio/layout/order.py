@@ -191,7 +191,7 @@ def reading_order(
         reading.ordered += _read_band(band, cuts, size, settings, reading.sides, depth)
         mine = counted(band)
         if _text(mine) >= settings.column_text * total and _filled(mine, cuts, settings):
-            reading.columns = max(reading.columns, len(cuts) + 1)
+            reading.columns = max(reading.columns, _text_columns(mine, cuts, width, settings))
         if after:
             reading.ordered.append(after)
     return reading
@@ -289,6 +289,30 @@ def _merged(groups: list[list[Element]], gap: float) -> list[list[Element]]:
 
 def _text(elements: list[Element]) -> int:
     return sum(len(e.line.text) for e in elements if e.line)
+
+
+def _text_columns(band: list[Element], cuts: Cuts, width: float, settings: LayoutSettings) -> int:
+    """How many columns of text the band's gutters make.
+
+    A figure in a wide gutter leaves white on each side of it, so it is read as a column of
+    its own between its neighbours (#873), but it is no column of text (#895). A column
+    between two others that holds a figure counts only if its lines, without those that lie
+    on the figure (its labels), are a column; a caption alone is not. The first and last
+    columns always count: a figure filling one of them still stands in a column of the
+    page."""
+    columns = _columns(band, cuts)
+    count = 0
+    for k, column in enumerate(columns):
+        inner = 0 < k < len(columns) - 1
+        shown = [e.box for e in column if e.graphics] if inner else []
+        lines = [e for e in column if e.line and not any(_on(e.box, box) for box in shown)]
+        count += not shown or _is_column(lines, width, settings)
+    return count
+
+
+def _on(box: Box, figure: Box) -> bool:
+    """True if the box overlaps the figure's box."""
+    return box.x0 < figure.x1 and figure.x0 < box.x1 and box.y0 < figure.y1 and figure.y0 < box.y1
 
 
 def _filled(band: list[Element], cuts: Cuts, settings: LayoutSettings) -> bool:
