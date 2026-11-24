@@ -23,9 +23,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import web_helpers as v13  # v1.3's own reader and writer, kept by the tests
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 from syrupy.assertion import SnapshotAssertion
+from web_helpers import Marker, markers_text
 
 from sci2audio.app import captures as module
 from sci2audio.app import files
@@ -42,8 +44,6 @@ from sci2audio.app.captures import (
     write_captures,
 )
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
-from sci2audio.web import markers as v13
-from sci2audio.web.markers import Marker, markers_text
 
 DOC = "0123456789abcdef"
 CREATED = "2026-09-02T08:15:00Z"

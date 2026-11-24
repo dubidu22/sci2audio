@@ -799,8 +799,7 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
             assert f"({name})" in table["privacy.work"], name
     # 8: the captures (#397): the server writes them to captures.json in the working folder,
     # and the v1.3 markers.json stays beside it (ADR-008 2.1 item 5); both are named
-    from sci2audio.app.captures import CAPTURES
-    from sci2audio.web.markers import MARKERS
+    from sci2audio.app.captures import CAPTURES, MARKERS
 
     assert (CAPTURES, MARKERS) == ("captures.json", "markers.json")
     for table in (EN, DE):

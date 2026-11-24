@@ -21,7 +21,6 @@ too, so a carry-over never meets a change half way.
 
 from __future__ import annotations
 
-import os
 import secrets
 import threading
 import time
@@ -31,11 +30,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sci2audio.app.captures import (
-    CAPTURES,
-    MARKERS,
     CapturesBroken,
     MarkersNotCarried,
     load_captures,
+    peek_carry_over,
     write_captures,
 )
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureFormatError, CaptureType
@@ -125,22 +123,20 @@ def load(work: Path, document_id: str) -> CaptureFile | None:
     except CapturesBroken as error:
         raise CapturesUnreadable(str(error)) from None
     except OSError as error:
-        if _carrying_over(work):
+        if _carrying_over(work, document_id):
             raise CarryOverUnsaved(*error.args) from error
         raise
 
 
-def _carrying_over(work: Path) -> bool:
+def _carrying_over(work: Path, document_id: str) -> bool:
     """After an OSError of `load_captures`: whether it was the carry-over's write. With
-    still no `captures.json` and a `markers.json` that reads, nothing else was left to fail
-    (#910)."""
+    still no `captures.json` and markers the carry-over still makes captures of, nothing
+    else was left to fail (#910). Asked of `app.captures`, the one reader of
+    `markers.json` (#887)."""
     try:
-        if os.path.lexists(work / CAPTURES):
-            return False
-        (work / MARKERS).read_bytes()
-    except OSError:
+        return peek_carry_over(work, document_id) is not None
+    except (CapturesBroken, OSError):
         return False
-    return True
 
 
 class CaptureBook:
