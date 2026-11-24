@@ -9,6 +9,7 @@ import subprocess
 import sys
 import textwrap
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -22,7 +23,7 @@ from sci2audio.app import (
     kept_settings,
     run_audio_job,
 )
-from sci2audio.app.playable import RECORD, read_record
+from sci2audio.app.playable import RECORD, read_record, write_record
 from sci2audio.core import Content, Document
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.output import read_readalong
@@ -381,6 +382,18 @@ def test_kept_settings_of_a_version_1_record_name_what_cannot_be_brought_back(
     as_version_1(tmp_path / "work")
     with pytest.raises(OutputExistsError, match="earlier version"):
         kept_settings(tmp_path / "work", JobSettings(chapters=(1,)))
+
+
+def test_a_record_with_no_chapters_keeps_nothing_even_when_it_holds_settings(
+    tmp_path: Path,
+) -> None:
+    run(tmp_path, FakeVoice(), (0,), settings={"speed": 1.2})
+    record = read_record(tmp_path / "work")
+    assert record is not None
+    assert record.made is not None
+    write_record(tmp_path / "work", replace(record, chapters=()))
+    asked = JobSettings(speed=0.9, chapters=(1,), output_folder=tmp_path / "elsewhere")
+    assert kept_settings(tmp_path / "work", asked) == asked
 
 
 def test_adding_chapters_reports_an_unknown_chapter_as_a_fresh_run_does(tmp_path: Path) -> None:
