@@ -301,7 +301,7 @@ class _Headings:
         # the Roman section numbers by block index, with their values (`_roman`)
         self.sections: dict[int, int] = {}
         # the lettered subsections of a Roman document kept as headings, by block index,
-        # with their depths (set by `_numbered`)
+        # with their depths (set by `_parenthesised`)
         self.letters: dict[int, int] = {}
         arabic = sum(label[0].isdigit() for label in numbers.values())
         roman = self._roman(arabic)
@@ -310,6 +310,8 @@ class _Headings:
             self.lettered = True
             numbers, self.depths = roman
         self.numbers = numbers
+        if self.roman:
+            self._parenthesised()
 
     def _roman(self, arabic: int) -> tuple[dict[int, str], dict[int, int]] | None:
         """The numbers and depths of a document that numbers its sections in Roman, or None
@@ -317,9 +319,6 @@ class _Headings:
         numbers: dict[int, str] = {}
         depths: dict[int, int] = {}
         sections: dict[int, int] = {}
-        # the depth of the last letter: a "1)" after it is a candidate number one deeper,
-        # which `_numbered` keeps only under a letter heading of its own Roman section
-        under: int | None = None
         for k in self.short:
             text = self.texts[k].block.text.strip()
             found = _ROMAN_NUMBER.match(text)
@@ -330,9 +329,6 @@ class _Headings:
                 return None  # a Roman number out of sequence
             elif sections and (letter := _LETTER_NUMBER.match(text)):
                 numbers[k], depths[k] = letter["label"], _depth(letter["label"]) + 1
-                under = depths[k]
-            elif under is not None and (item := _PAREN_NUMBER.match(text)):
-                numbers[k], depths[k] = item["label"], under + 1
         count = len(sections)
         if count < self.settings.heading_repeats:
             return None
@@ -373,30 +369,42 @@ class _Headings:
             kept[k] = found[k]
         return {self.texts[k].index: level for k, level in kept.items()}
 
-    def _numbered(self) -> dict[int, tuple[int, str]]:
-        """Headings in a document that numbers them: each depth of number in one style."""
+    def _styles(self) -> dict[int, Style]:
+        """The style of each depth of number: the one most of its numbers have."""
         votes: dict[int, Counter[Style]] = {}
         for k in self.numbers:
             votes.setdefault(self.depths[k], Counter())[self.texts[k].style] += 1
-        styles = {depth: vote.most_common(1)[0][0] for depth, vote in votes.items()}
+        return {depth: vote.most_common(1)[0][0] for depth, vote in votes.items()}
+
+    def _parenthesised(self) -> None:
+        """Adds the "1)" numbers of a Roman document to its numbers (#798): one level deeper
+        than the last letter in its own Roman section that is set in its depth's style (a
+        letter the font rules keep). Those letters are recorded for the outline (`depth`). A
+        "1)" without such a letter is no number, so it takes no part in the style vote."""
+        styles = self._styles()  # of the Roman numbers and letters only
+        under: int | None = None  # the depth of the last such letter in this Roman section
+        for k in self.short:
+            index, label = self.texts[k].index, self.numbers.get(k)
+            text = self.texts[k].block.text.strip()
+            if index in self.sections:
+                under = None
+            elif label is not None and styles[self.depths[k]] == self.texts[k].style:
+                under = self.letters[index] = self.depths[k]
+            elif label is None and under is not None and (item := _PAREN_NUMBER.match(text)):
+                self.numbers[k], self.depths[k] = item["label"], under + 1
+
+    def _numbered(self) -> dict[int, tuple[int, str]]:
+        """Headings in a document that numbers them: each depth of number in one style."""
+        styles = self._styles()
         top = styles[min(styles)]
         found: dict[int, tuple[int, str]] = {}
         shift = 0  # one more level for each heading under a common title (appendices)
         started = False  # the first numbered heading has come
-        under: int | None = None  # the depth of the last kept letter in this Roman section
         for k in self.short:
             style, label = self.texts[k].style, self.numbers.get(k)
-            index = self.texts[k].index
-            if index in self.sections:
-                under = None
-            if label is not None and label.endswith(")") and under is None:
-                continue  # "1)" with no letter heading over it (#798)
             if label is not None and styles[self.depths[k]] == style:
-                depth = under + 1 if label.endswith(")") and under is not None else self.depths[k]
-                found[k] = (depth + shift, label)
+                found[k] = (self.depths[k] + shift, label)
                 started = True
-                if self.roman and label[0].isalpha() and index not in self.sections:
-                    under = self.letters[index] = depth
             elif label is None and started and style > max(styles.values()):
                 found[k], shift = (1, ""), 1
                 if self.shift_from is None:  # the shift starts at the first such title

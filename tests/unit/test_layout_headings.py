@@ -1090,6 +1090,29 @@ def test_a_lettered_line_that_is_no_heading_does_not_number_a_parenthesised_line
     assert [label for _, label in headings(doc)] == ["I", "A", "1)", "B", "II"]
 
 
+def test_a_parenthesised_line_with_no_letter_of_its_section_does_not_vote() -> None:
+    """Bold "1)" lines in II., which has no letter, take no part in the depth-3 style vote:
+    the "A.1." heading in I. keeps its own style."""
+    page = Page().heading("I. Introduction").body(2).heading("A. Setup", 10.0).body(2)
+    page.heading("A.1. Detail", 11.0).body(2).heading("B. Data", 10.0).body(2)
+    page.heading("II. Method").body(2)
+    page.heading("1) Bold step", 10.0).body(2).heading("2) Next step", 10.0).body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "A", "A.1", "B", "II", "III"]
+
+
+def test_a_parenthesised_line_under_a_letter_that_is_no_heading_does_not_vote() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("A. Setup", 10.0).body(2)
+    page.heading("A.1. Detail", 11.0).body(2).heading("B. Data", 10.0).body(2)
+    page.heading("II. Method").body(2).heading("A. Note", 9.0).body(2)
+    for text in ("1) Bold step", "2) Next step", "3) Last step"):
+        page.heading(text, 10.0).body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "A", "A.1", "B", "II", "III"]
+
+
 def test_the_outline_reads_no_parenthesised_number_after_a_letter_of_the_section_before() -> None:
     page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
     page.heading("A. Setup", 10.0).body(2)
