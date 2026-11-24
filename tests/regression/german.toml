@@ -2957,3 +2957,20 @@ expected = [
     "Wir nehmen (I − P) hoch minus 1 und [A] hoch minus 1 hier.",
     "Wir nehmen (I − P) hoch minus 1, aber (I − P)−1 und f(x)−1 bleiben.",
 ]
+
+[[case]]
+id = "de-units-x-beside-a-read-arrow-is-a-variable"
+audit = 0
+issue = 843
+goal = "Vor oder nach den Wörtern, die der Statistikschritt für einen Logikpfeil liest ('daraus folgt', 'folgt aus', 'genau dann, wenn', #796), ist '3x' eine Variable wie neben dem gedruckten Pfeil, sodass ein zweiter Lauf es liest wie der erste; '3x schneller' und '3 × 4' lesen weiter 'mal' (#843)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C." },
+    { kind = "paragraph", text = "Es läuft 3x schneller und 3 × 4 ist 12." },
+    { kind = "paragraph", text = "Also 3x=>A, B ⇐ 2x und 4x ⇔ C." },
+]
+expected = [
+    "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C.",
+    "Es läuft 3 mal schneller und 3 mal 4 ist 12.",
+    "Also 3x daraus folgt A, B folgt aus 2x und 4x genau dann, wenn C.",
+]

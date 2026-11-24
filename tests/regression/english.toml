@@ -3167,3 +3167,19 @@ expected = [
     "We thank Smith, Lee here.",
     "It rains and shows it.",
 ]
+
+[[case]]
+id = "units-x-beside-a-read-arrow-is-a-variable"
+audit = 0
+issue = 843
+goal = "Before or after the words the statistics step reads for a logic arrow ('implies', 'is implied by', 'if and only if', #796), '3x' is a variable, as it is beside the printed arrow, so a second run reads it as the first did; '3x faster' and '3 × 4' still read 'times' (#843)."
+blocks = [
+    { kind = "paragraph", text = "So 3x implies A, B is implied by 2x and 4x if and only if C." },
+    { kind = "paragraph", text = "It runs 3x faster and 3 × 4 is 12." },
+    { kind = "paragraph", text = "So 3x=>A, B ⇐ 2x and 4x ⇔ C." },
+]
+expected = [
+    "So 3x implies A, B is implied by 2x and 4x if and only if C.",
+    "It runs 3 times faster and 3 times 4 is 12.",
+    "So 3x implies A, B is implied by 2x and 4x if and only if C.",
+]
