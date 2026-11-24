@@ -3375,3 +3375,39 @@ expected = [
     "minus 3x",
     "So y equals minus 3x + 1 and A plus or minus 3 times.",
 ]
+
+[[case]]
+id = "a-printed-minus-before-nx"
+audit = 0
+issue = 997
+goal = "A printed 'minus' before 'Nx' reads as the minus sign it is the reading of, so 'minus 3x' keeps '3x' as 'A − 3x' does (was 'minus 3 times' before #997); any white space between them counts. 'plus or minus' and 'plus/minus', in any case and with any white space, are the reading of '±', which is no operator: they keep 'N times', as before. A capital 'Minus' is no reading of the sign and keeps 'N times', as before (#997)."
+blocks = [
+    { kind = "paragraph", text = "It was minus 3x here." },
+    { kind = "paragraph", text = "It was minus  3x here." },
+    { kind = "paragraph", text = "It was minus\n3x here." },
+    { kind = "paragraph", text = "It was plus or minus 3x here." },
+    { kind = "paragraph", text = "Plus or minus 3x is the spread." },
+    { kind = "paragraph", text = "It was PLUS OR minus 3x here." },
+    { kind = "paragraph", text = "It was plus or  minus 3x here." },
+    { kind = "paragraph", text = "It was plus or\nminus 3x here." },
+    { kind = "paragraph", text = "It was plus\nor minus 3x here." },
+    { kind = "paragraph", text = "It was plus or minus 3x here." },
+    { kind = "paragraph", text = "It was plus/minus 3x here." },
+    { kind = "paragraph", text = "It was plus / minus 3x here." },
+    { kind = "paragraph", text = "Minus 3x is the spread." },
+]
+expected = [
+    "It was minus 3x here.",
+    "It was minus 3x here.",
+    "It was minus 3x here.",
+    "It was plus or minus 3 times here.",
+    "Plus or minus 3 times is the spread.",
+    "It was PLUS OR minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus/minus 3 times here.",
+    "It was plus / minus 3 times here.",
+    "Minus 3 times is the spread.",
+]
