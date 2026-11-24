@@ -96,6 +96,8 @@ _NUMBER = re.compile(
     r"\d[\d.,]*(?:\s*(?:[\d.,()\[\]%±/+-]"
     rf"|(?<![^\W\d_])(?!(?:{_JOINING})\b)[^\W\d_]{{1,3}}\b))*"
 )
+# the hyphens that may end a line inside a word, as the hyphen step reads them
+_HYPHENS = "-\u2010\u00ad"
 # what may close a sentence after its full stop: quotes (English and German, #958),
 # guillemets either way round, brackets
 _CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"
@@ -905,12 +907,12 @@ class Paragraphs:
         leave the page's order (#966). A float's own lines under its caption (an algorithm's,
         a note's) stand in the column the paragraph runs on from or goes on in (nowak p5:
         on the next page, left of where it goes on), and still wait for it, as does the
-        caption alone (#61, #958). A word split by a hyphen over the break is never cut:
-        the hyphen step rejoins it only inside one block."""
+        caption alone (#61, #958). A word broken or joined by a hyphen over the break
+        (`_hyphen_end`) is never cut: the hyphen step mends it only inside one block."""
         last, first = self.aside[-1], self.open[0] if self.open else None
         return (
             first is not None
-            and not _split_word(last, row)
+            and not _hyphen_end(last)
             and first is not self.caption
             and self._float(first)
             and last.right <= first.left
@@ -1130,6 +1132,14 @@ def _split_word(row: Row, next_row: Row) -> bool:
     with in lower case ("mar")."""
     end, start = row.text.rstrip(), next_row.text.lstrip()
     return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
+
+
+def _hyphen_end(row: Row) -> bool:
+    """True if the row ends in a hyphen right after a letter or a digit ("-", U+2010 or a
+    soft hyphen): a word broken or joined over the line's end, whatever the next row opens
+    with ("Corona-" "Pandemie", "COVID-" "19"); a dash after a space is no hyphen."""
+    end = row.text.rstrip()
+    return end[-1:] in _HYPHENS and end[-2:-1].isalnum()
 
 
 def _sentence_end(row: Row) -> bool:

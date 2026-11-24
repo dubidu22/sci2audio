@@ -1396,7 +1396,7 @@ def test_lines_under_a_figure_atop_a_middle_column_are_read_after_the_left_colum
     assert columns_per_page(found) == [2]
 
 
-@pytest.mark.parametrize("end", ["c0r26", "c0r26,", "c0r26 2023"])
+@pytest.mark.parametrize("end", ["c0r26", "c0r26,", "c0r26 2023", "c0r26 -"])
 @pytest.mark.parametrize("count", [1, 2, 4])
 def test_a_middle_figure_s_caption_and_lines_are_read_between_its_columns_when_the_left_runs_on(
     count: int, end: str
@@ -1428,13 +1428,25 @@ def test_a_middle_figure_s_caption_and_lines_are_read_between_its_columns_when_t
 
 
 @pytest.mark.parametrize(
-    ("end", "first"), [("the measure-", "ment of the"), ("die Mess-", "ung der Werte")]
+    ("end", "first"),
+    [
+        ("the measure-", "ment of the"),
+        ("die Mess-", "ung der Werte"),
+        ("die Corona-", "Pandemie hat"),
+        ("die Datenschutz-", "Grundverordnung gilt"),
+        ("the non-", "English text"),
+        ("the COVID-", "19 cases"),
+        ("the measure\u2010", "ment of the"),
+        ("the measure\u00ad", "ment of the"),
+    ],
 )
 def test_a_word_split_over_a_middle_figure_s_column_is_not_cut(end: str, first: str) -> None:
-    """#966: the #966 page, but the left column's last line ends in a word split by a
-    hyphen that the right column's first line goes on with. Reading the middle column
-    between them would put the caption and that column inside the word, so the paragraph
-    goes on in the right column with the word whole, and the float follows it (#61)."""
+    """#966: the #966 page, but the left column's last line ends in a hyphen right after a
+    letter or a digit ("-", U+2010, or a soft hyphen): a word broken or joined over the
+    break, whatever the right column's first line opens with (a compound's capital noun,
+    "COVID-19"). The hyphen step mends it only inside one block, so reading the middle
+    column between them would put the caption and that column inside the word: the
+    paragraph goes on in the right column, and the float follows it (#61)."""
     width = (RIGHT - LEFT - 2 * GUTTER) / 3
     x0 = LEFT + width + GUTTER
     caption = line("Figure 1: a thing", x0, 80 + 14 * 24, x0 + 90)
