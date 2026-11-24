@@ -3236,3 +3236,37 @@ expected = [
     "We thank Smith, Lee here.",
     "It rains and shows it.",
 ]
+
+# ---- #854, #878, #880 inline code ----------------------------------------------------------
+
+[[case]]
+id = "inline-code-is-read-as-printed"
+audit = 0
+issue = 854
+goal = "Inline code (a run tagged `code`, Markdown's backticks) is read as printed: no rule reads its arrows, operators, powers, numbers or units as words; the prose around it is still read (#854)."
+blocks = [
+    { kind = "paragraph", runs = ["Use ", { text = "x => x + 1", tags = ["p", "code"] }, " here."] },
+    { kind = "paragraph", runs = [{ text = "a <=> b", tags = ["p", "code"] }] },
+    { kind = "paragraph", runs = ["Set ", { text = "n = 2^3", tags = ["p", "code"] }, " for 10 km, e.g. ", { text = "p < 0.05", tags = ["p", "code"] }, "."] },
+]
+expected = [
+    "Use x => x + 1 here.",
+    "a <=> b",
+    "Set n = 2^3 for 10 kilometres, for example p < 0.05.",
+]
+
+[[case]]
+id = "inline-code-of-only-links-is-left-out"
+audit = 0
+issue = 878
+goal = "Inline code that holds only links (a URL, DOI, e-mail address or arXiv id, with the punctuation and brackets around them) is left out by the links step as the same links without backticks; links inside other code stay as printed (#854, #878)."
+blocks = [
+    { kind = "paragraph", runs = ["The data are available at ", { text = "https://example.org/data", tags = ["p", "code"] }, " for everyone."] },
+    { kind = "paragraph", runs = ["Ask the authors (", { text = "<jane.doe@example.org>", tags = ["p", "code"] }, ") for the data."] },
+    { kind = "paragraph", runs = ["Run ", { text = "curl https://example.org/a", tags = ["p", "code"] }, " first."] },
+]
+expected = [
+    "The data are available for everyone.",
+    "Ask the authors for the data.",
+    "Run curl https://example.org/a first.",
+]
