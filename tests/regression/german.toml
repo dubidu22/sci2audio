@@ -2923,10 +2923,10 @@ expected = [
 id = "de-double-arrow-printed-as-an-equals-sign-and-an-arrow"
 audit = 0
 issue = 795
-goal = "Ein langer Doppelpfeil aus zwei Zeichen ('=⇒', '⇐=', '⇐=⇒') wird als ein Pfeil gelesen ('⇒', '⇐', '⇔'), auch an Buchstaben geklebt, nie als 'gleich', was den Sinn umkehrt (#590). Die Stimme sagt für '⇒' noch nichts; ein einfaches '=' wird weiter 'gleich' gelesen."
+goal = "Ein langer Doppelpfeil aus zwei Zeichen ('=⇒', '⇐=', '⇐=⇒') wird als ein Pfeil gelesen ('⇒', '⇐', '⇔'), auch an Buchstaben geklebt, nie als 'gleich', was den Sinn umkehrt (#590), und zwischen zwei Operanden in Worten gelesen ('daraus folgt', 'folgt aus', 'genau dann, wenn', #796); ein einfaches '=' wird weiter 'gleich' gelesen."
 language = "de"
 blocks = [{ kind = "paragraph", text = "Also gilt so A =⇒ B und A=⇒B, dann C ⇐= D, und x = 3 gilt genau dann, wenn P ⇐=⇒ Q." }]
-expected = ["Also gilt so A ⇒ B und A⇒B, dann C ⇐ D, und x gleich 3 gilt genau dann, wenn P ⇔ Q."]
+expected = ["Also gilt so A daraus folgt B und A daraus folgt B, dann C folgt aus D, und x gleich 3 gilt genau dann, wenn P genau dann, wenn Q."]
 
 [[case]]
 id = "de-raised-exponent-before-a-glued-unit-letter-is-a-power"
