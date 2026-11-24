@@ -56,7 +56,7 @@ from sci2audio.layout import build_document
 from sci2audio.output import ReadAlong
 from sci2audio.output.readalong import ChapterTimes, ChunkTimes, to_json
 from sci2audio.testing.documents import make_document
-from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, TextStep
+from sci2audio.textprep import BUILT_IN_STEPS, Category, Stage, StepContext, TextStep, unspoken
 from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player, tasks
 from sci2audio.web.player import (
@@ -214,20 +214,85 @@ def test_a_join_follows_only_the_chunk_the_page_draws_just_before_it() -> None:
     data = readalong([(0, 5, 9), (0, 0, 4), (0, 10, 16)], joins=(2,))
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s1", "s2"]
-    assert sentence_starts(data) == view.sentences == [0, 1, 2]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 2]
     # chunk 1 overlaps chunk 0, so the page skips it (it shares chunk 0's element) and draws
     # chunk 2 right after chunk 0: chunk 2's join to chunk 1 can't be shown, and is ignored
     document = make_document([("paragraph", "One two three, four five six.")])
     data = readalong([(0, 0, 13), (0, 4, 9), (0, 14, 29)], joins=(2,))
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s0", "s2"]
-    assert sentence_starts(data) == view.sentences == [0, 1, 2]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 2]
     # in text order, the same join is followed
     document = make_document([("paragraph", "One, two, three.")])
     data = readalong([(0, 0, 4), (0, 5, 9), (0, 10, 16)], joins=(2,))
     view = build_view(document, record(chunks=3), data)
     assert [c[3] for c in view.chunks] == ["s0", "s1", "s1"]
-    assert sentence_starts(data) == view.sentences == [0, 1, 1]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 1]
+
+
+def test_an_old_chunk_with_nothing_to_speak_is_never_a_sentence() -> None:
+    """#652 (4): a read-along made before the fix has a chunk for a block of only "-" and
+    one for a dash after a question. The page draws no sentence for them, never makes the
+    block the read element, and they are pieces of the sentence before them, so Previous,
+    Next and the highlight step over them as over an empty span."""
+    document = make_document(
+        [
+            ("paragraph", "- First item?"),
+            ("paragraph", "-"),
+            ("paragraph", "Second item? \u2013"),
+            ("paragraph", "Third item."),
+        ]
+    )
+    data = readalong([(0, 0, 13), (1, 0, 1), (2, 0, 12), (2, 13, 14), (3, 0, 11)])
+    view = build_view(document, record(chunks=5), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2", "s2", "s4"]
+    assert sentence_starts(data, document) == view.sentences == [0, 0, 2, 2, 4]
+    dash = view.chapters[0].blocks[1]
+    assert not dash.read
+    assert dash.element is None
+    assert [p.element for p in dash.pieces] == [None]
+    assert [p.text for p in view.chapters[0].blocks[2].pieces if p.element] == ["Second item?"]
+
+
+def test_a_chunk_with_nothing_to_speak_that_opens_a_chapter_leads_the_sentence_after_it() -> None:
+    """#652 (4): with no sentence before it in its chapter, the chunk goes with the sentence
+    after it; a sentence of another chapter is never its sentence."""
+    document = make_document(
+        [("paragraph", "One."), ("paragraph", "\u2022"), ("paragraph", "Two.")],
+        sections=[Section("One", 1, 0, 1), Section("Two", 1, 1, 3)],
+    )
+    data = readalong([(0, 0, 4), (1, 0, 1), (2, 0, 4)], (("One", 0), ("Two", 1)), [0, 1, 1])
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s2", "s2"]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 1]
+    # a run of them opens the chapter (#652): all lead the sentence after them, so
+    # Next from "One." goes to the run's start and never to a chunk with no element
+    document = make_document(
+        [("paragraph", "One."), ("paragraph", "-"), ("paragraph", "\u2022"), ("paragraph", "Two.")],
+        sections=[Section("One", 1, 0, 1), Section("Two", 1, 1, 4)],
+    )
+    data = readalong(
+        [(0, 0, 4), (1, 0, 1), (2, 0, 1), (3, 0, 4)], (("One", 0), ("Two", 1)), [0, 1, 1, 1]
+    )
+    view = build_view(document, record(chunks=4), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s3", "s3", "s3"]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 1, 1]
+    # in one block: the bullet before the item's words
+    document = make_document([("paragraph", "\u2022\nItem one.")])
+    data = readalong([(0, 0, 1), (0, 2, 11)])
+    view = build_view(document, record(chunks=2), data)
+    assert [c[3] for c in view.chunks] == ["s1", "s1"]
+    assert sentence_starts(data, document) == view.sentences == [0, 0]
+
+
+def test_a_notice_read_for_printed_brackets_is_still_a_sentence() -> None:
+    """#652: a placeholder's chunk reads its notice, so printed text of only brackets in a
+    code block is no chunk with nothing to speak."""
+    document = make_document([("paragraph", "Run this:"), ("code", "{ }")])
+    data = readalong([(0, 0, 9), (1, 0, 3)])
+    view = build_view(document, record(chunks=2), data)
+    assert [c[3] for c in view.chunks] == ["s0", "b1"]
+    assert sentence_starts(data, document) == view.sentences == [0, 1]
 
 
 def test_an_empty_span_belongs_to_the_sentence_before_it_or_its_block() -> None:
@@ -374,6 +439,54 @@ def test_the_indent_is_measured_on_each_page_and_capped() -> None:
         for k, ((page, x0), text) in enumerate(zip(lefts, texts, strict=True))
     }
     assert indented(block, lines).split("\n") == ["a(", "  b", "c(", "  d", " " * MAX_INDENT + "e"]
+
+
+def _line(key: str, text: str, x0: float, width: float | None = None) -> TextLine:
+    return TextLine(key, (TextRun(text),), Box(x0, 0, x0 + (width or CHAR * len(text)), 10))
+
+
+def _body(page: int, left: float, count: int = 5) -> list[TextLine]:
+    """Running text on a page, its column `left` points from the page's edge."""
+    return [_line(f"p{page}-{k}", "Running text.", left, width=400) for k in range(count)]
+
+
+def test_a_later_page_part_of_only_indented_lines_keeps_its_indent() -> None:
+    """#612: a listing's part on a later page made only of indented lines is measured
+    against the first page's leftmost line, shifted by the two pages' text-column edges
+    (here page 2's column stands 18 points further right), not drawn flush."""
+    block = Block(
+        BlockKind.CODE, "\n".join(SEABORN[:3]), (Part("a", 0), Part("b", 17), Part("c", 41))
+    )
+    code = {
+        "a": (1, _line("a", SEABORN[0], 72.0)),
+        "b": (2, _line("b", SEABORN[1], 90.0 + 4 * CHAR)),
+        "c": (2, _line("c", SEABORN[2], 90.0 + 4 * CHAR)),
+    }
+    pages = {
+        1: [*_body(1, 72.0), code["a"][1]],
+        2: [code["b"][1], code["c"][1], *_body(2, 90.0)],
+    }
+    assert indented(block, code, pages).split("\n") == [
+        SEABORN[0],
+        "    " + SEABORN[1],
+        "    " + SEABORN[2],
+    ]
+    assert block.text == "\n".join(SEABORN[:3])  # the text, and so the script, as printed
+
+
+def test_a_later_page_part_is_never_measured_right_of_its_own_leftmost_line() -> None:
+    """#612: where the column edges would put the reference right of the part's leftmost
+    line, that line is the reference: no line is drawn left of the block's edge. Page 1's
+    code stands 10 points right of its column (72), page 2's flush with its column (90),
+    so the shifted reference (100) lies right of page 2's leftmost code line (90)."""
+    block = Block(BlockKind.CODE, "f(\nx\ny", (Part("a", 0), Part("b", 3), Part("c", 5)))
+    code = {
+        "a": (1, _line("a", "f(", 82.0)),
+        "b": (2, _line("b", "x", 90.0 + 2 * CHAR)),
+        "c": (2, _line("c", "y", 90.0)),
+    }
+    pages = {1: [*_body(1, 72.0), code["a"][1]], 2: [code["b"][1], code["c"][1], *_body(2, 90.0)]}
+    assert indented(block, code, pages).split("\n") == ["f(", "  x", "y"]
 
 
 def test_one_line_set_wider_does_not_change_the_character_width() -> None:
@@ -711,13 +824,25 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     assert ["".join(p.text for p in b.pieces) for b in shown_blocks] == [
         shown(b.text, joined=joined.get(n, frozenset())) for n, b in enumerate(document.blocks)
     ]
+    # a chunk whose text says nothing (#652) is drawn as an empty span is
+    silent = [
+        start < end and unspoken(document.blocks[block].text[start:end])
+        for block, start, end in spans
+    ]
     ids = {p.element for b in shown_blocks for p in b.pieces if p.element}
     ids |= {b.element for b in shown_blocks if b.element}
-    assert all(chunk[3] in ids for chunk in view.chunks)
+    # a silent chunk takes a neighbour's element; only with none to take it has none
+    elements = [chunk[3] for chunk in view.chunks]
+    assert all(
+        element in ids or (silent[n] and not any(elements)) for n, element in enumerate(elements)
+    )
     # the model of #480: a chunk with text that joins the chunk before it, in the same block
     # and with text too, is that chunk's sentence; every other chunk with text is its own
     wanted: list[str] = []
     for number, (block, start, end) in enumerate(spans):
+        if silent[number]:
+            wanted.append("silent")
+            continue
         before = spans[number - 1] if number else None
         follows = (
             number in joins
@@ -725,11 +850,12 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
             and before is not None
             and before[0] == block
             and before[1] < before[2]
+            and not silent[number - 1]
         )
         wanted.append(wanted[-1] if follows else f"s{number}")
     elements = [chunk[3] for chunk in view.chunks]
     for number, (block, start, end) in enumerate(spans):
-        if start >= end:
+        if start >= end or silent[number]:
             continue
         assert elements[number] == wanted[number]
         if wanted[number] != f"s{number}":
@@ -742,7 +868,21 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
         text = document.blocks[block].text
         assert piece.text == shown(text, start, spans[last][2], joined.get(block, frozenset()))
     # the player's and the markers' sentences are the page's
-    assert view.sentences == [int(w.removeprefix("s")) for w in wanted]
+    if not any(silent):
+        assert view.sentences == [int(w.removeprefix("s")) for w in wanted]
+        return
+    # a silent chunk is a piece of the sentence before it; a run of them that opens the
+    # chapter (one chapter here) leads the chunk after it (#652); the chunks drawn group as
+    # the page draws them
+    sentences = view.sentences
+    leading = True  # every chunk so far is silent
+    for number in range(len(spans)):
+        if number and (silent[number] or leading):
+            assert sentences[number] == sentences[number - 1]
+        leading = leading and silent[number]
+    drawn = [n for n, (_, start, end) in enumerate(spans) if start < end and not silent[n]]
+    pairs = {(sentences[n], wanted[n]) for n in drawn}
+    assert len(pairs) == len({a for a, _ in pairs}) == len({b for _, b in pairs})
 
 
 def test_bare_names() -> None:

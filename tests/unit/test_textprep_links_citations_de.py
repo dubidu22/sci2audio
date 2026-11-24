@@ -573,3 +573,31 @@ def test_link_removals_of_the_u_a_row() -> None:
 
     text = "Daten finden sich u. a. https://x.org. Dann mehr."
     assert link_removals(text, BlockKind.PARAGRAPH, "", "de") == [(23, 37)]
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # no two join words side by side once a link and a citation after it go (#628);
+        # german.toml gets these rows once PR #829, which changes it, is merged
+        ("Dann es und https://x.org/8 (Müller, 2019) und mehr.", "Dann es und mehr."),
+        # ... a capital noun before ", und" lets #402 take ", und" with the link already
+        (
+            "Dann die Daten, und https://x.org/5 (Müller, 2019) und mehr.",
+            "Dann die Daten und mehr.",
+        ),
+        ("Dann es oder https://x.org/8 und mehr.", "Dann es und mehr."),
+        ("Dann es und (Müller, 2019) und mehr.", "Dann es und mehr."),
+        # a word glued after a removed link's or citation's closing mark stays a word (#629)
+        ("Text (siehe https://a.org)Müller hier.", "Text Müller hier."),
+        ("Text <https://a.org>Müller hier.", "Text Müller hier."),
+        ("Text „https://a.org“Müller hier.", "Text Müller hier."),
+        ("Text (Müller, 2019)Lee und https://x.org hier.", "Text Lee hier."),
+    ],
+)
+def test_no_join_words_side_by_side_and_no_word_glued_on_after_a_removal(
+    printed: str, said: str
+) -> None:
+    once = read_all(printed)
+    assert once == said
+    assert read_all(once) == once

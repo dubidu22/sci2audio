@@ -573,6 +573,73 @@ def test_a_bar_across_two_pieces_of_a_line_does_not_cut_the_paragraph() -> None:
     assert [b.kind for b in doc.blocks] == [BlockKind.PARAGRAPH]
 
 
+def test_a_bar_across_two_pieces_stands_where_their_printed_line_ends() -> None:
+    """#819: no piece holds the bar, the two pieces of its printed line together do. It is
+    read at that line, right after its last piece where the line's text ends, as a mark
+    inside one piece is (D-332), not at the paragraph's end (D-90)."""
+    bar = Drawing("bar", Box(195, 118, 205, 118.6))
+    items, first, second = _broken_line(bar)
+    doc = build(items)
+    (block,) = doc.blocks
+    parts = [(p.item, p.start) for p in block.parts]
+    end = block.text.index(second.text) + len(second.text)
+    assert parts[1:5] == [
+        (first.id, block.text.index(first.text)),
+        (second.id, end - len(second.text)),
+        ("bar", end),
+        (items[4].id, end + 1),
+    ]
+
+
+def test_a_bar_between_two_printed_lines_stands_in_neither() -> None:
+    """#819: a printed line is the pieces with no line break between them. A bar in the
+    white under a line of two pieces lies inside the box of that line and the next one
+    together, but in no printed line, so it joins the end of the block before it (D-90)."""
+    bar = Drawing("bar", Box(195, 126, 205, 126.5))
+    items, _, _ = _broken_line(bar)
+    doc = build(items)
+    assert parts_of(doc, "bar")[-1] == ("bar", len(doc.blocks[0].text))
+
+
+def test_a_bar_a_printed_line_holds_is_read_before_a_rule_is_looked_for() -> None:
+    """#852, #819: the printed line comes before `_ruled_line`. The two pieces of a tall
+    printed line (y 114 to 128) together hold the bar. The short line "n" below it, a
+    paragraph of its own read after the bar, is one the bar could stand under as a rule (its
+    top inside the line's box, over all of its width, #181). The bar is read at the printed
+    line, after its last piece (D-332), not at "n"."""
+    lines = running(count=6)
+    first = line("the share is 1", LEFT, 114, 200, height=14)
+    last = line("2 of the whole and it goes on", 196, 114, RIGHT, height=14)
+    small = line("n", 202, 126, 206)
+    bar = Drawing("bar", Box(195, 127, 215, 127.6))
+    doc = build([lines[0], first, last, small, bar, *lines[3:]])
+    block = next(b for b in doc.blocks if any(p.item == "bar" for p in b.parts))
+    assert block.text.endswith(last.text)
+    assert [p.item for p in block.parts][-2:] == [last.id, "bar"]
+    assert block.parts[-1].start == len(block.text)
+    assert not any(p.item == "bar" for b in doc.blocks if b.text == "n" for p in b.parts)
+
+
+def test_a_bar_two_printed_lines_hold_stands_at_the_smaller_one() -> None:
+    """#852, #819: the printed lines of two pieces each, here the box of the second (y 126
+    to 136) inside the box of the first (y 114 to 128, set tall), both hold the bar between
+    them. It is read at the smaller, the second, after its last piece, as the smaller line
+    holds a mark among lines (D-330)."""
+    lines = running(count=6)
+    a1 = line("the share is 1", LEFT, 114, 200, height=14)
+    a2 = line("2 of the whole and it goes on", 196, 114, RIGHT, height=14)
+    b1 = line("next row is 3", LEFT, 126, 200)
+    b2 = line("4 and it goes on", 196, 126, RIGHT)
+    bar = Drawing("bar", Box(195, 126.5, 205, 127))
+    doc = build([lines[0], a1, a2, b1, b2, bar, *lines[3:]])
+    (block,) = doc.blocks
+    parts = [(p.item, p.start) for p in block.parts]
+    end = block.text.index(b2.text) + len(b2.text)
+    at = parts.index(("bar", end))
+    assert parts[at - 1] == (b2.id, end - len(b2.text))
+    assert parts[at + 1] == (lines[3].id, end + 1)
+
+
 def test_a_graphic_reaching_out_of_the_line_keeps_todays_reading() -> None:
     """Out of scope (#163): a graphic between the pieces that reaches out of the line is
     read as before: it ends the row, and the loose line joins the block before it (D-90)."""

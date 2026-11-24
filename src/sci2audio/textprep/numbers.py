@@ -11,7 +11,8 @@ quotes the printed text.
 - N2 (D-183): ranges read "to": "3–5", "1.2–3.4", "2010–15", and "18-25" with a hyphen
   between plain numbers only.
 - N3 (D-182): misaki reads every bare four-digit number as a year; one that the context
-  marks as a count gets a thousands comma ("1234 participants" → "1,234").
+  marks as a count gets a thousands comma ("1234 participants" → "1,234"), and so does one
+  before "=", "×" or an "x" read as "times" unless it is year-like (#844).
 - N4 (D-184): trailing zeros kept ("2.50" → "2 point 5 0"); misaki drops them.
 - N5, N6 (D-187): powers: "10⁶", "10^-4", "× 10−4", "x²", and "(I − P)⁻¹" (#589). An
   exponent whose raise only its run shows (a `sup` tag, or set small and raised:
@@ -44,7 +45,7 @@ from sci2audio.textprep.notation import (
 from sci2audio.textprep.numbers_de import find_numbers_de
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
-from sci2audio.textprep.units import reads_unit_after_per, unit_spans
+from sci2audio.textprep.units import reads_unit_after_per, reads_x_after, unit_spans
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
 
@@ -68,14 +69,20 @@ _HYPHEN_RANGE = re.compile(
 )
 
 # --- N3 four-digit counts -------------------------------------------------------------------
-_FOUR_DIGITS = re.compile(r"(?<![\w.,/])[1-9]\d{3}(?![\w]|[.,]\d|\s+point\s+\d)")
+# a glued "x" is let through: the units step may read it "times" ("1234x larger", #844)
+_FOUR_DIGITS = re.compile(r"(?<![\w.,/])[1-9]\d{3}(?!(?!x)\w|x\w|[.,]\d|\s+point\s+\d)")
 _AFTER_OPERATOR = re.compile(r"[=<>\u2264\u2265\u2248~]\s*\Z")
+# a sign after the number that the statistics and units steps read "equals" and "times", or
+# those words as a second run sees them (#844); not "==" or "=\u21d2", which no step reads "equals"
+_BEFORE_SIGN = re.compile(r"\s*(?:=(?![=\u21d2])|\u00d7)|\s+(?:equals|times)\b")
+_YEAR_LIKE = range(1500, 2100)
 _NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*)")
 _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
 # words ending in "s" that are not plural nouns: "ACL 2023 is", "in 2019 was"
 _NOT_PLURAL = frozenset(
     {"is", "was", "has", "his", "its", "this", "thus", "as", "yes", "does", "goes", "whereas"}
     | {"versus", "plus", "minus", "less", "unless", "always", "perhaps", "towards", "besides"}
+    | {"implies"}  # "1234 ⇒ A" is "1234 implies A" after the statistics step (#796)
 )
 _PLURALS = frozenset({"people", "children", "men", "women", "mice", "data", "persons"})
 _MONTHS = {name.lower() for name in calendar.month_name[1:] + calendar.month_abbr[1:]}
@@ -537,11 +544,25 @@ def _counts(text: str) -> list[Candidate]:
         if value % 100 == 0:
             continue  # "1000", "1200": read right as a year and as a number
         before = _before(text, match.start())
-        if not _AFTER_OPERATOR.search(before) and not _counted(text, match.end(), before, value):
+        glued_x = text[match.end() : match.end() + 1] == "x"
+        if glued_x and not reads_x_after(text, match.end(), "en"):
+            continue  # "1234xy": no "times", so no number the voice reads apart
+        if not _AFTER_OPERATOR.search(before) and not _counted_before_sign(
+            text, match.end(), before, value, glued_x
+        ):
             continue
         words = f"{number[0]},{number[1:]}"
         found.append(Candidate(*match.span(), words, f'"{number}" read as a number, not a year'))
     return found
+
+
+def _counted_before_sign(text: str, end: int, before: str, value: int, glued_x: bool) -> bool:
+    """True if the number is a count by what follows it. Before "=", "×" or an "x" read as
+    "times" it is a number, read so on both runs, since a second run sees "equals" and
+    "times" there; a year-like one is left as printed on both (#844). Otherwise `_counted`."""
+    if glued_x or _BEFORE_SIGN.match(text, end):
+        return value not in _YEAR_LIKE
+    return _counted(text, end, before, value)
 
 
 def _counted(text: str, end: int, before: str, value: int) -> bool:

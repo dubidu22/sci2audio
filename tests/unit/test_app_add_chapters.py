@@ -360,3 +360,15 @@ def test_keep_settings_never_takes_another_books_settings(tmp_path: Path) -> Non
     )
     assert voice.spoken
     assert {(v, s) for _, v, s in voice.spoken} == {("af_heart", 1.0)}
+
+
+def test_adding_chapters_reports_an_unknown_chapter_as_a_fresh_run_does(tmp_path: Path) -> None:
+    fresh = run(tmp_path / "fresh", FakeVoice(), (2, 9))
+    assert fresh.result.ignored_chapters == (9,)
+    run(tmp_path / "plain", FakeVoice(), (0,))
+    run(tmp_path / "plain", FakeVoice(), (2,))
+    run(tmp_path, FakeVoice(), (0,))
+    added = run(tmp_path, FakeVoice(), (2, 9))
+    assert added.result.ignored_chapters == (9,)
+    # the unknown number changes nothing else: the same files as without it
+    assert files(tmp_path) == files(tmp_path / "plain")

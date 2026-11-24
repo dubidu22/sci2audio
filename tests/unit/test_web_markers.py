@@ -37,7 +37,7 @@ from sci2audio.web.markers import (
     NoteRefused,
     UndoExpired,
     anchor_of,
-    count_markers,
+    count_captures,
     markers_text,
     note_problem,
     place,
@@ -114,7 +114,7 @@ def test_a_second_marker_on_the_same_sentence_is_the_first_one(work: Path) -> No
 
 def test_no_file_is_no_markers_and_is_not_made_by_reading(work: Path) -> None:
     assert read_markers(work, DOC) == []
-    assert count_markers(work, DOC) == 0
+    assert count_captures(work, DOC) == {"note": 0, "quote": 0, "mark": 0, "unread": None}
     assert not (work / MARKERS).exists()
 
 
@@ -202,7 +202,7 @@ def test_a_file_this_version_cant_read_is_never_written(work: Path, case: str) -
     before = path.read_bytes()
     with pytest.raises(MarkersBroken):
         read_markers(work, DOC)
-    assert count_markers(work, DOC) is None
+    assert count_captures(work, DOC)["unread"] == "markers"
     book = MarkerBook()
     for change in (
         lambda: book.set(work, DOC, second(), by_anchor(second())),

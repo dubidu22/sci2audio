@@ -418,6 +418,40 @@ def test_a_pdf_listing_is_shown_with_its_printed_indent(
     expect(notice.locator("pre.code")).to_have_js_property("textContent", shown)
 
 
+def test_a_listing_part_after_a_page_break_keeps_its_indent(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#612: a listing broken over a page break whose part on page 2 is made only of lines
+    printed four characters in is shown four spaces in, though page 2's text column starts
+    18 points further right than page 1's."""
+    page = signed_in
+    first = [("import seaborn as sns", 0), ("g = sns.relplot(", 0)]
+    second = [('data=fmri, kind="line",', 4), ('x="timepoint", y="signal",', 4)]
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            *(Text(f"Running text on page 1, line {k}.", 72, 110 + 14 * k) for k in range(38)),
+            *(
+                Text(line, 72 + 6 * indent, 660 + 13 * k, "Courier", 10)
+                for k, (line, indent) in enumerate(first)
+            ),
+        ],
+        [
+            *(
+                Text(line, 90 + 6 * indent, 80 + 13 * k, "Courier", 10)
+                for k, (line, indent) in enumerate(second)
+            ),
+            *(Text(line.text, 90, line.y + 40) for line in PROSE_PAGE),
+        ],
+    )
+    listen_to(page, live, tmp_path / "broken.pdf", pdf)
+    notice = page.locator(".notice")
+    expect(notice.locator("p")).to_have_text("Spoken notice: A code block is skipped.")
+    shown = "\n".join(" " * indent + line for line, indent in first + second)
+    # exact: `to_have_text` folds white space
+    expect(notice.locator("pre.code")).to_have_js_property("textContent", shown)
+
+
 def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:

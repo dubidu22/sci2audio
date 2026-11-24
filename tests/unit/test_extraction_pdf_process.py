@@ -18,6 +18,7 @@ import sys
 import textwrap
 import threading
 import time
+import tracemalloc
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -499,7 +500,7 @@ def test_a_read_reports_each_page_and_then_the_outline(monkeypatch: pytest.Monke
     A page step names the page count too, for the job's progress (#343)."""
     steps: list[str] = []
     monkeypatch.setattr(isolate, "_report", steps.append)
-    read_pdf(two_pages_of_rectangles(1), "a.pdf")
+    read_pdf(pages_of_rectangles(2, 1), "a.pdf")
     assert steps == ["page 1 of 2", "page 2 of 2", "outline"]
 
 
@@ -596,7 +597,7 @@ def nested_drawings(levels: int) -> bytes:
     return raw_pdf(objects)
 
 
-PAGE_GRAPHICS = "page 1 holds more than 100,000 drawings and pictures"
+PAGE_GRAPHICS = "page 1 holds more than 10,000 drawings and pictures"
 
 
 @pytest.mark.parametrize("make", [rectangles, picture_uses], ids=["drawings", "picture-uses"])
@@ -604,7 +605,7 @@ def test_a_page_of_too_many_drawings_or_pictures_is_refused(
     tmp_path: Path, make: Callable[[int], bytes]
 ) -> None:
     with pytest.raises(ExtractionError, match=TOO_LARGE.format(r"file\.pdf", PAGE_GRAPHICS)):
-        extract_pdf(written(tmp_path, make(100_001)))
+        extract_pdf(written(tmp_path, make(10_001)))
 
 
 def test_forms_nested_seven_deep_are_refused(tmp_path: Path) -> None:
@@ -621,30 +622,49 @@ def test_drawings_and_pictures_count_together_on_a_page_and_in_the_file(
     assert len(read_pdf(rectangles(5), "a.pdf").pages[0].drawings) == 5
     with pytest.raises(ExtractionError, match="page 1 holds more than 5 drawings and pictures"):
         read_pdf(picture_uses(6), "a.pdf")
-    assert len(read_pdf(two_pages_of_rectangles(4), "a.pdf").pages) == 2  # 8 in all
+    assert len(read_pdf(pages_of_rectangles(2, 4), "a.pdf").pages) == 2  # 8 in all
     with pytest.raises(ExtractionError, match=r"\(more than 8 drawings and pictures\)$"):
-        read_pdf(two_pages_of_rectangles(5), "a.pdf")
+        read_pdf(pages_of_rectangles(2, 5), "a.pdf")
 
 
-def two_pages_of_rectangles(per_page: int) -> bytes:
-    """Two pages sharing one stream of `per_page` rectangles and a word."""
-    content = b"".join(b"%d 10 1 1 re f\n" % i for i in range(per_page))
+def pages_of_rectangles(pages: int, per_page: int) -> bytes:
+    """`pages` pages sharing one stream of `per_page` rectangles and a word."""
+    content = b"".join(b"%d %d 1 1 re f\n" % (i % 600, (i // 600) % 790) for i in range(per_page))
+    kids = b" ".join(b"%d 0 R" % (10 + n) for n in range(pages))
     objects = {
         1: b"<< /Type /Catalog /Pages 2 0 R >>",
-        2: b"<< /Type /Pages /Kids [10 0 R 11 0 R] /Count 2 >>",
-        4: stream(content + b"BT /F1 12 Tf 72 720 Td (Hello) Tj ET"),
+        2: b"<< /Type /Pages /Kids [%s] /Count %d >>" % (kids, pages),
+        4: stream(content + b"BT /F1 12 Tf 72 720 Td (Hello) Tj ET", compress=True),
         5: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     }
-    for number in (10, 11):
-        objects[number] = (
+    for n in range(pages):
+        objects[10 + n] = (
             b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]"
             b" /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>"
         )
     return raw_pdf(objects)
 
 
+def test_a_file_at_the_drawing_limits_costs_this_process_under_100_mb(tmp_path: Path) -> None:
+    """At 500,000 drawings what the child sent back cost this process 497 MB, about 1 GB with
+    both readers busy (#355). At the limits now (5 pages of 10,000) it measured 45 MB of
+    Python memory at its peak (47 MB resident on macOS); a drawing more is refused."""
+    pages = pdf.MAX_GRAPHICS // pdf.MAX_PAGE_GRAPHICS
+    path = written(tmp_path, pages_of_rectangles(pages, pdf.MAX_PAGE_GRAPHICS))
+    tracemalloc.start()
+    try:
+        content = extract_pdf(path)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert sum(len(page.drawings) for page in content.pages) == pdf.MAX_GRAPHICS
+    assert peak < 100 * MB
+    with pytest.raises(ExtractionError, match=r"\(more than 50,000 drawings and pictures\)$"):
+        extract_pdf(written(tmp_path, pages_of_rectangles(pages + 1, pdf.MAX_PAGE_GRAPHICS)))
+
+
 def test_the_limits_are_the_decided_ones() -> None:
-    assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (100_000, 500_000)
+    assert (pdf.MAX_PAGE_GRAPHICS, pdf.MAX_GRAPHICS) == (10_000, 50_000)  # #355
     assert (pdf.MAX_MEMORY, pdf.STEP_SECONDS, pdf.MAX_PDF_READERS) == (1024**3, 60, 2)
     assert pdf._READERS.limit == pdf.MAX_PDF_READERS  # the cap reads use (#345)
     assert isolate.START_SECONDS == 30  # a reader's start, before its first step (D-616)

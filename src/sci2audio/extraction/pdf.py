@@ -129,9 +129,10 @@ MAX_PAGE_CHARS = 100_000
 MAX_CHARS = 10_000_000
 # Drawings and pictures, counted as they are found (D-581): a 26 KB stream can hold a million
 # rectangles, which a child reads within its memory and this process then has to take back.
-# The corpus's busiest page holds 1,836 (a chart).
-MAX_PAGE_GRAPHICS = 100_000
-MAX_GRAPHICS = 500_000
+# The corpus's busiest page holds 1,836 (a chart), its busiest paper 1,863. Each one costs
+# this process about 1 KB: 500,000 took 497 MB, 50,000 take under 50 MB (#355).
+MAX_PAGE_GRAPHICS = 10_000
+MAX_GRAPHICS = 50_000
 # The child process (#185, D-581): a read at MAX_CHARS needs about 200 MB, the corpus under 40.
 MAX_MEMORY = 1024**3  # bytes
 STEP_SECONDS = 60  # opening the file, each page, the outline; the densest page took 2 s

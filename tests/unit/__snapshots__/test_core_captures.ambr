@@ -1,0 +1,98 @@
+# serializer version: 1
+# name: test_the_json_form_golden_file
+  dict({
+    'carried over from markers.json': dict({
+      'captures': list([
+        dict({
+          'anchor': dict({
+            'block': 3,
+            'end': 69,
+            'start': 10,
+            'text': 'Sleep loss lowered recall by 12 % (p < .01) in the α-group.',
+          }),
+          'changed': '2026-11-20T19:04:00Z',
+          'created': '2026-11-20T19:04:00Z',
+          'id': '00000000000000a1',
+          'text': '',
+          'type': 'mark',
+        }),
+        dict({
+          'anchor': dict({
+            'block': 4,
+            'end': 22,
+            'start': 0,
+            'text': 'Naps were not counted.',
+          }),
+          'changed': '2026-11-21T08:30:12Z',
+          'created': '2026-11-20T19:04:00Z',
+          'id': '00000000000000b2',
+          'text': '''
+            Check the appendix: were naps
+            really left out?
+          ''',
+          'type': 'note',
+        }),
+      ]),
+      'document': '0123456789abcdef',
+      'format': 'sci2audio-captures',
+      'migrated_from': 'markers.json',
+      'version': 1,
+    }),
+    'no capture': dict({
+      'captures': list([
+      ]),
+      'document': '0123456789abcdef',
+      'format': 'sci2audio-captures',
+      'version': 1,
+    }),
+    'three types': dict({
+      'captures': list([
+        dict({
+          'anchor': dict({
+            'block': 3,
+            'end': 69,
+            'start': 10,
+            'text': 'Sleep loss lowered recall by 12 % (p < .01) in the α-group.',
+          }),
+          'changed': '2026-11-20T19:04:00Z',
+          'created': '2026-11-20T19:04:00Z',
+          'id': '00000000000000a1',
+          'text': '',
+          'type': 'mark',
+        }),
+        dict({
+          'anchor': dict({
+            'block': 4,
+            'end': 22,
+            'start': 0,
+            'text': 'Naps were not counted.',
+          }),
+          'changed': '2026-11-21T08:30:12Z',
+          'created': '2026-11-20T19:04:00Z',
+          'id': '00000000000000b2',
+          'text': '''
+            Check the appendix: were naps
+            really left out?
+          ''',
+          'type': 'note',
+        }),
+        dict({
+          'anchor': dict({
+            'block': 3,
+            'end': 69,
+            'start': 10,
+            'text': 'Sleep loss lowered recall by 12 % (p < .01) in the α-group.',
+          }),
+          'changed': '2026-11-20T19:04:00Z',
+          'created': '2026-11-20T19:04:00Z',
+          'id': '00000000000000c3',
+          'text': '',
+          'type': 'quote',
+        }),
+      ]),
+      'document': '0123456789abcdef',
+      'format': 'sci2audio-captures',
+      'version': 1,
+    }),
+  })
+# ---

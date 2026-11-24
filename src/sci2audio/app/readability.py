@@ -16,10 +16,12 @@ font.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
+from itertools import pairwise
 
-from sci2audio.core import Content, SourceFormat
+from sci2audio.core import Box, Content, Page, SourceFormat
 from sci2audio.extraction import legibility
 
 
@@ -79,19 +81,66 @@ def warning(found: Unreadable) -> str:
     )
 
 
+# A scan fills its page; a logo or an ornament on a blank page of a born-digital PDF covers
+# a small part of it (#605). Below this share of the page, the pictures are no scan.
+SCAN_COVER = 0.5
+# Overlaps are worked out for this many pictures on a page at most (the work grows with the
+# square); a page of more is measured by their summed areas, as if none overlapped.
+_MEASURED_PICTURES = 400
+
+
 def picture_pages(content: Content) -> tuple[int, ...]:
-    """The pages of a PDF that hold a picture and no text (#186): a scanned page in a PDF
-    whose other pages have text. A blank page (no text, no picture) is not one, and a line
-    of white space only is no text. Vector drawings do not count: a scan is a picture. PDF
-    only, as `unreadable` (D-772): an EPUB's page holding only a picture is a cover or a
-    plate, not a scan."""
+    """The pages of a PDF that hold pictures and no text (#186), the pictures covering at
+    least `SCAN_COVER` of the page together (#605): a scanned page in a PDF whose other
+    pages have text. A blank page (no text, no picture) is not one, and a line of white
+    space only is no text. Vector drawings do not count: a scan is a picture. A picture
+    without a box, or a page without a size, can't be measured and still counts as a scan.
+    PDF only, as `unreadable` (D-772): an EPUB's page holding only a picture is a cover or
+    a plate, not a scan."""
     if content.source.format is not SourceFormat.PDF:
         return ()
     return tuple(
         page.number
         for page in content.pages
-        if page.pictures and not any(line.text.strip() for line in page.lines)
+        if page.pictures
+        and not any(line.text.strip() for line in page.lines)
+        and _covered(page) >= SCAN_COVER
     )
+
+
+def _covered(page: Page) -> float:
+    """The share of the page its pictures cover together, overlaps counted once; 1.0 when
+    a picture has no box or the page no size, so that page still counts as a scan."""
+    if not page.width or not page.height:
+        return 1.0
+    boxes: list[Box] = []
+    for picture in page.pictures:
+        if picture.box is None:
+            return 1.0
+        box = picture.box  # only the part on the page counts
+        x0, y0 = max(box.x0, 0.0), max(box.y0, 0.0)
+        x1, y1 = min(box.x1, page.width), min(box.y1, page.height)
+        if x0 < x1 and y0 < y1:
+            boxes.append(Box(x0, y0, x1, y1))
+    page_area = page.width * page.height
+    summed = sum((b.x1 - b.x0) * (b.y1 - b.y0) for b in boxes)
+    if summed < SCAN_COVER * page_area or len(boxes) > _MEASURED_PICTURES:
+        return summed / page_area  # their union is no larger than their sum
+    return _union_area(boxes) / page_area
+
+
+def _union_area(boxes: list[Box]) -> float:
+    """The area the boxes cover together: summed over the strips between their edges."""
+    xs = sorted({x for box in boxes for x in (box.x0, box.x1)})
+    area = 0.0
+    for left, right in pairwise(xs):
+        spans = sorted((b.y0, b.y1) for b in boxes if b.x0 <= left and right <= b.x1)
+        height, reached = 0.0, -math.inf
+        for y0, y1 in spans:  # each span adds only what lies below the ones before it
+            height += max(0.0, y1 - max(y0, reached))
+            reached = max(reached, y1)
+        area += (right - left) * height
+    return area
 
 
 def picture_warning(pages: Iterable[int]) -> str:

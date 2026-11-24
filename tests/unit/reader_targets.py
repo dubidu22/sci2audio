@@ -63,6 +63,31 @@ def sigint_children(stop: threading.Event) -> threading.Thread:
     return thread
 
 
+WAIT_FOR_A_SIGINT = "wait for a SIGINT"
+
+
+def first_line(
+    send: Any, target: Callable[..., Any], args: tuple[Any, ...], memory: int, step: float
+) -> None:
+    """In place of `isolate._child` (#803): note whether SIGINT is held back at the child's
+    first line of our code and, when `args` is `(WAIT_FOR_A_SIGINT,)`, whether a SIGINT sent
+    meanwhile waits there (up to 30 s); then run as the child always does, which drops it.
+    The read gives back `target(held, waiting)`."""
+    held = signal.SIGINT in signal.pthread_sigmask(signal.SIG_BLOCK, [])
+    waiting = False
+    if held and args == (WAIT_FOR_A_SIGINT,):
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            if waiting := signal.SIGINT in signal.sigpending():
+                break
+            time.sleep(0.005)
+    isolate._child(send, target, (held, waiting), memory, step)
+
+
+def both(held: bool, waiting: bool) -> tuple[bool, bool]:
+    return held, waiting
+
+
 ENDS_WHILE_STARTING = """
 import multiprocessing, os
 from pathlib import Path
