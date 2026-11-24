@@ -69,6 +69,10 @@ RECORD_VERSION = 1
 AUDIO_RECORD = "audio.json"  # the audio job's records (D-165)
 DOCUMENT_RECORD = "document.json"
 TIME_TOLERANCE = 0.0015  # seconds: both files round to 1 ms
+# seconds a browser can play past a chapter's end: one that keeps the padding of the file's
+# last frame (Chromium on our MP3s, #779) plays up to a frame longer than the read-along
+# says. An MP3 frame is at most 1152 samples, an AAC frame 1024: 48 ms at 24 kHz.
+OVERRUN = 0.1
 POSITION = "position.json"  # where the person stopped listening (#153)
 POSITION_FORMAT = "sci2audio-web-position"
 POSITION_VERSION = 1
@@ -240,6 +244,22 @@ class Bounds:
         if position.chapter + 1 < len(starts):
             return start <= position.time < starts[position.chapter + 1]
         return start <= position.time <= self.duration + TIME_TOLERANCE
+
+    def settled(self, position: Position) -> Position:
+        """The position a player keeps at the end of a chapter's file, moved onto the
+        book (#779): a time up to OVERRUN past the last chapter's end is the book's end,
+        one past any other chapter's end the start of the next chapter. Any other position
+        is returned as it is."""
+        starts = self.starts
+        chapter, time = position.chapter, position.time
+        if not 0 <= chapter < len(starts) or not math.isfinite(time):
+            return position
+        if chapter + 1 == len(starts):
+            if self.duration < time <= self.duration + OVERRUN:
+                return Position(chapter, self.duration)
+        elif starts[chapter + 1] <= time <= starts[chapter + 1] + OVERRUN:
+            return Position(chapter + 1, starts[chapter + 1])
+        return position
 
     def continues(self, position: Position) -> bool:
         """True if the position fits and something is left to continue: it is after the
