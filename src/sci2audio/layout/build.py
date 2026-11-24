@@ -13,6 +13,7 @@ from sci2audio.core import (
     FurnitureRole,
     Page,
     Part,
+    Picture,
     TextLine,
 )
 from sci2audio.layout.captions import find_captions
@@ -224,6 +225,7 @@ class _Layout:
                         self._inline(e, lines),
                         e.box,
                         tuple(boxed(g) for g in e.graphics),
+                        tuple(boxed(g) for g in e.graphics if isinstance(g, Picture)),
                     )
                     for e in group
                 ]
