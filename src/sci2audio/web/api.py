@@ -39,6 +39,7 @@ from sci2audio.web.captures import (
     CaptureMissing,
     CapturesUnreadable,
     MarkersWaiting,
+    NoteThere,
     TextRefused,
 )
 from sci2audio.web.captures import UndoExpired as CaptureUndoExpired
@@ -727,6 +728,7 @@ _CAPTURE_STATUS = {
     CapturesUnreadable: 409,
     MarkersWaiting: 409,
     CapturedAgain: 409,
+    NoteThere: 409,
     CaptureMissing: 404,
     CaptureUndoExpired: 410,
     CaptureLimit: 422,
@@ -802,8 +804,9 @@ def add_capture(
     state: State, document_id: str, given: models.CaptureIn, response: Response
 ) -> models.CaptureOut:
     """A capture on the sentence the page reads: chunk `chunk` of the audiobook the page was
-    drawn for (409 if it was made again since). A sentence that has a capture of that type
-    answers it unchanged (200); the page toggles marks and quotes and edits a note."""
+    drawn for (409 if it was made again since). A sentence that has a mark or a quote
+    answers it unchanged (200), and the page toggles; a new note on a sentence that has one
+    is refused (409 `note-exists`), so its text is never dropped."""
     book = _book(state, document_id)
     if given.audiobook != book.stamp:
         raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")

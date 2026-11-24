@@ -67,6 +67,12 @@ def toast(page: Page) -> Any:
     return page.locator("#capture-toast")
 
 
+def told(page: Page, words: str) -> None:
+    """The toast is shown and says `words`: never the text of one hidden before."""
+    expect(toast(page)).to_be_visible()
+    expect(said(page)).to_have_text(words)
+
+
 def at_sentence(page: Page, steps: int = 2) -> str:
     """Move a few sentences in, paused; the sentence being read."""
     nobody_focused(page)
@@ -131,16 +137,46 @@ def test_m_and_q_capture_at_once_with_a_flag_a_tick_and_undo(signed_in: Page, li
     expect(said(page)).to_have_text("Put back.")
     expect(page.locator("#capture-undo")).to_be_hidden()
     expect(quote).to_have_attribute("aria-pressed", "true")
-    # the Undo of a new capture takes it back
+    # the Undo of a new capture takes it back; a hidden toast says nothing, so each check
+    # reads the toast of the change just made
     page.keyboard.press("m")
-    expect(said(page)).to_have_text("Mark removed.")
+    told(page, "Mark removed.")
     page.keyboard.press("m")
+    told(page, "Marked.")
     page.locator("#capture-undo").click()
-    expect(said(page)).to_have_text("Mark removed.")
+    told(page, "Mark removed.")
     expect(tab(page)).to_have_text("Captures (1)")
     page.reload()
     expect(tab(page)).to_have_text("Captures (1)")
     assert [f["kind"] for f in flags_at(page, sentence)] == ["quote"]
+
+
+def test_a_new_change_hides_the_toast_before_it_and_undo_waits_its_turn(
+    signed_in: Page, live: Live
+) -> None:
+    """The Undo on screen while the next change is asked for would undo the one before it:
+    the toast goes as soon as a key asks for a change."""
+    page = signed_in
+    make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("m")
+    told(page, "Marked.")
+    page.keyboard.press("q")  # the key's handler runs before press() returns
+    assert page.evaluate(
+        "() => document.getElementById('capture-toast').hidden"
+        " || document.getElementById('capture-said').textContent === 'Quote captured.'"
+    )
+    told(page, "Quote captured.")
+    page.locator("#capture-undo").click()  # the quote's Undo, not the mark's
+    told(page, "Quote removed.")
+    expect(page.locator("#capture-mark")).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#capture-quote")).to_have_attribute("aria-pressed", "false")
+    # Undo, then a key at once: the two run in the order asked
+    page.locator("#capture-undo").click()
+    page.keyboard.press("q")
+    told(page, "Quote removed.")
+    page.reload()
+    expect(tab(page)).to_have_text("Captures (1)")
 
 
 def test_n_pauses_opens_the_box_and_saves_with_ctrl_enter(signed_in: Page, live: Live) -> None:
@@ -212,6 +248,73 @@ def test_a_new_note_cancelled_or_left_empty_keeps_nothing(signed_in: Page, live:
     page.get_by_role("button", name="Save and continue").click()  # nothing written
     expect(tab(page)).to_have_text("Captures (0)")
     expect(page.locator("#captures-empty")).to_be_visible()
+
+
+def test_an_open_draft_is_never_thrown_away(signed_in: Page, live: Live) -> None:
+    """N again, the Note key, n on the box's own buttons and another note's Edit note all
+    go back to the open box, with its text."""
+    page = signed_in
+    make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("n")
+    page.get_by_role("textbox", name="Your note on this sentence").fill("First.")
+    page.keyboard.press("Control+Enter")
+    told(page, "Note saved.")
+    nobody_focused(page)
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("n")
+    box = page.locator("#capture-composer textarea")
+    box.fill("A draft I want to keep.")
+    page.locator("#capture-composer").get_by_role("button", name="Cancel").focus()
+    page.keyboard.press("n")  # on the box's own button: no new box
+    expect(box).to_be_focused()
+    expect(box).to_have_value("A draft I want to keep.")
+    message = "Your note is still open. Save it or cancel it first."
+    expect(page.locator("#message")).to_have_text(message)
+    page.locator("#capture-note").click()
+    expect(box).to_be_focused()
+    rows(page).first.get_by_role("button", name="Edit note").click()
+    expect(box).to_be_focused()
+    expect(box).to_have_value("A draft I want to keep.")
+    expect(rows(page).first.locator("textarea")).to_have_count(0)
+    # a row's open box keeps what is typed while the list is drawn again (a quote set)
+    page.keyboard.press("Escape")
+    rows(page).first.get_by_role("button", name="Edit note").click()
+    rows(page).first.locator("textarea").fill("Changed, not saved yet.")
+    page.locator("#capture-quote").click()
+    told(page, "Quote captured.")
+    expect(page.locator("#capture-list textarea")).to_have_value("Changed, not saved yet.")
+
+
+def test_a_second_windows_note_on_the_sentence_keeps_the_text_typed_here(
+    signed_in: Page, live: Live
+) -> None:
+    """The server refuses a second note, and the box stays open with the text typed here."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("n")
+    box = page.locator("#capture-composer textarea")
+    box.fill("Typed here.")
+    chunk, stamp = page.evaluate(
+        """() => {
+            const data = JSON.parse(document.getElementById('player-data').textContent);
+            const now = document.querySelector('#text .s.now');
+            return [Number(now.dataset.chunk), data.audiobook];
+        }"""
+    )
+    other = page.request.post(  # the other window
+        f"{live.url}/api/v1/documents/{document}/captures",
+        data={"type": "note", "chunk": chunk, "audiobook": stamp, "text": "From the other."},
+        headers={"Origin": live.url},
+    )
+    assert other.status == 201, other.text()
+    page.get_by_role("button", name="Save and continue").click()
+    expect(page.locator("#message")).to_contain_text("has a note already")
+    expect(box).to_have_value("Typed here.")
+    expect(toast(page)).to_be_hidden()
+    expect(tab(page)).to_have_text("Captures (0)")  # nothing said it was saved
 
 
 def test_play_from_here_and_a_capture_not_found_is_listed_without_it(

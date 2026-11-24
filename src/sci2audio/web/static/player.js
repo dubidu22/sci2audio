@@ -598,6 +598,7 @@ function readAlong() {
   let toastTimer = 0;
   let editing = null; // the note whose box is open in its row
   let composing = null; // a new note's box: {chunk, id, sentence}
+  let draft = null; // the text typed in a note's open box in its row, while it is drawn again
   let resumeAfterNote = false;
   let showCaptures = null; // opens the panel on the Captures tab (contextPanel)
   let captureQueue = Promise.resolve(); // the changes the keys and the buttons asked for
@@ -703,14 +704,17 @@ function readAlong() {
     clearTimeout(toastTimer);
     const inside = toast.contains(document.activeElement);
     toast.hidden = true;
+    toastSaid.textContent = ""; // a hidden toast says nothing a later check could read
     undo = null;
     if (inside) play.focus(); // the button pressed goes away: the focus goes to the player
   }
 
+  // the Undo waits its turn behind the changes asked for before it, so it never undoes a
+  // change whose answer has not come back yet
   undoButton.addEventListener("click", () => {
     const then = undo;
     hideToast();
-    then?.();
+    if (then) captureQueue = captureQueue.then(then);
   });
 
   async function addCapture(kind, chunk, text = "") {
@@ -756,10 +760,29 @@ function readAlong() {
     }
     const target = captureTarget(); // the sentence when the key was pressed
     if (!target) return;
+    hideToast(); // the toast's Undo was for the change before this one
     captureQueue = captureQueue.then(() => {
       const there = capturesOn(target.id, kind)[0];
       return there ? removeCapture(there) : addCapture(kind, target.chunk);
     });
+  }
+
+  // the note box open now, if one is: a new note's, or a note's in its row
+  function openBox() {
+    if (composing) return composerBox.querySelector("textarea");
+    if (editing !== null) return rowOf(editing)?.querySelector("textarea") || null;
+    return null;
+  }
+
+  // a draft is never thrown away without asking: while a box is open, N,
+  // the Note key and another note's Edit note go back to it
+  function toOpenBox() {
+    const box = openBox();
+    if (!box) return false;
+    showCaptures?.();
+    box.focus();
+    say(tr("capture.draft_open"));
+    return true;
   }
 
   // N: the voice pauses and the box opens, on the sentence's note if it has one
@@ -768,9 +791,11 @@ function readAlong() {
       say(tr(capturesOff === "markers" ? "error.markers-not-carried" : "error.captures-unreadable"), true);
       return;
     }
+    if (toOpenBox()) return;
     const target = captureTarget();
     if (!target) return;
     captureQueue = captureQueue.then(() => {
+      if (toOpenBox()) return;
       const there = capturesOn(target.id, "note")[0];
       if (there) {
         openNote(there.id);
@@ -938,7 +963,8 @@ function readAlong() {
       item.append(more);
     }
     if (editing === capture.id) {
-      item.append(noteBox(capture.text, capture.id, (value) => saveNote(capture, value), () => closeNote(capture.id)));
+      const value = draft ?? capture.text;
+      item.append(noteBox(value, capture.id, (words) => saveNote(capture, words), () => closeNote(capture.id)));
       return item;
     }
     if (capture.text) item.append(made("p", "cp-note", capture.text));
@@ -951,7 +977,7 @@ function readAlong() {
       edit.classList.add("cp-edit-note");
       actions.append(edit);
     }
-    actions.append(action(tr("capture.remove"), () => removeCapture(capture)));
+    actions.append(action(tr("capture.remove"), () => (captureQueue = captureQueue.then(() => removeCapture(capture)))));
     item.append(actions);
     return item;
   }
@@ -1035,9 +1061,11 @@ function readAlong() {
 
   function openNote(id) {
     if (!captures.some((c) => c.id === id && c.type === "note")) return;
+    if (toOpenBox()) return;
     pauseForNote();
     composing = null;
     drawComposer();
+    draft = null;
     editing = id;
     drawList();
     showCaptures?.();
@@ -1046,6 +1074,7 @@ function readAlong() {
 
   function closeNote(id) {
     editing = null;
+    draft = null;
     drawList();
     rowOf(id)?.querySelector(".cp-edit-note")?.focus();
     resumeVoice();
@@ -1074,6 +1103,7 @@ function readAlong() {
   async function saveNote(capture, value) {
     if (!value.trim()) {
       editing = null; // a note emptied is removed, with Undo
+      draft = null;
       await removeCapture(capture);
       captureButtons.note.focus();
       resumeVoice();
@@ -1082,6 +1112,7 @@ function readAlong() {
     const saved = await captureCall(`${capturesUrl}/${capture.id}`, "PATCH", { text: value });
     if (!saved) return;
     editing = null;
+    draft = null;
     keepCapture(saved);
     sound("note");
     tell(tr("capture.saved_note"), "note");
@@ -1091,8 +1122,12 @@ function readAlong() {
   function drawList() {
     // the focus never falls out of the panel while its rows are drawn again: over the page
     // that would close it (#444); the caller puts it where it belongs
+    const open = editing === null ? null : rowOf(editing)?.querySelector("textarea");
+    const typing = open && document.activeElement === open;
+    if (open) draft = open.value; // what is typed is kept while the rows are drawn again
     if (captureList.contains(document.activeElement)) capturesTab.focus({ preventScroll: true });
     captureList.replaceChildren(...captures.map(row));
+    if (typing) rowOf(editing)?.querySelector("textarea")?.focus();
     capturesEmpty.hidden = captures.length > 0 || composing !== null;
     capturesTab.textContent = tr("capture.tab_count", { n: captures.length });
   }

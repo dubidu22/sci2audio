@@ -80,6 +80,11 @@ def test_each_type_is_kept_with_every_field_and_one_of_each_type_per_sentence(wo
     ]
     again, new = book.add(work, DOC, MARK, FIRST, "", on(FIRST, MARK))
     assert (again, new) == (mark, False)
+    before = (work / CAPTURES).read_bytes()
+    with pytest.raises(module.NoteThere) as refused:  # its text is never dropped
+        book.add(work, DOC, NOTE, FIRST, "Other.", on(FIRST, NOTE))
+    assert refused.value.kind == "note-exists"
+    assert (work / CAPTURES).read_bytes() == before
     saved = read_captures(work, DOC)
     assert saved is not None
     assert saved.captures == (mark, quote, note)
@@ -267,6 +272,31 @@ def test_undo_after_the_sentence_got_that_type_again_is_refused(work: Path) -> N
     assert refused.value.kind == "captured-again"
     assert (work / CAPTURES).read_bytes() == before
     assert again in load(work, DOC).captures  # type: ignore[union-attr]
+
+
+def test_a_removal_between_a_restores_write_and_its_end_keeps_its_own_undo(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Another window removes the capture again right after this restore wrote it; the
+    restore must not drop that removal's Undo."""
+    book = CaptureBook(FakeClock())
+    mark, _ = book.add(work, DOC, MARK, FIRST, "", on(FIRST, MARK))
+    book.remove(work, DOC, mark.id)
+    real = CaptureBook.change
+    calls: list[str] = []
+
+    def then_removed(self: CaptureBook, *args: Any, **kwargs: Any) -> Any:
+        result = real(self, *args, **kwargs)
+        if not calls:  # the restore's own write, then the other window's removal
+            calls.append("removed")
+            book.remove(work, DOC, mark.id)
+        return result
+
+    monkeypatch.setattr(CaptureBook, "change", then_removed)
+    assert book.restore(work, DOC, mark.id, same_type_there) == mark
+    monkeypatch.undo()
+    assert load(work, DOC).captures == ()  # type: ignore[union-attr]
+    assert book.restore(work, DOC, mark.id, same_type_there) == mark  # its Undo is kept
 
 
 def test_a_failed_undo_can_be_tried_again(work: Path, monkeypatch: pytest.MonkeyPatch) -> None:

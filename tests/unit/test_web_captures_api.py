@@ -108,8 +108,10 @@ def test_one_capture_of_each_type_per_sentence(listening: dict[str, Any]) -> Non
     first = listening["chunks"][0]
     same = capture(client, doc, "mark", first, data["audiobook"], status=200)
     assert same["id"] == listening["ids"]["mark"]
-    note = capture(client, doc, "note", first, data["audiobook"], "Other.", status=200)
-    assert (note["id"], note["text"]) == (listening["ids"]["note"], "Ask Sam.")  # unchanged
+    # a second note is refused, never answered with the first one: its text would be lost
+    # while the page said it was saved (ADR-008 2.2 B)
+    note = capture(client, doc, "note", first, data["audiobook"], "Other.", status=409)
+    assert note["error"] == "note-exists"
     assert (listening["work"] / CAPTURES).read_bytes() == listening["bytes"]
 
 

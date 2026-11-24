@@ -82,6 +82,13 @@ class UndoExpired(CaptureError):
     kind = "undo-expired"
 
 
+class NoteThere(CaptureError):
+    """The sentence has a note already (written in another window, say): a new note's text
+    is never dropped for it; the page keeps it and says so."""
+
+    kind = "note-exists"
+
+
 class CapturedAgain(CaptureError):
     """The sentence got a capture of this type again since this one was removed."""
 
@@ -160,13 +167,16 @@ class CaptureBook:
         text: str,
         existing: Callable[[list[Capture]], Capture | None],
     ) -> tuple[Capture, bool]:
-        """A capture of `kind` on the sentence `anchor` names: the one `existing` finds
-        already there (False, unchanged), or a new one (True). A note needs text; a mark
-        and a quote hold none."""
+        """A capture of `kind` on the sentence `anchor` names: the mark or quote `existing`
+        finds already there (False, unchanged), or a new one (True). A note needs text; a
+        mark and a quote hold none. Raises NoteThere for a note on a sentence that has one,
+        so its text is never lost (ADR-008 2.2 B)."""
         _check_text(kind, text)
 
         def edit(captures: list[Capture]) -> tuple[list[Capture] | None, tuple[Capture, bool]]:
             there = existing(captures)
+            if there is not None and kind is CaptureType.NOTE:
+                raise NoteThere("the sentence has a note already")
             if there is not None:
                 return None, (there, False)
             if len(captures) >= MAX_CAPTURES:
@@ -242,7 +252,11 @@ class CaptureBook:
 
         restored = self.change(work, document_id, edit)
         with self._guard:
-            self._removed.get(str(work), {}).pop(capture_id, None)
+            # only the entry this call put back: a removal of the same capture since (from
+            # another window) keeps its own Undo
+            kept = self._removed.get(str(work), {})
+            if kept.get(capture_id) is entry:
+                del kept[capture_id]
         return restored
 
 
