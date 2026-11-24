@@ -22,9 +22,12 @@ furniture met while a paragraph is open wait until it closes, and so does text t
 interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Of what
 waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
 after it (#648). A figure in a wide gutter is read as a column of its own between two
-columns of text (#873): the rows read in that column right after it, if they are its labels
-and caption and no running text, and the row before the figure ends a sentence, interrupt
-a paragraph and never go on with one (#905).
+columns of text (#873, #938): the rows read in that column right after it, if they are its
+labels (on it or close by it, #945) and caption and no running text, interrupt a paragraph
+and never go on with one, nor set one aside (#905). If the row before the figure ends no
+sentence (an abbreviation's full stop ends none), its labels must lie on it, and its rows
+are the figure's only where the paragraph read before them would not be set aside to go on
+after them (#958).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -64,6 +67,15 @@ from sci2audio.layout.settings import LayoutSettings
 
 # a list item lettered "i." to "viii." or "a." to "z." (`lists` knows "i)", "(i)", "a)", "(a)")
 _LETTERED_ITEM = re.compile(r"(?:[ivxl]{1,4}|[a-z])[.)]\s")
+# what may close a sentence after its full stop: quotes (English and German, #958),
+# guillemets either way round, brackets
+_CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"
+# a full stop that ends a common abbreviation or a number, not a sentence (#945)
+_ABBREVIATION = re.compile(
+    r"(?:^|[\s(\[\u201e\u201c\"'])"
+    r"(?:z\.\s?B|d\.\s?h|u\.\s?a|et\s+al|e\.\s?g|i\.\s?e|vgl|bzw|sog|ca|cf|vs"
+    r"|Fig|Figs|Abb|Tab|Eq|Eqs|Ref|Refs|Nr|No|Sec|Abschn|Kap|S|p|pp|\d+)\.$"
+)
 
 
 @dataclass(frozen=True)
@@ -94,6 +106,7 @@ class Held:
     # a loose line or mark drawn in a printed line: it waits for the open paragraph without
     # counting as a figure, so the paragraph reads as it would without it (#163, D-439)
     inline: bool = False
+    box: Box | None = None  # where a figure is drawn: its labels lie on it or by it (#945)
 
 
 Unit = Row | Held
@@ -441,6 +454,9 @@ class Paragraphs:
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
         self.gutter: set[int] = set()  # (`continues` reads it while it is being found)
+        # a figure's rows in a gutter read after a row that ends no sentence, by the id of
+        # the first: they join `gutter` when it is read, if it sets no paragraph aside
+        self.pending: dict[int, list[Row]] = {}
         self.gutter = self._gutter_figures(units)
 
     def _gutter_figures(self, units: list[Unit]) -> set[int]:
@@ -449,7 +465,8 @@ class Paragraphs:
         the figure in a column to their left and the row read after them in a column to
         their right, all on one page. They are fewer than `column_items`, so `order` counts
         no column of text there, and they are the figure's labels, then perhaps its caption
-        (`_figure_rows`): running text there is never taken out of its paragraph."""
+        (`_figure_rows`): running text there is never taken out of its paragraph. After a
+        row that ends no sentence they wait in `pending` (#958)."""
         found: set[int] = set()
         before: Unit | None = None  # the last unit read that is no figure
         for k, unit in enumerate(units):
@@ -475,32 +492,50 @@ class Paragraphs:
                 and before.right <= first.left
                 and first.right <= after.left
                 and len(run) < self.settings.column_items
-                and self._figure_rows(before, run)
+                and self._figure_rows(before, run, unit.box if isinstance(unit, Held) else None)
             ):
-                found |= {id(row) for row in run}
+                if _sentence_end(before):
+                    found |= {id(row) for row in run}
+                else:
+                    self.pending[id(run[0])] = run
         return found
 
-    def _figure_rows(self, before: Row, run: list[Row]) -> bool:
+    def _figure_rows(self, before: Row, run: list[Row], figure: Box | None) -> bool:
         """True if the rows are a figure's labels, then perhaps its caption, and nothing
-        else. A label does not fill its column. None of them is the figure's unless the row
-        read before the figure ends a sentence (`_sentence_end`): ragged lines that go on
-        with a sentence start in any case and after any last character (a German noun, a
-        name, "im Jahr 2023"), and reading them after the figure would reorder the text. The
-        caption is a row that opens one and the rows that go on with it."""
-        if not _sentence_end(before):
-            return False
+        else. A label does not fill its column and lies on the figure or within `float_gap`
+        of it or of the label before it, as a plot's ticks and its axis's name do: running
+        text under a figure stands further off (#945). Ragged lines that go on with a
+        sentence start in any case and after any last character (a German noun, a name, "im
+        Jahr 2023"), so if the row read before the figure ends no sentence (`_sentence_end`),
+        each label must lie on the figure itself (#958). The caption is a row that opens one
+        and the rows that go on with it."""
+        ended = _sentence_end(before)
+        reach = self.settings.float_gap * self.body if ended else 0.0
+        near = [figure] if figure is not None else []
         labels = 0
-        while (
-            labels < len(run)
-            and not self._runs_on(run[labels])
-            and not opens_caption(run[labels].pieces[0])
-        ):
+        while labels < len(run) and self._label(run[labels], near, reach):
+            if ended:
+                near.append(run[labels].box)
             labels += 1
         caption = run[labels:]
         if not caption:
             return labels > 0
         return opens_caption(caption[0].pieces[0]) and all(
             self.continues(caption[:n], caption[n]) for n in range(1, len(caption))
+        )
+
+    def _label(self, row: Row, near: list[Box], reach: float) -> bool:
+        """True if the row may be a label (`_figure_rows`): it does not fill its column,
+        opens no caption, and lies within `reach` of one of the boxes `near`."""
+        if self._runs_on(row) or opens_caption(row.pieces[0]):
+            return False
+        box = row.box
+        return any(
+            box.x0 < b.x1 + reach
+            and b.x0 - reach < box.x1
+            and box.y0 < b.y1 + reach
+            and b.y0 - reach < box.y1
+            for b in near
         )
 
     def blocks(self) -> list[Block]:
@@ -518,6 +553,9 @@ class Paragraphs:
     def _take(self, row: Row) -> None:
         # a caption right after a float (a formula across the page, #34) starts afresh
         after_float = self.figure and opens_caption(row.pieces[0])
+        run = self.pending.pop(id(row), None)
+        if run is not None and not self._sets_aside(row, after_float):
+            self.gutter |= {id(r) for r in run}
         if self.open and not after_float and self.continues(self.open, row):
             self.open.append(row)
             if self.aside and not self._interrupts(row, self.aside[-1]) and not self._float(row):
@@ -546,6 +584,17 @@ class Paragraphs:
             if self.aside:
                 self._release()
             self.open = [row]
+
+    def _sets_aside(self, row: Row, after_float: bool) -> bool:
+        """True if a paragraph is set aside, or the row, read as any other, would set the
+        open one aside to go on after it. A figure's rows in a gutter after a row that ends
+        no sentence (`pending`) are the figure's only if not (#958): they set no paragraph
+        aside, so where it would have gone on after them, they would move its end before
+        them."""
+        if self.aside:
+            return True
+        joins = bool(self.open) and not after_float and self.continues(self.open, row)
+        return bool(self.open) and not joins and self._pauses(row)
 
     def _float(self, row: Row) -> bool:
         """True if the row belongs to the float whose caption interrupted the paragraph
@@ -604,6 +653,8 @@ class Paragraphs:
         last = self.open[-1]
         if len(self.open) < 2 or last.bold or not self._runs_on(last) or _ends(last):
             return False
+        if id(row) in self.gutter or id(last) in self.gutter:
+            return False  # (a figure's rows in a gutter neither set aside nor are, #958)
         if not self._interrupts(row, last):
             return False
         return self.figure or not _below(last, row, self.settings)
@@ -833,9 +884,11 @@ def _split_word(row: Row, next_row: Row) -> bool:
 
 
 def _sentence_end(row: Row) -> bool:
-    """True if the row ends a sentence: in ".", "!", "?" or ":", or in closing quotes or
-    brackets right after one."""
-    return row.text.rstrip().rstrip("\"'\u201d\u2019)]").endswith((".", "!", "?", ":"))
+    """True if the row ends a sentence: in ".", "!", "?" or ":", or in closing quotes,
+    guillemets or brackets right after one (`_CLOSING`, #958). A full stop after a common
+    abbreviation or a number ("z. B.", "et al.", "Fig.", "3.") ends none (#945)."""
+    text = row.text.rstrip().rstrip(_CLOSING)
+    return text.endswith((".", "!", "?", ":")) and not _ABBREVIATION.search(text)
 
 
 def _inside(row: Row, next_row: Row) -> bool:
@@ -873,7 +926,7 @@ def _ends(row: Row) -> bool:
     """True if the row ends a sentence or a proof, or announces what follows (a colon)."""
     return (
         row.text.rstrip()
-        .rstrip("\"'\u201d\u2019)]")
+        .rstrip(_CLOSING)
         .endswith((".", "!", "?", ":", "\u25a0", "\u220e", "\u25a1"))
     )
 
