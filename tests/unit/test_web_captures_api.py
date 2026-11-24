@@ -218,6 +218,37 @@ def test_markers_not_carried_over_turn_capturing_off_and_stay(tmp_path: Path) ->
     assert not (work / CAPTURES).exists()
 
 
+@pytest.mark.parametrize(
+    ("language", "words"),
+    [
+        ("en", "Your markers from an earlier version could not be carried over"),
+        ("de", "Ihre Markierungen aus einer früheren Version ließen sich nicht übernehmen"),
+    ],
+)
+def test_a_refused_carry_over_names_markers_json_on_the_page(
+    tmp_path: Path, language: str, words: str
+) -> None:
+    """#911: the notice of a carry-over refused (`capture.markers`) names markers.json by
+    its path (`captures_file`), never captures.json, in English and German."""
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    client = program(create_app(config, voice=lambda models_dir: voice.source()), config)
+    client.cookies.set("sci2audio-language", language)
+    doc = make(client)["doc"]["id"]
+    work = work_of(config, doc)
+    (work / MARKERS).write_text('{"a person\'s": "markers"}', encoding="utf-8")
+    data = page_data(client, doc)
+    assert (data["captures_off"], data["captures_file"]) == ("markers", str(work / MARKERS))
+    page = client.get(f"/documents/{doc}/listen").text
+    note = re.search(r'<p class="note" id="captures-broken">(.*?)</p>', page, re.S)
+    assert note is not None
+    said = html.unescape(note[1])
+    assert words in said
+    assert said.endswith(str(work / MARKERS))
+    assert CAPTURES not in said
+    assert not (work / CAPTURES).exists()
+
+
 def full_disk_while_carrying_over(monkeypatch: pytest.MonkeyPatch) -> None:
     """The carry-over's write of captures.json meets a full disk (#910)."""
     from sci2audio.app import files

@@ -236,7 +236,8 @@ def test_a_replace_refused_on_macos_or_linux_blames_no_other_program(
     signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """#1003: an open file never blocks a replace there, so the page says the file may
-    not be replaced, never that another program holds it; the old file stays."""
+    not be replaced, never that another program holds it; the old file stays. It names
+    the file, as a file held open is named (#1014), in English and German."""
     page = signed_in
     captured(page, live)
     open_captures(page)
@@ -248,12 +249,29 @@ def test_a_replace_refused_on_macos_or_linux_blames_no_other_program(
     page.locator("#export-save-csv").click()
     page.locator("#export-ask-csv").get_by_role("button", name="Replace it").click()
     expect(state(page, "csv")).to_contain_text(
-        "Not saved. sci2audio may not replace that file, so it stays as it was."
+        "Not saved. sci2audio may not replace Captures.csv, so it stays as it was."
     )
     expect(state(page, "csv")).not_to_contain_text("another program")
     expect(state(page, "csv")).to_have_attribute("data-state", "failed")
     assert target.read_bytes() == b"old"
     assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
+    page.set_extra_http_headers({"Accept-Language": "de"})
+    page.reload()
+    page.wait_for_load_state("load")
+    expect(page.locator("#export-save-csv")).to_be_enabled()  # the script is in
+    german = folder / "Fundstücke.csv"  # the German name of a file of all documents
+    german.write_bytes(b"alt")
+    page.locator("#export-folder-csv").fill(str(folder))
+    page.locator("#export-save-csv").click()
+    page.locator("#export-ask-csv").get_by_role("button", name="Ersetzen").click()
+    expect(state(page, "csv")).to_contain_text(
+        "Nicht gespeichert. sci2audio darf Fundstücke.csv nicht ersetzen, daher bleibt sie,"
+        " wie sie war."
+    )
+    expect(state(page, "csv")).not_to_contain_text("anderen Programm")
+    assert german.read_bytes() == b"alt"
+    check_axe(page, "captures, a replace refused, German")
+    page.set_extra_http_headers({})
 
 
 def test_the_files_by_keyboard(signed_in: Page, live: Live) -> None:

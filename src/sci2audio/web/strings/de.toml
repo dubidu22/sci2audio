@@ -471,6 +471,7 @@ replace = "Ersetzen"
 keep = "Behalten"
 kept = "Nichts gespeichert. {file} bleibt, wie sie war."
 held = "{file} ist wohl in einem anderen Programm geöffnet, daher wurde sie nicht ersetzt und bleibt, wie sie war. Schließen Sie sie dort und versuchen Sie es noch einmal."
+refused = "sci2audio darf {file} nicht ersetzen, daher bleibt sie, wie sie war. Sie ist vielleicht gesperrt oder schreibgeschützt: Prüfen Sie das, oder wählen Sie einen anderen Ordner."
 failed = "Nicht gespeichert."
 stem = "Fundstücke"  # der Dateiname, wenn sie mehr als ein Dokument enthält
 page = "S. {page}"  # in der Überschrift jedes Fundstücks in der Markdown- und RIS-Datei

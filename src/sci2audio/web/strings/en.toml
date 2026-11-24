@@ -466,6 +466,7 @@ replace = "Replace it"
 keep = "Keep it"
 kept = "Nothing saved. {file} stays as it was."
 held = "{file} is probably open in another program, so it was not replaced and stays as it was. Close it there and try again."
+refused = "sci2audio may not replace {file}, so it stays as it was. It may be locked or read-only: check it, or choose another folder."
 failed = "Not saved."
 stem = "Captures"  # the file's name when it holds more than one document
 page = "p. {page}"  # in each capture's heading in the Markdown and RIS file
