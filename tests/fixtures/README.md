@@ -29,8 +29,9 @@ tests (#74, D-347, D-348). The two real samples are the own corpus files
 
 ## Fonts for letter recognition (#618)
 
-`fonts/tinos-regular-subset.ttf` and `fonts/arimo-regular-subset.ttf` are subsets of Tinos 1.31
-and Arimo 1.31 Regular (ChromeOS `croscorefonts-1.31.0`, Apache-2.0, © 2010-2014 Google Inc.;
+`fonts/tinos-regular-subset.ttf`, `fonts/arimo-regular-subset.ttf` and
+`fonts/cousine-regular-subset.ttf` are subsets of Tinos 1.31, Arimo 1.31 and Cousine 1.21
+Regular (ChromeOS `croscorefonts-1.31.0`, Apache-2.0, © 2010-2014 Google Inc.;
 the copyright and licence records are kept in each file's `name` table): printable ASCII with
 the space, and German's letters and marks, no hinting. `scripts/letter_shapes.py fixtures`
 made them with fontTools 4.55.3 from the release pinned in the script. The tests take them

@@ -34,6 +34,13 @@ MAX_POINTS = 8192  # points of one glyph, its components' added up
 MAX_COMPONENTS = 64  # components of one composite glyph, those of its components added up
 MAX_DEPTH = 4  # composites inside composites
 _UNITS = (16, 16384)  # units per em the format allows
+# Those limits bound one glyph, not a read: thousands of glyphs that each hold one glyph of
+# 8,191 points stay within them and cost minutes (#618 review). One read of a PDF therefore
+# has one `Budget` for all its fonts: the points it parses, and the readings its close calls
+# try (`letters`). The recognised fonts of the #442 file parse about 20,000 points; the
+# budget's worst case costs about a second to parse and draw on an M4 (docs/baseline.md).
+MAX_READ_POINTS = 400_000
+MAX_WORD_STEPS = 2_000_000  # letters looked up while close calls are tried on words
 
 # The grid a glyph is drawn on, in em: 24 columns from -0.05 to 1.05 em across, 30 rows
 # from 1.05 em above the baseline to 0.3 em below it, each cell sampled 4 x 4 times and
@@ -58,6 +65,35 @@ _XY_SCALE, _TWO_BY_TWO = 0x0040, 0x0080
 
 class _Damaged(Exception):
     """A glyph or table the reader cannot read; never leaves this module."""
+
+
+class Budget:
+    """The work one read may spend on fonts with no Unicode source, all fonts together:
+    `points` parsed (`Font.outline`) and `steps` of close calls (`letters`). Once a part is
+    spent, it stays spent: nothing more of it is done, and a font whose work it stopped is
+    not recognised."""
+
+    def __init__(self, points: int | None = None, steps: int | None = None) -> None:
+        self.points = MAX_READ_POINTS if points is None else points
+        self.steps = MAX_WORD_STEPS if steps is None else steps
+        self.spent = False  # the points ran out
+        self.stopped = False  # the steps ran out
+
+    def take(self, points: int) -> bool:
+        """Spend `points`, if that many are left; else spend all and say no."""
+        if self.spent or points > self.points:
+            self.spent, self.points = True, 0
+            return False
+        self.points -= points
+        return True
+
+    def step(self, steps: int) -> bool:
+        """Spend `steps` of close-call work, if that many are left; else spend all."""
+        if self.stopped or steps > self.steps:
+            self.stopped, self.steps = True, 0
+            return False
+        self.steps -= steps
+        return True
 
 
 @dataclass(frozen=True)
@@ -88,15 +124,32 @@ class Font:
             return None
         return int.from_bytes(self._program[at : at + 2], "big")
 
-    def outline(self, glyph: int) -> Outline | None:
+    def inked(self, glyph: int) -> bool:
+        """True if the glyph has ink: a simple glyph with contours or a composite, read from
+        its header alone, so it costs no points. False for a glyph without, or one the font
+        does not have or whose header can't be read."""
+        if not 0 <= glyph < self.count:
+            return False
+        start, end = self._loca[glyph], self._loca[glyph + 1]
+        base = self._glyf[0]
+        if not start < end <= self._glyf[1] - base or end - start < 10:
+            return False
+        return int.from_bytes(self._program[base + start : base + start + 2], "big") != 0
+
+    def outline(self, glyph: int, budget: Budget | None = None) -> Outline | None:
         """The glyph's contours in font units, () for a glyph without ink, None for a glyph
-        the font does not have or that cannot be read within the limits."""
+        the font does not have, that cannot be read within the limits, or whose points the
+        `budget` no longer has (then nothing is read at all)."""
+        if budget is not None and budget.spent:
+            return None
         try:
-            return self._outline(glyph, (), [0, 0])
+            return self._outline(glyph, (), [0, 0], budget)
         except (_Damaged, struct.error, IndexError, ValueError, OverflowError):
             return None
 
-    def _outline(self, glyph: int, holders: tuple[int, ...], spent: list[int]) -> Outline:
+    def _outline(
+        self, glyph: int, holders: tuple[int, ...], spent: list[int], budget: Budget | None
+    ) -> Outline:
         """`spent` counts the points and components drawn so far for the glyph asked for:
         composites of empty glyphs add no points, but each component is work."""
         if not 0 <= glyph < self.count or glyph in holders:
@@ -110,16 +163,16 @@ class Font:
         data = memoryview(self._program)[base + start : base + end]
         contours = struct.unpack_from(">h", data)[0]
         if contours >= 0:
-            outline = _simple(data, contours)
+            outline = _simple(data, contours, MAX_POINTS - spent[0], budget)
             spent[0] += sum(len(c) for c in outline)
-            if spent[0] > MAX_POINTS:
-                raise _Damaged
             return outline
         if len(holders) >= MAX_DEPTH:
             raise _Damaged
-        return self._composite(data, (*holders, glyph), spent)
+        return self._composite(data, (*holders, glyph), spent, budget)
 
-    def _composite(self, data: memoryview, holders: tuple[int, ...], spent: list[int]) -> Outline:
+    def _composite(
+        self, data: memoryview, holders: tuple[int, ...], spent: list[int], budget: Budget | None
+    ) -> Outline:
         outline: list[tuple[Point, ...]] = []
         at = 10
         while spent[1] < MAX_COMPONENTS:
@@ -142,7 +195,7 @@ class Font:
             elif flags & _TWO_BY_TWO:
                 a, b, c, d = (_f2dot14(data, at + 2 * k) for k in range(4))
                 at += 8
-            part = self._outline(child, holders, spent)
+            part = self._outline(child, holders, spent, budget)
             if flags & _XY_VALUES:
                 dx, dy = float(arg1), float(arg2)
             else:  # matched points: the child's point arg2 lands on the parent's point arg1
@@ -178,7 +231,9 @@ def _matched(
     return ours[parent_point][0] - (a * x + c * y), ours[parent_point][1] - (b * x + d * y)
 
 
-def _simple(data: memoryview, contours: int) -> Outline:
+def _simple(data: memoryview, contours: int, room: int, budget: Budget | None) -> Outline:
+    """The glyph's contours, if its points fit in `room` (what the glyph's limit leaves)
+    and in the `budget`: both are asked before any point is read."""
     if contours > MAX_CONTOURS:
         raise _Damaged
     if contours == 0:
@@ -187,7 +242,7 @@ def _simple(data: memoryview, contours: int) -> Outline:
     if any(later <= earlier for earlier, later in itertools.pairwise(ends)):
         raise _Damaged
     count = ends[-1] + 1
-    if count > MAX_POINTS:
+    if count > room or (budget is not None and not budget.take(count)):
         raise _Damaged
     at = 10 + 2 * contours
     at += 2 + struct.unpack_from(">H", data, at)[0]  # past the hinting instructions

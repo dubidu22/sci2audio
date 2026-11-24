@@ -256,7 +256,7 @@ def fixtures(cache: Path) -> None:
 
     found = fonts(cache)
     FIXTURES.mkdir(parents=True, exist_ok=True)
-    for family in ("Tinos", "Arimo"):
+    for family in ("Tinos", "Arimo", "Cousine"):
         options = subset.Options()
         options.hinting = False
         options.layout_features = []

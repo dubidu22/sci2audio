@@ -29,6 +29,7 @@ import struct
 import threading
 import unicodedata
 from bisect import bisect_left, bisect_right
+from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -57,7 +58,7 @@ from sci2audio.extraction.language import stated_language
 from sci2audio.extraction.legibility import measure
 
 if TYPE_CHECKING:  # imported where used: only a file with such fonts needs them (#618)
-    from sci2audio.extraction import letters
+    from sci2audio.extraction import glyphs, letters
 
 _PDFIUM = threading.Lock()
 
@@ -1083,6 +1084,8 @@ def _chars(
             base = _in_text_direction((*origin, *origin), angle)[1]
         style = (font, size, bold, italic)
         key = sourceless.key(handle, i, name.value) if needed else None
+        if key is None and needed:
+            sourceless.mapped(name.value)
         recovered = False
         if key is None:
             sourceless.gap()
@@ -1146,8 +1149,10 @@ def _width(
 _SFNT = (b"\x00\x01\x00\x00", b"true", b"OTTO")  # TrueType and OpenType font programs
 _UNICODE_TABLES = {b"cmap", b"post"}  # a program's own ways to name its glyphs
 # Fonts with no Unicode source whose letters are recognised (#618): what one read keeps of
-# them. Recognising MAX_DRAWN_GLYPHS takes 1.4 s on an M4 (docs/baseline.md), far inside
-# STEP_SECONDS.
+# them. The work of recognising them is bounded by the read's `glyphs.Budget` (points
+# parsed, close calls tried), not by these counts alone: a page of 20,000 glyphs that each
+# hold one 8,191-point glyph reads in about the time main took, and 2,000 of them stay at a
+# few seconds of STEP_SECONDS (docs/baseline.md).
 MAX_SOURCELESS_FONTS = 32
 MAX_SOURCELESS_BYTES = 64 * 1024**2  # their programs, added up
 MAX_DRAWN_GLYPHS = 2_000  # glyphs drawn to recognise them, all fonts added up
@@ -1168,7 +1173,10 @@ class _Sourceless:
     Across pages a font is its program (by SHA-256). For each, the read keeps the glyphs
     used, how often, their widths as the PDF gives them, the pages and the words, within the
     limits above, so `recognised` can recognise its letters after the last page; a second
-    read of those pages passes the letters in (`reading`).
+    read of those pages passes the letters in (`reading`). A character of such a font that
+    PDFium does map (a glyph number in the Arabic or Hebrew range, a combining mark) is not
+    one of its counted glyph numbers: a font with such characters is not recognised, so a
+    page is never part recovered letters, part characters nothing counted (#618 review).
 
     Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
     fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
@@ -1179,7 +1187,10 @@ class _Sourceless:
         self.usage: dict[bytes, letters.Usage | None] = {}  # by program: None if not read
         self.pages: dict[bytes, set[int]] = {}
         self._ink: dict[tuple[bytes, int], bool] = {}
+        self._mapped: dict[bytes, int] = {}  # this page's mapped characters, by font name
+        self.stray: Counter[bytes] = Counter()  # such fonts' mapped characters, by font
         self._kept = 0
+        self.budget: glyphs.Budget | None = None  # the read's, made with its first such font
         self._page = 0
         self._word: list[int] = []
         self._word_key: bytes | None = None
@@ -1190,12 +1201,27 @@ class _Sourceless:
         and collects nothing."""
         again = _Sourceless()
         again.usage, again._ink, again._letters = self.usage, self._ink, found
+        again.budget = self.budget
         return again
 
     def start(self, number: int) -> None:
         """A new page: font names are the page's own."""
         self.gap()
+        self._count_stray()
         self._names, self._page = {}, number
+
+    def mapped(self, name: bytes) -> None:
+        """A character PDFium mapped, of the font it names `name` on this page."""
+        self._mapped[name] = self._mapped.get(name, 0) + 1
+
+    def _count_stray(self) -> None:
+        """Count the page's mapped characters of fonts with no Unicode source (known by
+        their name on the page, whichever came first)."""
+        for name, count in self._mapped.items():
+            key = self._names.get(name)
+            if key is not None:
+                self.stray[key] += count
+        self._mapped = {}
 
     def key(self, textpage: object, index: int, name: bytes) -> bytes | None:
         """The font of the character at `index`, whose font PDFium names `name`, if it has
@@ -1216,6 +1242,7 @@ class _Sourceless:
             fits = fits and self._kept + len(program) <= MAX_SOURCELESS_BYTES
             font = glyphs.read_font(program) if fits else None
             self.usage[key] = None if font is None else letters.Usage(font)
+            self.budget = self.budget or glyphs.Budget()
             self._kept += len(program) if font else 0
         return key
 
@@ -1231,12 +1258,13 @@ class _Sourceless:
 
     def _inked(self, key: bytes, glyph: int) -> bool:
         """True if the font's glyph has ink; False for one without, or one that can't be
-        read."""
+        read. Read from the glyph's header alone: no outline is parsed while pages are read
+        (#618 review)."""
         usage = self.usage.get(key)
         if usage is None:
             return False
         if (key, glyph) not in self._ink:
-            self._ink[key, glyph] = bool(usage.font.outline(glyph))
+            self._ink[key, glyph] = usage.font.inked(glyph)
         return self._ink[key, glyph]
 
     def letter(self, key: bytes, glyph: int) -> str | None:
@@ -1274,19 +1302,22 @@ class _Sourceless:
 
     def recognised(self) -> dict[bytes, dict[int, str]]:
         """Each font whose letters were recognised: its glyphs' letters. The fonts are taken
-        in the order the document first uses them, as long as `MAX_DRAWN_GLYPHS` lasts; a
-        font that does not fit, or whose recognition fails, keeps its glyph numbers."""
-        from sci2audio.extraction import letters
+        in the order the document first uses them, as long as `MAX_DRAWN_GLYPHS` and the
+        read's budget last; a font that does not fit, has characters PDFium mapped, or whose
+        recognition fails keeps its glyph numbers."""
+        from sci2audio.extraction import glyphs, letters
 
         self.gap()
+        self._count_stray()
         found = {}
-        budget = MAX_DRAWN_GLYPHS
+        left = MAX_DRAWN_GLYPHS
+        budget = self.budget or glyphs.Budget()
         for key, usage in self.usage.items():
-            if usage is None or not usage.counts or len(usage.counts) > budget:
+            if usage is None or not usage.counts or len(usage.counts) > left or self.stray[key]:
                 continue
-            budget -= len(usage.counts)
+            left -= len(usage.counts)
             try:
-                result = letters.recognise(usage)
+                result = letters.recognise(usage, budget)
             except (ArithmeticError, IndexError, KeyError, ValueError, struct.error):
                 result = None  # a program damaged past the reader's checks: never the file's end
             if result:

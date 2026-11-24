@@ -67,13 +67,22 @@ fonts with no Unicode source (`extraction.letters`):
    drawn; a program it cannot read keeps today's text. A damaged program never fails the
    file (fuzz tests in `tests/unit/test_extraction_glyphs.py` and `test_extraction_letters.py`).
    CFF and Type 3 fonts, `/CIDToGIDMap` streams and CJK fonts are not read.
+   Those limits bound one glyph; one read of a PDF also has one budget for all its fonts
+   (`glyphs.Budget`): 400,000 points parsed and 2,000,000 steps of close calls (below).
+   While pages are read, no outline is parsed at all (whether a glyph has ink is read from
+   its header), and the checks that cost nothing (steps 3 and 4) come before any glyph is
+   drawn. A font the budget runs out on keeps today's text.
 2. **Each used glyph is drawn** on a fixed grid over the em (24 × 30 cells from -0.05 to
    1.05 em across and from 1.05 em above to 0.3 em below the baseline), so a drawing keeps
    where it stands: a comma low, an apostrophe high.
 3. **The codes must be glyph numbers.** The widths the PDF gives each glyph (PDFium's loose
    box) must agree with the program's own advances of the glyphs with those numbers: at
-   least 95 % of at least 8 glyphs (or of all the font uses). Otherwise a `/CIDToGIDMap`
-   stream or another encoding stands between code and glyph, and the font is refused.
+   least 95 % of at least 8 glyphs (or of all the font uses), and the agreeing glyphs must
+   have at least 3 different widths. Otherwise a `/CIDToGIDMap` stream or another encoding
+   may stand between code and glyph, and the font is refused. In a monospaced font every
+   width is the same, so a shuffled `/CIDToGIDMap` agrees just as well: nothing shows the
+   codes are glyph numbers, and a monospaced font (Courier New, a Cousine subset) is
+   always refused.
 4. **The family and style** is the reference style in which most glyphs find a letter of
    their width, at least 90 % of them; among the styles close to it by that count, the one
    whose letters lie nearest the 64 most used glyphs. The reference drawings are those of
@@ -99,11 +108,20 @@ fonts with no Unicode source (`extraction.letters`):
 8. **The pages are read again** with the letters. A font any of whose pages is still
    unreadable by `legibility` is refused, and its pages keep the first read.
 
+A font is also refused when some of its characters are not glyph numbers PDFium failed to
+map: PDFium maps some codes itself (glyph numbers in the Arabic, Hebrew or Tamil ranges,
+combining marks), with no map error, so they are not counted in `unmapped`. Recognising the
+rest would leave a page part recovered letters, part characters nothing counts, which
+`legibility` may pass; refused, the page reads and is judged as before. An Office subset's
+glyph numbers lie under 258, so its characters are all counted.
+
 A refused font keeps today's text, and part B stops or warns as before (AC-442.6).
 Recognition costs nothing for a file without fonts with no Unicode source: no drawing is
-loaded and no page read twice (AC-442.10). Recognising 2,000 glyphs, the most one read draws,
-takes 1.4 s on a MacBook Pro M4, far inside the 60 s a step of the reader may take
-(`docs/baseline.md`).
+loaded and no page read twice (AC-442.10). On a MacBook Pro M4 recognising 2,000 glyphs of
+an Office font takes 0.5 s; the worst a hostile program can make of it, glyphs that each
+hold one 8,191-point glyph, spends the whole point budget in about 1 s, and a page of 20,000
+of them reads in 1.0 s (main: 0.96 s): a few seconds of the 60 s a step of the reader may
+take, also on slower machines (`docs/baseline.md`).
 
 `core.Page` has the field `recovered: int = 0`: how many of the page's `unmapped`
 characters were read as recognised letters (`0 <= recovered <= unmapped`). Additive with an
@@ -126,8 +144,8 @@ these fonts are only measured, never committed):
 | Arial Italic | 0.142 | 0.341 | 2 | 16 |
 | Courier New | 0.263 | 0.740 | 31 | 64 |
 
-Courier New's drawings differ too much from Cousine's (mean above `FONT_DISTANCE`), so a
-Courier New font is refused. The close-call margin was then set on whole texts: three texts
+Courier New's drawings differ too much from Cousine's (mean above `FONT_DISTANCE`), and as
+a monospaced font it is refused by step 3 in any case. The close-call margin was then set on whole texts: three texts
 written for the tests (two German, one English, 270 to 900 characters) set in each of these
 seven fonts as a PDF with no Unicode source holds them. With `CLOSE_SHARE` = 0.5 no letter
 came out wrong; 12 of the 21 were recognised, with 70 of their 6,100 characters (1.1 %) left

@@ -162,6 +162,28 @@ def test_a_program_that_is_not_a_readable_truetype_font_is_none(program: bytes) 
     assert read_font(program) is None
 
 
+def test_a_budget_bounds_the_points_one_read_parses() -> None:
+    """The limits of a glyph bound one glyph; the budget bounds a whole read: once it is
+    spent, no outline is read any more, however small (#618 review, AC-442.11)."""
+    font = read_font(truetype_program(5))  # each rectangle has 4 points
+    assert font is not None
+    budget = glyphs.Budget(points=9)
+    assert font.outline(1, budget) is not None
+    assert font.outline(2, budget) is not None
+    assert (budget.points, budget.spent) == (1, False)
+    assert font.outline(1, budget) is None  # 4 more than the 1 left
+    assert budget.spent
+    assert font.outline(0, budget) is None  # even an empty glyph, once spent
+    assert font.outline(1) is not None  # no budget: only the glyph's own limits
+
+
+def test_whether_a_glyph_has_ink_is_read_from_its_header_alone() -> None:
+    outlines = [b"", simple_glyph([SQUARE]), composite_glyph([(1, 0, 0)]), simple_glyph([])]
+    font = read_font(font_program(outlines, [500] * 4))
+    assert font is not None
+    assert [font.inked(g) for g in range(5)] == [False, True, True, False, False]
+
+
 def test_a_program_past_the_size_limit_is_not_read(monkeypatch: pytest.MonkeyPatch) -> None:
     program = truetype_program(5)
     monkeypatch.setattr(glyphs, "MAX_PROGRAM", len(program) - 1)

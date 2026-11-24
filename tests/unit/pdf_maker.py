@@ -755,7 +755,11 @@ def joined_pdf(*parts: bytes) -> bytes:
 # ---- twins of Office fonts with no Unicode source (#618) ------------------------------------
 
 FONTS = Path(__file__).resolve().parents[1] / "fixtures" / "fonts"
-TWINS = {"times": "tinos-regular-subset.ttf", "arial": "arimo-regular-subset.ttf"}
+TWINS = {
+    "times": "tinos-regular-subset.ttf",
+    "arial": "arimo-regular-subset.ttf",
+    "courier": "cousine-regular-subset.ttf",
+}
 # Where the standard Macintosh glyph order (the first 258 glyphs of the usual TrueType
 # fonts, Times New Roman's among them) puts these characters: printable ASCII at its code
 # point minus 29, so digits and , . - / : ( ) land on control codes, and ü and ß past 127.
@@ -856,26 +860,34 @@ def twin_pdf(
     metrics: str = "truncated",
     same: tuple[str, str] | None = None,
     cid_map: bool = False,
+    spread: int = 0,
     damage: tuple[tuple[int, int], ...] = (),
     rectangles: tuple[str, ...] = (),
 ) -> bytes:
     """One page whose `lines` are set as Acrobat Distiller writes a subset of an Office
     font after a PDF organiser dropped its maps (#442, #618): a CID font, Identity-H, each
     code its glyph number, no ToUnicode, the program without cmap and post, /W from the true
-    advances. The font is an Apache-2.0 subset of Tinos ("times") or Arimo ("arial") from
-    `tests/fixtures/fonts/`.
+    advances. The font is an Apache-2.0 subset of Tinos ("times"), Arimo ("arial") or
+    Cousine ("courier") from `tests/fixtures/fonts/`.
 
     `order`: "shuffled" (seeded), or "mac", the usual TrueType order. `metrics`:
     "truncated" gives only the first half of the glyphs an advance of their own in hmtx,
     "full" all. `same=("c", "e")` draws the second letter's glyph as the first's.
-    `cid_map` writes the codes through a /CIDToGIDMap stream, so they are not glyph
-    numbers. `damage` sets bytes of the program: (where, value), where taken modulo its
-    length. `rectangles` adds lines in
+    `cid_map` writes the codes through a /CIDToGIDMap stream that shuffles them (seeded), so
+    they are not glyph numbers. `spread` scatters the shuffled glyphs over that many glyph
+    numbers, the rest empty: codes as high as an Office font's whole glyph set has.
+    `damage` sets bytes of the program: (where, value), where taken modulo its length.
+    `rectangles` adds lines in
     the rectangle font of `glyph_number_pdf` (no letter shapes), shifted by 29."""
     font = Twin.load(twin)
     others = list(range(1, len(font.glyphs)))
-    if order == "shuffled":
-        random.Random(seed).shuffle(others)  # noqa: S311 (a test order, no secret)
+    rng = random.Random(seed)  # noqa: S311 (a test order, no secret)
+    if order == "shuffled" and spread:
+        new_order = [0] * spread
+        for glyph, at in zip(others, rng.sample(range(1, spread), len(others)), strict=False):
+            new_order[at] = glyph
+    elif order == "shuffled":
+        rng.shuffle(others)
         new_order = [0, *others]
     else:
         wanted = {MAC_ORDER[c]: g for c, g in font.letters.items() if c in MAC_ORDER}
@@ -897,8 +909,12 @@ def twin_pdf(
         program = bytes(changed)
     code_of = {old: k for k, old in enumerate(new_order) if old}
     widths = [round(1000 * font.advances[old] / font.units) for old in new_order]
-    # the code of glyph k: itself, or with `cid_map` a fixed shift the map undoes
-    cid = [(k + 7) % count if cid_map and k else k for k in range(count)]
+    # the code of glyph k: itself, or with `cid_map` a shuffled one the map undoes
+    cid = list(range(count))
+    if cid_map:
+        tail = cid[1:]
+        random.Random(seed + 1).shuffle(tail)  # noqa: S311 (a test order, no secret)
+        cid = [0, *tail]
     content = b""
     for k, line in enumerate(lines):
         hexed = "".join(f"{cid[code_of[font.letters[c]]]:04X}" for c in line).encode()
@@ -948,4 +964,47 @@ def twin_pdf(
         b" /CapHeight 700 /StemV 80 /FontFile2 14 0 R >>"
     )
     objects[14] = stream(shapes, b"/Length1 %d" % len(shapes))
+    return raw_pdf(objects)
+
+
+def heavy_glyph_pdf(count: int, points: int = 8191, widths: tuple[int, ...] = (600,)) -> bytes:
+    """One page of `count` different glyphs of a font with no Unicode source, each a
+    composite holding the same simple glyph of `points` points (#618 review): within every
+    limit a glyph has, but each one costs the reader the work of `points` points. The codes
+    start at U+4E00, so PDFium reads each as a glyph number with a map error. The glyphs'
+    advances (1/1000 em) take `widths` in turn: one width is a monospaced font, Times New
+    Roman's widths pass every check made before a glyph is drawn."""
+    flags, ys = bytearray(), bytearray()
+    for k in range(points):
+        flags.append(0x01 | 0x02 | (0x10 if k % 2 == 0 else 0))
+        ys += struct.pack(">h", (1000 if k % 2 == 0 else -1000) if k else 0)
+    heavy = struct.pack(">hhhhh", 1, 0, 0, 300, 1000) + struct.pack(">HH", points - 1, 0)
+    heavy += bytes(flags) + bytes([200]) * points + bytes(ys)
+    base = 0x4E00
+    outlines = [b"", heavy] + [b""] * (base - 2) + [composite_glyph([(1, 0, 0)])] * count
+    advances = [600] * base + [widths[k % len(widths)] for k in range(count)]
+    program = font_program(outlines, advances)
+    content = b""
+    for row in range(0, count, 40):
+        hexed = "".join(f"{c:04X}" for c in range(base + row, base + min(row + 40, count)))
+        content += b"BT /F1 4 Tf 20 %d Td <%s> Tj ET\n" % (
+            780 - 6 * (row // 40) % 760,
+            hexed.encode(),
+        )
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: _PAGE % (b"[0 0 612 792]", b"<< /Font << /F1 6 0 R >> >>", b""),
+        4: stream(content),
+        6: b"<< /Type /Font /Subtype /Type0 /BaseFont /ABCDEF+Heavy /Encoding /Identity-H"
+        b" /DescendantFonts [7 0 R] >>",
+        7: b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /ABCDEF+Heavy"
+        b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+        b" /FontDescriptor 8 0 R /CIDToGIDMap /Identity /DW 600 /W [%d [%s]] >>"
+        % (base, " ".join(str(w) for w in advances[base:]).encode()),
+        8: b"<< /Type /FontDescriptor /FontName /ABCDEF+Heavy /Flags 6"
+        b" /FontBBox [0 -300 9000 1000] /ItalicAngle 0 /Ascent 900 /Descent -200"
+        b" /CapHeight 700 /StemV 80 /FontFile2 9 0 R >>",
+        9: stream(program, b"/Length1 %d" % len(program)),
+    }
     return raw_pdf(objects)

@@ -142,7 +142,9 @@ after its last page is read, as one step of the reader's child process, which ma
 `STEP_SECONDS` = 60 s (AC-442.11). `test_benchmark_recognising_2000_glyphs` times
 `letters.recognise` on a font of 2,000 glyphs, the Tinos subset's drawings over and over (the
 reader's whole glyph budget, `MAX_DRAWN_GLYPHS`; drawings alike make every glyph a close
-call); it fails above 15 s. A file without such fonts runs none of it: the 8 corpus papers
+call); it fails above 15 s. `test_a_font_of_heavy_glyphs_costs_little` reads a page whose
+glyphs each hold one 8,191-point glyph (#618 review: 20,000 of them failed the 60 s step
+before the read's budget, and 2,000 took 43 s to recognise) and fails above 10 s. A file without such fonts runs none of it: the 8 corpus papers
 read in the child (`extract_pdf`, mean of 5 runs after one warm-up, summed) took 5.17 s and
 8.50 s on `main` (80e8caa) and 5.34 s and 6.08 s with #618 in two runs each, so the change is
 inside the run-to-run spread on a machine shared with other work.
@@ -150,6 +152,16 @@ inside the run-to-run spread on a machine shared with other work.
 | Machine | 2,000 glyphs recognised | Date | Commit |
 |---|---|---|---|
 | macOS 26.6.2, Apple M4, 10 cores, 16 GB | 1.35 s | 2026-11-24 | branch of 80e8caa (bcb6d605c3fe) |
+| macOS 26.6.2, Apple M4, 10 cores, 16 GB | 0.47 s | 2026-11-25 | branch of b644620, review round 1 |
+
+Pages of heavy glyphs (`tests/unit/pdf_maker.py` `heavy_glyph_pdf`), read in the child
+(`extract_pdf`), mean of 3 runs, same machine, 2026-11-25:
+
+| Page | `main` b644620 | #618 round 1 | What bounds it |
+|---|---|---|---|
+| 20,000 glyphs, monospaced | 0.96 s | 1.04 s | no outline parsed while reading; more glyphs than `MAX_DRAWN_GLYPHS` |
+| 2,000 glyphs, monospaced | 0.21 s | 0.23 s | refused by its widths before any glyph is drawn |
+| 2,000 glyphs, Times New Roman's widths | | 1.1 s (1.0 s of it recognition) | the read's 400,000 points |
 
 ## The text-step plugin guard (#216)
 

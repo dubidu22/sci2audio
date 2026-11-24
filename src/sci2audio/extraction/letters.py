@@ -37,6 +37,7 @@ import functools
 import gzip
 import itertools
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -49,6 +50,7 @@ from sci2audio.extraction import glyphs
 WIDTH_TOLERANCE = 1.0  # 1/1000 em: a PDF's widths are whole thousandths
 IDENTITY_SHARE = 0.95  # of the glyphs with an advance of their own, this many must agree
 IDENTITY_MIN = 8  # and at least this many (or all the font uses) are compared
+IDENTITY_WIDTHS = 3  # different widths among the agreeing glyphs: one width shows nothing
 FAMILY_SHARE = 0.9  # of the drawn glyphs, this many must have a letter of their width
 # Distances (0 the same drawing, 1 no ink in common), measured with
 # `scripts/letter_shapes.py measure` on the 89 letters, digits and marks of English and
@@ -173,33 +175,37 @@ class Usage:
     words: Counter[tuple[int, ...]] = field(default_factory=Counter)
 
 
-def recognise(usage: Usage) -> dict[int, str] | None:
+def recognise(usage: Usage, budget: glyphs.Budget | None = None) -> dict[int, str] | None:
     """Each glyph's letter (" " for a glyph without ink), or None when the font is refused:
-    its codes are not glyph numbers, no reference style fits, or too few of its glyphs'
-    occurrences are recognised, closely enough. A glyph left out matched no letter, or its
-    close call was not settled."""
+    its codes are not shown to be glyph numbers, no reference style fits, the read's
+    `budget` ran out on it, or too few of its glyphs' occurrences are recognised, closely
+    enough. A glyph left out matched no letter, or its close call was not settled. What
+    costs nothing is checked first: the widths come before any glyph is drawn."""
+    budget = glyphs.Budget() if budget is None else budget
     font = usage.font
     if not _identity(usage):
         return None
+    inked = [g for g in sorted(usage.counts) if font.inked(g)]
+    empty = [g for g in sorted(usage.counts) if g not in set(inked)]
+    widths = {g: w for g in inked if (w := _width(usage, g)) is not None}
+    limits = {g: usage.limits[g] for g in inked if g not in widths and g in usage.limits}
+    close = _fitting(widths, len(inked))
+    if not close:
+        return None
     pictures: dict[int, np.ndarray] = {}
-    empty: list[int] = []
     unreadable = 0
-    for glyph in sorted(usage.counts):
-        outline = font.outline(glyph)
-        if outline is None:
-            unreadable += usage.counts[glyph]
-        elif not outline:
-            empty.append(glyph)
-        else:
+    for glyph in inked:
+        outline = font.outline(glyph, budget)
+        if budget.spent:
+            return None  # the read's budget ran out on this font: today's text
+        if outline:
             pictures[glyph] = glyphs.draw(outline, font.units)
+        else:
+            unreadable += usage.counts[glyph]
     if not pictures:
         return None
     drawn = dict(zip(pictures, prepare(np.stack(list(pictures.values()))), strict=True))
-    widths = {g: w for g in drawn if (w := _width(usage, g)) is not None}
-    limits = {g: usage.limits[g] for g in drawn if g not in widths and g in usage.limits}
-    style = _style(drawn, widths, usage.counts)
-    if style is None:
-        return None
+    style = _nearest(close, drawn, widths, usage.counts)
     order = list(drawn)
     table = np.full((len(order), len(style.letters)), np.inf)
     for row, glyph in enumerate(order):
@@ -210,7 +216,7 @@ def recognise(usage: Usage) -> dict[int, str] | None:
         else:
             continue
         table[row, fits] = distances(drawn[glyph], style.shapes[fits])
-    settled = _close_calls(table, _assign(table), order, style.letters, usage.words)
+    settled = _close_calls(table, _assign(table), order, style.letters, usage.words, budget)
     total = sum(usage.counts[g] for g in order) + unreadable
     recognised = sum(usage.counts[order[row]] for row in settled)
     if not recognised or recognised / total < FONT_SHARE:
@@ -232,25 +238,31 @@ def _width(usage: Usage, glyph: int) -> float | None:
 
 
 def _identity(usage: Usage) -> bool:
-    """True if the codes are the program's glyph numbers: the PDF's width of each glyph
-    agrees with the program's own advance of the glyph of that number."""
+    """True if the codes are shown to be the program's glyph numbers: the PDF's width of
+    each glyph agrees with the program's own advance of the glyph of that number, and the
+    agreeing glyphs have at least `IDENTITY_WIDTHS` different widths. Where every glyph is
+    as wide (a monospaced font), a /CIDToGIDMap stream that shuffles the codes agrees just
+    as well, so nothing is shown and the font is refused."""
     font = usage.font
     compared = agreeing = 0
+    kinds: set[int] = set()  # the agreeing glyphs' widths
     for glyph, width in usage.widths.items():
         advance = font.advance(glyph)
         if advance is None:
             continue
         compared += 1
-        agreeing += abs(1000 * advance / font.units - width) <= WIDTH_TOLERANCE
+        if abs(1000 * advance / font.units - width) <= WIDTH_TOLERANCE:
+            agreeing += 1
+            kinds.add(round(width))
     if not compared or compared < min(IDENTITY_MIN, len(usage.counts)):
         return False
-    return agreeing / compared >= IDENTITY_SHARE
+    return agreeing / compared >= IDENTITY_SHARE and len(kinds) >= IDENTITY_WIDTHS
 
 
-def _style(
-    drawn: dict[int, np.ndarray], widths: dict[int, float], counts: Counter[int]
-) -> Style | None:
-    """The reference style the glyphs' widths and shapes fit best, or None."""
+def _fitting(widths: dict[int, float], inked: int) -> list[Style]:
+    """The reference styles close to the one in which most glyphs find a letter of their
+    width, by widths alone; none if that one fits fewer than `FAMILY_SHARE` of the `inked`
+    glyphs."""
     styles = references()
     wanted = np.fromiter(widths.values(), float, len(widths))
     fitting = [
@@ -258,17 +270,24 @@ def _style(
         for style in styles
     ]
     best = max(fitting, default=0)
-    if best == 0 or best < FAMILY_SHARE * len(drawn):
-        return None
-    close = [s for s, fits in zip(styles, fitting, strict=True) if fits >= FAMILY_SHARE * best]
-    sample = sorted(widths, key=lambda g: (-counts[g], g))[:STYLE_SAMPLE]
+    if best == 0 or best < FAMILY_SHARE * inked:
+        return []
+    return [s for s, fits in zip(styles, fitting, strict=True) if fits >= FAMILY_SHARE * best]
+
+
+def _nearest(
+    close: list[Style], drawn: dict[int, np.ndarray], widths: dict[int, float], counts: Counter[int]
+) -> Style:
+    """Of the `close` styles, the one whose letters lie nearest the most used glyphs."""
+    sample = [g for g in sorted(widths, key=lambda g: (-counts[g], g)) if g in drawn]
+    sample = sample[:STYLE_SAMPLE]
 
     def nearness(style: Style) -> float:
         found = []
         for glyph in sample:
             fits = np.abs(style.widths - widths[glyph]) <= WIDTH_TOLERANCE
             found.append(distances(drawn[glyph], style.shapes[fits]).min() if fits.any() else 1.0)
-        return float(np.mean(found))
+        return float(np.mean(found)) if found else 1.0
 
     return min(close, key=nearness)
 
@@ -293,11 +312,14 @@ def _close_calls(
     order: list[int],
     letters: str,
     words: Counter[tuple[int, ...]],
+    budget: glyphs.Budget,
 ) -> dict[int, int]:
     """The assignment with its close calls settled, glyph by glyph, the most used first:
     for each glyph whose letter has rivals (`_readings`), the readings that use the most
     common letters are kept, and of those the one the words prefer wins (`_by_words`). The
-    glyphs of a close call left unsettled are left out."""
+    glyphs of a close call left unsettled are left out, and so are those of every close
+    call once the `budget`'s steps are spent: each reading tried and each letter looked up
+    in a word costs one."""
     by_glyph: dict[int, list[tuple[int, ...]]] = {}
     for word, _ in words.most_common():
         for glyph in set(word):
@@ -310,13 +332,14 @@ def _close_calls(
     unsure: set[int] = set()
     used = Counter({row: sum(words[w] for w in by_glyph.get(order[row], ())) for row in chosen})
     for row in sorted(chosen, key=lambda r: (-used[r], r)):
-        involved, readings = _readings(table, row, settled, owner, common)
+        involved, readings = _readings(table, row, settled, owner, common, budget)
         if readings is not None and len(readings) > 1:
             counts = [int(common[list(r.values())].sum()) for r in readings]
             readings = [r for r, n in zip(readings, counts, strict=True) if n == max(counts)]
         if readings is not None and len(readings) > 1:
             checked = {w for r in involved for w in by_glyph.get(order[r], ())}
-            found = _by_words(readings, settled, order, letters, {w: words[w] for w in checked})
+            tried = {w: words[w] for w in checked}
+            found = _by_words(readings, settled, order, letters, tried, budget)
             readings = None if found is None else [found]
         if readings is None:
             unsure.update(involved)
@@ -333,6 +356,7 @@ def _readings(
     settled: dict[int, int],
     owner: dict[int, int],
     common: np.ndarray,
+    budget: glyphs.Budget,
 ) -> tuple[list[int], list[dict[int, int]] | None]:
     """The glyphs of the glyph's close call and their readings. Its rivals are the letters
     about as near it as its own (`_margin`; where its own is a common letter, the common
@@ -340,7 +364,7 @@ def _readings(
     those letters. A reading gives them distinct letters among their own and the rivals,
     each within `GLYPH_DISTANCE`, its sum within `_margin` of the best. Just the present
     reading where there is no rival; None where there are more than `MAX_LETTERS` letters
-    to try."""
+    to try, or the budget has not the steps to try them."""
     own = table[row, settled[row]]
     near = (table[row] < own + _margin(own)) & (table[row] <= GLYPH_DISTANCE)
     if common[settled[row]]:
@@ -351,7 +375,7 @@ def _readings(
         return [row], [{row: settled[row]}]
     involved = sorted({row} | {owner[c] for c in rivals if c in owner})
     columns = sorted(set(rivals) | {settled[r] for r in involved})
-    if len(columns) > MAX_LETTERS:
+    if len(columns) > MAX_LETTERS or not budget.step(math.perm(len(columns), len(involved))):
         return involved, None
     found = []
     for pick in itertools.permutations(columns, len(involved)):
@@ -375,9 +399,13 @@ def _by_words(
     order: list[int],
     letters: str,
     words: dict[tuple[int, ...], int],
+    budget: glyphs.Budget,
 ) -> dict[int, int] | None:
     """The reading that makes at least `WORD_MARGIN` more common words (or numbers) than
-    any other, or None. A word with a glyph not recognised counts for none."""
+    any other, or None, also when the budget has not the steps to try them all. A word with
+    a glyph not recognised counts for none."""
+    if not budget.step(len(readings) * sum(len(word) for word in words)):
+        return None
     rows = {glyph: row for row, glyph in enumerate(order)}
     scores = []
     for reading in readings:

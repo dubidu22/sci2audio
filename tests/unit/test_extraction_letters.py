@@ -10,13 +10,14 @@ stripped, hmtx cut short, Identity-H, widths from the true advances.
 from __future__ import annotations
 
 import struct
+import time
 from collections import Counter
 
 import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from pdf_maker import Twin, font_program, glyph_number_pdf, twin_pdf
+from pdf_maker import Twin, font_program, glyph_number_pdf, heavy_glyph_pdf, twin_pdf
 
 from sci2audio.core import Content
 from sci2audio.extraction import glyphs, legibility, letters, pdf, read_pdf
@@ -51,7 +52,7 @@ def texts(content: Content) -> list[str]:
 def unrecognised(data: bytes, monkeypatch: pytest.MonkeyPatch) -> Content:
     """The file read as before #618: no font's letters recognised."""
     with monkeypatch.context() as patch:
-        patch.setattr(letters, "recognise", lambda usage: None)
+        patch.setattr(letters, "recognise", lambda *args: None)
         return read(data)
 
 
@@ -125,6 +126,44 @@ def test_a_font_past_the_glyph_budget_keeps_todays_text(monkeypatch: pytest.Monk
     content = read(data)
     assert content == unrecognised(data, monkeypatch)
     assert content.pages[0].recovered == 0
+
+
+TIMES_WIDTHS = (444, 500, 278, 333, 722, 389, 556, 611, 667, 250)  # Tinos letters' advances
+
+
+def test_a_monospaced_font_behind_a_glyph_map_keeps_todays_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Cousine subset whose codes go through a shuffled /CIDToGIDMap stream: every advance
+    is the same, so the widths cannot show the codes are glyph numbers, and the shapes drawn
+    are not the ones printed. The font is refused (#618 review)."""
+    data = twin_pdf(ENGLISH, "courier", cid_map=True)
+    content = read(data)
+    assert content == unrecognised(data, monkeypatch)
+    assert content.pages[0].recovered == 0
+
+
+def test_a_monospaced_font_keeps_todays_text_even_in_glyph_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The same font with its codes its glyph numbers is refused too: nothing in the file
+    tells the two apart (`IDENTITY_WIDTHS`)."""
+    data = twin_pdf(ENGLISH, "courier")
+    assert read(data) == unrecognised(data, monkeypatch)
+
+
+def test_a_font_whose_characters_pdfium_partly_maps_keeps_todays_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Glyph numbers in the Arabic, Hebrew or Tamil ranges get no map error from PDFium, so
+    those characters of the font are not counted as glyph numbers. A font whose characters
+    on a page are not all accounted for is refused, and part B judges the page as before
+    (#618 review)."""
+    data = twin_pdf(GERMAN, "arial", spread=0xE00, seed=1, metrics="full")
+    content = read(data)
+    assert content == unrecognised(data, monkeypatch)
+    page = content.pages[0]
+    assert page.recovered == 0 < page.unmapped < page.characters
 
 
 # ---- the close call (D-789 condition) ----------------------------------------------------
@@ -238,6 +277,44 @@ def test_a_drawing_on_another_grid_gives_no_references(monkeypatch: pytest.Monke
 )  # fmt: skip
 def test_a_word_counts_when_common_or_a_number(text: str, known: bool) -> None:
     assert letters._known(text) is known
+
+
+def test_the_word_step_stops_at_its_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The close calls' work is counted against the read's budget: with none left, c and e
+    drawn alike are not settled and the font is refused (#618 review)."""
+    data = twin_pdf(ENGLISH, same=("c", "e"))
+    monkeypatch.setattr(glyphs, "MAX_WORD_STEPS", 0)
+    content = read(data)
+    assert content.pages[0].recovered == 0
+    assert content == unrecognised(data, monkeypatch)
+
+
+def test_the_word_step_spends_at_most_its_budget() -> None:
+    usage = many_glyphs(300)
+    budget = glyphs.Budget(steps=5_000)
+    letters.recognise(usage, budget)
+    assert 0 <= budget.steps <= 5_000
+    assert budget.steps < 5_000  # close calls were tried
+
+
+@pytest.mark.parametrize(
+    ("count", "widths"),
+    [(20_000, (600,)), (2_000, (600,)), (20_000, TIMES_WIDTHS), (2_000, TIMES_WIDTHS)],
+    ids=["20000-mono", "2000-mono", "20000-times", "2000-times"],
+)
+def test_a_font_of_heavy_glyphs_costs_little(count: int, widths: tuple[int, ...]) -> None:
+    """Glyphs that each hold one 8,191-point glyph: within every limit of a glyph, but before
+    the read's budget a page of 20,000 took over 60 s and 2,000 took 43 s to recognise
+    (#618 review). No outline is parsed while the page is read; the monospaced font is
+    refused before any glyph is drawn, the one with Times New Roman's widths when the
+    read's points run out. The page keeps today's text; main reads it in about 1 s."""
+    data = heavy_glyph_pdf(count, widths=widths)
+    start = time.perf_counter()
+    content = read(data)
+    elapsed = time.perf_counter() - start
+    assert content.pages[0].recovered == 0
+    assert content.pages[0].unmapped == content.pages[0].characters == count
+    assert elapsed < pdf.STEP_SECONDS / 6
 
 
 # ---- recognition speed (AC-442.11) -------------------------------------------------------
