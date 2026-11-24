@@ -112,6 +112,8 @@ def folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     monkeypatch.setattr(window, "webview_storage", lambda: tmp_path / "data" / "window")
     monkeypatch.setattr(window, "app_log_file", lambda: tmp_path / "logs" / "app.log")
     monkeypatch.setattr(launch, "SHUTDOWN_WAIT", 0.5)
+    # never pywebview's real Cocoa engine or a real observer in the test process (#717)
+    monkeypatch.setattr(window, "load_appkit", lambda: None)
     handlers = list(window.log.handlers)
     yield tmp_path
     for handler in window.log.handlers:
@@ -368,6 +370,27 @@ def test_closing_the_window_logs_stopped_once_where_the_quit_is_watched(
     assert len(appkit.center.observers) == 1
     appkit.terminate()  # the app ends after the window closed: nothing more to do
     assert log_file.read_text(encoding="utf-8").count("stopped") == 1
+
+
+def test_a_quit_watch_that_fails_still_stops_the_server(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken() -> Any:
+        raise RuntimeError("the Cocoa engine could not load")
+
+    monkeypatch.setattr(window, "load_appkit", broken)
+    urls: list[str] = []
+    real_bind = window.bind
+
+    def bind_and_note() -> Any:
+        sock = real_bind()
+        urls.append(f"http://127.0.0.1:{sock.getsockname()[1]}/")
+        return sock
+
+    monkeypatch.setattr(window, "bind", bind_and_note)
+    with pytest.raises(RuntimeError):  # `main` then falls back to the browser
+        window.run_window(FakeWebview())
+    assert not answers(urls[0])  # and no second server runs beside the window's
 
 
 def test_appkit_is_loaded_only_on_macos_and_only_from_the_window_engine(

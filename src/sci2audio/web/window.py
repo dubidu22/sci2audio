@@ -142,7 +142,9 @@ def watch_quit(finish: Callable[[], None]) -> None:
     """Run `finish` when macOS quits the app (the Dock, Cmd-Q or an Apple Event): Cocoa's
     `terminate:` then ends the process with `exit()` once the window agreed to close, so
     `webview.start()` never returns and nothing after it runs, not even Python's atexit
-    (#717). The notification that the app will terminate is the last moment to stop."""
+    (#717). The notification that the app will terminate is the last moment to stop.
+    `finish` runs inside it on the main thread, so on a quit while an audiobook is being
+    made the window stays on screen up to `SHUTDOWN_WAIT` while the server stops."""
     appkit = load_appkit()
     if appkit is None:
         return
@@ -288,8 +290,8 @@ def run_window(webview: Any, *, selftest: Path | None = None) -> int:
             if say:
                 log.info("stopped")
 
-    watch_quit(finish)
     try:
+        watch_quit(finish)
         AppWindow(webview, server, config, selftest=selftest).open()
     except BaseException:
         finish(say=False)
