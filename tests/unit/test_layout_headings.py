@@ -1252,6 +1252,24 @@ def test_the_overlapping_halves_of_a_run_in_line_are_one_column_read_heading_fir
     assert texts[at + 1].startswith(RUN_IN_REST)
 
 
+def test_a_run_in_head_alone_on_its_row_is_not_cut_from_the_lines_under_it() -> None:
+    """An emphasised "1) Hardware:" that runs to the column's edge, with no rest of its
+    printed line on its row, goes on with the lines under it as the paragraph's first line:
+    the cut is made only between two halves of one row, as `paragraphs.continues` has it
+    (PR #968)."""
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    head = TextRun("1) Hardware:", "Times-Italic", 10.0, italic=True)
+    page.lines.append(TextLine("alone", (head,), Box(LEFT, page.y, RIGHT, page.y + 10.0)))
+    page.y += PITCH
+    page.body(2).heading("B. Data", 10.0).body(2).heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "B", "III"]
+    block = next(b for b in doc.blocks if b.text.startswith("1) Hardware:"))
+    assert block.kind is BlockKind.PARAGRAPH
+    assert len(block.text.split("\n")) == 3
+
+
 def test_a_run_in_heading_after_a_full_row_starts_its_own_block() -> None:
     page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
     page.heading("A. Setup", 10.0).body(1)

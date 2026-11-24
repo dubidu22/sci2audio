@@ -51,9 +51,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 BROWSERS = ("chromium", "firefox", "webkit")  # pytest-playwright's names
 
 
+def _benchmarks_off(config: pytest.Config) -> str | None:
+    """Why pytest-benchmark gives its fixture no stats in this run, else None: it switches
+    itself off under xdist (parallel runs time nothing reliably) and with --benchmark-disable."""
+    if config.getoption("dist", "no") != "no" or os.environ.get("PYTEST_XDIST_WORKER"):
+        return "no benchmark stats under xdist (run it without -n; the nightly run does)"
+    if config.getoption("benchmark_disable", False) and not config.getoption(
+        "benchmark_enable", False
+    ):
+        return "no benchmark stats with --benchmark-disable"
+    return None
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     run_them = config.getoption("--run-quarantined")
+    off = _benchmarks_off(config) if config.pluginmanager.hasplugin("benchmark") else None
     for item in items:
+        if off and "benchmark" in getattr(item, "fixturenames", ()):
+            item.add_marker(pytest.mark.skip(reason=off))
         marker = item.get_closest_marker("quarantined")
         if marker is None:
             continue

@@ -907,3 +907,40 @@ def test_listings_captions_and_furniture_over_pages_keep_every_item_once(pages: 
                 assert doc.blocks[block.describes].kind is BlockKind.CODE
                 named.append(block.describes)
     assert len(named) == len(set(named))
+
+
+@pytest.mark.parametrize(("short", "cut"), [(0.0, False), (6.0, False), (8.0, True), (20.0, True)])
+def test_an_indented_typewriter_line_is_code_if_it_ends_more_than_the_slack_short_of_the_edge(
+    short: float, cut: bool
+) -> None:
+    """The slack is `settings.fill_slack` (0.7 em, 7 points at 10 point): a line ending
+    within it of its column's right edge runs to the edge and is read with its paragraph
+    (PR #831); one stopping further short, even by less than three times as much, is code."""
+    first = "numpy.linalg.lstsq(a, b, rcond=None) and numpy.linalg.solve(a, b) both"
+    top = 100 + 10 * PITCH
+    lines = [
+        text_line(code(first), top, x0=LEFT + 12, end=RIGHT - short),
+        text_line(prose("solve the least-squares problem for the data."), top + PITCH),
+    ]
+    doc = build(*lines)
+    assert (("code", first) in kinds(doc)) is cut
+
+
+def test_an_indented_typewriter_line_after_a_paragraph_break_does_not_end_the_line_under_it() -> (
+    None
+):
+    """A paragraph opens, after more white than the usual line spacing, with an indented
+    typewriter line that stops short and ends inside a sentence: the row under it goes on
+    in lower case, so both are one paragraph. The line is no code line, as none stands right
+    under a row that is not code."""
+    lines = [
+        text_line(prose("The paragraph before it ends here."), 280),
+        text_line(code("g = sns.relplot(data)"), 280 + 3 * PITCH, x0=LEFT + 21),
+        text_line(prose("which returns a grid of the data."), 280 + 4 * PITCH),
+    ]
+    doc = build(*lines)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert kinds(doc)[1:] == [
+        ("paragraph", "The paragraph before it ends here."),
+        ("paragraph", "g = sns.relplot(data)\nwhich returns a grid of the data."),
+    ]

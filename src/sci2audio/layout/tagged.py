@@ -119,7 +119,11 @@ def positioned(content: Content) -> bool:
 
 
 def build_tagged(content: Content, settings: LayoutSettings) -> Document:
-    """The document of content without positions, read from its tags."""
+    """The document of content without positions, read from its tags. Its `content` is the
+    extracted one but for the tags of a ``pre`` holding ``code`` inside a note: those runs
+    lose the ``pre`` (`_note_code_inline`): inside a note the code has no block of its own for
+    the code notice, and the ``pre`` would keep the text steps from reading it as printed
+    inline code (#890). A later comparison of the two contents must expect this."""
     items = content.items()
     units = [unit for page in content.pages for unit in _merged(_units(page, items))]
     lines = {line.id: line for page in content.pages for line in page.lines}

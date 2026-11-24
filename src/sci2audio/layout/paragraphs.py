@@ -756,9 +756,9 @@ class Paragraphs:
 
     def _code_line(self, row: Row) -> bool:
         """True if the row is a lone code line set at a code indent (#787): wholly in a
-        typewriter font, right under a row that is not, stopping short of its column's
-        right edge, and further in than the row above it and the row under it (if any) by
-        a paragraph indent or more (a listing's next line, at the same indent, is not; it is
+        typewriter font, right under a row that does not end in one, stopping short of its
+        column's right edge, and further in than the row above it and the row under it (if any)
+        by a paragraph indent or more (a listing's next line, at the same indent, is not; it is
         `_listing`'s). A code name wrapped onto a line of its own starts at the paragraph's
         left edge (#603); a paragraph's first line at its indent, wholly in a typewriter
         font, runs on to the column's edge and is read with it (PR #831). The rest of a
@@ -767,13 +767,13 @@ class Paragraphs:
         if self.typed or not self._monospace(row) or only_links(row.text):
             return False
         earlier, after = self.earlier.get(id(row)), self.later.get(id(row))
-        if earlier is None or self._monospace(earlier) or not self._stacked(earlier, row):
+        if earlier is None or not self._stacked(earlier, row):
             return False
         if row.right - row.box.x1 <= self.settings.fill_slack * row.size:
             return False  # (a paragraph's indented first line runs to the edge: it is read)
         shown = [run for piece in earlier.pieces for run in piece.runs if run.text.strip()]
         if shown and monospace(shown[-1].font):
-            return False  # (inline code or a link broken over the line's end)
+            return False  # (inline code or a link broken over the line's end, or a listing's row)
         step = self.settings.indent * row.size
         inset = row.box.x0 - row.left
         return all(inset - (r.box.x0 - r.left) >= step for r in (earlier, after) if r)
