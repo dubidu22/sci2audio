@@ -243,11 +243,11 @@ file system allows."""
 
 _UNSAFE = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
 _RESERVED = frozenset(
-    {"CON", "PRN", "AUX", "NUL"}
-    | {f"COM{n}" for n in range(1, 10)}
-    | {f"LPT{n}" for n in range(1, 10)}
+    {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    | {f"{port}{n}" for port in ("COM", "LPT") for n in "0123456789\u00b9\u00b2\u00b3"}
 )
-"""Names Windows keeps for devices, with any extension."""
+"""Names Windows keeps for devices, with any extension; the ports also with a superscript
+number (COM\u00b9)."""
 
 
 def file_stem(title: str) -> str:

@@ -10,9 +10,11 @@ from __future__ import annotations
 import csv
 import errno
 import io
+import os
 import re
 import shutil
 import socket
+import sys
 from pathlib import Path
 
 import pytest
@@ -242,10 +244,17 @@ def test_a_sentence_ending_in_a_carriage_return_keeps_the_line_end_after_it() ->
     )
 
 
+BREAKS = re.compile(r"\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]")
+"""Every line break a reader may take as one (`str.splitlines`)."""
+
+
 def _read_ris(text: str) -> list[tuple[str, str]]:
-    """The tag lines of a RIS text with their values, continuation lines joined by "\\n"."""
+    """The tag lines of a RIS text with their values, continuation lines joined by "\\n".
+    The text is cut at every line break a reader may see, so a break left inside a value
+    shows as a line of its own, which must be a tag line, a continuation or a blank line
+    between records."""
     fields: list[tuple[str, str]] = []
-    for line in text.split("\r\n"):
+    for line in BREAKS.split(text):
         if TAG.match(line):
             fields.append((line[:2], line[6:]))
         elif line.startswith(" "):
@@ -256,7 +265,37 @@ def _read_ris(text: str) -> list[tuple[str, str]]:
     return fields
 
 
-BREAKS = re.compile(r"\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]")
+BREAK_CHARACTERS = {
+    "LF": "\n",
+    "CR": "\r",
+    "CRLF": "\r\n",
+    "VT": "\v",
+    "FF": "\f",
+    "FS": "\x1c",
+    "GS": "\x1d",
+    "RS": "\x1e",
+    "NEL": "\x85",
+    "LS": "\u2028",
+    "PS": "\u2029",
+}
+
+
+@pytest.mark.parametrize("brk", BREAK_CHARACTERS.values(), ids=BREAK_CHARACTERS.keys())
+def test_every_kind_of_line_break_continues_on_a_line_of_its_own(brk: str) -> None:
+    sentence, note = f"One{brk}ER  - two", f"Three{brk}TY  - four"
+    document = ExportedDocument(
+        Reference(f"T{brk}AU  - x"),
+        (ExportedCapture(capture(1, CaptureType.NOTE, sentence, note)),),
+    )
+    assert ris_text([document]) == (
+        "TY  - GEN\r\nTI  - T\r\n AU  - x\r\n"
+        "N1  - Note\r\n One\r\n ER  - two\r\n \r\n Three\r\n TY  - four\r\n"
+        "ER  - \r\n"
+    )
+    markdown = markdown_text([document])
+    assert "> One\n> ER  - two\n\nThree\nTY  - four\n" in markdown
+    assert "# T AU  - x\n" in markdown
+    assert BREAKS.sub("", markdown.replace("\n", "")) == markdown.replace("\n", "")
 
 
 @example(sentence="\r", note="\n0")  # a found case: "\r" and the next line end are two breaks
@@ -441,6 +480,52 @@ def test_an_existing_file_is_replaced_when_the_person_said_so(tmp_path: Path) ->
     assert target.read_text(encoding="utf-8") == markdown_text([SLEEP])
 
 
+symlinks = pytest.mark.skipif(
+    sys.platform == "win32", reason="a symbolic link needs a privilege on Windows"
+)
+
+
+@symlinks
+@pytest.mark.parametrize("dangling", [False, True], ids=["live", "dangling"])
+def test_a_link_at_the_target_is_refused_without_overwrite(tmp_path: Path, dangling: bool) -> None:
+    pointed = tmp_path / "elsewhere.txt"
+    if not dangling:
+        pointed.write_bytes(b"the person's own file")
+    folder = tmp_path / "export"
+    folder.mkdir()
+    link = folder / "Sleep.ris"
+    link.symlink_to(pointed)
+    with pytest.raises(FileExistsError):
+        export_captures(folder, "Sleep", ExportFormat.RIS, [SLEEP])
+    assert link.is_symlink()
+    assert os.readlink(link) == str(pointed)
+    assert pointed.exists() is not dangling
+    if not dangling:
+        assert pointed.read_bytes() == b"the person's own file"
+    assert sorted(p.name for p in folder.iterdir()) == ["Sleep.ris"]
+
+
+@symlinks
+@pytest.mark.parametrize("dangling", [False, True], ids=["live", "dangling"])
+def test_overwrite_replaces_the_link_never_the_file_it_points_to(
+    tmp_path: Path, dangling: bool
+) -> None:
+    pointed = tmp_path / "elsewhere.txt"
+    if not dangling:
+        pointed.write_bytes(b"the person's own file")
+    folder = tmp_path / "export"
+    folder.mkdir()
+    link = folder / "Sleep.ris"
+    link.symlink_to(pointed)
+    export_captures(folder, "Sleep", ExportFormat.RIS, [SLEEP], overwrite=True)
+    assert not link.is_symlink()
+    assert link.read_bytes() == ris_text([SLEEP]).encode()
+    assert pointed.exists() is not dangling
+    if not dangling:
+        assert pointed.read_bytes() == b"the person's own file"
+    assert sorted(p.name for p in folder.iterdir()) == ["Sleep.ris"]
+
+
 def test_a_folder_that_is_not_there_is_refused(tmp_path: Path) -> None:
     with pytest.raises(NotADirectoryError):
         export_captures(tmp_path / "gone", "x", ExportFormat.CSV, [SLEEP])
@@ -466,6 +551,15 @@ def test_a_name_that_is_not_a_safe_file_name_is_refused(tmp_path: Path, stem: st
         ("CON", "_CON"),
         ("nul.txt", "_nul.txt"),
         ("com1", "_com1"),
+        ("COM0", "_COM0"),
+        ("lpt0.x", "_lpt0.x"),
+        ("COM\u00b9", "_COM\u00b9"),
+        ("com\u00b2", "_com\u00b2"),
+        ("LPT\u00b3.pdf", "_LPT\u00b3.pdf"),
+        ("CONIN$", "_CONIN$"),
+        ("conout$.txt", "_conout$.txt"),
+        ("COM10", "COM10"),
+        ("CONIN", "CONIN"),
         ("Console", "Console"),
         ("", "captures"),
         ("???", "captures"),
