@@ -16,6 +16,7 @@ from audio_fakes import FakeVoice
 from test_web_player import make, player_data, work_of
 from web_helpers import (
     FakeClock,
+    book_folder,
     browser,
     events,
     make_config,
@@ -27,6 +28,7 @@ from sci2audio.app.captures import CAPTURES
 from sci2audio.web import create_app
 from sci2audio.web.captures import UNDO_SECONDS
 from sci2audio.web.markers import MARKERS, markers_text
+from sci2audio.web.player import audiobook_stamp
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -137,6 +139,33 @@ def test_wrong_requests_are_refused_and_the_file_kept(listening: dict[str, Any])
         {"type": "note", "chunk": chunk, "audiobook": stamp, "text": "x" * 4001},
     ):
         assert client.post(url, json=body).status_code == 422, body
+    assert (listening["work"] / CAPTURES).read_bytes() == listening["bytes"]
+
+
+@pytest.mark.parametrize(
+    ("case", "end"),
+    [
+        ("an empty span", lambda span: span["start_char"]),
+        ("past the block's end", lambda _: 10_000),
+    ],
+    ids=["empty", "outside"],
+)
+def test_a_chunk_whose_span_is_empty_or_outside_the_document_is_no_sentence(
+    listening: dict[str, Any], case: str, end: Any
+) -> None:
+    """The route refuses it itself (422), never through the file's read-back guard (503),
+    and the file is unchanged (from the v1.3 marker route's test, #887)."""
+    client, doc, config = listening["client"], listening["doc"], listening["config"]
+    [path] = book_folder(config.output_folder).glob("*.readalong.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    chunk = sentences(listening["data"])[0]  # a sentence without a capture
+    assert chunk not in listening["chunks"]
+    span = data["chunks"][chunk]
+    span["end_char"] = end(span)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    body = {"type": "mark", "chunk": chunk, "audiobook": audiobook_stamp(path)}
+    answer = client.post(f"/api/v1/documents/{doc}/captures", json=body)
+    assert (answer.status_code, answer.json()["error"]) == (422, "no-such-sentence"), case
     assert (listening["work"] / CAPTURES).read_bytes() == listening["bytes"]
 
 

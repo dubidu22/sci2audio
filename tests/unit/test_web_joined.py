@@ -1,5 +1,5 @@
-"""The pieces of a cut sentence on the Listen page and for the markers (#480, D-730, the
-additions of plans/480-c2-tests.md): one element per sentence, and a marker belongs to the
+"""The pieces of a cut sentence on the Listen page and for the captures (#480, D-730, the
+additions of plans/480-c2-tests.md): one element per sentence, and a capture belongs to the
 whole sentence, whichever of its pieces it was set on."""
 
 from __future__ import annotations
@@ -12,15 +12,15 @@ import pytest
 from test_web_player import make, player_data, server, work_of
 from web_helpers import (  # noqa: F401 - fixture
     book_folder,
-    markers_of,
     offline,
     set_capture,
-    set_marker,
 )
 
+from sci2audio.app.captures import read_captures
 from sci2audio.core import Anchor, CaptureType, Span
 from sci2audio.web.captures import CaptureBook
-from sci2audio.web.markers import MarkerBook, anchor_of, place
+from sci2audio.web.markers import anchor_of
+from sci2audio.web.markers import locate as place_in
 from sci2audio.web.player import load_document, locate, read_audio_record
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -73,18 +73,20 @@ def test_the_cut_sentence_is_one_element_with_its_whole_text(book: dict[str, Any
     assert len(set(book["elements"])) == len(book["elements"]) - len(book["pieces"]) + 1
 
 
-def test_a_new_marker_anchors_the_whole_sentence_from_any_piece(book: dict[str, Any]) -> None:
+def test_a_new_mark_anchors_the_whole_sentence_from_any_piece(book: dict[str, Any]) -> None:
     client, doc, stamp = book["client"], book["doc"], book["data"]["audiobook"]
     first, *later = book["pieces"]
-    marker = set_marker(client, doc, later[-1], stamp)  # a page that names a later piece
-    (entry,) = markers_of(book["work"])["markers"]
-    assert entry["anchor"]["text"] == LONG
-    assert book["elements"][marker["chunk"]] == book["elements"][first]
-    # M on the sentence again, by its first piece or any other: the same marker (toggle)
+    mark = set_capture(client, doc, "mark", later[-1], stamp)  # a page that names a later piece
+    captures = read_captures(book["work"], doc)
+    assert captures is not None
+    (entry,) = captures.captures
+    assert entry.anchor.text == LONG
+    assert book["elements"][mark["chunk"]] == book["elements"][first]
+    # M on the sentence again, by its first piece or any other: the same mark (toggle)
     for piece in book["pieces"]:
-        again = set_marker(client, doc, piece, stamp, status=200)
-        assert again["id"] == marker["id"]
-    assert len(markers_of(book["work"])["markers"]) == 1
+        again = set_capture(client, doc, "mark", piece, stamp, status=200)
+        assert again["id"] == mark["id"]
+    assert read_captures(book["work"], doc) == captures
 
 
 def test_a_mark_anchored_to_one_piece_is_the_sentences_mark(
@@ -110,9 +112,9 @@ def test_a_mark_anchored_to_one_piece_is_the_sentences_mark(
 def test_the_api_and_the_page_name_a_marked_cut_sentence_by_its_first_piece(
     book: dict[str, Any],
 ) -> None:
-    """#520 (web batch audit S1): a whole-sentence marker overlaps a later, longer piece most,
-    yet the POST answer and the page's marker data name the sentence by its first piece, as
-    `data-chunk`, the player's sentences and `MarkerIn.chunk` do."""
+    """#520 (web batch audit S1): a whole-sentence capture overlaps a later, longer piece
+    most, yet the POST answer and the page's capture data name the sentence by its first
+    piece, as `data-chunk`, the player's sentences and `CaptureIn.chunk` do."""
     client, doc, stamp = book["client"], book["doc"], book["data"]["audiobook"]
     first = book["pieces"][0]
     spans = _spans(book)
@@ -145,22 +147,26 @@ def test_a_position_saved_in_a_later_piece_is_offered_to_continue(book: dict[str
     assert f'data-time="{at}"' in page
 
 
-def test_a_whole_sentence_marker_on_an_audiobook_made_again_without_cuts(
+def test_a_whole_sentence_mark_on_an_audiobook_made_again_without_cuts(
     book: dict[str, Any],
 ) -> None:
     """The same text read as separate chunks (no joins, as before #480 or with a larger cut
-    limit): a marker anchored to the whole sentence shows on the chunk it overlaps most
+    limit): a mark anchored to the whole sentence shows on the chunk it overlaps most
     (#490's rule, pinned for the new anchor, plans/480-c2-tests.md item 8)."""
     client, doc, stamp, work = book["client"], book["doc"], book["data"]["audiobook"], book["work"]
     first = book["pieces"][0]
-    set_marker(client, doc, first, stamp)
+    set_capture(client, doc, "mark", first, stamp)
     spans = _spans(book)
     document = load_document(work)
     whole = Span(spans[first].block, spans[first].start, spans[book["pieces"][-1]].end)
-    # the marker the API set, as the markers file holds it
-    marker, new = MarkerBook().set(work, doc, anchor_of(document, whole), lambda m: m[0])
-    assert not new
-    assert marker.anchor.text == LONG
-    (placed,) = place([marker], document, spans)  # place() knows no joins: separate pieces
+    # the mark the API set, as the captures file holds it
+    captures = read_captures(work, doc)
+    assert captures is not None
+    (mark,) = captures.captures
+    printed = anchor_of(document, whole)
+    assert mark.anchor == Anchor(printed.block, printed.start, printed.end, printed.text)
+    assert mark.anchor.text == LONG
+    # placed as the pages place it, without the joins: separate pieces
+    ((_, chunk, state),) = place_in([mark], lambda c: c.anchor, document, spans)
     longest = max(book["pieces"], key=lambda n: (spans[n].end - spans[n].start, -n))
-    assert (placed.chunk, placed.state) == (longest, "found")
+    assert (chunk, state) == (longest, "found")

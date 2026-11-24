@@ -20,7 +20,7 @@ from web_helpers import (
     book_folder,
     offline,  # noqa: F401 - fixture
     program,
-    set_marker,
+    set_capture,
     wait,
 )
 
@@ -306,7 +306,7 @@ def test_a_whole_web_job_writes_only_into_its_project_folders(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """MT12, the acceptance of #469: open, analyse, make the audiobook, listen, save a
-    position, set a marker; every file is in the project data folder, the project's
+    position, capture a mark; every file is in the project data folder, the project's
     audiobook folder, the settings file or the voice folder."""
     home = tmp_path / "home"
     for name, folder in {
@@ -329,7 +329,7 @@ def test_a_whole_web_job_writes_only_into_its_project_folders(
     stamp = data["audiobook"]
     body = {"chapter": 0, "time": 1.0, "audiobook": stamp}
     assert client.post(f"/api/v1/documents/{doc}/position", json=body).status_code == 204
-    set_marker(client, doc, 0, stamp)
+    set_capture(client, doc, "mark", 0, stamp)
     client.get("/")
     allowed = [
         config.work_root / doc,
@@ -344,7 +344,7 @@ def test_a_whole_web_job_writes_only_into_its_project_folders(
     assert config.work_root.is_relative_to(home / "data")
     assert config.output_folder == home / "Documents" / "sci2audio"
     assert (config.work_root / doc / "position.json").is_file()
-    assert (config.work_root / doc / "markers.json").is_file()
+    assert (config.work_root / doc / "captures.json").is_file()
     assert not (home / "cache").exists()
 
 

@@ -56,22 +56,7 @@ from sci2audio.web.i18n import (
     strings_of,
 )
 from sci2audio.web.jobs import BoardBusyError, JobKind, JobRecord, JobState
-from sci2audio.web.markers import (
-    MarkedAgain,
-    Marker,
-    MarkerError,
-    MarkerLimit,
-    MarkerMissing,
-    MarkersBroken,
-    NoteRefused,
-    Placed,
-    UndoExpired,
-    anchor_of,
-    finder,
-    locate,
-    place,
-    same_sentence,
-)
+from sci2audio.web.markers import anchor_of, finder, locate, same_sentence
 from sci2audio.web.player import (
     Bounds,
     PlayerError,
@@ -536,25 +521,14 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         ) from error
 
 
-# ---- markers (#474, D-723, D-728) ------------------------------------------------------------
+# ---- the audiobook the captures are placed in (#397) -------------------------------------------
 # On the sentence the page reads: the page names the chunk and the audiobook it was drawn
-# for, the server takes the sentence from the read-along and the document. Every change goes
-# through the one locked read-modify-write of `MarkerBook.change` (D-728 ruling 2).
-
-_MARKER_STATUS = {
-    MarkersBroken: 409,
-    MarkedAgain: 409,
-    MarkerMissing: 404,
-    UndoExpired: 410,
-    MarkerLimit: 422,
-    NoteRefused: 422,
-    MarkerError: 503,  # a file it would not read back: nothing is written
-}
+# for, the server takes the sentence from the read-along and the document.
 
 
 @dataclass(frozen=True)
 class _Book:
-    """A document's audiobook as the markers see it."""
+    """A document's audiobook as the captures see it."""
 
     listening: Listening
     document: Document
@@ -562,28 +536,12 @@ class _Book:
     stamp: str
     firsts: list[int]  # each chunk's sentence, by its first piece (#480)
 
-    def placed(self, marker: Marker) -> Placed:
-        """Where this audiobook shows the marker (it does not depend on the others)."""
-        return place([marker], self.document, self.spans)[0]
-
     def sentence(self, chunk: int) -> Span:
         """The whole sentence chunk `chunk` is a piece of: from its first piece's start to its
         last piece's end (#480). A sentence that was not cut is its one chunk's span."""
         first = self.firsts[chunk]
         group = [n for n in range(first, len(self.spans)) if self.firsts[n] == first]
         return Span(self.spans[first].block, self.spans[first].start, self.spans[group[-1]].end)
-
-    def on_sentence(self, chunk: int | None, markers: list[Marker]) -> Marker | None:
-        """The marker shown on the sentence chunk `chunk` is a piece of, if one is: on any of
-        its pieces (#480)."""
-        if chunk is None:
-            return None
-        first = self.firsts[chunk]
-        placed = place(markers, self.document, self.spans)
-        return next(
-            (p.marker for p in placed if p.chunk is not None and self.firsts[p.chunk] == first),
-            None,
-        )
 
 
 def _book(state: ServerState, document_id: str) -> _Book:
@@ -624,135 +582,9 @@ def _book_of(listening: Listening) -> _Book:
     return _Book(listening, document, spans, stamp, sentence_starts(located.readalong, document))
 
 
-def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
-    placed = book.placed(marker)
-    return models.MarkerOut(
-        id=marker.id,
-        created=marker.created,
-        changed=marker.changed,
-        text=marker.anchor.text,
-        note=marker.note,
-        # the sentence by its first piece, as the page and the player name it (#520)
-        chunk=None if placed.chunk is None else book.firsts[placed.chunk],
-        state=placed.state,
-    )
-
-
-def _marking[T](change: Callable[[], T]) -> T:
-    """Run a change of the markers file, with its refusals as answers."""
-    try:
-        return change()
-    except MarkerError as error:
-        status = next(s for kind, s in _MARKER_STATUS.items() if isinstance(error, kind))
-        raise ApiError(status, error.kind, str(error)) from error
-    except OSError as error:
-        raise ApiError(
-            503, "markers-not-saved", f"the markers could not be saved: {error.strerror}"
-        ) from error
-
-
-_MARKER_ERRORS = _errors(404, 409, 503)
-_MARKER_ID = Annotated[str, Path_(pattern=r"^[0-9a-f]{16}$", description="the marker's id")]
-
-
-@router.post(
-    "/documents/{document_id}/markers",
-    status_code=201,
-    responses={
-        200: {"model": models.MarkerOut, "description": "the sentence's marker"},
-        **_MARKER_ERRORS,
-    },
-    summary="Set a marker on a sentence of the document's audiobook",
-)
-def set_marker(
-    state: State, document_id: str, given: models.MarkerIn, response: Response
-) -> models.MarkerOut:
-    """A marker on the sentence the page reads: chunk `chunk` of the audiobook the page was
-    drawn for (409 if it was made again since). A sentence that has a marker answers it
-    (200); the page toggles."""
-    book = _book(state, document_id)
-    if given.audiobook != book.stamp:
-        raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
-    piece = book.spans[given.chunk] if given.chunk < len(book.spans) else None
-    try:
-        if piece is None or piece.start >= piece.end:
-            raise SpanError("no sentence")
-        span = book.sentence(given.chunk)
-        book.document.check_span(span)
-    except SpanError:
-        raise ApiError(422, "no-such-sentence", "the audiobook has no such sentence") from None
-    listening = book.listening
-    marker, new = _marking(
-        lambda: state.markers.set(
-            listening.work,
-            listening.document,
-            anchor_of(book.document, span),
-            lambda markers: book.on_sentence(given.chunk, markers),
-        )
-    )
-    if not new:
-        response.status_code = 200
-    return _marker_out(book, marker)
-
-
-@router.patch(
-    "/documents/{document_id}/markers/{marker_id}",
-    responses=_MARKER_ERRORS,
-    summary="Change a marker's note",
-)
-def note_marker(
-    state: State, document_id: str, marker_id: _MARKER_ID, given: models.NoteIn
-) -> models.MarkerOut:
-    """The note is plain text, at most 4000 characters; "" leaves the marker without one."""
-    book = _book(state, document_id)
-    listening = book.listening
-    marker = _marking(
-        lambda: state.markers.note(listening.work, listening.document, marker_id, given.note)
-    )
-    return _marker_out(book, marker)
-
-
-@router.delete(
-    "/documents/{document_id}/markers/{marker_id}",
-    responses=_MARKER_ERRORS,
-    summary="Remove a marker and its note",
-)
-def remove_marker(state: State, document_id: str, marker_id: _MARKER_ID) -> models.MarkerOut:
-    """It leaves the file at once; this server keeps it for 10 minutes (the last 20 of the
-    document) so the page's Undo can put it back (D-723 ruling 1)."""
-    book = _book(state, document_id)
-    listening = book.listening
-    marker = _marking(lambda: state.markers.remove(listening.work, listening.document, marker_id))
-    return _marker_out(book, marker)
-
-
-@router.post(
-    "/documents/{document_id}/markers/{marker_id}/restore",
-    status_code=201,
-    responses=_errors(404, 409, 410, 503),
-    summary="Put back a marker removed in the last 10 minutes (Undo)",
-)
-def restore_marker(state: State, document_id: str, marker_id: _MARKER_ID) -> models.MarkerOut:
-    """The marker comes back unchanged, from what this server kept: 410 once it no longer
-    holds it (10 minutes, a restart, 20 later removals), 409 if its sentence has a marker
-    again."""
-    book = _book(state, document_id)
-    listening = book.listening
-
-    def clash(marker: Marker, markers: list[Marker]) -> bool:
-        if any(other.anchor == marker.anchor for other in markers):
-            return True
-        return book.on_sentence(book.placed(marker).chunk, markers) is not None
-
-    marker = _marking(
-        lambda: state.markers.restore(listening.work, listening.document, marker_id, clash)
-    )
-    return _marker_out(book, marker)
-
-
 # ---- captures (#397, ADR-008) -----------------------------------------------------------------
-# Marks, notes and quotes at the sentence the page reads, as the markers: the page names the
-# chunk and the audiobook it was drawn for, and every change goes through the one locked
+# Marks, notes and quotes at the sentence the page reads: the page names the chunk and the
+# audiobook it was drawn for, and every change goes through the one locked
 # read-modify-write of `CaptureBook.change`. A sentence holds one capture of each type.
 
 _CAPTURE_STATUS = {

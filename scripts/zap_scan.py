@@ -662,28 +662,6 @@ def _captures(page: Any, quoted: str, marked: str, unmarked: str, back: str) -> 
     expect(said).to_have_text(back)
 
 
-def _markers(page: Any, context: Any, origin: str, document: str) -> None:
-    """The v1.3 marker routes (#474), which the Listen page no longer calls since #397:
-    set, note, remove and put back, as a page would."""
-    stamp, chunk = page.evaluate(
-        """() => {
-            const data = JSON.parse(document.getElementById('player-data').textContent);
-            return [data.audiobook, data.chunks.findIndex((c) => c[3])];
-        }"""
-    )
-    url, same = f"{origin}/api/v1/documents/{document}/markers", {"Origin": origin}
-    answer = context.request.post(url, data={"chunk": chunk, "audiobook": stamp}, headers=same)
-    _check(answer.status in (200, 201), f"POST {url} answered {answer.status}")
-    marker = f"{url}/{answer.json()['id']}"
-    for method, path, body, wanted in (
-        ("PATCH", marker, {"note": "A note for the scan."}, 200),
-        ("DELETE", marker, None, 200),
-        ("POST", f"{marker}/restore", None, 201),
-    ):
-        answer = context.request.fetch(path, method=method, data=body, headers=same)
-        _check(answer.status == wanted, f"{method} {path} answered {answer.status}")
-
-
 class WalkError(RuntimeError):
     """The walk did not see what a person would."""
 
@@ -830,7 +808,6 @@ def _walk_english(
     box.fill("A note changed for the scan.")
     page.keyboard.press("Control+Enter")
     expect(page.locator("#capture-list .cp-note")).to_have_text("A note changed for the scan.")
-    _markers(page, context, origin, paper_id)
 
     # again: the files exist, then replace them; free the speech cache
     page.goto(f"{origin}/documents/{paper_id}")
