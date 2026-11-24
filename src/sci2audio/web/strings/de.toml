@@ -408,6 +408,7 @@ show_less = "Weniger zeigen"
 at = "Kapitel {n} · {time}"
 not_found = "In diesem Hörbuch nicht gefunden. Der Satz und was Sie geschrieben haben bleiben erhalten."
 not_read = "In diesem Hörbuch nicht gelesen. Der Satz und was Sie geschrieben haben bleiben erhalten."
+no_audiobook = "Dieses Dokument hat gerade kein Hörbuch. Der Satz und was Sie geschrieben haben bleiben erhalten."
 unreadable = "Ihre Fundstücke ließen sich nicht lesen, daher lässt sich hier nichts festhalten. Die Datei bleibt, wie sie ist: {file}"
 markers = "Ihre Markierungen aus einer früheren Version ließen sich nicht übernehmen, daher lässt sich hier nichts festhalten. Die Datei bleibt, wie sie ist: {file}"
 

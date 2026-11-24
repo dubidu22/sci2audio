@@ -403,6 +403,7 @@ show_less = "Show less"
 at = "Chapter {n} · {time}"
 not_found = "Not found in this audiobook. The sentence and what you wrote are kept."
 not_read = "Not read in this audiobook. The sentence and what you wrote are kept."
+no_audiobook = "This document has no audiobook now. The sentence and what you wrote are kept."
 unreadable = "Your captures could not be read, so nothing can be captured here. The file is left as it is: {file}"
 markers = "Your markers from an earlier version could not be carried over, so nothing can be captured here. The file is left as it is: {file}"
 

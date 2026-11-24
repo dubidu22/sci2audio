@@ -404,6 +404,7 @@ button.play svg { fill: currentColor; stroke: none; }
 .view .capture-row p, .view .capture-composer p { margin: 0; max-width: none; }
 .view .cp-kind { font: 700 13px/1.4 var(--ui); color: var(--pencil); margin: 0 0 2px; }
 .view .capture-row .cp-at, .view .capture-row .cp-state, .view .cp-paused { color: var(--pencil); font-size: 13px; margin: 0 0 4px; }
+.view .capture-row .cp-state svg.i { vertical-align: -3px; margin-right: 4px; }
 .cp-text { font: italic 400 15px/1.5 var(--read); margin: 0; overflow-wrap: anywhere; }
 .cp-text.clamped { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .view .capture-row .cp-note { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font-size: 14.5px; }
