@@ -34,8 +34,10 @@ The graphics no caption names:
   logo by the authors): part of the block whose text it stands in, if its whole box lies
   inside the box of one text line on its page (the smallest such box; an underbrace or a
   fraction bar drawn in a line, an icon by a name), read just after that line, where its
-  text ends (#58, D-329 to D-333); else part of the footnote just below it (a footnote rule,
-  #51), else of the block read just before it (D-90). The block's text stays as it was;
+  text ends (#58, D-329 to D-333), or else inside the pieces of one printed line together
+  (two fraction bars side by side), read where that printed line's text ends (#819); else
+  part of the footnote just below it (a footnote rule, #51), else of the block read just
+  before it (D-90). The block's text stays as it was;
 - anything else is a FIGURE, with the other such graphics within `float_gap` of it. It
   takes no text: without a caption, a frame or background around running text can't be
   told from a figure.
@@ -46,7 +48,7 @@ from __future__ import annotations
 import bisect
 import heapq
 import itertools
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
 
 from sci2audio.core import (
@@ -63,7 +65,7 @@ from sci2audio.layout.code import LISTING
 from sci2audio.layout.geometry import holds, line_size, minor, same_row, union
 from sci2audio.layout.order import touching
 from sci2audio.layout.settings import LayoutSettings
-from sci2audio.layout.split import kept, part_ends, read_rows
+from sci2audio.layout.split import kept, line_starts, part_ends, read_rows
 
 # what a float may take: running text and graphics. Anything else ends its walk
 _TAKE = {BlockKind.PARAGRAPH, BlockKind.FIGURE}
@@ -144,7 +146,12 @@ def find_graphics(
         actions |= _loose(items, state, actions)
     # where each item is read: the tie rule of `_hosts`, built once for the document
     read = {p.item: (k, n) for k, block in enumerate(blocks) for n, p in enumerate(block.parts)}
-    hosts = {k: line for items in pages for k, line in _hosts(items, state, actions, read).items()}
+    printed = _printed_lines(blocks, lengths)
+    hosts = {
+        k: line
+        for items in pages
+        for k, line in _hosts(items, state, actions, read, printed).items()
+    }
     return _assemble(state, actions, hosts)
 
 
@@ -466,14 +473,20 @@ def _hosts(
     state: _State,
     actions: dict[int, str],
     read: dict[str, tuple[int, int]],
+    printed: list[tuple[str, ...]],
 ) -> dict[int, str]:
     """The line each joining group of graphics on the page stands in, by the group's block:
     the text line on the page whose box holds the group's whole box, without slack (D-329,
     D-330); the smallest such box, on a tie the line read first (`read` gives each item's
-    block and place in it). A group is judged as one (D-331). Else a rule read before the
-    line it stands under (`_ruled_line`), unless a footnote follows it, which takes its rule
-    (#51). Groups made furniture or figures stay as they are."""
+    block and place in it). A group is judged as one (D-331). Else the printed line of
+    several pieces (`printed`) whose pieces together hold it (`_printed_line`, #819). Else a
+    rule read before the line it stands under (`_ruled_line`), unless a footnote follows
+    it, which takes its rule (#51). Groups made furniture or figures stay as they are."""
     lines = [i for i in items if i.line is not None]
+    boxes = {i.id: i.box for i in lines}
+    rows = [
+        (union([boxes[p] for p in row]), row) for row in printed if all(p in boxes for p in row)
+    ]
     found = {}
     for k, group in _groups(items, state).items():
         if actions.get(k) != "join":
@@ -483,11 +496,47 @@ def _hosts(
         if holding:
             found[k] = min(holding, key=lambda i: (_area(i.box), read[i.id])).id
             continue
+        last = _printed_line(box, rows, read)
+        if last is not None:
+            found[k] = last
+            continue
         under = _ruled_line(group, box, lines, state, read)
         footnote = k + 1 < len(state.blocks) and state.blocks[k + 1].kind is BlockKind.FOOTNOTE
         if under is not None and not footnote:
             found[k] = under.id
     return found
+
+
+def _printed_lines(blocks: list[Block], lines: Mapping[str, int]) -> list[tuple[str, ...]]:
+    """The printed lines of two or more pieces in the blocks: the text line parts of a
+    block read one after another with no line break between them (`line_starts`). `lines`
+    maps each text line's id to the length of its text."""
+    found = []
+    for block in blocks:
+        starts = line_starts(block)
+        rows: dict[int, list[str]] = {}
+        for part in block.parts:
+            if part.item in lines:
+                rows.setdefault(bisect.bisect_right(starts, part.start), []).append(part.item)
+        found += [tuple(row) for row in rows.values() if len(row) > 1]
+    return found
+
+
+def _printed_line(
+    box: Box, rows: list[tuple[Box, tuple[str, ...]]], read: dict[str, tuple[int, int]]
+) -> str | None:
+    """The piece read last of the printed line whose pieces together hold the box, without
+    slack, as one line's box holds a mark in it (D-329): two fraction bars side by side lie
+    under two numerators and over two denominators, in no single piece (liu p4, #819). The
+    mark is then read where the printed line's text ends, as a mark in one piece is read
+    where that piece's text ends (D-332). `rows` gives the page's printed lines of several
+    pieces with their boxes; the smallest that holds the box, on a tie the one read first.
+    None if no printed line holds it."""
+    holding = [(_area(b), row) for b, row in rows if holds(b, box)]
+    if not holding:
+        return None
+    _, row = min(holding, key=lambda found: (found[0], read[found[1][0]]))
+    return max(row, key=lambda piece: read[piece])
 
 
 def _ruled_line(
