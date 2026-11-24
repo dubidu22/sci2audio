@@ -2490,3 +2490,23 @@ def test_numeral_initials_alone_make_no_list(text: str, tags: str) -> None:
     so such lines confirm no list among themselves or with a line of a title's shape."""
     entry = "Li XI. Another study of listening to papers. Journal of Sound"
     assert tags_of(text.format(entry)) == tags_read(tags)
+
+
+@pytest.mark.parametrize(
+    ("first", "second"), [("Wang X", "Kumar V"), ("Wang X", "Li X"), ("Ivanov I", "Singh V")]
+)
+@pytest.mark.parametrize("date", ["June 2020", "June 2020."])
+def test_a_numbered_vancouver_list_of_numeral_initials_stays_a_list(
+    first: str, second: str, date: str
+) -> None:
+    """A numbered Vancouver list whose first two entries have one author with initials that
+    read as a part's numeral ("1. Wang X. ...", "2. Kumar V. ..."), each wrapped before its
+    date line, stays a list of items: a part heading carries no item number (#1008)."""
+    authors = [first, second, "Smith J, Jones K", "Brown B, Green G", "Young Y, Grey G"]
+    text = "".join(
+        f"{n}. {author}. A study of reading scientific papers aloud on\n"
+        f"phones. Journal of Acoustics\n{date}\n"
+        for n, author in enumerate(authors, 1)
+    )
+    item = ("ol", "li")
+    assert tags_of(text) == [item, (*item, "br"), (*item, "br")] * len(authors)

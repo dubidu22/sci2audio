@@ -165,7 +165,8 @@ _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+(\d{1,4}))?\W*")
 # Vancouver author whose initials read as a part's numeral, with a title, is `_PART`
 # ("Lot II. Trade and Research", "Li XI. A study ..."): a heading and an entry share the
 # shape, so it confirms an entry across a date as `_PAIRED` does, but not another `_PART`:
-# part headings in a row, dated or not, are no list (#1008).
+# part headings in a row, dated or not, are no list (#1008). Unlike `_PAIRED` it also starts
+# a list when a `_PAIRED`, `_NAMED` or `_STRONG` line follows it (`_listed`).
 _WEAK, _PART, _PAIRED, _NAMED, _STRONG = 1, 2, 3, 4, 5
 _NUMBERED_REFERENCE = re.compile(r"\[\d{1,4}\]")
 # Particles before a surname; capitalised ones as a name's first word ("De Souza, M.", #981)
@@ -223,8 +224,9 @@ _NAMED_LIST = re.compile(
     rf"|{_NAME},\s+{_GIVEN}(?:,\s+et\s+al\.|(?:,\s+{_PERSON})*,?\s+(?:and|und|&)\s+{_PERSON}\.)"
     r")(?=\s|\Z)"
 )
-# one author with initials that read as a part's numeral, and a title (`_PART`)
-_TITLED_PART = re.compile(rf"(?:\d{{1,4}}[.)]\s*)?{_NUMERAL}\s")
+# one author with initials that read as a part's numeral, and a title (`_PART`); a part
+# heading carries no item number, so "1. Wang X. ..." stays an entry
+_TITLED_PART = re.compile(rf"{_NUMERAL}\s")
 # initials first, two or more authors before a capital: "J. Smith and K. Jones, A study"
 _FIRST = rf"{_INITIALS}\s+{_NAME}"
 _PAIRED_LIST = re.compile(
