@@ -102,7 +102,7 @@ _MATHS = frozenset({"math", "role:math"})
 # kinds whose element may hold a picture: one standing between two of their lines joins them
 _HOLD_PICTURES = frozenset({BlockKind.TABLE, BlockKind.FOOTNOTE, BlockKind.FIGURE})
 _BEFORE, _AFTER = -1, 1  # where a caption looks first for what it describes
-# a plain-text bullet `lists` does not read, followed by the item's text (#571)
+# a plain-text bullet, followed by the item's text (#571): `lists` reads "-" too (#985), not "*"
 _TEXT_BULLET = re.compile(r"[-*](?=[^\S\n]+\S)")
 # plain text takes up to three digits as a list number (`extraction.text._NUMBERED`), where a
 # PDF list's marker is one or two: `lists` keeps its own reading of PDF text

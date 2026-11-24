@@ -176,6 +176,13 @@ def test_bulleted_lines_are_list_items() -> None:
     ]
 
 
+def test_hyphen_led_lines_are_list_items() -> None:
+    """#985: "-" is a bullet as "\u2022" and "\u2013" are, in one block or one per line."""
+    expected = [("-", "- a"), ("-", "- b"), ("-", "- c")]
+    assert items(build("- a", "- b", "- c")) == expected
+    assert items(build("- a", "- b", "- c", full=True)) == expected
+
+
 def test_a_numbered_list_in_one_block_is_cut_into_its_items() -> None:
     doc = build("1. First Party Collection", "2. Third Party Sharing", "3. User Choice", full=True)
     assert items(doc) == [

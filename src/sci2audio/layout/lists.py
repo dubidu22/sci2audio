@@ -1,11 +1,11 @@
 """List items: the entries of a bulleted, numbered or lettered list (Issue #21 step 3, D-85).
 
 A list is two or more text blocks in a row that open with markers of one style in
-sequence: the same bullet (•, ◦, ▪, ‣ or an en dash), or "1." "2.", "(1)" "(2)", "1)" "2)",
-"(a)" "(b)", "a)" "b)", "(i)" "(ii)". It starts at the first marker ("1.", "(a)", "(i)" or
-a bullet). Furniture, figures, captions and footnotes between two items don't end a list (a page
-break, a float); a heading or a block without a marker does. A list inside an item (the
-bullets under "(iii)") is a list of its own and doesn't end the outer one. A block that
+sequence: the same bullet (•, ◦, ▪, ‣, an en dash or a hyphen), or "1." "2.", "(1)" "(2)",
+"1)" "2)", "(a)" "(b)", "a)" "b)", "(i)" "(ii)". It starts at the first marker ("1.", "(a)",
+"(i)" or a bullet). Furniture, figures, captions and footnotes between two items don't end
+a list (a page break, a float); a heading or a block without a marker does. A list inside
+an item (the bullets under "(iii)") is a list of its own and doesn't end the outer one. A block that
 holds several items, one per line ("1. First Party\\n2. Third Party"), is cut into one
 block per item; a block whose marker lines make no list stays whole.
 
@@ -22,10 +22,12 @@ import re
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Content, TextLine
+from sci2audio.layout.code import monospace_line
 from sci2audio.layout.split import line_starts, piece_starts, split_at
 
 _ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
-_BULLETS = "•◦▪‣–"  # noqa: RUF001 (the en dash is meant)
+# the hyphen leads a list as the en dash does (#985); "-" stands last in the class
+_BULLETS = "•◦▪‣–-"  # noqa: RUF001 (the en dash is meant)
 
 # marker styles: a name, and a pattern whose group "n" is the ordinal as printed
 _STYLES = [
@@ -67,7 +69,12 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     for n, k, _ in tried:
         tried_starts.setdefault(n, []).append(k)
     cut = [piece for _, _, piece in tried]
-    markers = [_marker(block.text) if block.kind is BlockKind.PARAGRAPH else None for block in cut]
+    markers = [
+        _marker(block.text)
+        if block.kind is BlockKind.PARAGRAPH and not _code_hyphen(block, lines)
+        else None
+        for block in cut
+    ]
     items: set[int] = set()
     for start, marker in enumerate(markers):
         reading = marker.first() if marker and start not in items else None
@@ -165,6 +172,15 @@ def _ordinal(style: str, n: str) -> int:
     if style in ("(i)", "i)"):
         return _ROMAN.index(n) + 1
     return ord(n) - ord("a") + 1
+
+
+def _code_hyphen(block: Block, lines: dict[str, TextLine]) -> bool:
+    """True if the block opens with a hyphen and every line of it is set in a typewriter
+    font: a line of a listing (a YAML file's "- numpy", a diff's "- return x"), which
+    `code` takes whole, not a list item (#985)."""
+    return block.text.startswith("-") and all(
+        part.item in lines and monospace_line(lines[part.item]) for part in block.parts
+    )
 
 
 def _apart(block: Block, marker: _Marker | None, lines: dict[str, TextLine]) -> bool:
