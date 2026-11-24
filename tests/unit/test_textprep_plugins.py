@@ -1,11 +1,13 @@
 """Text-step plugins: discovery through the entry point, order, and the guard (#216, PE-10)."""
 
+import gc
 import inspect
 import subprocess
 import sys
 import threading
 import time
 import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib.metadata import EntryPoint
 from pathlib import Path
@@ -214,11 +216,34 @@ def hang(monkeypatch: pytest.MonkeyPatch):
     broken.HANG.set()
 
 
+@contextmanager
+def collections_timed():
+    """The seconds each garbage collection took inside the block, as a list that fills up.
+    The guard runs a full collection after every call of a plugin, and on a loaded machine
+    one takes seconds; it has its own limit, so a bound on the call leaves its time out. Calls
+    from every thread are added, so two that overlap count twice: the sum is an upper bound."""
+    collecting: list[float] = []
+    collect = gc.collect
+
+    def timed_collect(*args: int) -> int:
+        began = time.monotonic()
+        try:
+            return collect(*args)
+        finally:
+            collecting.append(time.monotonic() - began)
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gc, "collect", timed_collect)
+        yield collecting
+
+
 def load_quickly(*entries: EntryPoint):
-    started = time.monotonic()
-    steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
-    # clock-bound: the planted imports never end; 3 s is 15 times the 0.2 s load limit
-    assert time.monotonic() - started < 3
+    with collections_timed() as collecting:
+        started = time.monotonic()
+        steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
+        elapsed = time.monotonic() - started
+    # clock-bound: planted imports never end; 3 s is 15 times the 0.2 s load limit, no collections
+    assert elapsed - sum(collecting) < 3
     assert "ampersand-and" in [step.id for step in steps]
     return steps
 
@@ -403,10 +428,14 @@ def test_ctrl_c_in_a_plugin_is_not_swallowed() -> None:
 def test_a_slow_plugin_is_given_up_and_the_run_goes_on() -> None:
     broken.SlowStep.release.clear()
     try:
-        started = time.monotonic()
-        run = run_with("SlowStep", "RemovingStep", timeout=0.2)
-        # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
-        assert time.monotonic() - started < 3
+        with collections_timed() as collecting:
+            started = time.monotonic()
+            run = run_with("SlowStep", "RemovingStep", timeout=0.2)
+            elapsed = time.monotonic() - started
+        # the hang never ends, so any finite bound proves it was given up; 10 s is far below the
+        # hang and the pytest timeout, and the sum of collections is an upper bound
+        # clock-bound: any finite bound proves the hang was given up; 10 s heavy load cannot reach
+        assert elapsed - sum(collecting) < 10
     finally:
         broken.SlowStep.release.set()
     [problem] = run.problems

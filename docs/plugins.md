@@ -96,7 +96,15 @@ class AmpersandStep(TextStep):
 
 `id` is kebab-case and unique. `languages` holds primary tags (`"en"`, `"de"`) or `ANY_LANGUAGE`; a job in `"en-GB"` runs a step for `"en"`. `find` must not reach the network, keep state between calls, or depend on anything but its arguments.
 
-Your plugin's code runs in a worker thread, not in the program's main thread: its import, its factory, every read of its attributes, `find`, the comparison of its copy of the document with the original, the reading of the edits it returns, and the formatting of any exception it raises. Every object your plugin hands over stays in that thread: the job gets back plain copies (the id and languages as `str`, the edits rebuilt from plain `int` and `str` values) or the text of a failure. So it must not call `signal.signal` or anything else that works only in the main thread. Loading has 30 seconds and `find` has 60 seconds per document, including reading its edits (see below). Objects your plugin leaves in reference cycles during a call are collected in that thread too. Not covered is what outlives a call: your step object lives as long as the job's steps, and whatever your plugin keeps on it or in module globals is freed wherever sci2audio drops it, usually at the end of the program. So a `__del__` of such an object may run in the main thread; keep finalizers out of what your plugin holds on to.
+Your plugin's code runs in a worker thread, not in the program's main thread: its import, its factory, every read of its attributes, `find`, the comparison of its copy of the document with the original, the reading of the edits it returns, and the formatting of any exception it raises. Every object your plugin hands over stays in that thread: the job gets back plain copies (the id and languages as `str`, the edits rebuilt from plain `int` and `str` values) or the text of a failure. So it must not call `signal.signal` or anything else that works only in the main thread. Loading has 30 seconds and `find` has 60 seconds per document, including reading its edits (see below).
+
+After each call (loading, `find`, anything above), sci2audio frees the objects your plugin left in reference cycles, so that their finalizers (`__del__`) run in your plugin's worker thread and never in the job's thread. The worker runs the garbage collector until the cycles of that call are freed, and the job waits for it. This collection has its own limit of 5 seconds (`PLUGIN_COLLECT_TIMEOUT`), on top of the limit of the call: the 30 or 60 seconds are for your code, and a full collection of a large program takes its own time. A plugin whose call ended in time is therefore never failed for its code being slow, only for what comes after it.
+
+If the 5 seconds pass, the call fails like any other failing call, and you see it as the plugin's problem: "its objects were not freed within 5 s after its call". Two causes are told apart in the rest of the message. "The collection after it did not end" means a finalizer of your plugin (or of something it holds) does not return, for example a `__del__` that waits for a lock or a thread. "Another thread kept the garbage collector busy" means the collection could not be made sure in time although yours did not hang. Fix the first by keeping blocking work out of `__del__` and out of the objects in your cycles; the second is not caused by your plugin.
+
+The collector is one for the whole program. When another thread is collecting at the same time, it can run a finalizer of your plugin's objects, since the collector frees whatever is due, wherever it runs; but while the call's cycles are being freed it is never the job's thread, because that thread sleeps from before the call starts until the cycles are freed or a limit has passed. Two cases are the exception, because there the cycles are not freed in the worker but stay: while a worker of an earlier call hangs inside its collection, later calls are accepted although their cycles stay, and cycles that a finalizer makes while the worker's own collection runs stay too. Such cycles are freed in whichever thread collects next, and that can be the job's thread, so a finalizer of them may run there.
+
+Not covered is what outlives a call: your step object lives as long as the job's steps, and whatever your plugin keeps on it or in module globals is freed wherever sci2audio drops it, usually at the end of the program. So a `__del__` of such an object may run in the main thread; keep finalizers out of what your plugin holds on to.
 
 ## Making it known: the entry point
 
@@ -122,6 +130,7 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
 - **Not loaded.** A plugin is not loaded when:
   - its import fails, its factory raises, or reading one of its attributes raises (any exception, `sys.exit` included);
   - loading it (the import, the factory, reading its attributes) takes longer than 30 seconds; while that import still runs, another entry point in the same top-level module of the same installed package is left out at once, since it could only wait for it;
+  - the objects it left in reference cycles while loading are not freed within 5 seconds after that (see above);
   - its `languages` are not `str`, or its `category` or `stage` is not exactly a `Category` or `Stage`;
   - it does not give a `TextStep`;
   - it has an invalid attribute, or `api_version` is missing or different;
@@ -133,6 +142,7 @@ Install your package in the environment sci2audio runs in (`uv pip install -e .`
   - `find` raises any exception, or calls `sys.exit`;
   - it returns edits that break the rules (spans outside their block, another step's id, edits that overlap each other, a block step's edit that does not cover its block, a move from a step that is not a move step, a `kind` that is not an `EditKind`, offsets that are not whole numbers or texts that are not `str`);
   - it takes longer than 60 seconds on a document;
+  - the objects it left in reference cycles during a document are not freed within 5 seconds after its call (see above);
   - it changes the document it was given.
 
   Each plugin gets its own copy of the document and of the `StepContext`. When a plugin fails, all its edits are left out, the report says why, and the job goes on: a plugin can never stop a job or change the text other than through its edits. Ctrl+C still stops the job.
