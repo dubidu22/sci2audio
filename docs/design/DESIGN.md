@@ -308,10 +308,10 @@ Plain and inked.
 ### Navigation
 - **Rail:** cobalt, white text; items 9px/10px padding at 4px; hover Cobalt Deep; current item becomes a paper tab with ink 700 text, as if pulled out of the binder. Counts right-aligned in tabular figures.
 - **Shelf:** papers being read, two-line title, meta line, a 4px meter (yellow for listened, white for making) and a flag strip.
-- **Tabs:** ink text 700, current tab has a 3px ink underline on a hairline baseline.
+- **Tabs:** ink text 700, current tab has a 3px ink underline on a hairline baseline. The reading panel's tabs are set at 13px, the small end of the Label size, with 4px side padding (the German labels are the longest: "Änderungen", "Kapitel" and "Fundstücke (999)" must stay on one row in the 320px panel at 1280px; #889, #1000, #1001).
 
 ### Flags (signature)
-The capture vocabulary. A 24×18 squared tab in its highlighter colour, an ink line icon, a faint inset outline. On capture a flag slides out of the sheet's right edge at its sentence (0.45s, `cubic-bezier(.16,1,.3,1)`) and a 7×10 tick appears on the timeline. Flag strips repeat them as 8×10 ticks on shelf items and library rows.
+The capture vocabulary. A 24×18 squared tab in its highlighter colour, an ink line icon, a faint inset outline. On capture a flag slides out of the sheet's right edge at its sentence (0.45s, `cubic-bezier(.16,1,.3,1)`) and a 7×10 tick appears on the timeline. Flag strips repeat them on shelf items and library rows as 16×14 flags, each with its 10×10 line icon and its count in tabular figures beside it at 13px, never colour alone (#418, #962).
 
 ### Captures as marginalia (signature)
 A capture is a ruled row: hairline above, the flag hanging in a 40px left margin, a pencil type label, the quoted sentence in Literata italic, the user's text in Atkinson, and a pencil foot line (page, time, actions). No box, no fill, no radius.
