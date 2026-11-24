@@ -2898,13 +2898,14 @@ expected = [
 id = "de-joined-edition-years-read-alike-before-a-bracket-or-a-full-stop"
 audit = 0
 issue = 806
-goal = "Eine mit 'und', 'bis' oder 'oder' verbundene Jahresfolge nach 'Auflage' oder 'Ausgabe' wird gleich gelesen, ob sie mit ')' oder mit '.' endet ('Auflage 19 hundert 98 und 19 hundert 99.'), in beiden Läufen; folgt nach 'Auflage' ein weiteres Wort, bleibt es eine Anzahl."
+goal = "Eine mit 'und', 'bis' oder 'oder' verbundene Jahresfolge nach 'Auflage' oder 'Ausgabe' wird gleich gelesen, ob sie mit ')', '.' oder ',' endet ('Auflage 19 hundert 98 und 19 hundert 99.'), in beiden Läufen; folgt nach 'Auflage' ein weiteres Wort, bleibt es eine Anzahl."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die Werke (Auflage 1998 und 1999), (Auflage 1998 bis 1999) und (Auflage 1998 oder 1999) liegen vor." },
     { kind = "paragraph", text = "Sie erschienen in Auflage 1998 und 1999." },
     { kind = "paragraph", text = "Sie erschienen in Auflage 1998 bis 1999." },
     { kind = "paragraph", text = "Sie erschienen in Auflage 1998 oder 1999." },
+    { kind = "paragraph", text = "Sie erschienen in Auflage 1998 und 1999, dann nicht mehr." },
     { kind = "paragraph", text = "Sie erschienen (Ausgabe 1998 und 1999) und in Ausgabe 1998 bis 1999." },
     { kind = "paragraph", text = "Die Auflage 1500 und 1600 wurde verkauft." },
 ]
@@ -2913,6 +2914,7 @@ expected = [
     "Sie erschienen in Auflage 19 hundert 98 und 19 hundert 99.",
     "Sie erschienen in Auflage 19 hundert 98 bis 19 hundert 99.",
     "Sie erschienen in Auflage 19 hundert 98 oder 19 hundert 99.",
+    "Sie erschienen in Auflage 19 hundert 98 und 19 hundert 99, dann nicht mehr.",
     "Sie erschienen (Ausgabe 19 hundert 98 und 19 hundert 99) und in Ausgabe 19 hundert 98 bis 19 hundert 99.",
     "Die Auflage 1500 und 1600 wurde verkauft.",
 ]

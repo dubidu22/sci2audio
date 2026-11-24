@@ -163,6 +163,8 @@ _EDITION_WORDS = frozenset({"ausgabe", "stand", "fassung", "jahrgang"})
 # ... and "Auflage" only when the number ends the phrase ("(Auflage 1985)"): "Die Auflage
 # 1500 wurde verkauft" is a print run (#591)
 _PRINT_RUN = "auflage"
+# ... and with a colon after it ("Stand: 1998", #782)
+_COLON_WORD = re.compile(r"(?P<word>[^\W\d_]+):\s+\Z")
 _PHRASE_END = re.compile(r"\s*(?:[)\],;:!?]|\.(?!\d)|\Z)")
 # "zwischen 1990 und 1995": a number joined on to a year is a year too
 _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
@@ -173,7 +175,9 @@ _RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\b
 _JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
 _JOINED_NEXT = re.compile(
     r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)"
-    r"(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
+    # a full stop or a comma after the run ends it ("Auflage 1998 und 1999.", #806), as ")"
+    # does; a decimal ("1999,5") does not
+    r"(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?!\d|[.,]\d)"
 )
 
 
@@ -187,14 +191,18 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     joined = [end_ for _, end_ in years if end_ <= start]
     if joined and _JOINED_YEAR.fullmatch(text, joined[-1], start):
         return True
-    previous = _PREVIOUS_WORD.search(before)
+    # "Stand: 1998" as "Stand 1998" (#782), but "Anzahl: 1998" and "seit: 1998" stay counts
+    colon = _COLON_WORD.search(before)
+    previous = colon or _PREVIOUS_WORD.search(before)
     if previous is None:
         return False
     word = previous["word"].lower()
+    edition = previous["word"][0].isupper() and word in _EDITION_WORDS | {_PRINT_RUN}
+    if colon is not None and not edition:
+        return False
     if word in YEAR_WORDS:
         return True
-    edition = previous["word"][0].isupper() and word in _EDITION_WORDS | {_PRINT_RUN}
-    if not (edition or word in _MAYBE_YEAR_WORDS) or previous["dot"]:
+    if not (edition or word in _MAYBE_YEAR_WORDS) or (colon is None and previous["dot"]):
         return False
     if word == "bis" and _RANGE_BEFORE.search(before, 0, previous.start()):
         return False  # "1 bis 1234": a range ("1–1234" on the first run), not "bis 1998"

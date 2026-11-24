@@ -662,6 +662,8 @@ def test_thousands_and_joined_numbers_after_a_year_word(printed: str, said: str)
         ("Auflage 1998 oder 1999.", "Auflage 19 hundert 98 oder 19 hundert 99."),
         ("(Auflage 1998 und 1999)", "(Auflage 19 hundert 98 und 19 hundert 99)"),
         ("Auflage 1998 und 1999. Dann", "Auflage 19 hundert 98 und 19 hundert 99. Dann"),
+        ("Auflage 1998 und 1999, dann", "Auflage 19 hundert 98 und 19 hundert 99, dann"),
+        ("Auflage 1998 und 1999,5 Mal", "Auflage 1998 und 1999 Komma 5 Mal"),
         ("Auflage 1500 und 1600 wurde verkauft.", "Auflage 1500 und 1600 wurde verkauft."),
     ],
 )
