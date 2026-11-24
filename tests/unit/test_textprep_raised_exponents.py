@@ -3,6 +3,7 @@
 """Raised exponents whose raise only their runs show (#576, #589): "10" and a raised "4"
 before "K" is 10⁴ K, not "104 thousand"; "(I − P)" and a raised "−1" is an inverse."""
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -127,6 +128,28 @@ def test_german_reads_a_raised_exponent_before_a_glued_letter_or_after_a_bracket
         "Mit (I − P) hoch minus 1, (I − P)−1 hier.",
         "Mit (I − P) hoch minus 1, (I − P)−1 hier.",
     )
+
+
+@pytest.mark.parametrize(
+    "printed",
+    [
+        # a letter after it may go on the power: `_BRACKET_POWER`'s lookahead, and
+        # `_unit_left_alone` as well (the x also `_x_left_alone`)
+        "Mit (I − P)⁻¹x hier.",
+        "Mit (I − P)⁻¹y hier.",
+        "Mit (I − P)⁻¹,5 hier.",  # a decimal joined after it: `_LABEL_JOINED_AFTER`
+        # German has no magnitude letter, so the units step sets no "M" apart after a power
+        # and reads none: `_unit_left_alone` keeps the power as printed
+        "Bei 10⁶M Sternen.",
+    ],
+)
+def test_german_leaves_a_power_before_a_letter_or_a_joined_number_as_printed(
+    printed: str,
+) -> None:
+    """#815: the guards round the German powers, the same on a second run. The
+    letter rows fail only with both of their guards removed; the others with theirs."""
+    document = make_document([(BlockKind.PARAGRAPH, printed)], "de")
+    assert read_twice(document, "de") == (printed, printed)
 
 
 def test_german_reads_a_raised_exponent_set_small_and_raised_in_a_pdf_as_a_power() -> None:
