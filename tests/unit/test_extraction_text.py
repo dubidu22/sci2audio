@@ -2349,3 +2349,144 @@ def test_a_hyphenated_title_in_a_list_reads_as_an_entry(text: str, tags: str) ->
     told from "Brown, Jean-Paul. ...", so it reads as an entry, as its unhyphenated form
     does on main."""
     assert tags_of(text) == tags_read(tags)
+
+
+# ---- #1008: titled part headings of any word; given names with two or more hyphens -----
+
+_TITLED = ["Lot II. Trade and Research", "Canto IV. The Descent into the Valley"]
+
+
+@pytest.mark.parametrize("heading", _TITLED)
+def test_a_titled_part_heading_between_blank_lines_is_a_heading(heading: str) -> None:
+    """ "Lot II. Trade and Research" alone between blank lines is a block of its own (#1008)."""
+    assert tags_of(f"{_BOARD}\n{heading}\n\n{_BOARD}") == tags_read("p p p")
+
+
+@pytest.mark.parametrize(
+    ("shape", "tags"),
+    [
+        (f"{{0}}\n{{1}}\nJune 2020\n{_BOARD}", "pppp"),
+        (f"{{0}}\n{{1}}\n{_BOARD}", "ppp"),
+        (f"{{0}}\nJune 2020\n{{1}}\nJune 2020\n{_BOARD}", "ppppp"),
+        (f"{{0}}\n{{1}}\n{{0}}\n{_BOARD}", "pppp"),
+    ],
+    ids=["two-then-date", "two", "dated-each", "three"],
+)
+@pytest.mark.parametrize("word", ["Lot", "Canto"])
+def test_titled_part_headings_outside_a_list_read_as_known_part_words(
+    shape: str, tags: str, word: str
+) -> None:
+    """A part heading with a title on its line ("Lot II. Trade and Research") has the shape
+    of one Vancouver author and a title, but part headings in a row are no reference list:
+    they read as "Part II. ..." does, whatever the word (#1008)."""
+    first, second = f"{word} I. Reading Aloud", f"{word} II. Trade and Research"
+    known = shape.format("Part I. Reading Aloud", "Part II. Trade and Research")
+    assert tags_of(known) == tags_read(tags)
+    assert tags_of(shape.format(first, second)) == tags_read(tags)
+
+
+@pytest.mark.parametrize(
+    "author",
+    [
+        "Smith CD. Title. Journal. 2020;1:1-9.",
+        "Li XI. Another study of listening to papers. Journal of Sound",
+        "Wu IV. Another study of listening to papers. Journal of Sound",
+    ],
+)
+def test_a_one_author_vancouver_entry_in_a_confirmed_list_stays_an_entry(author: str) -> None:
+    """One Vancouver author with a title, whatever the initials, is still an entry inside a
+    reference list, before or after its date (#1008)."""
+    text = f"{_VANCOUVER}\nJune 2020.\n{author}\nJune 2020.\n{_VANCOUVER}\n"
+    assert tags_of(text) == tags_read("pbpbp")
+    assert tags_of(f"{_APA_FIRST}\nJune 2020\n{author}\nJune 2020\n{_APA_FIRST}\n") == tags_read(
+        "pbpbp"
+    )
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("Marie-Anne-Sophie", "Jean-Paul-Marie"),
+        ("Jean-Paul-Marie K.", "Anne-Marie-Louise-Claire"),
+    ],
+)
+def test_a_chicago_entry_with_a_twice_hyphenated_given_name_is_an_entry(
+    first: str, second: str
+) -> None:
+    """ "Smith, Marie-Anne-Sophie, and Kate Jones. ..." reads as "Smith, Jean-Paul, ..."
+    does: a whole Chicago author list, whose date stays in it (#1008)."""
+
+    def entries(one: str, two: str) -> tuple[str, str]:
+        return (
+            f"Smith, {one}, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics",
+            f"Brown, {two}, and Gail Green. Another Study of Listening. Journal of Sound",
+        )
+
+    for one, two in ((first, second), ("Jean-Paul", "Anne-Marie")):
+        a, b = entries(one, two)
+        assert tags_of(f"{a}\nJune 2020\n{b}\n") == tags_read("pbp"), one
+        assert tags_of(f"{a}\nJune 2020\n{b}\nJune 2020.\n{a}\n") == tags_read("pbpbp"), one
+        one_author = f"Brown, {two}. Another Study of Listening to Papers. Journal of Sound"
+        text = f"{_APA_FIRST}\nJune 2020\n{one_author}\nJune 2020\n{_APA_FIRST}\n"
+        assert tags_of(text) == tags_read("pbpbp"), two
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        (
+            "Saint-Jean-de-Luz, France. Annual Report of the Society\nJune 2020\n"
+            "Berlin, Germany. The board read it twice and sent it back with many notes.\n",
+            "ppp",
+        ),
+        (
+            "Paris, Saint-Jean-Luz. Annual Report of the Society\nJune 2020\n"
+            "Berlin, Germany. The board read it twice and sent it back with many notes.\n",
+            "ppp",
+        ),
+        (f"Self-Supervised, Speech-To-Text. A Study of Listening\nJune 2020\n{_BOARD}", "ppp"),
+        (
+            "Fast, Self-Supervised-Learning. A Study of Reading Papers Aloud\nJune 2020\n"
+            "Using AI, we read papers aloud to the board, and the board read them twice.\n",
+            "ppp",
+        ),
+    ],
+    ids=["saint-jean-berlin", "paris-saint-jean", "speech-to-text", "fast-self-supervised"],
+)
+def test_a_twice_hyphenated_place_or_title_is_no_entry(text: str, tags: str) -> None:
+    """A place or title with two hyphens ("Paris, Saint-Jean-Luz.", "Self-Supervised,
+    Speech-To-Text.") reads as a title before its date, as "Baden-Baden, Germany." does
+    (#1008)."""
+    assert tags_of(text) == tags_read(tags)
+
+
+def test_the_titled_part_and_hyphenated_name_checks_take_linear_time() -> None:
+    """Long titled part headings and given names of many hyphens, alone and in author
+    lists, before and after a date: the reference checks take time linear in the lines
+    (#1008)."""
+
+    def sized(size: int) -> str:
+        n = size // 10
+        return (
+            f"Lot II. {'Trade ' * n}\nLot III. {'and ' * n}\nJune 2020\n"
+            f"Smith, {'Anne-' * n}Marie, and\nJune 2020\nSmith, {'Jean-' * n}Paul, and Kate"
+            f" {'Jones-' * n}x.\nSmith, {'Jean-' * n}paul. x\n"
+        )
+
+    assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        ("{0}\nJune 2020\n{0}\n", "ppp"),
+        ("{0}\nGuns, Germs, and Steel\nJune 2020\n{0}\n", "pbpp"),
+    ],
+    ids=["two-numeral-entries", "numeral-entry-then-title"],
+)
+def test_numeral_initials_alone_make_no_list(text: str, tags: str) -> None:
+    """A known limit, pinned (#1008): one Vancouver author whose initials read as a part's
+    numeral, with a title ("Li XI. ..."), cannot be told from "Lot II. Trade and Research",
+    so such lines confirm no list among themselves or with a line of a title's shape."""
+    entry = "Li XI. Another study of listening to papers. Journal of Sound"
+    assert tags_of(text.format(entry)) == tags_read(tags)
