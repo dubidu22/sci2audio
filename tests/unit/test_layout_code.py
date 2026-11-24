@@ -526,6 +526,78 @@ def test_the_rest_of_a_url_on_a_references_hanging_indent_is_no_code_line() -> N
     assert BlockKind.CODE not in {block.kind for block in doc.blocks}
 
 
+def test_an_indented_first_line_in_a_typewriter_font_is_read_as_the_paragraphs() -> None:
+    """A paragraph whose indented first line is wholly typewriter type, under a row that
+    ends a sentence: the line opens the paragraph and is read, not cut as code (PR #831)."""
+    name = "numpy.linalg.lstsq(a, b, rcond=None)"
+    top = 100 + 10 * PITCH
+    first = text_line(code(name), top, x0=LEFT + 12)
+    rest = text_line(prose("solves the least-squares problem for the data."), top + PITCH)
+    doc = build(first, rest)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert any(text.startswith(name) for kind, text in kinds(doc) if kind == "paragraph")
+
+
+def test_a_code_name_on_a_references_hanging_indent_is_no_code_line() -> None:
+    """A reference whose wrapped lines stand on its hanging indent: a line there that is
+    only a code name is not further in than the line under it, so it is the reference's."""
+    rows = [
+        (prose("[12] Smith, J.: A study of the many ways to install the package"), 0, RIGHT),
+        (code("thingspkg"), 24, LEFT + 80),
+        (prose("on PyPI, version 2 (2020)."), 24, HALF),
+    ]
+    lines = [
+        text_line(row, 280 + PITCH * k, x0=LEFT + x, end=end)
+        for k, (row, x, end) in enumerate(rows)
+    ]
+    doc = build(*lines)
+    assert kinds(doc)[1:] == [("paragraph", "\n".join(row[0].text for row, _, _ in rows))]
+
+
+def test_an_indented_link_between_prose_lines_is_no_code_line() -> None:
+    words = "The data and the scripts for every figure are available from"
+    lines = [
+        text_line(prose(words), 280, end=RIGHT),
+        text_line(code("https://example.org/data"), 280 + PITCH, x0=LEFT + 21, end=LEFT + 170),
+        text_line(prose("and may be used freely."), 280 + 2 * PITCH),
+    ]
+    doc = build(*lines)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert ("paragraph", words + "\nhttps://example.org/data") in kinds(doc)
+
+
+def test_an_indented_typewriter_line_in_a_typed_memo_stays_in_its_paragraph() -> None:
+    """In a typed memo a typed line at an indent between proportional lines is no code line:
+    it stays with the line above it (the outdent under it still ends the paragraph)."""
+    words = "To all staff: the move to the new building takes place next month,"
+    typed = (TextRun("on the third, in the east wing,", "Courier", 10.0),)
+    memo = [
+        text_line((TextRun(f"Typed text of the memo, line {k}, as typed.", "Courier", 10.0),), y)
+        for k, y in enumerate(range(400, 400 + 8 * int(PITCH), int(PITCH)))
+    ]
+    lines = [
+        text_line(prose(words), 100, end=RIGHT),
+        text_line(typed, 100 + PITCH, x0=LEFT + 21, end=LEFT + 150),
+        text_line(prose("as planned."), 100 + 2 * PITCH),
+    ]
+    doc = build_document(content([*lines, *memo]))
+    assert kinds(doc)[0] == ("paragraph", f"{words}\non the third, in the east wing,")
+
+
+@pytest.mark.parametrize(("indent", "cut"), [(6.9, False), (7.0, True)])
+def test_a_code_line_is_cut_from_a_paragraph_indent_on(indent: float, cut: bool) -> None:
+    """The code indent is `settings.indent` (0.7 em, 7 points at 10 point): just under it a
+    lone typewriter line is the paragraph's, at it the line is code."""
+    words = "The plot is drawn by the call below, as the text explains,"
+    lines = [
+        text_line(prose(words), 280, end=RIGHT),
+        text_line(code("g = sns.relplot(data)"), 280 + PITCH, x0=LEFT + indent),
+        text_line(prose("which returns a grid."), 280 + 2 * PITCH),
+    ]
+    doc = build(*lines)
+    assert (("code", "g = sns.relplot(data)") in kinds(doc)) is cut
+
+
 def test_typewriter_furniture_does_not_tip_the_body_into_a_typed_document() -> None:
     """#794: paragraphs and `find_code` share one judgement of a typed document. Here the
     body text holds more letters in a proportional font than in a typewriter font, and a
