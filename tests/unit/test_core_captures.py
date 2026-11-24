@@ -214,7 +214,11 @@ def test_the_error_is_a_value_error() -> None:
 
 # ---- any capture file survives the round trip ------------------------------------------------
 
-_texts = st.text(st.characters(exclude_characters="\x00"), max_size=60)
+# every character a captures file can hold: no lone surrogate (category Cs, refused since it
+# has no UTF-8 form) and, in a note, no NUL; spelled out, since `st.characters` with
+# arguments includes surrogates
+_characters = st.characters(exclude_categories=("Cs",))
+_texts = st.text(st.characters(exclude_categories=("Cs",), exclude_characters="\x00"), max_size=60)
 _anchors = st.builds(
     lambda block, start, length, text: Anchor(block, start, start + length, text),
     st.integers(0, 10_000),
@@ -231,8 +235,8 @@ def _captures(draw: st.DrawFn) -> Capture:
     return Capture(
         draw(st.text("0123456789abcdef", min_size=16, max_size=16)),
         kind,
-        draw(st.text(max_size=40)),
-        draw(st.text(max_size=40)),
+        draw(st.text(_characters, max_size=40)),
+        draw(st.text(_characters, max_size=40)),
         draw(_anchors),
         text,
     )
@@ -240,7 +244,7 @@ def _captures(draw: st.DrawFn) -> Capture:
 
 _files = st.builds(
     CaptureFile,
-    st.text(min_size=1, max_size=20),
+    st.text(_characters, min_size=1, max_size=20),
     st.lists(_captures(), max_size=8, unique_by=lambda c: c.id).map(tuple),
     st.sampled_from([None, "markers.json"]),
 )
