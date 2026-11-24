@@ -174,6 +174,11 @@ def test_alt_text_is_the_text_only(markdown: str, alt: str) -> None:
     assert picture.alt == alt
 
 
+def test_a_link_to_the_file_itself_goes_to_its_one_page() -> None:
+    (line,) = read("See [this file](notes.md) again.\n").pages[0].lines
+    assert [run.tags[-1] for run in line.runs if "a" in run.tags] == ["link:p1"]
+
+
 def test_links_inside_the_file_resolve_and_others_keep_their_address() -> None:
     content = read(
         '<p id="top">Top</p>\n\n[up](#top) [web](https://example.org/a?b=1) <https://x.org>'
@@ -245,6 +250,11 @@ def test_notes_have_the_roles_an_epub_uses_and_marks_link_to_them() -> None:
     assert "↩" not in "".join(texts(content))  # no back-link arrow: it is not in the file
 
 
+def test_the_notes_close_with_lower_case_tags() -> None:
+    html = markdown_module._parser().render("Text.[^a]\n\n[^a]: First.\n")
+    assert html.endswith("</p>\n</li>\n</ol>\n</section>\n")
+
+
 def test_a_mark_without_a_note_stays_text() -> None:
     assert texts(read("Text[^none].\n")) == ["Text[^none]."]
 
@@ -273,6 +283,20 @@ def test_the_unclosed_comment_is_dropped_before_the_html_parser_sees_it() -> Non
     render = markdown_module._parser().render
     assert render("Before.\n\n<!-- hello\n\nworld\n") == "<p>Before.</p>\n"
     assert render("  <!-- a\nb -->\n\nText\n") == "  <!-- a\nb -->\n<p>Text</p>\n"
+
+
+def test_an_indented_unclosed_comment_is_dropped_as_well() -> None:
+    assert markdown_module._parser().render("Before.\n\n  <!-- hello\n\nworld\n") == (
+        "<p>Before.</p>\n"
+    )
+
+
+def test_double_dollars_inside_a_paragraph_are_two_single_maths_marks() -> None:
+    """markdown-it's `double_inline` is off: `$$a$$` in a paragraph is `$` + `$a$` + `$`,
+    so the renderer's rule for `math_inline_double` is never reached (#632)."""
+    (line,) = read("Text $$a$$ more.\n").pages[0].lines
+    assert line.text == "Text $a$ more."
+    assert [run.text for run in line.runs if "role:math" in run.tags] == ["a"]
 
 
 def test_maths_is_tagged_and_keeps_the_tex_as_typed() -> None:
@@ -356,6 +380,119 @@ def test_front_matter_forms(front: str, expected: Metadata) -> None:
     assert read(f"---\n{front}\n---\nBody\n").metadata == expected
 
 
+def front(text: str) -> Metadata:
+    return read(f"---\n{text}\n---\nBody\n").metadata
+
+
+@pytest.mark.parametrize("marker", [">", "|", ">-", "|-", ">+", "|+"])
+def test_every_block_marker_starts_a_block(marker: str) -> None:
+    """#632: `>-` and `|+` are block markers as well; read as a value, one would be the title."""
+    assert front(f"title: {marker}\n  Folded\n  title\nlang: en") == Metadata(
+        title="Folded title", language="en"
+    )
+
+
+def test_a_block_holds_its_blank_lines_and_ends_with_the_front_matter() -> None:
+    assert front("title: >\n  One\n\n  Two\nlang: en") == Metadata(title="One Two", language="en")
+    assert front("lang: en\ntitle: >\n  Last\n  lines") == Metadata(
+        title="Last lines", language="en"
+    )
+    assert front("title: |\n\tTabbed\n\tlines\nlang: en") == Metadata(
+        title="Tabbed lines", language="en"
+    )
+
+
+def test_keys_and_name_fields_are_read_in_any_case() -> None:
+    assert front("Title: T\nAUTHOR:\n  - Name: A. One\n  - B. Two\nLang: de") == Metadata(
+        title="T", authors=("A. One", "B. Two"), language="de"
+    )
+    assert front("author:\n  Name: Mapped Author") == Metadata(authors=("Mapped Author",))
+    assert front("author:\n  - name: 'Quoted One'\n  - Name: \"Quoted Two\"") == Metadata(
+        authors=("Quoted One", "Quoted Two")
+    )
+    assert front("author:\n  name: 'Quoted Mapped'") == Metadata(authors=("Quoted Mapped",))
+
+
+def test_a_list_may_start_at_the_margin_and_a_comment_does_not_end_it() -> None:
+    assert front("author:\n- A. One\n- name: B. Two\n# note: skipped\n- C. Three") == Metadata(
+        authors=("A. One", "B. Two", "C. Three")
+    )
+    assert front("author:\n# note: skipped\n  - A. One") == Metadata(authors=("A. One",))
+
+
+def test_only_other_fields_of_a_list_entry_are_skipped() -> None:
+    """A field is a plain identifier and a colon; "Dr. A: B" or "1x: y" is a name."""
+    entries = [
+        "Single",
+        "Dr. A: B",
+        "1x: kept",
+        "with-dash: skipped",
+        "_under: skipped",
+        "Affiliation: skipped",
+        "affil : skipped",
+        "affiliation: Dept: Lab",
+        "Name: Cased Name",
+    ]
+    authors = ("Single", "Dr. A: B", "1x: kept", "Cased Name")
+    assert front("author:\n" + "".join(f"  - {entry}\n" for entry in entries)) == Metadata(
+        authors=authors
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ('"', '"'),
+        ("'", "'"),
+        ('""', ""),
+        ("'a'", "a"),
+        ('"a b"', "a b"),
+        ("XyX", "XyX"),
+        ("'a\"", "'a\""),
+        ("[a]", "a"),
+        ("[a", "[a"),
+        ("a]", "a]"),
+        ("[ 'a' , \"b\" ]", "a"),
+    ],
+)
+def test_quotes_and_brackets_are_stripped_only_in_pairs(value: str, expected: str) -> None:
+    assert front(f"title: {value}").title == expected
+
+
+def test_a_flow_list_holds_every_value_and_skips_the_empty_ones() -> None:
+    assert front("author: [a]") == Metadata(authors=("a",))
+    assert front("author: [a, , 'b']") == Metadata(authors=("a", "b"))
+    assert front("author: []") == Metadata()
+
+
+def test_front_matter_may_start_with_a_blank_or_indented_line() -> None:
+    assert front("\ntitle: T") == Metadata(title="T")
+    assert front("  \ntitle: T") == Metadata(title="T")
+    assert front("  indented: x\ntitle: T") == Metadata(title="T")
+
+
+def test_the_author_and_authors_keys_are_both_read_author_first() -> None:
+    assert front("authors: [B]\nauthor: A") == Metadata(authors=("A", "B"))
+
+
+@pytest.mark.parametrize(
+    ("date", "expected"),
+    [
+        ("2024", "2024"),
+        ("2024-03", "2024-03"),
+        ("2024-3-1", "2024"),
+        ("'2024-03-01'", "2024-03-01"),
+    ],
+)
+def test_a_date_keeps_the_year_month_and_day_it_states(date: str, expected: str) -> None:
+    assert front(f"date: {date}").date == expected
+
+
+def test_an_empty_identifier_field_gives_way_to_the_next_one() -> None:
+    assert front("doi:\nidentifier: urn:x") == Metadata(identifier="urn:x")
+    assert front("lang: und\nlanguage: de") == Metadata(language="de")
+
+
 def test_unclosed_front_matter_is_ordinary_markdown() -> None:
     content = read("---\ntitle: X\n\nBody text\n")
     assert content.metadata == Metadata()
@@ -390,6 +527,14 @@ def test_nesting_past_the_limit_fails_rather_than_losing_text(
     monkeypatch.setattr(markdown_module, "MAX_BLOCK", 10**9)
     with pytest.raises(ExtractionError, match=r"^notes\.md: the Markdown is nested too deeply"):
         read(text)
+
+
+def test_nesting_is_refused_from_the_level_markdown_it_stops_at() -> None:
+    """97 block quotes reach level 98, which reads; 98 reach level 99, the last one the
+    parser makes, and that is refused (#632)."""
+    assert texts(read(">" * 97 + " deep\n\nafter\n")) == ["deep", "after"]
+    with pytest.raises(ExtractionError, match="nested too deeply"):
+        read(">" * 98 + " deep\n\nafter\n")
 
 
 def test_deep_inline_nesting_keeps_its_text() -> None:

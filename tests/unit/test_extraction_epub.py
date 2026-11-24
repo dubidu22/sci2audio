@@ -732,6 +732,26 @@ def test_an_svg_title_is_bounded_as_a_line_is(monkeypatch: pytest.MonkeyPatch) -
     assert outcome(svg("a" + title), "book.epub") == LINE_MESSAGE.format(1000)
 
 
+def test_an_svg_title_in_several_pieces_is_bounded_by_their_sum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A title is raw text, so one is a single piece; the pieces come from several titles
+    in one SVG. Their lengths add up: each of these is under the limit, their sum is not
+    (#632)."""
+    monkeypatch.setattr(markup_module, "MAX_LINE", 1000)
+
+    def svg(first: int, second: int) -> bytes:
+        return make_epub(
+            "<svg><title>" + "a" * first + "</title><title>" + "c" * second + "</title>"
+            '<image href="a.png"/></svg>'
+        )
+
+    (picture,) = read(svg(500, 500)).pages[0].pictures  # 1,000 characters: at the limit
+    assert picture.alt == "a" * 500 + "c" * 500
+    assert outcome(svg(600, 600), "book.epub") == LINE_MESSAGE.format(1000)
+    assert outcome(svg(500, 501), "book.epub") == LINE_MESSAGE.format(1000)
+
+
 def tag(name: str, attributes: int, end: bool = False) -> str:
     """A start (or end) tag of `name` with `attributes` one-letter attributes; it holds
     len(name) + 2 * attributes + 2 characters (3 for an end tag)."""
@@ -851,6 +871,130 @@ def test_only_the_toc_nav_counts_and_bad_nesting_is_evened_out() -> None:
         ]
     )
     assert read(book.bytes()).outline == (OutlineEntry("Deep first", 1, 1),)
+
+
+def nav_entries_of(document: str) -> list[tuple[str, int, str | None]]:
+    """What the navigation reader finds in `document`: title, raw list depth and path."""
+    found = epub_module._NavReader.entries(document, "nav.xhtml")
+    return [(entry.title, entry.level, entry.path) for entry in found]
+
+
+def toc(body: str) -> str:
+    return f'<nav epub:type="toc"><ol>{body}</ol></nav>'
+
+
+PAGE_LIST = '<nav epub:type="page-list"><ol><li><a href="c1.xhtml">Page 1</a></li></ol></nav>'
+
+
+def test_a_nav_inside_the_toc_does_not_end_it_early_or_keep_it_open() -> None:
+    """#632: each nested <nav> adds one level of depth and its end tag takes one off, so the
+    toc ends at its own end tag: its entries after the inner one still count, the next
+    <nav> does not."""
+    inner = '<nav><ol><li><a href="c1.xhtml">Inner</a></li></ol></nav>'
+    document = toc(f'<li><a href="c1.xhtml">One</a>{inner}</li><li><a href="c1.xhtml">Two</a></li>')
+    assert nav_entries_of(document + PAGE_LIST) == [
+        ("One", 1, "c1.xhtml"),
+        ("Inner", 2, "c1.xhtml"),
+        ("Two", 1, "c1.xhtml"),
+    ]
+
+
+def test_a_toc_nav_among_other_navs_is_found_by_its_epub_type_token() -> None:
+    entry = '<li><a href="c1.xhtml">A</a></li>'
+    assert nav_entries_of(f'<nav epub:type="landmarks toc"><ol>{entry}</ol></nav>') == [
+        ("A", 1, "c1.xhtml")
+    ]
+    assert nav_entries_of(f'<nav epub:type="landmarks"><ol>{entry}</ol></nav>') == []
+    assert nav_entries_of(f'<nav epub:type="toc-like"><ol>{entry}</ol></nav>') == []
+    assert nav_entries_of(f"<nav><ol>{entry}</ol></nav>") == []
+
+
+def test_a_list_end_tag_without_a_start_does_not_lower_the_depth_below_none() -> None:
+    """The depth only counts open lists: stray end tags leave it at zero, so the next list
+    starts at depth one, not two or none (#632)."""
+    link = '<li><a href="c1.xhtml">{}</a></li>'
+    stray = "</ol></ol></ul>"  # the toc's own <ol> first, then two with no start
+    assert nav_entries_of(
+        '<nav epub:type="toc"><ol>' + link.format("A") + stray + "<ol>" + link.format("B")
+    ) == [("A", 1, "c1.xhtml"), ("B", 1, "c1.xhtml")]
+    assert nav_entries_of(
+        '<nav epub:type="toc"><ol>'
+        + stray
+        + "<ol>"
+        + link.format("A")
+        + "<ol>"
+        + link.format("B")
+        + "</ol></ol></nav>"
+    ) == [("A", 1, "c1.xhtml"), ("B", 2, "c1.xhtml")]
+
+
+def test_an_end_tag_of_an_entry_closes_it() -> None:
+    """After `</li>` a link outside any entry is not a label; if the entry stayed open, it
+    would name the empty entry before it (#632)."""
+    assert nav_entries_of(toc('<li></li><a href="c1.xhtml">Stray</a>')) == [("", 1, None)]
+    assert nav_entries_of(toc("<li><span>A</span></li><span>Stray</span><li><a>B</a></li>")) == [
+        ("A", 1, None),
+        ("B", 1, None),
+    ]
+
+
+def test_only_the_first_label_of_an_entry_names_it() -> None:
+    assert nav_entries_of(toc('<li><span>First</span><a href="c1.xhtml">Second</a></li>')) == [
+        ("First", 1, None)
+    ]
+    assert nav_entries_of(toc('<li><a href="c1.xhtml">First</a><span>Second</span></li>')) == [
+        ("First", 1, "c1.xhtml")
+    ]
+
+
+@pytest.mark.parametrize("tag", ["a", "span"])
+def test_a_self_closed_label_ends_at_once(tag: str) -> None:
+    """`<a/>` is an empty label: the text after it belongs to no label, so it names neither
+    this entry nor, by staying open, the next one (#632)."""
+    document = toc(f"<li><{tag}/>Text</li><li><{tag}>Next</{tag}></li>")
+    assert nav_entries_of(document) == [("", 1, None), ("Next", 1, None)]
+
+
+@pytest.mark.parametrize("tag", ["ol", "ul"])
+def test_a_self_closed_list_does_not_deepen_the_entries_after_it(tag: str) -> None:
+    document = toc(f'<li><a href="c1.xhtml">A</a><{tag}/></li><li><a href="c1.xhtml">B</a></li>')
+    assert nav_entries_of(document) == [("A", 1, "c1.xhtml"), ("B", 1, "c1.xhtml")]
+
+
+def test_a_self_closed_entry_ends_at_once() -> None:
+    assert nav_entries_of(toc('<li/><a href="c1.xhtml">Stray</a>')) == [("", 1, None)]
+
+
+def test_a_self_closed_nav_inside_the_toc_does_not_keep_it_open() -> None:
+    inner = '<li><a href="c1.xhtml">A</a><nav/></li>'
+    assert nav_entries_of(toc(inner) + PAGE_LIST) == [("A", 1, "c1.xhtml")]
+
+
+def test_a_label_reads_its_character_references_and_inline_elements_whole() -> None:
+    """A label may hold other elements, and the entity or numeric references of a title
+    are the characters they stand for (#632)."""
+    document = toc(
+        '<li><a href="c1.xhtml">Fish &amp; Chips &#233; <b>and</b> <i>more</i> still</a></li>'
+        "<li><span>Part <em>One</em></span></li>"
+    )
+    assert nav_entries_of(document) == [
+        ("Fish & Chips é and more still", 1, "c1.xhtml"),
+        ("Part One", 1, None),
+    ]
+
+
+def test_only_the_first_toc_nav_is_read() -> None:
+    second = '<nav epub:type="toc"><ol><li><a href="c1.xhtml">Again</a></li></ol></nav>'
+    document = toc('<li><a href="c1.xhtml">First</a></li>') + second
+    assert nav_entries_of(document) == [("First", 1, "c1.xhtml")]
+
+
+def test_unordered_lists_count_as_depth_too() -> None:
+    document = toc(
+        '<li><a href="c1.xhtml">A</a><ul><li><a href="c1.xhtml">B</a><ul>'
+        '<li><a href="c1.xhtml">C</a></li></ul></li></ul></li><li><a href="c1.xhtml">D</a></li>'
+    )
+    assert [level for _, level, _ in nav_entries_of(document)] == [1, 2, 3, 1]
 
 
 NCX = """<?xml version="1.0" encoding="UTF-8"?>
