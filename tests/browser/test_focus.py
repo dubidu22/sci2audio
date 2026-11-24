@@ -251,13 +251,13 @@ def test_every_key_on_the_listen_page(signed_in: Page, live: Live) -> None:
     page.keyboard.press("f")
     expect(page.locator("#focus-view")).to_be_hidden()
     expect(page.locator("#context")).to_be_visible()
-    # M sets a marker on the sentence being read and removes it again (#474)
-    marker = page.locator("#marker")
+    # M marks the sentence being read and removes the mark again (#474, #397)
+    marker = page.locator("#capture-mark")
     page.keyboard.press("m")
     expect(marker).to_have_attribute("aria-pressed", "true")
     page.keyboard.press("M")
     expect(marker).to_have_attribute("aria-pressed", "false")
-    expect(page.locator("#message")).to_have_text("Marker removed.")
+    expect(page.locator("#message")).to_have_text("Mark removed.")
 
 
 def test_the_keys_stay_out_of_the_way(signed_in: Page, live: Live) -> None:
@@ -368,8 +368,9 @@ def test_the_shortcuts_sheet_opens_on_every_page_and_gives_the_focus_back(
     expect(page.locator("#keys-close")).to_be_focused()
     expect(sheet).to_contain_text("Play or pause")
     expect(sheet).to_contain_text("Previous / next chapter")
-    for later in ("Note", "Quote", "Card"):  # with the study layer (#397)
-        expect(sheet).not_to_contain_text(later)
+    for capture in ("Capturing", "Note (pauses)", "Quote (keeps playing)", "Mark (keeps playing)"):
+        expect(sheet).to_contain_text(capture)  # the study layer (#397)
+    expect(sheet).not_to_contain_text("Card")  # v2 (ADR-008)
     check_axe(page, "the shortcuts sheet")
     page.keyboard.press("Escape")
     expect(sheet).to_be_hidden()

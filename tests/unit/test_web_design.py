@@ -258,13 +258,23 @@ def marker_contrasts(css: str) -> dict[str, dict[str, float]]:
             "edge on desk": contrast(edge, rgb(tokens["--desk"], tokens)),  # above the dock
             "icon on body": contrast(rgb(tokens["--on-hl"], tokens), body),
         }
+        # the note's and the quote's flags and ticks (#397), on the same grounds
+        for kind in ("note", "quote"):
+            edge = rgb(tokens[f"--{kind}-edge"], tokens)
+            body = rgb(tokens[f"--hl-{kind}"], tokens)
+            found[theme] |= {
+                f"{kind} edge on paper": contrast(edge, rgb(tokens["--paper"], tokens)),
+                f"{kind} edge on desk": contrast(edge, rgb(tokens["--desk"], tokens)),
+                f"{kind} icon on body": contrast(rgb(tokens["--on-hl"], tokens), body),
+            }
     return found
 
 
 def test_the_markers_flag_and_tick_stand_out() -> None:
-    """D-727 for the marker (#474): the flag's and the tick's edge stand out at least 3:1
-    from every background they sit on (the sheet's padding and the dock are paper; the tick
-    stands above the track, half on the desk), and the icon from the flag's body."""
+    """D-727 for the marker (#474) and each capture type (#397): the flag's and the tick's
+    edge stand out at least 3:1 from every background they sit on (the sheet's padding and
+    the dock are paper; the tick stands above the track, half on the desk), and the icon
+    from the flag's body."""
     for theme, measured in marker_contrasts(SERVED_CSS.read_text(encoding="utf-8")).items():
         for name, value in measured.items():
             assert value >= 3, (theme, name, measured)
@@ -275,6 +285,10 @@ def test_the_contrast_check_finds_a_marker_edge_in_the_mark_orange_on_white() ->
         "--marker-edge: #9A5800", "--marker-edge: var(--hl-mark)", 1
     )
     assert marker_contrasts(css)["light"]["edge on paper"] < 2
+    css = SERVED_CSS.read_text(encoding="utf-8").replace(
+        "--quote-edge: #1D6797", "--quote-edge: var(--hl-quote)", 1
+    )
+    assert marker_contrasts(css)["light"]["quote edge on paper"] < 3
 
 
 def test_one_mark_for_the_sheet_and_focus() -> None:
@@ -468,8 +482,8 @@ def test_the_rail_marks_the_current_page(tmp_path: Path, path: str, current: str
 @pytest.mark.parametrize("path", ["/", "/voice", "/settings", "/privacy", "/jobs/nothing"])
 def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
     """#394: a closed dialog, its Close drawn disabled until app.js wires it; the keys of
-    Listen and Focus with their names for screen readers; M sets a marker (#474); N, Q and
-    C wait for #397."""
+    Listen and Focus with their names for screen readers; N, Q and M capture (#397); C is
+    not bound (ADR-008 2.2 B)."""
     page = client_of(server(tmp_path)).get(path).text
     sheet = page.split('<dialog id="keys"')[1].split("</dialog>")[0]
     assert ' aria-labelledby="keys-title">' in sheet.split("\n")[0]
@@ -484,7 +498,9 @@ def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
         "Previous / next sentence",
         "Previous / next chapter",
         "Slower / faster",
-        "Set or remove a marker on the sentence being read",
+        "Note (pauses)",
+        "Quote (keeps playing)",
+        "Mark (keeps playing)",
         "Focus listening",
         "Show or hide the side panel",
         "This list",
@@ -494,9 +510,9 @@ def test_every_page_has_the_shortcuts_sheet(tmp_path: Path, path: str) -> None:
     left = '<span aria-hidden="true">←</span><span class="visually-hidden">Left arrow</span>'
     assert left in sheet
     assert '<span class="visually-hidden">Shift</span>' in sheet
-    assert "<kbd>M</kbd>" in sheet
-    for later in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>C</kbd>"):
-        assert later not in sheet
+    for capture in ("<kbd>N</kbd>", "<kbd>Q</kbd>", "<kbd>M</kbd>"):
+        assert capture in sheet
+    assert "<kbd>C</kbd>" not in sheet
     german_client = client_of(server(tmp_path))
     german_client.cookies.set("sci2audio-language", "de")
     german = german_client.get(path).text

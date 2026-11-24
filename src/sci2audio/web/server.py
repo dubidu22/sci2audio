@@ -22,6 +22,7 @@ from sci2audio import __version__
 from sci2audio.app import JobRunner, VoiceSource
 from sci2audio.app.updates import UpdateCheck
 from sci2audio.web import api, pages
+from sci2audio.web.captures import CaptureBook
 from sci2audio.web.config import ServerConfig
 from sci2audio.web.limits import BodyLimit
 from sci2audio.web.markers import MarkerBook
@@ -69,7 +70,8 @@ def create_app(
     updates: UpdateCheck | None = None,
 ) -> FastAPI:
     """The server's app. `fetch` replaces the voice download's network fetch, `voice` the
-    Kokoro voice, `clock` the markers' undo clock and `updates` the update check (tests)."""
+    Kokoro voice, `clock` the markers' and captures' undo clock and `updates` the update
+    check (tests)."""
     app = FastAPI(
         title="sci2audio",
         version=__version__,
@@ -83,6 +85,7 @@ def create_app(
     if clock is not None:
         state.clock = clock
         state.markers = MarkerBook(clock)
+        state.captures = CaptureBook(clock)
     if voice is not None:
         state.voice = voice
     if updates is not None:

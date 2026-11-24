@@ -89,20 +89,14 @@ def marked(tmp_path: Path) -> dict[str, Any]:
 # ---- the API -----------------------------------------------------------------------------------
 
 
-def test_a_marker_is_set_on_the_pages_sentence_and_shown_on_the_page(
+def test_a_marker_is_set_on_the_pages_sentence_with_its_printed_text(
     marked: dict[str, Any],
 ) -> None:
-    client, doc = marked["client"], marked["doc"]
-    first, second = marked["chunks"]
-    data = page_data(client, doc)
-    assert data["markers_file"] == ""
-    assert [(m["id"], m["chunk"], m["state"], m["note"]) for m in data["markers"]] == [
-        (marked["ids"][0], first, "found", ""),
-        (marked["ids"][1], second, "found", "Ask Sam."),
-    ]
+    """The Listen page shows captures since #397; what becomes of these markers there is
+    the carry-over's (#475)."""
     entry = markers_of(marked["work"])["markers"][0]
     assert entry["anchor"]["text"]  # the sentence as printed, from the server's own files
-    assert data["markers"][0]["text"] == entry["anchor"]["text"]
+    assert [m["note"] for m in markers_of(marked["work"])["markers"]] == ["", "Ask Sam."]
 
 
 def test_a_second_set_on_the_same_sentence_answers_its_marker(marked: dict[str, Any]) -> None:
@@ -200,8 +194,7 @@ def test_a_broken_markers_file_is_named_on_the_page_and_never_written(
     client, doc, data, work = marked["client"], marked["doc"], marked["data"], marked["work"]
     (work / MARKERS).write_text("{broken", encoding="utf-8")
     shown = page_data(client, doc)
-    assert shown["markers"] == []
-    assert shown["markers_file"] == str(work / MARKERS)
+    assert (shown["captures"], shown["captures_off"]) == ([], "markers")
     refused = client.post(
         f"/api/v1/documents/{doc}/markers",
         json={"chunk": marked["chunks"][0], "audiobook": data["audiobook"]},
@@ -244,7 +237,7 @@ def test_the_marker_routes_need_the_token_and_the_origin(marked: dict[str, Any])
 # ---- nothing else touches the file (plan section 3) ------------------------------------------
 
 
-def test_a_new_analysis_and_audiobook_keep_the_file_and_find_the_markers(
+def test_a_new_analysis_and_audiobook_keep_the_file(
     marked: dict[str, Any],
 ) -> None:
     client, doc, work = marked["client"], marked["doc"], marked["work"]
@@ -254,10 +247,6 @@ def test_a_new_analysis_and_audiobook_keep_the_file_and_find_the_markers(
     assert (work / MARKERS).read_bytes() == marked["bytes"]
     data = page_data(client, doc)
     assert data["audiobook"] != marked["data"]["audiobook"]
-    assert [(m["id"], m["state"]) for m in data["markers"]] == [
-        (marked["ids"][0], "found"),
-        (marked["ids"][1], "found"),
-    ]
 
 
 def test_freeing_the_speech_cache_and_a_replaced_upload_keep_the_file(
@@ -348,24 +337,4 @@ def test_the_removal_box_counts_the_captures_by_type_and_not_the_markers_beside_
     german = page.get("/", headers={"Accept-Language": "de"}).text
     assert "Ihre Datei mit Markierungen, Notizen und Zitaten wird ebenfalls entfernt." in german
     assert (work / CAPTURES).read_text(encoding="utf-8") == "{broken"
-    assert (work / MARKERS).read_bytes() == marked["bytes"]
-
-
-# ---- a new audiobook that reads less ------------------------------------------------------
-
-
-def test_a_marker_on_text_the_new_audiobook_does_not_read_is_kept_and_listed(
-    marked: dict[str, Any],
-) -> None:
-    """Only the chosen chapters are read (#472): a marker in another one is listed as not
-    read, never dropped (D-728 ruling 1)."""
-    client, doc, work = marked["client"], marked["doc"], marked["work"]
-    data = page_data(client, doc)
-    assert len(data["chapters"]) >= 2
-    again(client, doc, chapters=[1])
-    shown = page_data(client, doc)
-    assert [(m["id"], m["state"]) for m in shown["markers"]] == [
-        (marked["ids"][1], "found"),  # the second chapter's heading
-        (marked["ids"][0], "not-read"),  # the first chapter is not in this audiobook
-    ]
     assert (work / MARKERS).read_bytes() == marked["bytes"]

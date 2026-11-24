@@ -22,6 +22,7 @@ from sci2audio.app import JobRunner, JobSettings, VoiceSource, kokoro_voice, loa
 from sci2audio.app.projects import Moved, migrate_all, real_folder
 from sci2audio.app.updates import STATE_NAME, UpdateCheck
 from sci2audio.output import BookKind, Ffmpeg
+from sci2audio.web.captures import CaptureBook
 from sci2audio.web.config import OUTSIDE_PREFIX, ServerConfig
 from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
@@ -104,6 +105,7 @@ class ServerState:
     stopping: threading.Event = field(default_factory=threading.Event)
     clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
+    captures: CaptureBook = field(init=False)  # every write of a captures file (#397)
     figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
     # every write of a listening position takes its turn here (#790)
     positions: PositionSaves = field(default_factory=PositionSaves)
@@ -130,6 +132,7 @@ class ServerState:
         self.board = JobBoard(classify)
         self.kept = KeptVoice(lambda: self.voice(self.config.models_dir))
         self.markers = MarkerBook(self.clock)
+        self.captures = CaptureBook(self.clock)
         # `sci2audio listen` serves its outside jobs and never checks (D-837)
         self.updates = UpdateCheck(
             self.config.config_file.parent / STATE_NAME, available=not self.config.outside

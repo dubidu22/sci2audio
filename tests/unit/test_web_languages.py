@@ -186,6 +186,12 @@ def used_keys() -> set[str]:
     found |= {"voice.accent_female", "voice.accent_male", "common.language", "common.app"}
     found |= {"common.decimal"}  # i18n.Strings.number and the script
     found |= {f"redirect.{host}" for host in REDIRECTS}
+    # the captures (#397): named by type in listen.html and player.js, and why capturing is
+    # off on the Listen page
+    kinds = ("note", "quote", "mark")
+    found |= {f"capture.{kind}" for kind in kinds}
+    found |= {f"capture.{word}_{kind}" for word in ("saved", "removed", "kind") for kind in kinds}
+    found |= {"capture.unreadable", "capture.markers"}
     return found
 
 
@@ -746,17 +752,19 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     # 4: 127.0.0.1 only, no access log, nothing from outside (test_web_pages), no docs pages
     assert HOST == "127.0.0.1"
     assert uvicorn_config(FastAPI()).access_log is False
-    # 6: the cookies: the start cookie is the port's; the Settings page's four cookies hold
-    # a language, an appearance, the announcements and the keyboard shortcuts (#394), each
-    # one of its listed values (D-671)
+    # 6: the cookies: the start cookie is the port's; the Settings page's five cookies hold
+    # a language, an appearance, the announcements, the keyboard shortcuts (#394) and the
+    # capture sounds (#397), each one of its listed values (D-671)
     assert COOKIE == "sci2audio-language"
     assert set(LANGUAGES) == {"en", "de"}
     assert (i18n.THEME_COOKIE, i18n.THEMES) == ("sci2audio-theme", ("system", "light", "dark"))
     assert (i18n.ANNOUNCE_COOKIE, i18n.ANNOUNCE) == ("sci2audio-announce", ("off", "on"))
     assert (i18n.KEYS_COOKIE, i18n.KEYS) == ("sci2audio-keys", ("on", "off"))
+    assert (i18n.SOUNDS_COOKIE, i18n.SOUNDS) == ("sci2audio-sounds", ("on", "off"))
     pages_source = Path(pages.__file__).read_text(encoding="utf-8")
     assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' loop
-    assert "at most five cookies" in EN["privacy.cookies"]
+    assert "at most six cookies" in EN["privacy.cookies"]
+    assert "höchstens sechs Cookies" in DE["privacy.cookies"]
     # 7: the working folder's small records for the library and the rail (#389): when each
     # document was last opened, what its file says about itself, where listening stopped;
     # each written into the document's own working folder and nowhere else
@@ -782,6 +790,15 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     for table in (EN, DE):
         for name in ("opened.json", "about.json", "position.json"):
             assert f"({name})" in table["privacy.work"], name
+    # 8: the captures (#397): the server writes them to captures.json in the working folder,
+    # and the v1.3 markers.json stays beside it (ADR-008 2.1 item 5); both are named
+    from sci2audio.app.captures import CAPTURES
+    from sci2audio.web.markers import MARKERS
+
+    assert (CAPTURES, MARKERS) == ("captures.json", "markers.json")
+    for table in (EN, DE):
+        assert f"({CAPTURES})" in table["privacy.work"]
+        assert f"({MARKERS})" in table["privacy.work"]
 
 
 def test_the_privacy_page_names_the_update_checks_host_from_the_code(

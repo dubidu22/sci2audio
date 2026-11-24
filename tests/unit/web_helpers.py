@@ -193,6 +193,17 @@ def set_marker(client: TestClient, doc: str, chunk: int, stamp: str, status: int
     return response.json()
 
 
+def set_capture(
+    client: TestClient, doc: str, kind: str, chunk: int, stamp: str, status: int = 201
+) -> Any:
+    """Capture a mark or a quote at chunk `chunk` of the page drawn for audiobook `stamp`
+    (#397)."""
+    body = {"type": kind, "chunk": chunk, "audiobook": stamp}
+    response = client.post(f"/api/v1/documents/{doc}/captures", json=body)
+    assert response.status_code == status, response.text
+    return response.json()
+
+
 def book_folder(output: Path, name: str = "paper.pdf") -> Path:
     """Where the audiobook of a document opened as `name` goes in `output`: its project's
     own folder (D-749)."""

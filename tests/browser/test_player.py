@@ -535,7 +535,7 @@ def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
     )
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert abs(time - start) < 0.05, (time, start)
-    expect(page.locator("#marker")).to_be_enabled()
+    expect(page.locator("#capture-mark")).to_be_enabled()
 
 
 def test_steps_while_the_audio_still_seeks_end_on_the_last_one(signed_in: Page, live: Live) -> None:
