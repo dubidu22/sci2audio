@@ -39,6 +39,9 @@ indent tells the two apart; such a line is a block of its own, and the prose und
 starts the next one. Links are no listing, and in a document set mostly in a typewriter
 font (a typed memo) nothing is. Whether a document is typed and its body size are the one
 judgement `code.find_code` uses too (`code.body_text`, #794).
+A row that opens with a heading run into its paragraph, cut off its printed line by
+extraction ("1) Hardware:" then "The board …", `geometry.run_in_head`, #963), starts a
+paragraph: the headings step may take the heading out of it.
 """
 
 from __future__ import annotations
@@ -58,6 +61,7 @@ from sci2audio.layout.geometry import (
     holds,
     letter_size,
     minor,
+    run_in_head,
     same_row,
     separators,
     union,
@@ -727,6 +731,8 @@ class Paragraphs:
             return False  # (a paragraph does not end inside a word)
         if self._listing(last, next_row) or self._code_line(last) or self._code_line(next_row):
             return False
+        if run_in_head(next_row.pieces[0]) and len(next_row.pieces) > 1:
+            return False  # (a heading run into its paragraph starts one, #963)
         return (
             not spacing
             or not _below(last, next_row, self.settings)
