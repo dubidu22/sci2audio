@@ -3270,3 +3270,29 @@ expected = [
     "The result is implied by 3 times larger samples.",
     "It holds if and only if 2 times more data is used.",
 ]
+
+[[case]]
+id = "units-x-beside-an-arrow-with-a-prose-word-across-is-times"
+audit = 0
+issue = 843
+goal = "An arrow, printed or read, makes '2x' a variable only where the operand across the arrow is formula-shaped (a letter, a number, a bracket, a symbol); across it from a prose word ('lower', 'a', 'the', 'bound', 'GPUs') '2x' is '2 times', on both runs (#843)."
+blocks = [
+    { kind = "paragraph", text = "A speedup of 3x implies lower cost." },
+    { kind = "paragraph", text = "Cutting latency by 2x implies a cheaper server." },
+    { kind = "paragraph", text = "The cache grows by 2x if and only if the data does." },
+    { kind = "paragraph", text = "A gain of 2x is implied by the bound." },
+    { kind = "paragraph", text = "The bound implies 2x." },
+    { kind = "paragraph", text = "Going from 1 to 4 GPUs implies 3x, not 4x." },
+    { kind = "paragraph", text = "A speedup of 3x ⇒ lower cost, and the bound => 2x." },
+    { kind = "paragraph", text = "B ⇐ 2x and more." },
+]
+expected = [
+    "A speedup of 3 times implies lower cost.",
+    "Cutting latency by 2 times implies a cheaper server.",
+    "The cache grows by 2 times if and only if the data does.",
+    "A gain of 2 times is implied by the bound.",
+    "The bound implies 2 times.",
+    "Going from 1 to 4 GPUs implies 3 times, not 4 times.",
+    "A speedup of 3 times implies lower cost, and the bound implies 2 times.",
+    "B is implied by 2 times and more.",
+]

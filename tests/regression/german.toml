@@ -2991,3 +2991,20 @@ expected = [
     "Der Test gilt genau dann, wenn 3 mal so viele Proben vorliegen.",
     "Wir messen doppelt, daraus folgt 2 mal so viel Arbeit.",
 ]
+
+[[case]]
+id = "de-units-x-beside-an-arrow-with-a-prose-word-across-is-mal"
+audit = 0
+issue = 843
+goal = "Ein Pfeil, gedruckt oder gelesen, macht '2x' nur dann zur Variable, wenn der Operand jenseits des Pfeils wie eine Formel aussieht (ein Buchstabe, eine Zahl, eine Klammer, ein Zeichen); gegenüber einem Wort der Prosa ('die', 'Das') ist '2x' '2 mal', in beiden Läufen (#843)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Speicher wächst um 2x genau dann, wenn die Daten wachsen." },
+    { kind = "paragraph", text = "Das folgt aus 2x, nicht aus 3x mehr Daten." },
+    { kind = "paragraph", text = "Der Speicher wächst um 2x ⇔ die Daten wachsen." },
+]
+expected = [
+    "Der Speicher wächst um 2 mal genau dann, wenn die Daten wachsen.",
+    "Das folgt aus 2 mal, nicht aus 3 mal mehr Daten.",
+    "Der Speicher wächst um 2 mal genau dann, wenn die Daten wachsen.",
+]
