@@ -32,9 +32,10 @@ machine or a container, a live writer's file may name a process that looks gone 
 a live writer finishes within seconds, so an hour old is a leftover."""
 
 REPLACE_ATTEMPTS = 10
-"""How often a replace refused with `PermissionError` on Windows is tried in all (#828).
-Windows refuses to replace a file while another writer is replacing the same file; that
-lasts a moment, so a later try succeeds and its file is the last one in place."""
+"""How often a replace (#828) or a no-overwrite rename (#850) refused with
+`PermissionError` on Windows is tried in all. Windows refuses to replace or rename onto a
+file while another writer is replacing the same file; that lasts a moment, so a later try
+succeeds and its file is the last one in place."""
 
 REPLACE_FIRST_PAUSE = 0.002
 """Seconds to wait before the second try; each later pause is twice the one before."""
@@ -44,7 +45,8 @@ REPLACE_MAX_PAUSE = 0.1
 well under a second (all pauses together come to about 0.43 s)."""
 
 _REPLACE_IS_RETRIED = sys.platform == "win32"
-"""Elsewhere a refused replace is a real permission problem and is raised at once."""
+"""Whether a refused replace or no-overwrite rename is tried again (Windows only, #828,
+#850). Elsewhere a refusal is a real permission problem and is raised at once."""
 
 _IS_WINDOWS = sys.platform == "win32"
 """Windows has no hard links to rely on, and its rename refuses an existing target."""

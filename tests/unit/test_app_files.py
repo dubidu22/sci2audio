@@ -244,12 +244,12 @@ def test_the_retry_patches_stay_inside_app_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The retry tests patch seams of `app.files`, never `os.replace` or `time.sleep` (#860)."""
-    real_replace, real_sleep = os.replace, time.sleep
+    real_replace, real_sleep, real_rename = os.replace, time.sleep, os.rename
     _refuse_replace(monkeypatch, 0, windows=True)
     _refuse_rename(monkeypatch, 0)
     assert os.replace is real_replace
     assert time.sleep is real_sleep
-    assert os.rename is not files._rename_once
+    assert os.rename is real_rename
 
 
 def _refuse_rename(
@@ -325,6 +325,24 @@ def test_a_windows_rename_never_retries_another_os_error(
     assert rename.calls == 1
     assert pauses == []
     assert list(tmp_path.iterdir()) == []
+
+
+def test_a_windows_rename_refused_at_a_dangling_link_says_the_file_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A link to nothing is still a name at the target, which the rename refuses (#850)."""
+    target = tmp_path / "script.txt"
+    try:
+        target.symlink_to(tmp_path / "nowhere.txt")
+    except OSError:  # Windows without the right to make links
+        pytest.skip("this system makes no symbolic links here")
+    rename, pauses = _refuse_rename(monkeypatch, 10_000)
+    with pytest.raises(FileExistsError):
+        files.write_texts({target: "mine"}, overwrite=False)
+    assert rename.calls == 1
+    assert pauses == []
+    assert target.is_symlink()
+    assert [p.name for p in tmp_path.iterdir()] == [target.name]
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="the refused rename is a Windows answer")
