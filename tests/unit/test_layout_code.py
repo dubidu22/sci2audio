@@ -110,6 +110,27 @@ def test_a_listing_whose_lines_open_with_a_hyphen_is_one_code_block(
     assert kinds(doc)[1:] == [("code", "\n".join(text for text, _ in rows))]
 
 
+@pytest.mark.parametrize("mark", ["-", "•"])
+def test_a_hyphen_list_in_a_typed_memo_is_list_items(mark: str) -> None:
+    """#1002: in a typed document nothing is code (#794), so its "- " lines, all typewriter
+    type, are a list's items as its "•" lines are, not a listing's lines."""
+    memo = [
+        text_line(
+            (TextRun(f"Typed text of the memo, line {k}, as typed.", "Courier", 10.0),),
+            100 + PITCH * k,
+            end=RIGHT,
+        )
+        for k in range(8)
+    ]
+    points = ["first point", "second point", "third point"]
+    items = [
+        text_line((TextRun(f"{mark} {point}", "Courier", 10.0),), 100 + PITCH * (9 + k))
+        for k, point in enumerate(points)
+    ]
+    doc = build_document(content([*memo, *items]))
+    assert kinds(doc)[1:] == [("list_item", f"{mark} {point}") for point in points]
+
+
 def test_a_single_monospace_line_on_its_own_is_code() -> None:
     doc = build(*listing(("pip install seaborn", 0), top=300))
     assert kinds(doc)[1:] == [("code", "pip install seaborn")]
