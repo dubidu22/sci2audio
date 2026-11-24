@@ -74,6 +74,10 @@ from sci2audio.layout.settings import LayoutSettings
 _LETTERED_ITEM = re.compile(r"(?:[ivxl]{1,4}|[a-z])[.)]\s")
 # a list item's dash or bullet, printed apart from its words (#856)
 _ITEM_MARKS = frozenset("-\u2010\u2012\u2013\u2014\u2022\u25e6\u25aa\u2023\u2043\u00b7\u2219")
+# what besides a letter may open the words after it: a quote, an opening bracket, a digit
+_ITEM_OPENS = frozenset("\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{0123456789")
+# a bare number, which a dash in a table column leads as a minus (#985)
+_NUMBER = re.compile(r"[\d.,]+\s*%?")
 # what may close a sentence after its full stop: quotes (English and German, #958),
 # guillemets either way round, brackets
 _CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"
@@ -332,13 +336,15 @@ def split_cells(
     """Pieces of one baseline with white between them that lines up with white between the
     pieces of the printed line above or below (in the same column, close by) are cells of a
     table or a list: each stays a line of its own. A wide gap in running text has letters
-    above and below it."""
+    above and below it. A list's dash or bullet printed apart from its words is no cell
+    but opens its item (#856), unless a line of its column is no such item (#985)."""
     text = [g for g in groups if g[0].line is not None]
     position = {id(g): k for k, g in enumerate(text)}
-    out: list[list[Element]] = []
+    cuts: dict[int, list[int]] = {}
+    # the lines whose white lines up with the white after a line's first piece
+    after_first: dict[int, list[int]] = {}
     for group in groups:
         if len(group) < 2:
-            out.append(group)
             continue
         index = position[id(group)]
         near = [
@@ -346,31 +352,64 @@ def split_cells(
             for other in (_nearest(text, index, -1, edges), _nearest(text, index, 1, edges))
             if other and _close(other, group)
         ]
-        current, reach = [group[0]], group[0].box.x1
-        for piece in group[1:]:
+        cuts[index], reach = [], group[0].box.x1
+        for k, piece in enumerate(group[1:], start=1):
             # the white starts where the letters so far end (a subscript may stand below
             # the end of the piece before it)
             middle = (reach + piece.box.x0) / 2
-            if (
-                piece.box.x0 > reach
-                and any(_white(other, middle) for other in near)
-                and not _opens_item(group, current, piece)
-            ):
-                out.append(current)
-                current = []
-            current.append(piece)
+            lined_up = [position[id(other)] for other in near if _white(other, middle)]
+            if piece.box.x0 > reach and lined_up:
+                cuts[index].append(k)
+                if k == 1:
+                    after_first[index] = lined_up
             reach = max(reach, piece.box.x1)
-        out.append(current)
+    items = _dash_items(
+        {index for index in after_first if _dash_item(text[index], cuts[index])}, after_first
+    )
+    out: list[list[Element]] = []
+    for group in groups:
+        index = position.get(id(group), -1)
+        found = cuts.get(index, [])[1 if index in items else 0 :]
+        out += [group[a:b] for a, b in itertools.pairwise([0, *found, len(group)])]
     return out
 
 
-def _opens_item(group: list[Element], current: list[Element], piece: Element) -> bool:
-    """True if `current` is only a list dash or bullet at the start of the printed line
-    `group` and `piece` the words it leads: the white after a marker lines up down a list,
-    yet the marker is its item's, not a cell (#856). A dash before a number is a cell."""
-    first = current[0].line if len(current) == 1 and current[0] is group[0] else None
-    words = piece.line.text.lstrip() if piece.line is not None else ""
-    return first is not None and first.text.strip() in _ITEM_MARKS and words[:1].isalpha()
+def _dash_item(group: list[Element], cuts: list[int]) -> bool:
+    """True if the printed line is a list dash or bullet, white, and its item's words as one
+    cell that opens with a letter, a quote, a bracket or a digit (#856, #985): a dash before
+    a bare number, or before more than one cell, is a table's."""
+    mark = group[0].line
+    words = " ".join(e.line.text for e in group[1:] if e.line is not None).strip()
+    return (
+        cuts == [1]
+        and mark is not None
+        and mark.text.strip() in _ITEM_MARKS
+        and (words[:1].isalpha() or words[:1] in _ITEM_OPENS)
+        and not _NUMBER.fullmatch(words)
+    )
+
+
+def _dash_items(dashed: set[int], lined_up: dict[int, list[int]]) -> set[int]:
+    """The lines of `dashed` whose dash opens their item: the lines whose white after the
+    first piece lines up, read from row to row, make a column, and the column is a list's
+    only if each of its lines is dash-led. One line that is not (a table's head, a "+" among
+    the dashes) makes it a table's, and every dash in it a cell (#985)."""
+    items: set[int] = set()
+    seen: set[int] = set()
+    for start in sorted(dashed):
+        if start in seen:
+            continue
+        column: set[int] = set()
+        stack = [start]
+        while stack:
+            index = stack.pop()
+            if index not in column:
+                column.add(index)
+                stack += lined_up.get(index, []) if index in dashed else []
+        seen |= column
+        if column <= dashed:
+            items |= column
+    return items
 
 
 def _nearest(

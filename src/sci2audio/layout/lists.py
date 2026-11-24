@@ -1,11 +1,11 @@
 """List items: the entries of a bulleted, numbered or lettered list (Issue #21 step 3, D-85).
 
 A list is two or more text blocks in a row that open with markers of one style in
-sequence: the same bullet (•, ◦, ▪, ‣ or an en dash), or "1." "2.", "(1)" "(2)", "1)" "2)",
-"(a)" "(b)", "a)" "b)", "(i)" "(ii)". It starts at the first marker ("1.", "(a)", "(i)" or
-a bullet). Furniture, figures, captions and footnotes between two items don't end a list (a page
-break, a float); a heading or a block without a marker does. A list inside an item (the
-bullets under "(iii)") is a list of its own and doesn't end the outer one. A block that
+sequence: the same bullet (•, ◦, ▪, ‣, an en dash or a hyphen), or "1." "2.", "(1)" "(2)",
+"1)" "2)", "(a)" "(b)", "a)" "b)", "(i)" "(ii)". It starts at the first marker ("1.", "(a)",
+"(i)" or a bullet). Furniture, figures, captions and footnotes between two items don't end
+a list (a page break, a float); a heading or a block without a marker does. A list inside
+an item (the bullets under "(iii)") is a list of its own and doesn't end the outer one. A block that
 holds several items, one per line ("1. First Party\\n2. Third Party"), is cut into one
 block per item; a block whose marker lines make no list stays whole.
 
@@ -25,7 +25,8 @@ from sci2audio.core import Block, BlockKind, Content, TextLine
 from sci2audio.layout.split import line_starts, piece_starts, split_at
 
 _ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
-_BULLETS = "•◦▪‣–"  # noqa: RUF001 (the en dash is meant)
+# the hyphen leads a list as the en dash does (#985); "-" stands last in the class
+_BULLETS = "•◦▪‣–-"  # noqa: RUF001 (the en dash is meant)
 
 # marker styles: a name, and a pattern whose group "n" is the ordinal as printed
 _STYLES = [

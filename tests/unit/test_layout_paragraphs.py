@@ -645,6 +645,86 @@ def test_a_dash_cell_before_a_number_stays_a_cell() -> None:
     assert found == [li.text for li in above] + [cell.text for row in cells for cell in row]
 
 
+@pytest.mark.parametrize("dash", ["-", "\u2013", "\u2022"])
+@pytest.mark.parametrize(
+    "opening",
+    [
+        "\u201eWas wird gefragt?\u201c",
+        "\u201cWhat is asked?\u201d",
+        '"What is asked?"',
+        "\u00abWas wird gefragt?\u00bb",
+        "(a) Welche Wege bestehen?",
+        "[1] Welche Fragen zeigen sich?",
+        "3 Fragen zur Methode",
+    ],
+)
+def test_a_list_dash_before_a_quote_bracket_or_digit_opens_its_item(
+    dash: str, opening: str
+) -> None:
+    """#985: a handout item may open with a quote, a bracket or a digit; its dash, printed
+    apart, still opens it rather than standing as a cell."""
+    intro = lines("p", LEFT, RIGHT, 100, 4, last=1.0)
+    rows = []
+    for k in range(3):
+        y = 100 + PITCH * (5 + k)
+        rows += [line(dash, LEFT, y, LEFT + 4), line(opening, LEFT + 18, y, LEFT + 300)]
+    doc = build_document(content([*intro, *rows]))
+    found = paragraphs(doc)
+    assert found[0] == joined(intro)
+    assert [text for block in found[1:] for text in block.split("\n")] == [f"{dash} {opening}"] * 3
+
+
+def _table(rows: list[list[str]]) -> tuple[list[TextLine], list[list[TextLine]]]:
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    cells = [
+        [
+            line(text, LEFT + 150 * c, 160 + PITCH * r, LEFT + 30 + 150 * c)
+            for c, text in enumerate(row)
+        ]
+        for r, row in enumerate(rows)
+    ]
+    return above, cells
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        # a column of dashes beside words and numbers
+        [["-", "alpha", "0.5"], ["-", "beta", "0.6"], ["-", "gamma", "0.7"]],
+        [["\u2022", "x", "Yes"], ["\u2022", "y", "No"], ["\u2022", "z", "Yes"]],
+        # two columns under a head row
+        [["Sign", "Name"], ["-", "alpha"], ["\u2013", "beta"], ["-", "gamma"]],
+        # a first column of signs, dashes among them
+        [["+", "alpha"], ["-", "beta"], ["+", "gamma"], ["-", "delta"]],
+        # a dash before a number
+        [["-", "0.51"], ["-", "0.62"], ["-", "0.73"]],
+        [["\u2212", "alpha"], ["\u2212", "beta"], ["\u2212", "gamma"]],
+    ],
+)
+def test_a_table_column_of_dashes_beside_words_stays_cells(rows: list[list[str]]) -> None:
+    """#985: a dash or bullet in a table column is a cell as on main: the column's white
+    lines up with rows that are no dash-led line of two pieces, or the dash leads a number."""
+    above, cells = _table(rows)
+    doc = build_document(content([*above, *(cell for row in cells for cell in row)]))
+    found = [text for block in paragraphs(doc) for text in block.split("\n")]
+    assert found == [li.text for li in above] + [cell.text for row in cells for cell in row]
+
+
+def test_a_hyphen_led_list_cut_off_its_items_is_list_items() -> None:
+    """#985: "-" leads list items as "\u2013" and "\u2022" do."""
+    intro = lines("p", LEFT, RIGHT, 100, 4, last=1.0)
+    rows = []
+    for k, item in enumerate(["first point;", "second point;", "the last one."]):
+        y = 100 + PITCH * (5 + k)
+        rows += [line("-", LEFT, y, LEFT + 4), line(item, LEFT + 18, y, LEFT + 300)]
+    doc = build_document(content([*intro, *rows]))
+    assert [(b.label, b.text) for b in doc.blocks if b.kind is BlockKind.LIST_ITEM] == [
+        ("-", "- first point;"),
+        ("-", "- second point;"),
+        ("-", "- the last one."),
+    ]
+
+
 # Properties
 
 
