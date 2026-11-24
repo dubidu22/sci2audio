@@ -186,21 +186,25 @@ def ris_text(documents: Sequence[ExportedDocument], labels: ExportLabels = ENGLI
     records = []
     for document in documents:
         ref = document.reference
-        fields = [("TY", "GEN"), ("TI", ref.title)]  # extraction records no item type
-        fields += [("AU", author) for author in ref.authors]
-        fields += [(tag, value) for tag, value in (("PY", ref.year), ("DO", ref.doi)) if value]
+        references = [("TY", "GEN"), ("TI", ref.title)]  # extraction records no item type
+        references += [("AU", author) for author in ref.authors]
+        references += [(tag, value) for tag, value in (("PY", ref.year), ("DO", ref.doi)) if value]
+        fields: list[tuple[str, list[str]]] = []
+        fields += [(tag, _lines(value)) for tag, value in references]
         for item in document.captures:
-            note = f"{_heading(item, labels)}\n{item.capture.anchor.text}"
+            # each part is split on its own: a sentence ending in "\r" and the line end
+            # after it must not merge into one "\r\n"
+            note = [_heading(item, labels), *_lines(item.capture.anchor.text)]
             if item.capture.text:
-                note += f"\n\n{item.capture.text}"
+                note += ["", *_lines(item.capture.text)]
             fields.append(("N1", note))
-        fields.append(("ER", ""))
-        records.append("".join(_ris_field(tag, value) for tag, value in fields))
+        fields.append(("ER", [""]))
+        records.append("".join(_ris_field(tag, lines) for tag, lines in fields))
     return "\r\n".join(records)
 
 
-def _ris_field(tag: str, value: str) -> str:
-    first, *more = _lines(value)
+def _ris_field(tag: str, lines: list[str]) -> str:
+    first, *more = lines
     return f"{tag}  - {first}\r\n" + "".join(f" {line}\r\n" for line in more)
 
 

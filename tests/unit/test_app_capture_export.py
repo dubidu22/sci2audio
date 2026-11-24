@@ -16,7 +16,7 @@ import socket
 from pathlib import Path
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from sci2audio.app import capture_export as module
@@ -233,6 +233,15 @@ def test_a_title_or_author_with_a_line_break_is_continued_the_same_way() -> None
     )
 
 
+def test_a_sentence_ending_in_a_carriage_return_keeps_the_line_end_after_it() -> None:
+    document = ExportedDocument(
+        Reference("T"), (ExportedCapture(capture(1, CaptureType.NOTE, "Ends in CR\r", "\n0")),)
+    )
+    assert ris_text([document]) == (
+        "TY  - GEN\r\nTI  - T\r\nN1  - Note\r\n Ends in CR\r\n \r\n \r\n \r\n 0\r\nER  - \r\n"
+    )
+
+
 def _read_ris(text: str) -> list[tuple[str, str]]:
     """The tag lines of a RIS text with their values, continuation lines joined by "\\n"."""
     fields: list[tuple[str, str]] = []
@@ -250,6 +259,7 @@ def _read_ris(text: str) -> list[tuple[str, str]]:
 BREAKS = re.compile(r"\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]")
 
 
+@example(sentence="\r", note="\n0")  # a found case: "\r" and the next line end are two breaks
 @given(
     st.text(min_size=1, max_size=60),
     st.text(max_size=60).filter(lambda t: "\x00" not in t),
