@@ -462,6 +462,25 @@ def test_a_wrapped_caption_line_that_is_only_a_code_name_stays_in_the_caption() 
     assert doc.blocks[1].describes == 2
 
 
+def test_a_caption_in_a_typed_memo_keeps_its_typewriter_lines() -> None:
+    """#832: in a typed memo nothing is code (#794), so a listing's caption whose wrapped
+    lines are typewriter type, two of them on the line pitch, keeps them: they are the
+    caption's words, as `find_code` would read them, not a listing cut out of it."""
+    memo = [
+        text_line((TextRun(f"Typed text of the memo, line {k}, as typed.", "Courier", 10.0),), y)
+        for k, y in enumerate(range(100, 100 + 10 * int(PITCH), int(PITCH)))
+    ]
+    head = caption("Listing 2: The order of the day for the meeting, as", 280, end=RIGHT)
+    typed = [
+        text_line((TextRun(text, "Courier", 10.0),), 280 + PITCH * k)
+        for k, text in [(1, "agreed by the staff"), (2, "on Monday.")]
+    ]
+    doc = build_document(content([*memo, head, *typed]))
+    assert kinds(doc)[1:] == [
+        ("caption", f"{head.text}\nagreed by the staff\non Monday."),
+    ]
+
+
 def test_a_caption_line_in_a_typewriter_font_larger_than_the_body_text_is_not_cut() -> None:
     """A caption's wrapped lines set in a typewriter font larger than the body text (the
     caption itself is set a little larger) are no code, so the caption keeps them: the cut

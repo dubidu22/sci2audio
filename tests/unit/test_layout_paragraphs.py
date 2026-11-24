@@ -605,6 +605,46 @@ def test_table_cells_stay_apart() -> None:
     assert found == [li.text for li in above] + [cell.text for row in cells for cell in row]
 
 
+@pytest.mark.parametrize("dash", ["-", "\u2013", "\u2022"])
+def test_a_list_dash_cut_off_its_item_opens_the_item(dash: str) -> None:
+    """#856, a handout's shape: under running text, questions each led by a dash that
+    extraction gives as a piece of its own, with the white after it lined up in every row.
+    The dash is no cell: it opens its item, and is neither a block of its own nor the last
+    line of the item before."""
+    intro = lines("p", LEFT, RIGHT, 100, 4, last=1.0)
+    questions = [
+        "Welche Wege bestehen und wie werden sie gegangen?",
+        "Welche Fragen zeigen sich und wie werden sie beantwortet?",
+        "Mit wem wird dabei gesprochen und wann geschieht das?",
+    ]
+    rows = []
+    for k, question in enumerate(questions):
+        y = 100 + PITCH * (5 + k)
+        rows += [line(dash, LEFT, y, LEFT + 4), line(question, LEFT + 18, y, LEFT + 380)]
+    doc = build_document(content([*intro, *rows]))
+    found = paragraphs(doc)
+    assert dash not in found
+    assert not any(block.endswith(f"\n{dash}") for block in found)
+    assert found[0] == joined(intro)
+    assert [text for block in found[1:] for text in block.split("\n")] == [
+        f"{dash} {question}" for question in questions
+    ]
+    if dash != "-":  # `lists` knows the en dash and the bullet: each line is an item
+        assert [b.label for b in doc.blocks if b.kind is BlockKind.LIST_ITEM] == [dash] * 3
+
+
+def test_a_dash_cell_before_a_number_stays_a_cell() -> None:
+    """A dash in a table's first column, with a number beside it, is still a cell."""
+    above = lines("a", LEFT, RIGHT, 100, 3)
+    cells = [
+        [line(text, LEFT + 150 * c, 160 + PITCH * r, LEFT + 30 + 150 * c) for c, text in row]
+        for r, row in enumerate([[(0, "-"), (1, "0.51"), (2, "0.62")]] * 3)
+    ]
+    doc = build_document(content([*above, *(cell for row in cells for cell in row)]))
+    found = [text for block in paragraphs(doc) for text in block.split("\n")]
+    assert found == [li.text for li in above] + [cell.text for row in cells for cell in row]
+
+
 # Properties
 
 

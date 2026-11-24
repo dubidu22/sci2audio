@@ -3,7 +3,8 @@
 Extraction ends a line at a wide gap (#27), so one printed line may come as several pieces
 on one baseline. Pieces next to each other in one column are one line again, unless the
 white between them lines up with white in the row above or below: then they are the cells
-of a table or a list and stay apart.
+of a table or a list and stay apart; a list's dash or bullet printed apart from its words
+is no cell, but opens its item's line (#856).
 
 A line's size is the size most of its letters have, so a footnote mark or a subscript does
 not change it; it is bold if nearly all its letters are and it ends in bold words, so a bold
@@ -71,6 +72,8 @@ from sci2audio.layout.settings import LayoutSettings
 
 # a list item lettered "i." to "viii." or "a." to "z." (`lists` knows "i)", "(i)", "a)", "(a)")
 _LETTERED_ITEM = re.compile(r"(?:[ivxl]{1,4}|[a-z])[.)]\s")
+# a list item's dash or bullet, printed apart from its words (#856)
+_ITEM_MARKS = frozenset("-\u2010\u2012\u2013\u2014\u2022\u25e6\u25aa\u2023\u2043\u00b7\u2219")
 # what may close a sentence after its full stop: quotes (English and German, #958),
 # guillemets either way round, brackets
 _CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"
@@ -348,13 +351,26 @@ def split_cells(
             # the white starts where the letters so far end (a subscript may stand below
             # the end of the piece before it)
             middle = (reach + piece.box.x0) / 2
-            if piece.box.x0 > reach and any(_white(other, middle) for other in near):
+            if (
+                piece.box.x0 > reach
+                and any(_white(other, middle) for other in near)
+                and not _opens_item(group, current, piece)
+            ):
                 out.append(current)
                 current = []
             current.append(piece)
             reach = max(reach, piece.box.x1)
         out.append(current)
     return out
+
+
+def _opens_item(group: list[Element], current: list[Element], piece: Element) -> bool:
+    """True if `current` is only a list dash or bullet at the start of the printed line
+    `group` and `piece` the words it leads: the white after a marker lines up down a list,
+    yet the marker is its item's, not a cell (#856). A dash before a number is a cell."""
+    first = current[0].line if len(current) == 1 and current[0] is group[0] else None
+    words = piece.line.text.lstrip() if piece.line is not None else ""
+    return first is not None and first.text.strip() in _ITEM_MARKS and words[:1].isalpha()
 
 
 def _nearest(
