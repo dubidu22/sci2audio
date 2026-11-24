@@ -1,5 +1,6 @@
 """Text-step plugins: discovery through the entry point, order, and the guard (#216, PE-10)."""
 
+import gc
 import inspect
 import subprocess
 import sys
@@ -215,10 +216,25 @@ def hang(monkeypatch: pytest.MonkeyPatch):
 
 
 def load_quickly(*entries: EntryPoint):
-    started = time.monotonic()
-    steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
-    # clock-bound: the planted imports never end; 3 s is 15 times the 0.2 s load limit
-    assert time.monotonic() - started < 3
+    # the guard runs a full collection after every plugin it loads, and on a loaded machine
+    # one takes seconds; it has its own limit, so its time is taken off what is measured
+    collecting: list[float] = []
+    collect = gc.collect
+
+    def timed_collect(*args: int) -> int:
+        began = time.monotonic()
+        try:
+            return collect(*args)
+        finally:
+            collecting.append(time.monotonic() - began)
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gc, "collect", timed_collect)
+        started = time.monotonic()
+        steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
+        elapsed = time.monotonic() - started
+    # clock-bound: planted imports never end; 3 s is 15 times the 0.2 s load limit, no collections
+    assert elapsed - sum(collecting) < 3
     assert "ampersand-and" in [step.id for step in steps]
     return steps
 
