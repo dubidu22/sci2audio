@@ -1067,6 +1067,39 @@ def test_a_parenthesised_number_in_an_arabic_document_is_no_heading_number() -> 
     assert [label for _, label in headings(doc)] == ["1", "1.1", "2"]
 
 
+def test_a_letter_in_the_section_before_does_not_number_a_parenthesised_line() -> None:
+    """A new Roman section starts without a letter: a bold "1)" in III. before any letter of
+    III. is no third level, though II. had a lettered subsection."""
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2).heading("1) Hardware", 10.0).body(2)
+    page.heading("III. Results").body(2)
+    page.heading("1) Bold step", 10.0).body(2).heading("2) Next step", 10.0).body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "1)", "III"]
+
+
+def test_a_lettered_line_that_is_no_heading_does_not_number_a_parenthesised_line() -> None:
+    """A line "A. Note" set apart from the lettered subsections (9 point bold) is no heading,
+    so the bold "1)" after it has no letter over it."""
+    page = Page().heading("I. Introduction").body(2)
+    page.heading("A. Setup", 10.0).body(2).heading("1) Hardware", 10.0).body(2)
+    page.heading("B. Data", 10.0).body(2)
+    page.heading("II. Method").body(2).heading("A. Note", 9.0).body(2)
+    page.heading("1) Bold step", 10.0).body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "A", "1)", "B", "II"]
+
+
+def test_the_outline_reads_no_parenthesised_number_after_a_letter_of_the_section_before() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    page.heading("III. Results").body(2)
+    plain(page, "1) Fine print").body(2)
+    doc = page.build(OutlineEntry("1) Fine print", 1, 1))
+    assert headings(doc)[-1] == ("1) Fine print", "")
+    assert [s.level for s in walk(doc.sections)] == [1, 1, 2, 1, 1]
+
+
 def test_the_outline_adds_a_parenthesised_number_under_a_letter_at_level_three() -> None:
     page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
     page.heading("A. Setup", 10.0).body(2)

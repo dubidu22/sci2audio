@@ -24,10 +24,10 @@ heading the outline adds (rule 4 below) is read the same way: a Roman number onl
 is the next after the Roman sections before it, a letter only with its dot, an Arabic
 number not at all. In a document numbered in Arabic, a letter still numbers an appendix at
 level 1. Under a lettered subsection, a number with a closing parenthesis ("1) Hardware") is
-one level deeper than the letter, kept as printed ("1)", #798); before the first letter of a
-Roman section, and in a document that is not Roman, it is no heading number, so a "1)" list
-item stays a list item unless it is set like these headings. The outline reads it the same
-way: a number only after a letter the font rules read, since the last Roman section.
+one level deeper than the letter, kept as printed ("1)", #798). The letter must be a heading
+the font rules keep, in the same Roman section: before the first such letter of a Roman
+section, and in a document that is not Roman, "1)" is no heading number, so a "1)" list item
+stays a list item unless it is set like these headings. The outline reads it the same way.
 
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
@@ -300,7 +300,8 @@ class _Headings:
         self.depths = {k: _depth(label) for k, label in numbers.items()}
         # the Roman section numbers by block index, with their values (`_roman`)
         self.sections: dict[int, int] = {}
-        # the lettered subsections of a Roman document by block index, with their depths
+        # the lettered subsections of a Roman document kept as headings, by block index,
+        # with their depths (set by `_numbered`)
         self.letters: dict[int, int] = {}
         arabic = sum(label[0].isdigit() for label in numbers.values())
         roman = self._roman(arabic)
@@ -316,20 +317,20 @@ class _Headings:
         numbers: dict[int, str] = {}
         depths: dict[int, int] = {}
         sections: dict[int, int] = {}
-        letters: dict[int, int] = {}
-        under: int | None = None  # the depth of the last letter in this Roman section
+        # the depth of the last letter: a "1)" after it is a candidate number one deeper,
+        # which `_numbered` keeps only under a letter heading of its own Roman section
+        under: int | None = None
         for k in self.short:
             text = self.texts[k].block.text.strip()
             found = _ROMAN_NUMBER.match(text)
             if found is not None and _roman_value(found["label"]) == len(sections) + 1:
                 numbers[k], depths[k] = found["label"], 1
                 sections[self.texts[k].index] = len(sections) + 1
-                under = None
             elif found is not None and len(found["label"]) > 1:
                 return None  # a Roman number out of sequence
             elif sections and (letter := _LETTER_NUMBER.match(text)):
                 numbers[k], depths[k] = letter["label"], _depth(letter["label"]) + 1
-                under = letters[self.texts[k].index] = depths[k]
+                under = depths[k]
             elif under is not None and (item := _PAREN_NUMBER.match(text)):
                 numbers[k], depths[k] = item["label"], under + 1
         count = len(sections)
@@ -337,7 +338,7 @@ class _Headings:
             return None
         if arabic >= self.settings.heading_repeats or arabic > count:
             return None  # Arabic numbers number the document; "I." and "II." are a list
-        self.sections, self.letters = sections, letters
+        self.sections = sections
         return numbers, depths
 
     def depth(self, index: int, label: str) -> int | None:
@@ -382,11 +383,20 @@ class _Headings:
         found: dict[int, tuple[int, str]] = {}
         shift = 0  # one more level for each heading under a common title (appendices)
         started = False  # the first numbered heading has come
+        under: int | None = None  # the depth of the last kept letter in this Roman section
         for k in self.short:
             style, label = self.texts[k].style, self.numbers.get(k)
+            index = self.texts[k].index
+            if index in self.sections:
+                under = None
+            if label is not None and label.endswith(")") and under is None:
+                continue  # "1)" with no letter heading over it (#798)
             if label is not None and styles[self.depths[k]] == style:
-                found[k] = (self.depths[k] + shift, label)
+                depth = under + 1 if label.endswith(")") and under is not None else self.depths[k]
+                found[k] = (depth + shift, label)
                 started = True
+                if self.roman and label[0].isalpha() and index not in self.sections:
+                    under = self.letters[index] = depth
             elif label is None and started and style > max(styles.values()):
                 found[k], shift = (1, ""), 1
                 if self.shift_from is None:  # the shift starts at the first such title
