@@ -1026,3 +1026,21 @@ def test_a_capitals_line_that_is_no_month_before_a_number_still_cuts() -> None:
         "2020 was the year in which the second part starts and runs on here.\n"
     )
     assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+@pytest.mark.parametrize(
+    ("lines", "tags"),
+    [
+        (["LISTENING TO PAPERS", "April 2020", "A pilot note on reading papers aloud."], "ppp"),
+        (["Jahresbericht der Gesellschaft", "Oktober 2020", _DIE.strip()], "ppp"),
+        (["Protokoll der Sitzung", "Mai 2021", _DIE.strip()], "ppp"),
+        ([_DONE.strip(), "Ergebnisse", "Oktober 2020", _DIE.strip()], "pbpp"),
+    ],
+    ids=["title-april", "jahresbericht-oktober", "protokoll-mai", "ergebnisse-oktober"],
+)
+def test_a_month_line_after_a_title_line_keeps_its_cut(lines: list[str], tags: str) -> None:
+    """A short title line before a date ends no sentence either, but it is no running
+    sentence: the date in a heading block (title, date, body) keeps the cut after it
+    (#893). ``p`` is a new paragraph, ``b`` a line joined to the one before."""
+    expected = [("p",) if t == "p" else ("p", "br") for t in tags]
+    assert tags_of("\n".join(lines) + "\n") == expected

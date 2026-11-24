@@ -346,7 +346,12 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
         return not first.islower() and not (first.isdigit() and _month_line(line))
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
-    if before is not None and _month_line(line) and not _ends_sentence(before, line):
+    if (
+        before is not None
+        and not _short(before, longest)  # a title line before the date ends no sentence either
+        and _month_line(line)
+        and not _ends_sentence(before, line)
+    ):
         return False
     return first.isupper()
 
