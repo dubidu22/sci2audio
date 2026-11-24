@@ -185,7 +185,13 @@ def test_a_url_inside_longer_code_stays_as_printed(language: str, printed: str, 
         ("https://example.org/a, https://example.org/b", "https://example.org/b"),  # two
         ("https://example.org/a https://example.org/b", "https://example.org/b"),
         ("https://example.org/a,https://example.org/b.", "https://example.org/b"),
-        ("doi:10.1000/xyz123", "10.1000/xyz123"),  # any link the links step finds
+        # any link the links step leaves out on its own (#878)
+        ("doi:10.1000/xyz123", "10.1000/xyz123"),
+        ("10.1000/xyz123", "10.1000/xyz123"),
+        ("jane.doe@example.org", "jane.doe@example.org"),
+        ("<jane.doe@example.org>", "jane.doe@example.org"),
+        ("arXiv:2101.12345", "2101.12345"),
+        ("arXiv:2101.12345v2.", "2101.12345"),
     ],
 )
 def test_a_code_span_of_only_links_is_left_to_the_links_step(
@@ -212,6 +218,10 @@ def test_a_code_span_of_only_links_is_left_to_the_links_step(
         "https://example.org/a and https://example.org/b",
         "https://example.org/a; x => 1",
         "fetch(https://example.org/a)",
+        "fetch_doi 10.1000/xyz123",  # a DOI inside other code (#878)
+        "resolve(doi:10.1000/xyz123)",
+        "mail -s hi jane.doe@example.org",
+        "get arXiv:2101.12345",
     ],
 )
 def test_links_with_other_code_stay_as_printed(language: str, code: str) -> None:
