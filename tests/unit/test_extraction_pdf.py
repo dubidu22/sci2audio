@@ -76,6 +76,73 @@ def test_runs_record_font_size_bold_and_italic() -> None:
     assert (leaning.size, leaning.bold, leaning.italic) == (10.0, False, True)
 
 
+# A heading run into its paragraph, "1) Hardware: The board …" (#826)
+
+REGULAR, BOLD, ITALIC = "Times-Roman", "Times-Bold", "Times-Italic"
+
+
+def set_in_runs(*pieces: tuple[str, str], y: float = 100) -> bytes:
+    """One printed line made of pieces in their fonts, each but the last ending in a space
+    set in its own font, as a typesetter sets a bold run and the space after it."""
+    items, x = [], 50.0
+    for i, (text, font) in enumerate(pieces):
+        set_text = text if i == len(pieces) - 1 else text + " "
+        items.append(Text(set_text, x, y, font=font))
+        x += width(set_text, font)
+    return make_pdf(items)
+
+
+@pytest.mark.parametrize("font", [BOLD, ITALIC])
+def test_an_emphasised_run_ending_in_a_colon_is_cut_from_the_text_after_it(font: str) -> None:
+    data = set_in_runs(("1) Hardware:", font), ("The board runs at 3 V.", REGULAR))
+    first, rest = read_pdf(data, "made.pdf").pages[0].lines
+    assert (first.text, rest.text) == ("1) Hardware:", "The board runs at 3 V.")
+    assert [run.font for run in first.runs] == [font]
+    assert [run.font for run in rest.runs] == [REGULAR]
+    assert first.id != rest.id
+    assert first.box is not None
+    assert rest.box is not None
+    assert first.box == first.runs[0].box
+    assert rest.box == rest.runs[0].box
+    assert first.box.x0 < rest.box.x0
+    assert first.box.x1 < rest.box.x1
+    assert first.box.y1 == pytest.approx(rest.box.y1, abs=0.5)  # one baseline
+
+
+def test_the_text_after_the_cut_keeps_all_its_runs() -> None:
+    data = set_in_runs(
+        ("1) Hardware:", BOLD), ("The", REGULAR), ("board", ITALIC), ("runs.", REGULAR)
+    )
+    first, rest = read_pdf(data, "made.pdf").pages[0].lines
+    assert first.text == "1) Hardware:"
+    assert [run.text for run in rest.runs] == ["The", " board", " runs."]
+
+
+@pytest.mark.parametrize(
+    "pieces",
+    [
+        pytest.param([("1) Hardware", BOLD), ("the board runs.", REGULAR)], id="no-colon"),
+        pytest.param([("1) Hardware:", BOLD)], id="nothing-after"),
+        pytest.param([("1) Hardware: the board", BOLD)], id="bold-throughout"),
+        pytest.param(
+            [("The", REGULAR), ("board:", BOLD), ("runs at 3 V.", REGULAR)], id="bold-mid-line"
+        ),
+        pytest.param([("1) Hardware:", BOLD), ("the board", ITALIC)], id="emphasis-after"),
+        pytest.param([(":", BOLD), ("the board runs.", REGULAR)], id="colon-alone"),
+        pytest.param([("DOI:", BOLD), ("10.1/x", REGULAR)], id="doi-label"),
+        pytest.param([("Abstract:", BOLD), ("We read papers aloud.", REGULAR)], id="abstract"),
+        pytest.param([("Figure 1:", BOLD), ("A board.", REGULAR)], id="caption"),
+        pytest.param([("A. Speed:", BOLD), ("The board is fast.", REGULAR)], id="letter"),
+        pytest.param([("123) Big:", BOLD), ("The board is fast.", REGULAR)], id="three-digits"),
+        pytest.param([("1):", BOLD), ("The board is fast.", REGULAR)], id="number-alone"),
+    ],
+)
+def test_a_line_without_a_run_in_heading_stays_one_line(pieces: list[tuple[str, str]]) -> None:
+    data = set_in_runs(*pieces)
+    (line,) = read_pdf(data, "made.pdf").pages[0].lines
+    assert line.text == " ".join(text for text, _ in pieces)
+
+
 def test_a_raised_smaller_number_stays_in_its_line_as_its_own_run() -> None:
     data = make_pdf([Text("E = mc", 50, 200), Text("2", 81, 196, size=6)])
     (line,) = read_pdf(data, "made.pdf").pages[0].lines
