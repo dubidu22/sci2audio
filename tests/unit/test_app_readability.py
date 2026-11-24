@@ -258,6 +258,66 @@ def test_a_scanned_page_among_text_pages_of_a_real_pdf() -> None:
     assert picture_pages(read_pdf(data, "scans.pdf")) == (2,)
 
 
+def boxed_page(number: int, *boxes: Box) -> Page:
+    """A US Letter page holding pictures at `boxes` and no text."""
+    pictures = tuple(Picture(f"p{number}-i{k}", box) for k, box in enumerate(boxes))
+    return Page(number, width=612, height=792, pictures=pictures)
+
+
+def test_a_page_with_only_a_small_logo_is_not_named() -> None:
+    """#605: a publisher's logo on an otherwise blank back page is no scan."""
+    logo = boxed_page(2, Box(256, 700, 356, 740))
+    assert picture_pages(pdf(page(1, 300), logo)) == ()
+
+
+def test_a_page_with_a_full_page_picture_is_named() -> None:
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, Box(0, 0, 612, 792)))) == (2,)
+
+
+def test_pictures_count_together_and_their_overlap_once() -> None:
+    """Two pictures that cover 60 % of the page together are a scan; one picture of 40 %
+    laid twice over itself is not."""
+    top, bottom = Box(0, 0, 612, 238), Box(0, 238, 612, 475)
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, top, bottom))) == (2,)
+    same = Box(0, 0, 612, 317)
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, same, same))) == ()
+
+
+def test_a_picture_beyond_the_page_counts_only_on_it() -> None:
+    """A small picture whose box runs far off the page covers only the part on it."""
+    off = boxed_page(2, Box(500, 700, 5000, 5000))
+    assert picture_pages(pdf(page(1, 300), off)) == ()
+
+
+def test_a_picture_without_a_box_or_a_page_without_a_size_still_counts_as_a_scan() -> None:
+    unboxed = Page(2, width=612, height=792, pictures=(Picture("p2-i1"),))
+    small_and_unboxed = Page(
+        3, width=612, height=792, pictures=(Picture("p3-i0", Box(0, 0, 10, 10)), Picture("p3-i1"))
+    )
+    unsized = Page(4, pictures=(Picture("p4-i1", Box(0, 0, 10, 10)),))
+    assert picture_pages(pdf(page(1, 300), unboxed, small_and_unboxed, unsized)) == (2, 3, 4)
+
+
+def test_many_small_pictures_are_measured_by_their_sum() -> None:
+    """Above the pictures whose overlaps are worked out, their areas are summed: tiles
+    that fill 60 % of the page are a scan, scattered tiles that fill 5 % are not."""
+    tiles = [
+        Box(x * 6.12, y * 7.92, (x + 1) * 6.12, (y + 1) * 7.92)
+        for x in range(100)
+        for y in range(100)
+        if (x + y) % 20 == 0
+    ]
+    assert len(tiles) > 400
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, *tiles))) == ()
+    filled = [
+        Box(x * 6.12, y * 7.92, (x + 1) * 6.12, (y + 1) * 7.92)
+        for x in range(100)
+        for y in range(100)
+        if y < 60
+    ]
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, *filled))) == (2,)
+
+
 def test_the_picture_warning_names_the_pages() -> None:
     assert picture_warning([7]) == (
         "Page 7 holds no text, only pictures (a scanned page?), so nothing on it is read."
@@ -274,10 +334,18 @@ def test_the_pages_of_pictures_are_those_with_a_picture_and_no_text(content: Con
     if content.source.format is not SourceFormat.PDF:
         assert named == ()
         return
-    expected = tuple(
+    only_pictures = tuple(
         p.number
         for p in content.pages
         if p.pictures and all(not line.text.strip() for line in p.lines)
     )
+    unmeasured = tuple(
+        p.number
+        for p in content.pages
+        if p.number in only_pictures
+        and (not p.width or not p.height or any(pic.box is None for pic in p.pictures))
+    )
     event(f"named {min(len(named), 2)}")
-    assert named == expected
+    event(f"left out {min(len(only_pictures) - len(named), 2)}")
+    assert set(unmeasured) <= set(named) <= set(only_pictures)
+    assert named == tuple(sorted(named, key=only_pictures.index))
