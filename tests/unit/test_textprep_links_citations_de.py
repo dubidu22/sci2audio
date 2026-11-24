@@ -201,6 +201,10 @@ def test_a_url_cut_at_a_line_end_leaves_a_german_sentence_word() -> None:
         ("Das gilt (Sommer 2019a).", "Das gilt."),
         ("Das gilt (Sommer 2019; Koch 2020).", "Das gilt."),
         ("Das gilt (Koch 2020; Sommer 2019).", "Das gilt."),
+        # #595: a name among period words, or a period word with a locator, still cites
+        ("Das gilt (Stand und Koch 2019).", "Das gilt."),
+        ("Das gilt (Sommer/Winter 2019, S. 3).", "Das gilt."),
+        ("Das gilt (Frühjahr und Sommer et al. 2019).", "Das gilt."),
     ],
 )
 def test_german_citations(printed: str, said: str) -> None:
@@ -247,6 +251,14 @@ def test_german_citations(printed: str, said: str) -> None:
         "Die Erhebung (Welle 2017) zeigt es.",
         "Die Zahlen (Mai 2019) zeigen es.",  # a month, as before
         "Gemessen wurde im (Sommer 2019) und danach.",
+        # #595: a bracket that dates with several period words, joined by "und", a slash,
+        # "bis" or nothing
+        "Die Daten (Frühjahr und Sommer 2019) gelten.",
+        "Die Daten (Herbst/Winter 2019) gelten.",
+        "Die Daten (Stand März 2020) gelten.",
+        "Die Daten (Herbst bis Winter 2019) gelten.",
+        "Die Daten (Sommer- und Wintersemester 2019) gelten.",
+        "Die Daten (Stand: 2020) gelten.",
         # "↔" is a maths sign, as "→" and "←" are (#527, #593)
         "Es gilt x ↔ [2] und y ←−→ [3].",
     ],

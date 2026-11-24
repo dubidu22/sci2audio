@@ -3084,45 +3084,6 @@ expected = [
 ]
 
 # ---- #652 nothing to speak: a lone dash, bullet, quote mark or bracket ------------------------
-# The German cases stand here because german.toml is held by an open PR; they set language = "de".
-
-[[case]]
-id = "de-dash-list-middle-dash-on-its-own-line"
-audit = 0
-issue = 652
-goal = "Three dash-led questions, the middle dash on a line of its own: three utterances, each led by its own dash, none only '-', nothing after a question mark (#652)."
-language = "de"
-blocks = [{ kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?\n-\nWelche Hürden treten auf und wie lassen sie sich abbauen?\n- Mit wem lässt sich der Ort gemeinsam gestalten?" }]
-expected = ["- Welche Räume stehen offen und wie lassen sie sich nutzen? - Welche Hürden treten auf und wie lassen sie sich abbauen? - Mit wem lässt sich der Ort gemeinsam gestalten?"]
-utterances = [
-    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
-    "- Welche Hürden treten auf und wie lassen sie sich abbauen?",
-    "- Mit wem lässt sich der Ort gemeinsam gestalten?",
-]
-
-[[case]]
-id = "de-dash-list-split-into-blocks-by-layout"
-audit = 0
-issue = 652
-goal = "The same list as layout split it in the reported handout: a block of only '-', and the next item's dash at the end of the block before. No utterance is only '-', and none ends in a dash after its question mark (#652)."
-language = "de"
-blocks = [
-    { kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?" },
-    { kind = "paragraph", text = "-" },
-    { kind = "paragraph", text = "Welche Hürden treten auf und wie lassen sie sich abbauen?\n-" },
-    { kind = "paragraph", text = "Mit wem lässt sich der Ort gemeinsam gestalten?" },
-]
-expected = [
-    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
-    "-",
-    "Welche Hürden treten auf und wie lassen sie sich abbauen? -",
-    "Mit wem lässt sich der Ort gemeinsam gestalten?",
-]
-utterances = [
-    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
-    "Welche Hürden treten auf und wie lassen sie sich abbauen?",
-    "Mit wem lässt sich der Ort gemeinsam gestalten?",
-]
 
 [[case]]
 id = "lone-bullets-quotes-and-brackets-are-no-utterance"
@@ -3235,6 +3196,24 @@ expected = [
     "We thank Smith here.",
     "We thank Smith, Lee here.",
     "It rains and shows it.",
+]
+
+# ---- dating brackets are no citations (#588) -------------------------------------------------
+
+[[case]]
+id = "citations-season-or-term-and-year-in-brackets"
+audit = 0
+issue = 588
+goal = "A bracket of a season or term and a year ('(Summer 2019)', '(Fall 2018)', '(Spring and Summer 2019)') dates something and stays as printed; a bracket with a second author, 'et al.', a lead word or a locator still cites and goes (#588)."
+blocks = [
+    { kind = "paragraph", text = "The data (Summer 2019) and the courses (Fall 2018) show it." },
+    { kind = "paragraph", text = "The survey (Spring and Summer 2019) shows it." },
+    { kind = "paragraph", text = "It holds (Winter et al. 2021; Summer and Lee 2019; see Winter 2021)." },
+]
+expected = [
+    "The data (Summer 2019) and the courses (Fall 2018) show it.",
+    "The survey (Spring and Summer 2019) shows it.",
+    "It holds.",
 ]
 
 # ---- #854, #878, #880 inline code ----------------------------------------------------------

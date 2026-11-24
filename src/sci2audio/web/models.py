@@ -364,3 +364,44 @@ class MarkerOut(BaseModel):
     state: Literal["found", "not-read", "not-found"] = Field(
         description="found; in text this audiobook does not read; or not found in it"
     )
+
+
+class CaptureIn(Strict):
+    """A capture on the sentence the page was reading (#397, ADR-008): the page names its
+    chunk, never a span or a sentence's text."""
+
+    type: Literal["mark", "note", "quote"] = Field(description="what is captured")
+    chunk: int = Field(
+        ge=0, le=10_000_000, strict=True, description="the read-along chunk of the sentence"
+    )
+    audiobook: str = Field(
+        pattern=r"^[0-9a-f]{16}$",
+        description="the stamp of the audiobook the page was drawn for (its read-along file)",
+    )
+    text: str = Field(
+        default="",
+        max_length=4000,
+        pattern=r"^[^\x00]*$",
+        description='a note\'s text, plain text; "" for a mark and a quote',
+    )
+
+
+class CaptureTextIn(Strict):
+    text: str = Field(
+        min_length=1, max_length=4000, pattern=r"^[^\x00]*$", description="the note's new text"
+    )
+
+
+class CaptureOut(BaseModel):
+    id: str = Field(description="16 hex digits")
+    type: Literal["mark", "note", "quote"] = Field(description="what was captured")
+    created: str = Field(description="when it was set, UTC")
+    changed: str = Field(description="when it last changed, UTC")
+    sentence: str = Field(description="the sentence as printed when it was captured")
+    text: str = Field(description='a note\'s text ("" for a mark and a quote)')
+    chunk: int | None = Field(
+        description="the first chunk of its sentence in this audiobook, or null"
+    )
+    state: Literal["found", "not-read", "not-found"] = Field(
+        description="found; in text this audiobook does not read; or not found in it"
+    )

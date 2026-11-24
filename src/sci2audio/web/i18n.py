@@ -40,6 +40,9 @@ ANNOUNCE = ("off", "on")
 # Keyboard shortcuts item work either way
 KEYS_COOKIE = "sci2audio-keys"
 KEYS = ("on", "off")
+# a short sound when something is captured (#397): on unless switched off, as the design
+SOUNDS_COOKIE = "sci2audio-sounds"
+SOUNDS = ("on", "off")
 # the player's playback speed (#651): a number with two decimals within the player's range;
 # anything else counts as 1, and a number outside the range as its nearest limit
 PLAYER_SPEED_COOKIE = "sci2audio-player-speed"
@@ -66,7 +69,7 @@ SCRIPT_KEYS = (
     "making.speaking",  # the job card's headline (#391)
     "making.cancel_size",
     "player.",
-    "marker.",  # the markers on the Listen page (#474)
+    "capture.",  # the captures on the Listen page (#397)
     "remove.removing",
     "remove.done",
     "remove.stays",  # and remove.stays_folder, remove.stays_earlier
@@ -174,6 +177,7 @@ def known_language(text: str | None) -> str | None:
 _THEMES = {theme: theme for theme in THEMES}
 _ANNOUNCE = {value: value for value in ANNOUNCE}
 _KEYS = {value: value for value in KEYS}
+_SOUNDS = {value: value for value in SOUNDS}
 
 
 def known_theme(text: str | None) -> str | None:
@@ -189,6 +193,11 @@ def known_announce(text: str | None) -> str | None:
 def known_keys(text: str | None) -> str | None:
     """`on` or `off` from `KEYS` itself, or None."""
     return _KEYS.get(text) if text else None
+
+
+def known_sounds(text: str | None) -> str | None:
+    """`on` or `off` from `SOUNDS` itself, or None."""
+    return _SOUNDS.get(text) if text else None
 
 
 def known_player_speed(text: str | None) -> float | None:
@@ -225,6 +234,12 @@ def keys_of(request: Request) -> bool:
     """Whether the page-wide single keys work (#394). On unless the person
     switched them off."""
     return known_keys(request.cookies.get(KEYS_COOKIE)) != "off"
+
+
+def sounds_of(request: Request) -> bool:
+    """Whether the Listen page plays a short sound on each capture (#397). On unless the
+    person switched it off."""
+    return known_sounds(request.cookies.get(SOUNDS_COOKIE)) != "off"
 
 
 def player_speed_of(request: Request) -> float:

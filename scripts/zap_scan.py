@@ -624,6 +624,13 @@ def walk(config: Any, proxy: str, chromium: str | None) -> None:
                 answer = page.goto(origin + path)
                 _check(answer is not None, path)
                 expect(page.locator("html")).to_have_attribute("lang", "de")
+            # the capture keys in German (#397), on a sentence of the Listen page
+            page.goto(f"{origin}/documents/{ids.paper}/listen")
+            page.locator("#text .s").nth(2).click()  # not the English walk's sentence
+            page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
+            page.evaluate("() => document.getElementById('audio').pause()")
+            page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+            _captures(page, "Zitat festgehalten.", "Markiert.", "Marke entfernt.", "Zurückgeholt.")
             context.close()
         finally:
             browser.close()
@@ -633,6 +640,42 @@ def walk(config: Any, proxy: str, chromium: str | None) -> None:
     with httpx.Client(proxy=proxy, trust_env=False, timeout=30) as client:
         answer = client.get(f"http://{REBOUND}:{config.port}/")
         _check(answer.status_code == 421, f"a wrong Host got {answer.status_code}")
+
+
+def _captures(page: Any, quoted: str, marked: str, unmarked: str, back: str) -> None:
+    """Q and M on the sentence being read, M again and the toast's Undo (#397)."""
+    from playwright.sync_api import expect
+
+    toast, said = page.locator("#capture-toast"), page.locator("#capture-said")
+    for key, words in (("q", quoted), ("m", marked), ("m", unmarked)):
+        page.evaluate("() => document.activeElement?.blur()")
+        page.keyboard.press(key)
+        expect(toast).to_be_visible()
+        expect(said).to_have_text(words)
+    page.locator("#capture-undo").click()
+    expect(said).to_have_text(back)
+
+
+def _markers(page: Any, context: Any, origin: str, document: str) -> None:
+    """The v1.3 marker routes (#474), which the Listen page no longer calls since #397:
+    set, note, remove and put back, as a page would."""
+    stamp, chunk = page.evaluate(
+        """() => {
+            const data = JSON.parse(document.getElementById('player-data').textContent);
+            return [data.audiobook, data.chunks.findIndex((c) => c[3])];
+        }"""
+    )
+    url, same = f"{origin}/api/v1/documents/{document}/markers", {"Origin": origin}
+    answer = context.request.post(url, data={"chunk": chunk, "audiobook": stamp}, headers=same)
+    _check(answer.status in (200, 201), f"POST {url} answered {answer.status}")
+    marker = f"{url}/{answer.json()['id']}"
+    for method, path, body, wanted in (
+        ("PATCH", marker, {"note": "A note for the scan."}, 200),
+        ("DELETE", marker, None, 200),
+        ("POST", f"{marker}/restore", None, 201),
+    ):
+        answer = context.request.fetch(path, method=method, data=body, headers=same)
+        _check(answer.status == wanted, f"{method} {path} answered {answer.status}")
 
 
 class WalkError(RuntimeError):
@@ -766,20 +809,21 @@ def _walk_english(
     page.wait_for_url(re.compile(r"/listen$"))
     page.locator("#text .s").first.click()  # the sentences, not an icon of size s
     page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
-    # a marker with a note, removed and put back (#474), paused so it stays on one sentence
+    # Q, M and N at the sentence being read (#397): a quote and a mark, a note written and
+    # changed in the box, a removal and its Undo; paused so it stays on one sentence
     page.evaluate("() => document.getElementById('audio').pause()")
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-    said = page.locator("#marker-said")
-    page.locator("#marker").click()
-    expect(said).to_have_text("Marker set.")
-    page.locator("#marker-add-note").click()
-    page.get_by_role("textbox", name="Note").fill("A note for the scan.")
+    _captures(page, "Quote captured.", "Marked.", "Mark removed.", "Put back.")
+    page.keyboard.press("n")
+    box = page.get_by_role("textbox", name="Your note on this sentence")
+    box.fill("A note for the scan.")
     page.keyboard.press("Control+Enter")
-    expect(page.locator("#marker-list .mk-note")).to_have_text("A note for the scan.")
-    page.locator("#marker").click()
-    expect(said).to_have_text("Marker and note removed.")
-    page.locator("#marker-undo").click()
-    expect(said).to_have_text("Marker put back.")
+    expect(page.locator("#capture-list .cp-note")).to_have_text("A note for the scan.")
+    page.locator("#capture-list").get_by_role("button", name="Edit note").click()
+    box.fill("A note changed for the scan.")
+    page.keyboard.press("Control+Enter")
+    expect(page.locator("#capture-list .cp-note")).to_have_text("A note changed for the scan.")
+    _markers(page, context, origin, paper_id)
 
     # again: the files exist, then replace them; free the speech cache
     page.goto(f"{origin}/documents/{paper_id}")

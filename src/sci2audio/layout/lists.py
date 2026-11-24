@@ -139,6 +139,12 @@ def _next(reading: tuple[str, int], before: set[tuple[str, int]]) -> bool:
     return any(s == style and (s.startswith("bullet") or n == m + 1) for s, m in before)
 
 
+def printed_marker(text: str) -> str:
+    """The marker the text opens with, as printed ("1.", "(a)", "•"), or "" if none."""
+    found = _marker(text)
+    return found.text if found else ""
+
+
 def _marker(text: str) -> _Marker | None:
     """The marker the text opens with, if any, with each reading of it."""
     readings, printed = [], ""

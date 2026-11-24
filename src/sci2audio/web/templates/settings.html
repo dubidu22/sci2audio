@@ -6,7 +6,7 @@
 {#- Settings (#388, prototype/app/screens/settings.png). Appearance, language, the
     announcements and the keyboard shortcuts (#394) are GET forms that set their own cookie and come back here (D-288, D-321,
     D-671): they work without the script. The defaults are the settings file's, saved by the
-    script through the API. The capture sound follows with the study layer (#397). #}
+    script through the API. The capture sounds (#397) are a cookie like the announcements. #}
 {% if warnings %}<p class="note" id="settings-warning">{{ t('settings.file_warning') }}</p>{% endif %}
 
 <section class="panel" aria-labelledby="appearance-head">
@@ -70,6 +70,16 @@
       <label for="settings-keys">{{ t('settings.keys') }}</label>
       <span class="hint" id="settings-keys-hint">{{ t('settings.keys_hint') }}</span>
       <p class="buttons" id="keys-save-line"><button type="submit" class="sm">{{ t('settings.keys_save') }}</button></p>
+    </div>
+  </form>
+  <form method="get" action="/appearance" id="sounds-form" class="setting-switch">
+    <input type="hidden" name="back" value="/settings">
+    <input type="hidden" name="sounds" value="off">
+    <input type="checkbox" role="switch" class="switch" id="settings-sounds" name="sounds" value="on" aria-describedby="settings-sounds-hint"{% if sounds %} checked{% endif %}>
+    <div>
+      <label for="settings-sounds">{{ t('settings.sounds') }}</label>
+      <span class="hint" id="settings-sounds-hint">{{ t('settings.sounds_hint') }}</span>
+      <p class="buttons" id="sounds-save-line"><button type="submit" class="sm">{{ t('settings.sounds_save') }}</button></p>
     </div>
   </form>
 </section>

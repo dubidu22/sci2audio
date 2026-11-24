@@ -816,6 +816,15 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
             # kept, so the script and report are too, or they would not match it (#766)
             keeps = args.keep_settings and not args.overwrite  # --overwrite makes every one anew
             script_settings = _kept_settings(work, settings) if keeps else settings
+            if not args.overwrite:
+                # the audio holds the chapters made before and this run's, in book order,
+                # also without --keep-settings when the settings are the same: the script
+                # covers what the audio holds (#784, #808); the chosen numbers the document
+                # lacks stay, so the report still warns of them
+                held = tuple(c.chapter.index for c in job.result.chapters if c.selected)
+                known = {c.chapter.index for c in job.result.chapters}
+                lacking = tuple(i for i in settings.chapters or () if i not in known)
+                script_settings = replace(script_settings, chapters=(*held, *lacking))
             script = env.job_runner(script_settings).run_script(
                 source,
                 script_settings,

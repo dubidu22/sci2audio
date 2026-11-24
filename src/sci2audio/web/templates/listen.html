@@ -18,7 +18,7 @@
 {#- The Listen page (#392, #393; DESIGN.md "Listen"): the desk with the sheet and one context
     panel beside it, and the dock. Every button player.js wires is drawn disabled, so a press
     before the script ran is never lost silently (#350, #427). -#}
-<div class="listen" id="listen"{% if announce %} data-announce="on"{% endif %}>
+<div class="listen" id="listen"{% if announce %} data-announce="on"{% endif %}{% if sounds %} data-sounds="on"{% endif %}>
 <div class="desk">
 {#- The dock (DESIGN.md "Player dock", D-664). It comes first, so the keyboard reaches the
     player before the text; player.js pins it to the window's foot while it fits there. -#}
@@ -30,8 +30,8 @@
   </div>
   <div class="timeline">
     <svg class="ticks" aria-hidden="true" focusable="false">{% for chapter in outline %}{% if not loop.first %}<line x1="{{ chapter.at }}" x2="{{ chapter.at }}" y1="0" y2="8"></line>{% endif %}{% endfor %}</svg>
-    {#- the markers' ticks (#474), above the track: player.js draws them #}
-    <svg class="marker-ticks" id="marker-ticks" aria-hidden="true" focusable="false"></svg>
+    {#- the captures' ticks (#397), above the track, one per type: player.js draws them #}
+    <svg class="capture-ticks" id="capture-ticks" aria-hidden="true" focusable="false"></svg>
     <input type="range" id="timeline" min="0" max="{{ view.duration }}" step="any" value="0" aria-label="{{ t('listen.timeline') }}" aria-valuetext="{{ t('player.time_of', time='0:00', total=total) }}" disabled>
   </div>
   <p class="nowplaying">
@@ -42,8 +42,14 @@
   {% if planned %}<p id="waiting" class="waiting" role="status" hidden>{{ t('player.waiting_next') }}</p>{% endif %}
   <div class="dock-end">
     <button type="button" id="back-to-reading" class="sm" hidden>{{ t('listen.back_to_reading') }}</button>
-    {#- a marker on the sentence being read (#474): pressed while it has one #}
-    <button type="button" class="sm marker-button" id="marker" aria-pressed="false"{% if keys %} aria-keyshortcuts="M"{% endif %} disabled>{{ icon('mark', 's') }}<span>{{ t('marker.button') }}</span>{% if keys %}<kbd aria-hidden="true">M</kbd>{% endif %}</button>
+    {#- the capture keys (#397, ADR-008 2.2 B): Note, Quote, Mark, each with its flag, word and
+        key cap. Quote and Mark are pressed while the sentence being read has one; the colour
+        is on the flag only, never on the button -#}
+    <div class="capkeys" role="group" aria-label="{{ t('capture.group') }}">
+      {%- for kind, letter in (('note', 'N'), ('quote', 'Q'), ('mark', 'M')) %}
+      <button type="button" class="sm capkey" id="capture-{{ kind }}" data-kind="{{ kind }}"{% if kind != 'note' %} aria-pressed="false"{% endif %}{% if keys %} aria-keyshortcuts="{{ letter }}"{% endif %} disabled><span class="flag f-{{ kind }}" aria-hidden="true">{{ icon(kind, 's') }}</span><span class="lbl">{{ t('capture.' ~ kind) }}</span>{% if keys %}<kbd aria-hidden="true">{{ letter }}</kbd>{% endif %}</button>
+      {%- endfor %}
+    </div>
     {#- the speed (#152, #651): a button with the speed opens the usual speeds and the field #}
     <div class="speed-menu">
       <button type="button" id="speed" class="speed" aria-expanded="false" aria-controls="speed-panel" disabled><span class="visually-hidden">{{ t('listen.speed') }} </span><span id="speed-now">{{ speed.text }}</span></button>
@@ -54,12 +60,13 @@
     </div>
     <span class="ai-label">{{ t('listen.ai_label') }}</span>
   </div>
-  <p class="marker-toast" id="marker-toast" hidden><span id="marker-said"></span> <button type="button" class="sm" id="marker-undo" disabled>{{ icon('undo', 's') }}<span>{{ t('marker.undo') }}</span></button> <button type="button" class="sm quiet" id="marker-add-note" hidden disabled>{{ t('marker.add_note') }}</button></p>
+  {#- the toast after a capture or a removal (#397): its type's flag, the words, and Undo -#}
+  <p class="capture-toast" id="capture-toast" hidden><span class="flag" id="capture-toast-flag" aria-hidden="true" hidden></span><span id="capture-said"></span> <button type="button" class="sm" id="capture-undo" disabled>{{ icon('undo', 's') }}<span>{{ t('capture.undo') }}</span></button></p>
   <audio id="audio" preload="metadata"></audio>
 </section>
 <article class="sheet" aria-labelledby="listen-title">
   <span class="now-bar" id="now-bar" aria-hidden="true" hidden></span>
-  <span class="marker-flags" id="marker-flags" aria-hidden="true"></span>
+  <span class="capture-flags" id="capture-flags" aria-hidden="true"></span>
   <div class="sheet-top">
     <p class="ai-notice">{{ t('listen.ai_notice', voice=voice) }}</p>
     <button type="button" class="sm" id="focus-on"{% if keys %} aria-keyshortcuts="F"{% endif %} disabled>{{ icon('focus', 's') }}<span>{{ t('listen.focus') }}</span></button>
@@ -95,21 +102,20 @@
   </div>
   <div class="focus-stage" lang="{{ view.language }}">
     <p class="prev" id="focus-prev"></p>
-    <p class="cur"><span class="now-bar" id="focus-bar" aria-hidden="true" hidden></span><span id="focus-now"></span><span class="marker-flag" id="focus-flag" aria-hidden="true" hidden>{{ icon('mark', 's') }}</span></p>
+    <p class="cur"><span class="now-bar" id="focus-bar" aria-hidden="true" hidden></span><span id="focus-now"></span><span class="focus-flags" id="focus-flags" aria-hidden="true" hidden></span></p>
     <p class="next" id="focus-next"></p>
   </div>
-  {% if keys %}<p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('M') }} {{ t('marker.button') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>{% endif %}
+  {% if keys %}<p class="focus-foot"><span>{{ key('space') }} {{ t('keys.play') }}</span><span>{{ key('left') }} {{ key('right') }} {{ t('keys.prevnext') }}</span><span>{{ key('N') }} {{ t('capture.note') }}</span><span>{{ key('Q') }} {{ t('capture.quote') }}</span><span>{{ key('M') }} {{ t('capture.mark') }}</span><span>{{ key('?') }} {{ t('nav.shortcuts') }}</span></p>{% endif %}
 </section>
 </div>
-{#- One context panel (#393): Changes, read-only, Chapters and Markers (#474). The other
-    captures wait for the study layer. From 1280 px it stands beside the desk; below, it
-    opens over it. -#}
+{#- One context panel (#393): Changes, read-only, Chapters and Captures (#397). From 1280 px
+    it stands beside the desk; below, it opens over it. -#}
 <aside class="context" id="context" aria-label="{{ t('listen.panel') }}">
   <div class="context-head">
     <div class="context-tabs" role="tablist" aria-label="{{ t('listen.panel') }}">
       <button type="button" role="tab" id="tab-changes" aria-controls="panel-changes" aria-selected="false" tabindex="-1" disabled>{{ t('listen.changes') }}</button>
       <button type="button" role="tab" id="tab-outline" aria-controls="panel-outline" aria-selected="true" disabled>{{ t('listen.chapters') }}</button>
-      <button type="button" role="tab" id="tab-markers" aria-controls="panel-markers" aria-selected="false" tabindex="-1" disabled>{{ t('marker.tab_count', n=markers|length) }}</button>
+      <button type="button" role="tab" id="tab-captures" aria-controls="panel-captures" aria-selected="false" tabindex="-1" disabled>{{ t('capture.tab_count', n=captures|length) }}</button>
     </div>
     <button type="button" class="icon-btn" id="panel-close" aria-label="{{ t('listen.panel_hide') }}" title="{{ t('listen.panel_hide') }}" disabled>{{ icon('x', 's') }}</button>
   </div>
@@ -165,13 +171,14 @@
     {% if not document.outside %}<div class="listen-book">{{ book_box(document.id, document.name, false) }}</div>{% endif %}
     <p class="setting-switch follow"><input type="checkbox" role="switch" class="switch" id="follow" checked> <label for="follow">{{ t('listen.follow') }}</label></p>
   </div>
-  {#- the markers (#474, D-723): player.js draws the rows from the data block, in reading
-      order, those not found last; the notes are text, never HTML -#}
-  <div class="context-body" role="tabpanel" id="panel-markers" aria-labelledby="tab-markers" hidden>
-    <h2 class="visually-hidden" id="markers-heading">{{ t('marker.heading') }}</h2>
-    {% if markers_file %}<p class="note" id="markers-broken">{{ t('marker.broken', file=markers_file) }}</p>{% endif %}
-    <p class="hint" id="markers-empty"{% if markers %} hidden{% endif %}>{{ t('marker.empty') }}</p>
-    <ol class="marker-list" id="marker-list" aria-labelledby="markers-heading"></ol>
+  {#- the captures (#397): player.js draws the rows from the data block, in reading order,
+      those not found last, and the note box above them; a note is text, never HTML -#}
+  <div class="context-body" role="tabpanel" id="panel-captures" aria-labelledby="tab-captures" hidden>
+    <h2 class="visually-hidden" id="captures-heading">{{ t('capture.heading') }}</h2>
+    {% if captures_off %}<p class="note" id="captures-broken">{{ t('capture.' ~ captures_off, file=captures_file) }}</p>{% endif %}
+    <div id="capture-composer"></div>
+    <p class="hint" id="captures-empty"{% if captures %} hidden{% endif %}>{{ t('capture.empty') }}</p>
+    <ol class="capture-list" id="capture-list" aria-labelledby="captures-heading"></ol>
   </div>
 </aside>
 </div>

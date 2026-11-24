@@ -109,7 +109,9 @@ class CitationWords:
     # a season, a term or a noun that stands before a year ("Sommer", "Wintersemester",
     # "Ausgabe"): alone with a plain year, as a bracket's only part, it dates something and
     # is no author ("(Sommer 2019)" stays; "(Sommer, 2019)", "(Sommer et al. 2019)", "(vgl.
-    # Sommer 2019)" and "(Sommer 2019; Koch 2020)" still cite, #483)
+    # Sommer 2019)" and "(Sommer 2019; Koch 2020)" still cite, #483). Several of them joined
+    # by `and_word`, a slash or nothing date something too: "(Frühjahr und Sommer 2019)",
+    # "(Herbst/Winter 2019)", "(Stand März 2020)", "(Spring and Summer 2019)" (#588, #595)
     periods: frozenset[str] = frozenset()
 
 
@@ -166,6 +168,9 @@ WORDS: dict[str, CitationWords] = {
             "october", "november", "december",
         )),
         articles=frozenset(["the", "a", "an"]),
+        periods=frozenset((
+            "summer", "spring", "fall", "autumn", "winter", "semester", "term", "quarter",
+        )),
         joins=r"and|&",
         others=r"et\s+al\.",
         other_words=frozenset(["et", "al."]),
@@ -1588,15 +1593,25 @@ class _Rules:
     def _dated_period(
         self, text: str, part: tuple[int, int], piece: str, match: re.Match[str]
     ) -> bool:
-        """True for a bracket that is only a season, term or the like and a year: "(Sommer
-        2019)", "(Wintersemester 2019)", "(Ausgabe 2018)" (#483)."""
+        """True for a bracket that is only seasons, terms or the like and a year: "(Sommer
+        2019)", "(Wintersemester 2019)", "(Ausgabe 2018)" (#483), "(Summer 2019)" (#588),
+        "(Frühjahr und Sommer 2019)", "(Herbst/Winter 2019)", "(Stand März 2020)" (#595)."""
         return (
-            match["authors"].lower() in self.words.periods
+            self._only_periods(match["authors"])
             and not piece[: match.start("authors")].strip()
             and _PLAIN_YEAR.fullmatch(piece, match.end("authors")) is not None
             and text[part[0] - 1 : part[0]] == "("
             and text[part[1] : part[1] + 1] == ")"
         )
+
+    def _only_periods(self, authors: str) -> bool:
+        """True when every word is a period word, joined by `and_word`, a slash or a space:
+        "Sommer", "Frühjahr und Sommer", "Herbst/Winter", "Stand März" (#595)."""
+        and_word = re.escape(self.words.and_word)
+        if not re.fullmatch(rf"{_WORD}(?:(?:\s+{and_word}\s+|[ \t]+|/){_WORD})*", authors):
+            return False
+        words = re.split(rf"\s+{and_word}\s+|[ \t]+|/", authors)
+        return all(word.lower() in self.words.periods for word in words)
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [

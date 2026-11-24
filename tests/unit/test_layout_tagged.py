@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+import pytest
 from core_strategies import outlines
 from hypothesis import given
 from hypothesis import strategies as st
@@ -21,6 +22,7 @@ from sci2audio.core import (
     TextLine,
     TextRun,
 )
+from sci2audio.extraction.text import read_text
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.tagged import positioned
 
@@ -323,7 +325,7 @@ def test_svg_text_is_a_figure() -> None:
     assert kinds(doc) == [("figure", "x axis\ny axis"), ("paragraph", "T.")]
 
 
-def test_list_items_carry_no_label() -> None:
+def test_list_items_whose_numbering_is_not_text_carry_no_label() -> None:
     doc = build_document(
         content(
             [
@@ -334,6 +336,55 @@ def test_list_items_carry_no_label() -> None:
         )
     )
     assert [(b.kind, b.label) for b in doc.blocks] == [(BlockKind.LIST_ITEM, "")] * 3
+
+
+@pytest.mark.parametrize(
+    ("text", "label"),
+    [
+        ("- first point", "-"),
+        ("* first point", "*"),
+        ("\u2022 first point", "\u2022"),
+        ("1. first point", "1."),
+        ("12) first point", "12)"),
+        ("(a) first point", "(a)"),
+        ("(iv) first point", "(iv)"),
+        ("b) first point", "b)"),
+    ],
+)
+def test_a_list_item_that_prints_its_marker_carries_it_as_label(text: str, label: str) -> None:
+    # #571: one shape with PDF list items: the marker as printed is the label, and it stays
+    # in the text, as core asks of every label
+    doc = build_document(content([line(text, "ul", "li"), line("next", "ul", "li", "br")]))
+    assert [(b.kind, b.text, b.label) for b in doc.blocks] == [
+        (BlockKind.LIST_ITEM, f"{text}\nnext", label)
+    ]
+
+
+@pytest.mark.parametrize(
+    "text", ["1984 was a year", "-dash", "*emphasis*", "1.5 litres", "a)", "Ein Punkt", "(x"]
+)
+def test_a_list_item_that_opens_with_no_marker_carries_no_label(text: str) -> None:
+    doc = build_document(content([line(text, "ol", "li")]))
+    assert doc.blocks[0].label == ""
+
+
+def test_only_list_items_take_a_marker_as_label() -> None:
+    doc = build_document(content([line("- not an item", "p")]))
+    assert [(b.kind, b.label) for b in doc.blocks] == [(BlockKind.PARAGRAPH, "")]
+
+
+def test_a_plain_text_list_has_the_shape_of_a_pdf_list() -> None:
+    """#571: plain-text list items carry their marker as label, as PDF list items do; the
+    marker stays in the text, so the spoken text is unchanged."""
+    text = "Our points:\n- first point\n- second point\n\n1. one\n2. two\n"
+    doc = build_document(read_text(text.encode(), "notes.txt"))
+    assert [(b.kind.value, b.label, b.text) for b in doc.blocks] == [
+        ("paragraph", "", "Our points:"),
+        ("list_item", "-", "- first point"),
+        ("list_item", "-", "- second point"),
+        ("list_item", "1.", "1. one"),
+        ("list_item", "2.", "2. two"),
+    ]
 
 
 # ---- headings and sections (D-407, D-408) ---------------------------------------------

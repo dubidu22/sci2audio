@@ -16,7 +16,7 @@ from sci2audio.core import (
     TextLine,
 )
 from sci2audio.layout.captions import find_captions
-from sci2audio.layout.code import find_code
+from sci2audio.layout.code import body_text, find_code
 from sci2audio.layout.footnotes import find_footnotes
 from sci2audio.layout.formulas import find_formulas
 from sci2audio.layout.furniture import (
@@ -66,14 +66,15 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
         return build_tagged(content, settings)
     layout = _Layout(content, settings)
     units = [unit for page in content.pages for unit in layout.units(page)]
-    blocks = find_footnotes(paragraphs(units, settings), content, layout.size, settings)
+    blocks = paragraphs(units, settings, layout.body)
+    blocks = find_footnotes(blocks, content, layout.size, settings)
     columns = {
         piece.id: (unit.left, unit.right)
         for unit in units
         if isinstance(unit, Row)
         for piece in unit.pieces
     }
-    captioned = find_captions(blocks, content, layout.size)
+    captioned = find_captions(blocks, content, layout.body.size)
     blocks, links = find_graphics(captioned, content, layout.size, settings, columns)
     named = set(links.named.values())
     blocks = find_formulas(blocks, content, columns, named, layout.size, settings)
@@ -81,7 +82,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     blocks = _in_page_order(blocks, content)
     blocks, sections = find_headings(blocks, content, layout.size, settings)
     blocks = link_captions(blocks, links)
-    blocks, sections = find_code(blocks, sections, content, layout.size)
+    blocks, sections = find_code(blocks, sections, content, layout.body)
     language, source, guess = choose_language(content, settings)
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(
@@ -159,6 +160,7 @@ class _Layout:
             if line.box and line.id not in self.furniture
         ]
         self.left, self.right = text_area(lines, settings.text_share)
+        self.body = body_text(lines)  # one judgement of code for every step (#794)
 
     def read(
         self, page: Page, uncounted: frozenset[str] = frozenset()

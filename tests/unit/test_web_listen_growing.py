@@ -25,7 +25,7 @@ from test_web_player import player_data, server, work_of
 from web_helpers import (
     events,
     offline,  # noqa: F401 - fixture
-    set_marker,
+    set_capture,
     upload,
     wait,
 )
@@ -321,14 +321,14 @@ def test_an_audiobook_without_a_chapter_record_keeps_the_readalong_stamp(
     assert growing.data()["audiobook"] == player.audiobook_stamp(readalong)
 
 
-def test_markers_in_a_chapter_that_just_arrived_get_their_sentence(growing: Growing) -> None:
+def test_captures_in_a_chapter_that_just_arrived_get_their_sentence(growing: Growing) -> None:
     data = growing.data()
     chunk = data["chapters"][1]["first"] + 1  # the second chapter's sentence
-    set_marker(growing.client, growing.doc, chunk, data["audiobook"])
+    set_capture(growing.client, growing.doc, "quote", chunk, data["audiobook"])
     part = fragment(growing, 1).json()
-    placed = [m for m in part["markers"] if m["chunk"] is not None]
-    assert [m["chunk"] for m in placed] == [chunk]
-    assert placed[0]["text"] == "We measured it twice."
+    placed = [c for c in part["captures"] if c["chunk"] is not None]
+    assert [c["chunk"] for c in placed] == [chunk]
+    assert placed[0]["sentence"] == "We measured it twice."
     # the page follows the job's events, which say which chapters are playable
     assert playable(growing.client, growing.job) == [0, 1]
     growing.finish()

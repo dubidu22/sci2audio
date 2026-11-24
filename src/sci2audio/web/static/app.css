@@ -51,7 +51,7 @@
   --cobalt: #2340A8; --cobalt-deep: #1A3087; --cobalt-line: #3A56BE; --on-cobalt: #FFFFFF; --on-cobalt-2: #CCD5F4;
   --hl-read: #FFE94A; --hl-note: #7BE38A; --hl-quote: #6CC4FF; --hl-card: #FF8FC8; --hl-mark: #FFB347;
   --on-hl: #16181D; --now: color-mix(in srgb, var(--hl-read) 30%, var(--paper)); --on-now: var(--ink); --now-bar: #9A7400;
-  --marker: var(--hl-mark); --marker-edge: #9A5800;
+  --marker: var(--hl-mark); --marker-edge: #9A5800; --note-edge: #2E7536; --quote-edge: #1D6797;
   --error: #B42318; --error-wash: #FDECEA; --wait: #7A4B00; --wait-wash: #FFF3DC;
   --focus: var(--cobalt); --switch-on: var(--cobalt);
   --sheet-shadow: 0 1px 2px rgba(22,24,29,.06), 0 8px 24px -12px rgba(22,24,29,.18);
@@ -74,7 +74,7 @@
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
     --now: color-mix(in srgb, var(--hl-read) 18%, var(--paper)); --on-now: var(--ink); --now-bar: var(--hl-read);
-    --marker: var(--hl-mark); --marker-edge: var(--hl-mark);
+    --marker: var(--hl-mark); --marker-edge: var(--hl-mark); --note-edge: var(--hl-note); --quote-edge: var(--hl-quote);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -89,7 +89,7 @@
     --hl-read: #F2DC3A; --hl-note: #6CD27C; --hl-quote: #5FB6F0; --hl-card: #F07DB8; --hl-mark: #F0A53C;
     --error: #FF8A80; --error-wash: #3A1A18; --wait: #FFC870; --wait-wash: #33280F;
     --now: color-mix(in srgb, var(--hl-read) 18%, var(--paper)); --on-now: var(--ink); --now-bar: var(--hl-read);
-    --marker: var(--hl-mark); --marker-edge: var(--hl-mark);
+    --marker: var(--hl-mark); --marker-edge: var(--hl-mark); --note-edge: var(--hl-note); --quote-edge: var(--hl-quote);
     --focus: var(--hl-quote); --switch-on: var(--hl-quote);
     --sheet-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
     --pop-shadow: 0 2px 6px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.7);
@@ -313,15 +313,25 @@ td.text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .now-bar { position: absolute; z-index: 1; width: 0; border-left: 3px solid var(--now-bar); pointer-events: none; }
 .now-bar[hidden] { display: none; }
 @media (forced-colors: active) { .now-bar { border-left-color: Highlight; } }
-/* a marker (#474, D-723): a flag off the sheet's right edge at its sentence's first line, no
-   fill on the sentence; its edge stands out 3:1 from the paper and the desk (D-727) */
-.marker-flag {
-  position: absolute; z-index: 1; display: grid; place-items: center; width: 24px; height: 18px;
-  background: var(--marker); color: var(--on-hl); border: 1.5px solid var(--marker-edge); border-radius: 2px; pointer-events: none;
+/* the captures' flags (#397, DESIGN.md "Flags"): a squared tab in its type's highlighter
+   colour, flat on the page side, at its sentence's first line, side by side in the dock's
+   order; no fill on the sentence. Its edge stands out 3:1 from the paper and the desk
+   (D-727). A new one slides out of the sheet's edge; with reduced motion it just stands. */
+.flag {
+  --c: var(--hl-note); --edge: var(--note-edge);
+  display: inline-grid; place-items: center; flex: none; width: 24px; height: 18px;
+  background: var(--c); color: var(--on-hl); border: 1.5px solid var(--edge); border-left-width: 0; border-radius: 0 3px 3px 0;
 }
-.marker-flag svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
-.marker-flag[hidden] { display: none; }
-@media (forced-colors: active) { .marker-flag { border-color: CanvasText; } }
+.flag.f-quote { --c: var(--hl-quote); --edge: var(--quote-edge); }
+.flag.f-mark { --c: var(--marker); --edge: var(--marker-edge); }
+.flag svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+.flag.f-mark svg { fill: currentColor; stroke: none; }
+.flag[hidden] { display: none; }
+@media (forced-colors: active) { .flag { border-color: CanvasText; } }
+.capture-flags .flag { position: absolute; z-index: 1; pointer-events: none; transition: transform .45s cubic-bezier(.16, 1, .3, 1), opacity .45s cubic-bezier(.16, 1, .3, 1); }
+.capture-flags .flag.new { transform: translateX(-24px); opacity: 0; }
+.focus-flags { position: absolute; display: inline-flex; gap: 2px; }
+.focus-flags[hidden] { display: none; }
 /* what the audiobook's own edits did (#392, D-665 conflict 2): left out, read differently */
 .cut { color: var(--pencil); text-decoration: line-through; text-decoration-color: var(--pencil); font-size: .92em; }
 .read-along .s.now .cut { color: inherit; }
@@ -355,10 +365,12 @@ html.dock-pinned .main { padding-bottom: var(--dock-h, var(--dock)); }
 .timeline { position: absolute; left: 0; right: 0; top: -7px; height: 14px; }
 .timeline .ticks { position: absolute; left: 0; top: 7px; width: 100%; height: 8px; pointer-events: none; overflow: visible; z-index: 1; }
 .timeline .ticks line { stroke: var(--rule-strong); stroke-width: 1; }
-/* the markers' ticks stand above the track, never on it */
-.timeline .marker-ticks { position: absolute; left: 0; top: -12px; width: 100%; height: 10px; pointer-events: none; overflow: visible; z-index: 1; }
-.marker-ticks rect { fill: var(--marker); stroke: var(--marker-edge); stroke-width: 1.5; transform: translateX(-3.5px); }
-@media (forced-colors: active) { .marker-ticks rect { fill: Canvas; stroke: CanvasText; } }
+/* the captures' ticks stand above the track, never on it, each in its type's colour */
+.timeline .capture-ticks { position: absolute; left: 0; top: -12px; width: 100%; height: 10px; pointer-events: none; overflow: visible; z-index: 1; }
+.capture-ticks rect { fill: var(--hl-note); stroke: var(--note-edge); stroke-width: 1.5; transform: translateX(-3.5px); }
+.capture-ticks rect.f-quote { fill: var(--hl-quote); stroke: var(--quote-edge); }
+.capture-ticks rect.f-mark { fill: var(--marker); stroke: var(--marker-edge); }
+@media (forced-colors: active) { .capture-ticks rect, .capture-ticks rect.f-quote, .capture-ticks rect.f-mark { fill: Canvas; stroke: CanvasText; } }
 #timeline { position: absolute; inset: 0; width: 100%; max-width: none; height: 14px; margin: 0; background: transparent; appearance: none; -webkit-appearance: none; cursor: pointer; }
 #timeline::-webkit-slider-runnable-track { height: 3px; background: linear-gradient(to right, var(--ink) var(--fill, 0%), var(--rule) var(--fill, 0%)); }
 #timeline::-moz-range-track { height: 3px; background: var(--rule); }
@@ -375,22 +387,29 @@ button.play svg { fill: currentColor; stroke: none; }
 .nowplaying b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nowplaying #now, .nowplaying .clock { color: var(--pencil); font-size: 13.5px; }
 .view .dock-end { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0; max-width: none; }
-.marker-button svg { fill: currentColor; stroke: none; }
-.marker-button[aria-pressed="true"] { border-color: var(--marker-edge); background: color-mix(in srgb, var(--marker) 30%, var(--paper)); }
-.marker-button kbd { margin-left: 2px; }
-.view .marker-toast { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; max-width: none; font-size: 14px; }
-.marker-toast[hidden] { display: none; }
-.marker-list { list-style: none; margin: 0; padding: 0; }
-.marker-row { border-bottom: 1px solid var(--rule); padding: 12px 0; }
-.marker-row:first-child { padding-top: 4px; }
-.view .marker-row p { margin: 0; max-width: none; }
-.view .marker-row .mk-at, .view .marker-row .mk-state { color: var(--pencil); font-size: 13px; margin: 0 0 4px; }
-.mk-text { font: italic 400 15px/1.5 var(--read); margin: 0; overflow-wrap: anywhere; }
-.mk-text.clamped { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.view .marker-row .mk-note { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font-size: 14.5px; }
-.view .marker-row .mk-actions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
-.mk-edit { display: grid; gap: 6px; margin: 8px 0 0; }
-.mk-edit textarea { width: 100%; max-width: none; }
+/* the capture keys (#397, ADR-008 2.2 B): flag, word and key cap; the colour is on the flag
+   only, and a pressed key says so by its border and weight, never by a highlighter fill */
+.capkeys { display: flex; gap: 6px; }
+.capkey { gap: 6px; padding-left: 0; overflow: hidden; }
+.capkey .flag { height: 100%; min-height: 30px; width: 22px; border-top-width: 0; border-bottom-width: 0; border-radius: 0; }
+.capkey[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
+.capkey kbd { margin-left: 2px; }
+.view .capture-toast { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; max-width: none; font-size: 14px; }
+.capture-toast[hidden] { display: none; }
+.capture-list { list-style: none; margin: 0; padding: 0; }
+/* a capture is ruled marginalia: a hairline, the flag hanging in the left margin, a pencil
+   type label, the sentence in the paper's face, the person's words in the app's */
+.capture-row, .capture-composer { position: relative; border-bottom: 1px solid var(--rule); padding: 12px 0 12px 36px; }
+.capture-row > .flag, .capture-composer > .flag { position: absolute; left: 0; top: 12px; }
+.view .capture-row p, .view .capture-composer p { margin: 0; max-width: none; }
+.view .cp-kind { font: 700 13px/1.4 var(--ui); color: var(--pencil); margin: 0 0 2px; }
+.view .capture-row .cp-at, .view .capture-row .cp-state, .view .cp-paused { color: var(--pencil); font-size: 13px; margin: 0 0 4px; }
+.cp-text { font: italic 400 15px/1.5 var(--read); margin: 0; overflow-wrap: anywhere; }
+.cp-text.clamped { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.view .capture-row .cp-note { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font-size: 14.5px; }
+.view .capture-row .cp-actions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
+.cp-edit { display: grid; gap: 6px; margin: 8px 0 0; }
+.cp-edit textarea { width: 100%; max-width: none; }
 /* the player's speed (#152, #651): a button with the speed opens a panel above it with the
    usual speeds and the speed field */
 .speed-menu { position: relative; }
@@ -763,6 +782,10 @@ dialog.keys-sheet::backdrop { background: rgba(17, 19, 23, .45); }
 @media (max-width: 1399px) {
   :root { --rail: 232px; --panel: 320px; }
   .sheet { padding: 24px 48px 48px; }
+  /* the capture keys keep their key caps, the words stay for screen readers only */
+  .capkey .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .sheet .capture-flags .flag { width: 14px; }
+  .sheet .capture-flags .flag svg { width: 9px; height: 9px; }
 }
 @media (max-width: 1023px) {
   .opener, .empty { grid-template-columns: minmax(0, 1fr); }
@@ -782,8 +805,8 @@ dialog.keys-sheet::backdrop { background: rgba(17, 19, 23, .45); }
   .shelf { padding: 0; }
   .view { padding: 20px 16px 48px; }
   .sheet { padding: 20px 16px 32px; font-size: 18px; }
-  .sheet .marker-flag { width: 12px; }
-  .sheet .marker-flag svg { width: 8px; height: 8px; }
+  .sheet .capture-flags .flag { width: 12px; }
+  .sheet .capture-flags .flag svg { width: 8px; height: 8px; }
   .dock { padding: 16px 12px 10px; gap: 8px 12px; }
   .dock.pinned { left: 0; }
 }
@@ -791,4 +814,5 @@ dialog.keys-sheet::backdrop { background: rgba(17, 19, 23, .45); }
 /* ---------- reduced motion: nothing animates ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .capture-flags .flag.new { transform: none; opacity: 1; } /* a new flag just stands (#397) */
 }

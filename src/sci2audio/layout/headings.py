@@ -23,7 +23,13 @@ is not the next Roman number in the count ("I" or "V" after "H" or "U") stays a 
 heading the outline adds (rule 4 below) is read the same way: a Roman number only when it
 is the next after the Roman sections before it, a letter only with its dot, an Arabic
 number not at all. In a document numbered in Arabic, a letter still numbers an appendix at
-level 1.
+level 1. Under a lettered subsection, a number with a closing parenthesis ("1) Hardware") is
+one level deeper than the letter, kept as printed ("1)", #798). The letter must be a heading
+the font rules keep, in the same Roman section: before the first such letter of a Roman
+section, and in a document that is not Roman, "1)" is no heading number, so a "1)" list item
+stays a list item unless it is set like these headings. The "1)" numbers take their style
+from each other, not from the letters at their depth ("A.1.", #918). The outline reads them
+the same way.
 
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
@@ -93,6 +99,9 @@ _ROMAN_NUMBER = re.compile(rf"(?P<label>{_ROMAN})\.\s+(?=\w)")
 
 # a letter numbering a subsection under a Roman section, with its dot: "A. Setup", "A.1."
 _LETTER_NUMBER = re.compile(r"(?P<label>[A-Z](?:\.\d{1,2})*)\.\s+(?=\w)")
+
+# a number under a lettered subsection, with its closing parenthesis: "1) Hardware" (#798)
+_PAREN_NUMBER = re.compile(r"(?P<label>\d{1,2}\))\s+(?=\w)")
 
 _ROMAN_VALUES = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100}
 
@@ -293,6 +302,12 @@ class _Headings:
         self.depths = {k: _depth(label) for k, label in numbers.items()}
         # the Roman section numbers by block index, with their values (`_roman`)
         self.sections: dict[int, int] = {}
+        # the lettered subsections of a Roman document kept as headings, by block index,
+        # with their depths (set by `_parenthesised`, cut to the headings by `levels`)
+        self.letters: dict[int, int] = {}
+        # each "1)" number of a Roman document, with the letter it stands under (positions
+        # in `texts`; set by `_parenthesised`)
+        self.under: dict[int, int] = {}
         arabic = sum(label[0].isdigit() for label in numbers.values())
         roman = self._roman(arabic)
         self.roman = roman is not None
@@ -300,6 +315,8 @@ class _Headings:
             self.lettered = True
             numbers, self.depths = roman
         self.numbers = numbers
+        if self.roman:
+            self._parenthesised()
 
     def _roman(self, arabic: int) -> tuple[dict[int, str], dict[int, int]] | None:
         """The numbers and depths of a document that numbers its sections in Roman, or None
@@ -325,13 +342,19 @@ class _Headings:
         self.sections = sections
         return numbers, depths
 
-    def depth(self, index: int, label: str) -> int:
+    def depth(self, index: int, label: str) -> int | None:
         """A printed number's depth at block `index`, for a heading the outline adds: in a
         Roman document a Roman number is depth 1 when it is the next one after the Roman
-        sections before the block, as the font rules count them; any other number there is
-        a letter, one level deeper than its parts."""
+        sections before the block, as the font rules count them; a number with a closing
+        parenthesis is one deeper than the last letter after the last of those sections,
+        and no number (None) without such a letter; any other number there is a letter, one
+        level deeper than its parts."""
         if not self.roman:
             return _depth(label)
+        if label.endswith(")"):
+            section = max((at for at in self.sections if at < index), default=-1)
+            letter = max((at for at in self.letters if section < at < index), default=None)
+            return None if letter is None else self.letters[letter] + 1
         before = max((value for at, value in self.sections.items() if at < index), default=0)
         if _NUMERAL.fullmatch(label) and _roman_value(label) == before + 1:
             return 1
@@ -342,28 +365,67 @@ class _Headings:
         numbered = len(self.numbers) >= self.settings.heading_repeats
         found = self._numbered() if numbered else self._unnumbered()
         found |= self._numeral_one(found)
-        # from the end: a heading stands over body text or another heading
+        kept = self._over_text(found)
+        # a "1)" under a letter that is no heading has no letter over it, so it is none
+        # either (#918); dropping it may drop the heading over it, so go on until none is
+        while lost := {k for k in kept if k in self.under and self.under[k] not in kept}:
+            found = {k: level for k, level in found.items() if k not in lost}
+            kept = self._over_text(found)
+        heads = {self.texts[k].index for k in kept}
+        self.letters = {at: depth for at, depth in self.letters.items() if at in heads}
+        return {self.texts[k].index: level for k, level in kept.items()}
+
+    def _over_text(self, found: dict[int, tuple[int, str]]) -> dict[int, tuple[int, str]]:
+        """The headings found that stand over body text or another heading, from the end."""
         kept: dict[int, tuple[int, str]] = {}
         for k in sorted(found, reverse=True):
             after = k + 1
             if after < len(self.texts) and after not in kept and self._larger(self.texts[after]):
                 continue
             kept[k] = found[k]
-        return {self.texts[k].index: level for k, level in kept.items()}
+        return kept
+
+    def _kind(self, k: int) -> tuple[int, bool]:
+        """The kind of number at `k`: its depth, and if it is a "1)" number, which votes for
+        its style apart from the letters of its depth ("A.1.", #918)."""
+        return self.depths[k], k in self.under
+
+    def _styles(self) -> dict[tuple[int, bool], Style]:
+        """The style of each kind of number (`_kind`): the one most of its numbers have."""
+        votes: dict[tuple[int, bool], Counter[Style]] = {}
+        for k in self.numbers:
+            votes.setdefault(self._kind(k), Counter())[self.texts[k].style] += 1
+        return {kind: vote.most_common(1)[0][0] for kind, vote in votes.items()}
+
+    def _parenthesised(self) -> None:
+        """Adds the "1)" numbers of a Roman document to its numbers (#798): one level deeper
+        than the last letter in its own Roman section that is set in its depth's style (a
+        letter the font rules keep). Those letters are recorded for the outline (`depth`). A
+        "1)" without such a letter is no number, so it takes no part in the style vote; the
+        "1)" numbers vote among themselves (`_kind`), so the letters keep these styles."""
+        styles = self._styles()  # of the Roman numbers and letters only
+        under: int | None = None  # the last such letter in this Roman section
+        for k in self.short:
+            index, label = self.texts[k].index, self.numbers.get(k)
+            text = self.texts[k].block.text.strip()
+            if index in self.sections:
+                under = None
+            elif label is not None and styles[self._kind(k)] == self.texts[k].style:
+                self.letters[index], under = self.depths[k], k
+            elif label is None and under is not None and (item := _PAREN_NUMBER.match(text)):
+                self.numbers[k], self.depths[k] = item["label"], self.depths[under] + 1
+                self.under[k] = under
 
     def _numbered(self) -> dict[int, tuple[int, str]]:
         """Headings in a document that numbers them: each depth of number in one style."""
-        votes: dict[int, Counter[Style]] = {}
-        for k in self.numbers:
-            votes.setdefault(self.depths[k], Counter())[self.texts[k].style] += 1
-        styles = {depth: vote.most_common(1)[0][0] for depth, vote in votes.items()}
+        styles = self._styles()
         top = styles[min(styles)]
         found: dict[int, tuple[int, str]] = {}
         shift = 0  # one more level for each heading under a common title (appendices)
         started = False  # the first numbered heading has come
         for k in self.short:
             style, label = self.texts[k].style, self.numbers.get(k)
-            if label is not None and styles[self.depths[k]] == style:
+            if label is not None and styles[self._kind(k)] == style:
                 found[k] = (self.depths[k] + shift, label)
                 started = True
             elif label is None and started and style > max(styles.values()):
@@ -483,7 +545,11 @@ def _from_outline(
         ((index, label),) = matches
         if index not in found and index not in added:
             shift = int(rules.shift_from is not None and index > rules.shift_from)
-            added[index] = (rules.depth(index, label) + shift if label else entry.level, label)
+            depth = rules.depth(index, label) if label else None
+            if depth is None:  # no number, or a "1)" with no letter over it: no number
+                added[index] = (entry.level, "")
+            else:
+                added[index] = (depth + shift, label)
     return added
 
 
@@ -504,10 +570,11 @@ def outline_entries(content: Content) -> list[OutlineEntry]:
 def printed_number(text: str, lettered: bool, roman: bool = False) -> tuple[str, str]:
     """The printed number at the front of a heading and the rest; ("", text) if it has none.
     A capital letter counts only where letters number the headings (`lettered`); a Roman
-    number with its dot ("IV.") only where Roman numbers do (`roman`), and there only it or
-    a letter with its dot is a number, as for the font rules (module docstring)."""
+    number with its dot ("IV.") only where Roman numbers do (`roman`), and there only it,
+    a letter with its dot or a number with a closing parenthesis ("1)") is a number, as for
+    the font rules (module docstring; `_Headings.depth` says where "1)" counts)."""
     if roman:
-        found = _ROMAN_NUMBER.match(text) or _LETTER_NUMBER.match(text)
+        found = _ROMAN_NUMBER.match(text) or _LETTER_NUMBER.match(text) or _PAREN_NUMBER.match(text)
         return ("", text) if found is None else (found["label"], text[found.end() :])
     found = _NUMBER.match(text)
     if found is None or (found["label"][0].isalpha() and not lettered):
