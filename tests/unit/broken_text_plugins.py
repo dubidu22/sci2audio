@@ -449,3 +449,21 @@ class CyclicErrorStep(_Plugin):
         error = traced(Exception)("cyclic")
         error.me = error
         raise error
+
+
+class _HangingFinalizer:
+    def __init__(self) -> None:
+        self.me = self
+
+    def __del__(self) -> None:
+        HANG.wait(5)
+
+
+class HangingFinalizerStep(_Plugin):
+    """Leaves a cycle whose finalizer takes forever, so the collection after its call hangs."""
+
+    id = "hanging-finalizer"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        _HangingFinalizer()
+        return []

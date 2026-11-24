@@ -22,10 +22,12 @@ No object of the plugin's leaves a worker (#693): any of them may run plugin cod
 is compared, hashed, shown or dropped, and only the worker is under the time limit. So the
 worker hands back plain built-in values (copies of the id and languages, edits rebuilt from
 plain ints and strs) or the text of a failure, never what the plugin returned or raised;
-what a call left in reference cycles is collected there too. Not covered is what outlives
-a call: the plugin's step object lives as long as the job's steps, and what the plugin
-keeps on it or in its module's globals is freed wherever that is dropped, so a finalizer
-(`__del__`) of such an object may run in the job's thread.
+what a call left in reference cycles is freed before the worker returns, in the worker
+unless another thread's collection took it first, and never in the job's thread; if that
+cannot be made sure within `PLUGIN_COLLECT_TIMEOUT`, the call fails (#804). Not covered
+is what outlives a call: the plugin's step object lives as long as the job's steps, and
+what the plugin keeps on it or in its module's globals is freed wherever that is dropped,
+so a finalizer (`__del__`) of such an object may run in the job's thread.
 """
 
 from __future__ import annotations
@@ -33,6 +35,8 @@ from __future__ import annotations
 import copy
 import gc
 import threading
+import time
+import weakref
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from importlib.metadata import EntryPoint, entry_points
@@ -55,6 +59,9 @@ PLUGIN_TIMEOUT = 60.0  # seconds per plugin per document; built-in steps take we
 # seconds per entry point: on the start-up path of every command, yet room for a heavy import
 # on a slow disk (D-845)
 PLUGIN_LOAD_TIMEOUT = 30.0
+# seconds the guard waits, after a plugin's call and on top of its limit, for the cycles the
+# call left to be freed; past it the call fails rather than leave them to the job (#804)
+PLUGIN_COLLECT_TIMEOUT = 5.0
 
 
 @dataclass(frozen=True)
@@ -230,13 +237,23 @@ class _Failure:
 
 def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Failure:
     """`call()` in a daemon thread: its result, which must hold only built-in values, or a
-    _Failure; _TimedOut if it is still running after `timeout` seconds. What the call
+    _Failure; _TimedOut if the call is still running after `timeout` seconds. What the call
     raised never reaches this thread, only its text: an exception holds the frames it
-    passed, and so the plugin's objects. Garbage the call left in cycles is collected
-    in the thread before it ends. Ctrl+C there is raised here anew. The thread cannot be
-    stopped and is left to finish on its own; a daemon thread never keeps the program
-    from ending."""
+    passed, and so the plugin's objects. Ctrl+C there is raised here anew. The thread
+    cannot be stopped and is left to finish on its own; a daemon thread never keeps the
+    program from ending.
+
+    After the call the thread makes sure the garbage the call left in cycles is freed, and
+    this thread waits for that up to `PLUGIN_COLLECT_TIMEOUT` seconds more: the limit is
+    for the plugin's code, and a full collection of a large program takes its own time.
+    If it is not sure by then, the result is a _Failure."""
     result: dict[str, Any] = {}
+    called = threading.Event()
+    limit = PLUGIN_COLLECT_TIMEOUT
+    not_freed = _Failure(
+        f"its objects were not freed within {limit:g} s after its call: the garbage "
+        f"collector stayed busy"
+    )
 
     def work() -> None:
         try:
@@ -245,18 +262,64 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
             result["interrupted"] = True
         except BaseException as error:  # a path the call does not turn into a _Failure
             result["value"] = _Failure(f"failed: {_said(error)}")
+        called.set()
         # what the call left in reference cycles is freed only by the collector, which would
         # otherwise run its finalizers in whatever thread triggers it next: the job's
-        gc.collect()
+        if not _cycles_freed(limit):
+            result["value"] = not_freed
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()
-    worker.join(timeout)
-    if worker.is_alive():
+    if not called.wait(timeout):
         raise _TimedOut(worker)
     if "interrupted" in result:
         raise KeyboardInterrupt
+    # bounded here too: one collection can outlast the worker's own bound, and a plugin's
+    # finalizer that runs in it may hang
+    worker.join(limit)
+    if worker.is_alive():
+        return not_freed
     return result["value"]
+
+
+class _Canary:
+    me: object
+
+
+def _cycles_freed(limit: float) -> bool:
+    """True once every reference cycle that existed when this was called is freed, False if
+    that cannot be made sure within `limit` seconds.
+
+    While another thread is inside a collection, `gc.collect()` returns at once and frees
+    nothing (#804), so one call proves nothing. A canary cycle that dies in this thread's
+    own collection proves that a full collection started after the call and has finished.
+    One that dies elsewhere does not: that may have been a young-generation pass, which
+    leaves older cycles. Two more full collections finished anywhere prove it too: the
+    second started after the first ended, so after this was called.
+    """
+    me = threading.get_ident()
+    full_before = gc.get_stats()[2]["collections"]
+    deadline = time.monotonic() + limit
+    freed_in: list[int] = []
+    alive = _canary(freed_in)
+    while True:
+        gc.collect()
+        if freed_in == [me] or gc.get_stats()[2]["collections"] >= full_before + 2:
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        if alive() is None:  # freed in another thread's collection
+            freed_in = []
+            alive = _canary(freed_in)
+        time.sleep(0.001)  # lets the thread that is collecting finish
+
+
+def _canary(freed_in: list[int]) -> weakref.ref[_Canary]:
+    """A weakref to a new cycle of no use; its callback adds the thread that freed it to
+    `freed_in`. The caller keeps the weakref, or the callback never runs."""
+    canary = _Canary()
+    canary.me = canary
+    return weakref.ref(canary, lambda _: freed_in.append(threading.get_ident()))
 
 
 def _distribution(point: EntryPoint) -> tuple[str, str]:
