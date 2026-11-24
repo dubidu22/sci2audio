@@ -484,11 +484,11 @@ button.speed { min-height: 34px; padding: 4px 10px; font-weight: 700; font-varia
 /* the context panel: Changes and Chapters (Captures waits for the study layer) */
 .context { display: none; flex-direction: column; min-width: 0; background: var(--desk); }
 /* tabs at the Label size's small end with tight sides, so that German's three stay on one
-   row in the 320px panel with a two-digit count (#889); a label never breaks inside, and a
-   row that still can't hold them (hundreds of captures) wraps rather than overlaps */
+   row in the 320px panel with a count up to 999 (#889, #1000); a label never breaks inside,
+   and a row that still can't hold them (thousands of captures) wraps rather than overlaps */
 .context-head { display: flex; align-items: center; border-bottom: 1px solid var(--rule); padding: 0 4px; }
 .context-tabs { display: flex; flex-wrap: wrap; align-items: stretch; flex: 1 1 auto; min-width: 0; }
-.context-tabs [role="tab"] { border: 0; border-radius: 0; background: none; min-height: 44px; padding: 12px 6px 9px; margin-bottom: -1px; font-weight: 700; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; color: var(--ink-2); border-bottom: 3px solid transparent; }
+.context-tabs [role="tab"] { border: 0; border-radius: 0; background: none; min-height: 44px; padding: 12px 4px 9px; margin-bottom: -1px; font-weight: 700; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; color: var(--ink-2); border-bottom: 3px solid transparent; }
 .context-tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .context-head #panel-close { margin-left: auto; flex: none; }
 .context-body { padding: 16px 18px; overflow: auto; }

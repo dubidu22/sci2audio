@@ -8,6 +8,8 @@ from __future__ import annotations
 import asyncio
 import errno
 import json
+import os
+import sys
 import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
@@ -940,12 +942,33 @@ def restore_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> 
 
 FULL_DISK = frozenset({errno.ENOSPC, getattr(errno, "EDQUOT", errno.ENOSPC)})
 
+_IS_WINDOWS = sys.platform == "win32"
+"""Only Windows refuses to replace a file another program holds open (#1003)."""
+
+_HELD_OPEN = frozenset({5, 32, 33})
+"""Windows' answers to a replace of a file another program holds open: access denied,
+sharing violation, lock violation."""
+
+
+def _held_open(error: PermissionError, target: Path) -> bool:
+    """Whether a refused replace of `target` means another program holds it open. On
+    macOS and Linux an open file never blocks a replace, so there it never does; Windows
+    says access denied for a read-only file too, which nothing holds (#1003)."""
+    winerror = getattr(error, "winerror", None)
+    if not _IS_WINDOWS or winerror not in _HELD_OPEN:
+        return False
+    return winerror != 5 or os.access(target, os.W_OK)
+
 
 @router.post(
     "/captures/export",
     status_code=201,
     responses={
-        **_errors(403, 404, 500, 507, *BODY),
+        **_errors(404, 500, 507, *BODY),
+        403: {
+            "model": models.ExportRefusedOut,
+            "description": "may not write into the folder, or not replace the file",
+        },
         409: {"model": models.ExportExistsOut, "description": "a file of that name is there"},
         423: {"model": models.ExportHeldOut, "description": "another program holds the file"},
     },
@@ -960,8 +983,9 @@ def export_captures_file(
     without `overwrite` (409 `export-exists`, nothing written), and `overwrite` replaces only
     the `file` the 409 answer named: if the request would write another file now, that one
     is written only if it is not there, else asked about (#975). A file another program
-    holds open is named (423 `export-file-held`, #990), not the folder; the file is written
-    whole or not at all. No network call."""
+    holds open is named (423 `export-file-held`, #990), not the folder, and so is a
+    replace refused for another reason (403 `export-file-refused`, #1003); the file is
+    written whole or not at all. No network call."""
     folder = Path(given.folder)
     if not given.folder or not folder.is_absolute():
         raise ApiError(422, "export-folder-needed", f"the folder must be a full path: {folder}")
@@ -1007,13 +1031,20 @@ def export_captures_file(
         ) from error
     except PermissionError as error:
         if overwrite and error.filename2 is not None:
-            # the folder took the new file; only moving it into the old one's place was
-            # refused, which on Windows means another program holds that file open
+            # the folder took the new file; only moving it into the old one's place was refused
+            named = {"file": file, "folder": str(folder)}
+            if _held_open(error, folder / file):
+                raise ApiError(
+                    423,
+                    "export-file-held",
+                    f"could not replace {file}, perhaps open in another program: {error.strerror}",
+                    fields=named,
+                ) from error
             raise ApiError(
-                423,
-                "export-file-held",
-                f"could not replace {file}, perhaps open in another program: {error.strerror}",
-                fields={"file": file, "folder": str(folder)},
+                403,
+                "export-file-refused",
+                f"may not replace {file} in {folder}: {error.strerror}",
+                fields=named,
             ) from error
         raise ApiError(
             403, "export-folder-refused", f"may not write into {folder}: {error.strerror}"

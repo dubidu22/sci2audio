@@ -200,7 +200,8 @@ def _page(
 ) -> HTMLResponse:
     current = state.board.current
     context.setdefault("running", None if current is None else _shelf_job(state, current, s))
-    context.setdefault("shelf", _shelf(state, s, context.get("shelf_here")))
+    if "shelf" not in context:
+        context["shelf"] = _shelf(state, s, context.get("shelf_here"), CaptureCounts())
     if "library_count" not in context:
         context["library_count"] = len(state.store.all()) + len(state.config.outside)
     query = request.url.query
@@ -232,10 +233,11 @@ def _not_found(request: Request, state: ServerState, s: Strings, what: str) -> H
 KEEP_AUDIOBOOK_DEFAULT = False
 
 
-def _removal(document: StoredDocument) -> dict[str, Any]:
+def _removal(document: StoredDocument, counted: CaptureCounts | None = None) -> dict[str, Any]:
     """What removing the document takes away and what stays (D-359, D-751): the project
     folders' audiobook files counted as the box is drawn (sizes only; the hashes are
     checked when the button is pressed), and an audiobook made before #469 elsewhere."""
+    counted = CaptureCounts() if counted is None else counted
     project = read_project(document.folder, document.id)
     record = document.folder / PROJECT
     # a record that exists but can't be read: nothing is deleted, and the box says why (R4)
@@ -261,7 +263,7 @@ def _removal(document: StoredDocument) -> dict[str, Any]:
         "record_unread": str(record) if unread else None,
         "has_audio": document.has_audio,
         # counted from the files as the box is drawn (D-728 ruling 3, ADR-008 2.1 item 4)
-        "captures": count_captures(document.folder, document.id),
+        "captures": counted(document.folder, document.id),
     }
 
 
@@ -341,12 +343,29 @@ def _meta(s: Strings, authors: tuple[str, ...], pages: int | None, got: Heard | 
     return " · ".join(parts)
 
 
-def _capture_flags(s: Strings, work: Path, document_id: str) -> dict[str, Any]:
+class CaptureCounts:
+    """Each document's captures counted once for one page (#962): its library row, its
+    removal box and its shelf item share one read of the file. Made anew for each request,
+    so a page never shows counts older than its own."""
+
+    def __init__(self) -> None:
+        self._known: dict[tuple[Path, str], dict[str, Any]] = {}
+
+    def __call__(self, work: Path, document_id: str) -> dict[str, Any]:
+        key = (work, document_id)
+        if key not in self._known:
+            self._known[key] = count_captures(work, document_id)
+        return self._known[key]
+
+
+def _capture_flags(
+    s: Strings, counted: CaptureCounts, work: Path, document_id: str
+) -> dict[str, Any]:
     """A document's captures by type for the library's Captures column and the shelf's flag
     strip (#418): counted as the removal box counts them (`count_captures`), so listing the
     library only reads `captures.json`, or the v1.3 `markers.json` as the carry-over will map
     them, and never writes or carries over a file. `unread`: a file there it can't read."""
-    counts = count_captures(work, document_id)
+    counts = counted(work, document_id)
     kinds = [(kind, counts[kind]) for kind in CAPTURE_KINDS if counts[kind]]
     return {
         "kinds": kinds,
@@ -356,7 +375,11 @@ def _capture_flags(s: Strings, work: Path, document_id: str) -> dict[str, Any]:
 
 
 def _library_row(
-    state: ServerState, s: Strings, document: StoredDocument, saved: Path | None
+    state: ServerState,
+    s: Strings,
+    document: StoredDocument,
+    saved: Path | None,
+    counted: CaptureCounts,
 ) -> dict[str, Any]:
     """One document as a row of the library's table."""
     about = read_about(document.folder)
@@ -380,13 +403,13 @@ def _library_row(
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": made,
-        "captures": _capture_flags(s, document.folder, document.id),
+        "captures": _capture_flags(s, counted, document.folder, document.id),
         "opened": _when_text(s, read_opened(document.folder)),
         "document": document,
     }
 
 
-def _outside_row(s: Strings, job: Any) -> dict[str, Any]:
+def _outside_row(s: Strings, job: Any, counted: CaptureCounts) -> dict[str, Any]:
     """An audiobook the command line made (#154) as a row: read-only, no removal."""
     got = heard(job.work, job.document, (job.folder,))
     return {
@@ -402,13 +425,15 @@ def _outside_row(s: Strings, job: Any) -> dict[str, Any]:
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": None,
-        "captures": _capture_flags(s, job.work, job.document),
+        "captures": _capture_flags(s, counted, job.work, job.document),
         "opened": "",
         "document": None,
     }
 
 
-def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
+def _shelf(
+    state: ServerState, s: Strings, here: str | None, counted: CaptureCounts
+) -> dict[str, Any]:
     """The rail's "Reading and recent" (#389, D-664): first "Continue listening", where the
     person last stopped in an audiobook; then (the running job is drawn on its own) up to
     SHELF_RECENT documents opened most recently. `here` is the document in view."""
@@ -437,7 +462,7 @@ def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
                 "text": s("shelf.continue", time=clock(got.time)),
                 "percent": _percent(part),
                 "current": key == here,
-                "captures": _capture_flags(s, work, document),
+                "captures": _capture_flags(s, counted, work, document),
             }
             break
 
@@ -471,7 +496,7 @@ def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
                 "text": text,
                 "percent": _percent(part) if got is not None else None,
                 "current": document.id == here,
-                "captures": _capture_flags(s, document.folder, document.id),
+                "captures": _capture_flags(s, counted, document.folder, document.id),
             }
         )
     return {"continue": keep, "recent": recent}
@@ -493,8 +518,11 @@ def index(request: Request, state: State, q: str = "") -> HTMLResponse:
     suffixes = supported_suffixes()
     documents = state.store.all()
     saved, _ = load_settings(state.config.config_file)
-    rows = [_library_row(state, s, document, saved.output_folder) for document in documents]
-    rows += [_outside_row(s, job) for job in state.config.outside]
+    counted = CaptureCounts()
+    rows = [
+        _library_row(state, s, document, saved.output_folder, counted) for document in documents
+    ]
+    rows += [_outside_row(s, job, counted) for job in state.config.outside]
     english = sum(f.size for f in download_plan().files if f.pack == ENGLISH)  # first run
     return _page(
         request,
@@ -506,7 +534,8 @@ def index(request: Request, state: State, q: str = "") -> HTMLResponse:
         query=query,
         shown={row["id"] for row in rows if matches(query, row["find"])},
         library_count=len(rows),
-        removals={document.id: _removal(document) for document in documents},
+        removals={document.id: _removal(document, counted) for document in documents},
+        shelf=_shelf(state, s, None, counted),
         busy_document=_busy_document(state),
         voice_size=s.size(english),
         voice_installed=not missing_files(state.config.models_dir),

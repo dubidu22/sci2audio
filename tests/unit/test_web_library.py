@@ -1093,3 +1093,82 @@ def test_captures_in_german(server: tuple[FastAPI, Any]) -> None:
     assert '<span class="visually-hidden">2 Notizen, 1 Zitat, 1 Marke</span>' in cell
     assert "noch keine Fundstücke" in captures_cell(page, bare)
     assert "Nicht lesbar" not in cell
+
+
+def test_each_documents_captures_are_read_once_per_library_page(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#962: the row, its removal box and the shelf share one count of a document's
+    captures, so `GET /` reads each file once however many places show it."""
+    client = client_of(server)
+    _app, config = server
+    one = upload(client, pdf_bytes("One."), "one.pdf")["id"]
+    two = upload(client, pdf_bytes("Two."), "two.pdf")["id"]
+    capture_file(config.work_root / one, one, "nqm")
+    capture_file(config.work_root / two, two, "mm")
+    opened_at(config, one, 1_700_000_000)
+    opened_at(config, two, 1_700_000_100)
+    stamp = audiobook(config.work_root / one, config.output_folder, one, duration=600.0)
+    write_position(config.work_root / one, one, stamp, Position(0, 192.0))
+    real = pages.count_captures
+    read: list[str] = []
+
+    def counting(work: Path, document_id: str) -> dict[str, Any]:
+        read.append(document_id)
+        return real(work, document_id)
+
+    monkeypatch.setattr(pages, "count_captures", counting)
+    page = client.get("/").text
+    assert sorted(read) == sorted([one, two])
+    # each place still shows the counts
+    assert flags(captures_cell(page, one)) == [
+        ("note", "note", "1"),
+        ("quote", "quote", "1"),
+        ("mark", "mark", "1"),
+    ]
+    assert flags(shelf_item(rail_of(page), 'id="shelf-continue"'))[0] == ("note", "note", "1")
+    assert flags(shelf_item(rail_of(page), f'<a href="/documents/{two}" class="recent"')) == [
+        ("mark", "mark", "2")
+    ]
+    assert "Your 2 marks go too." in page  # the removal box
+    read.clear()
+    assert client.get("/").status_code == 200  # a page of its own: counted anew
+    assert sorted(read) == sorted([one, two])
+
+
+@pytest.mark.benchmark
+def test_the_captures_column_costs_the_library_little_with_many_captures(  # type: ignore[no-untyped-def]
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch, benchmark
+) -> None:
+    """#962: `GET /` with 200 documents of 500 captures each takes at most 15% longer than
+    without the Captures column and the shelf's strips (the removal boxes count them
+    either way), each timed as the middle of five runs taken in turn. The comparison runs
+    once through `benchmark`, so the nightly `--benchmark-only` run takes it."""
+    client = client_of(server)
+    _app, config = server
+    for n in range(200):
+        doc = upload(client, pdf_bytes(f"Paper {n}."), f"paper-{n}.pdf")["id"]
+        capture_file(config.work_root / doc, doc, "nqm" * 166 + "nq")
+        opened_at(config, doc, 1_700_000_000 + n)
+    real = pages._capture_flags
+
+    def none(*_: Any) -> dict[str, Any]:
+        return {"kinds": [], "said": "", "unread": False}
+
+    def timed(column: bool) -> int:
+        monkeypatch.setattr(pages, "_capture_flags", real if column else none)
+        start = time_ns()
+        assert client.get("/").status_code == 200
+        return time_ns() - start
+
+    def compare() -> tuple[int, int]:
+        timed(True)  # the first page warms the templates and the file cache
+        times: dict[bool, list[int]] = {True: [], False: []}
+        for _ in range(5):
+            for column in (True, False):
+                times[column].append(timed(column))
+        with_column, without = (sorted(times[c])[2] for c in (True, False))
+        return with_column, without
+
+    with_column, without = benchmark.pedantic(compare, rounds=1, iterations=1)
+    assert with_column <= 1.15 * without, (with_column / 1e6, without / 1e6)

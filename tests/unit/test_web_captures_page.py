@@ -32,7 +32,7 @@ from web_helpers import (
 from sci2audio.app.captures import CAPTURES
 from sci2audio.web import create_app
 from sci2audio.web.markers import MARKERS, markers_text
-from sci2audio.web.player import AUDIO_RECORD
+from sci2audio.web.player import AUDIO_RECORD, DOCUMENT_RECORD
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -350,6 +350,81 @@ def test_without_an_audiobook_undo_puts_back_a_capture_beside_another_sentences(
     (work / CAPTURES).write_text(json.dumps(data), encoding="utf-8")
     back = client.post(f"{url}/restore")
     assert back.status_code == 201, back.text
+
+
+def stored_beside(work: Path, quote: dict[str, Any], **anchor: Any) -> bytes:
+    """A second quote stored with the removed one's anchor changed by `anchor`; the file's
+    bytes after."""
+    data = file_of(work)
+    other = json.loads(json.dumps(quote))
+    other["id"] = "e" * 16
+    other["anchor"].update(anchor)
+    data["captures"].append(other)
+    (work / CAPTURES).write_text(json.dumps(data), encoding="utf-8")
+    return (work / CAPTURES).read_bytes()
+
+
+def removed_without_audiobook(studied: dict[str, Any], kind: str) -> tuple[str, dict[str, Any]]:
+    client, doc, ids, work = (studied[k] for k in ("client", "doc", "ids", "work"))
+    capture = next(c for c in file_of(work)["captures"] if c["id"] == ids[kind])
+    url = f"/api/v1/documents/{doc}/captures/{ids[kind]}"
+    assert client.delete(url).status_code == 200
+    (work / AUDIO_RECORD).unlink()
+    return url, capture
+
+
+def test_without_an_audiobook_undo_finds_a_quote_whose_text_moved_on_its_sentence(
+    studied: dict[str, Any],
+) -> None:
+    """#955: the other quote names a block that is gone, but its text is the removed
+    quote's sentence, where the document finds it: a clash its own place would miss."""
+    client, work = studied["client"], studied["work"]
+    url, quote = removed_without_audiobook(studied, "quote")
+    before = stored_beside(work, quote, block=quote["anchor"]["block"] + 1000)
+    refused = client.post(f"{url}/restore")
+    assert (refused.status_code, refused.json()["error"]) == (409, "captured-again")
+    assert (work / CAPTURES).read_bytes() == before
+
+
+def test_without_an_audiobook_undo_puts_back_a_quote_where_another_moved_away(
+    studied: dict[str, Any],
+) -> None:
+    """#955: the other quote holds the removed one's place but another sentence's text,
+    which the document finds elsewhere: no clash, though the two places are one."""
+    client, work = studied["client"], studied["work"]
+    url, quote = removed_without_audiobook(studied, "quote")
+    mark = next(c for c in file_of(work)["captures"] if c["id"] == studied["ids"]["mark"])
+    assert mark["anchor"]["text"] != quote["anchor"]["text"]
+    stored_beside(work, quote, text=mark["anchor"]["text"])
+    back = client.post(f"{url}/restore")
+    assert back.status_code == 201, back.text
+
+
+@pytest.mark.parametrize(
+    ("moved", "answer"),
+    [("place", 409), ("text", 201)],
+    ids=["same-place-other-text", "same-text-other-place"],
+)
+def test_without_an_audiobook_or_a_readable_document_undo_compares_the_stored_places(
+    studied: dict[str, Any], moved: str, answer: int
+) -> None:
+    """#955: with the document record unreadable nothing can be found, so the stored
+    places decide: the same place is a clash whatever its text, another place none."""
+    client, work = studied["client"], studied["work"]
+    url, quote = removed_without_audiobook(studied, "quote")
+    mark = next(c for c in file_of(work)["captures"] if c["id"] == studied["ids"]["mark"])
+    if moved == "place":
+        before = stored_beside(work, quote, text=mark["anchor"]["text"])
+    else:
+        before = stored_beside(work, quote, block=quote["anchor"]["block"] + 1000)
+    (work / DOCUMENT_RECORD).write_text("{broken", encoding="utf-8")
+    back = client.post(f"{url}/restore")
+    assert back.status_code == answer, back.text
+    if answer == 409:
+        assert back.json()["error"] == "captured-again"
+        assert (work / CAPTURES).read_bytes() == before
+    else:
+        assert studied["ids"]["quote"] in (work / CAPTURES).read_text(encoding="utf-8")
 
 
 def test_an_unreadable_file_is_named_in_its_group_and_never_written(

@@ -70,6 +70,9 @@ SCRIPT_KEYS = (
     "making.cancel_size",
     "player.",
     "capture.",  # the captures on the Listen page (#397)
+    "library.notes",  # the shelf's flag strip there, drawn again as captures change (#962)
+    "library.quotes",
+    "library.marks",
     "captures.",  # the Captures page, filtered in place (#398)
     "export.",  # its files, saved from the page (#399)
     "remove.removing",
