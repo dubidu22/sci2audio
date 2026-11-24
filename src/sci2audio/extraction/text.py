@@ -115,6 +115,30 @@ _MONTHS = frozenset(
         *("august", "september", "oktober", "november", "dezember"),
     )
 )
+# An English month line runs on inside a sentence as a German one does (#903); only German
+# months make "am 3." an ordinal (`_ends_sentence`).
+_ENGLISH_MONTHS = frozenset(
+    (
+        *("january", "february", "march", "april", "may", "june", "july", "august"),
+        *("september", "october", "november", "december"),
+    )
+)
+_DATE_MONTHS = _MONTHS | _ENGLISH_MONTHS
+# A line ending in one of these words leads into the date on the next line ("... im" /
+# "Oktober 2020"); any other word ends a title or author line before its date (#922).
+_DATE_LEADS = frozenset(
+    (
+        *("a", "an", "the", "in", "on", "at", "of", "from", "since", "until", "till", "to"),
+        *("by", "for", "during", "before", "after", "between", "through", "throughout"),
+        *("around", "about", "as", "and", "or", "early", "late", "mid", "last", "next"),
+        *("this", "each", "every", "into", "within", "circa"),
+        *("im", "am", "vom", "von", "seit", "bis", "ab", "zum", "zur", "um", "für", "nach"),
+        *("vor", "des", "der", "dem", "den", "die", "das", "ein", "eine", "einem", "einen"),
+        *("eines", "einer", "und", "oder", "sowie", "anfang", "ende", "mitte", "letzten"),
+        *("vergangenen", "kommenden", "nächsten", "diesem", "dieses", "jeden", "per"),
+        *("zwischen", "während"),
+    )
+)
 _WORD = re.compile(r"[^\W\d_]+")
 # a word and at most a year as the whole of a line: "OKTOBER", "(Oktober 2020" (#893)
 _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+\d{1,4})?\W*")
@@ -286,7 +310,13 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
             out.append(element)
         elif (
             k
-            and not _title(paragraph[k - 1], text, longest, paragraph[k - 2] if k > 1 else None)
+            and not _title(
+                paragraph[k - 1],
+                text,
+                longest,
+                paragraph[k - 2] if k > 1 else None,
+                paragraph[k + 1] if k + 1 < len(paragraph) else None,
+            )
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
             out.append((*element, "br"))
@@ -322,7 +352,7 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int, before: str | None) -> bool:
+def _title(line: str, after: str, longest: int, before: str | None, beyond: str | None) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
     has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
@@ -336,10 +366,26 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     (#893): a line in capitals runs on into a line starting with a number ("am 3." /
     "OKTOBER" / "2020 kamen ...") and a mixed-case line into any line ("im" / "Oktober 2020"
     / "Die ..."). A month line in capitals before a capital keeps its cut after it: after a
-    number's stop it may be a heading the date rule joined to the line before (#900)."""
-    if not _short(line, longest):
-        return False
+    number's stop it may be a heading the date rule joined to the line before (#900).
+
+    A long line ending in a word that leads into no date (`_DATE_LEADS`) before a month line
+    is a title or author line, and its date a line of its own (#922): "A Study of ... on
+    Phones" / "April 2020" / "The ..." cuts before and after the date, "... im" / "Oktober
+    2020" / "Die ..." runs on. Only a date line without punctuation at its end before
+    `beyond`, the line after it, starting with a capital: a date ending in a stop ("...
+    dated" / "June 2020." / "The ...") or before a lower-case line ("... den Stand" /
+    "Oktober 2020" / "wieder und ...") ends or goes on with the sentence it is in. A line
+    ending in punctuation or a number keeps the rules above."""
     first = after.lstrip(_OPENERS)[:1]
+    if not _short(line, longest):
+        return (
+            first.isupper()
+            and beyond is not None
+            and beyond.lstrip(_OPENERS)[:1].isupper()
+            and after.rstrip(_CLOSERS)[-1:] not in _ENDS
+            and _month_line(after)
+            and _titled(line)
+        )
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
@@ -351,16 +397,26 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
         and not _short(before, longest)  # a title line before the date ends no sentence either
         and _month_line(line)
         and not _ends_sentence(before, line)
+        and not _titled(before)
     ):
         return False
     return first.isupper()
 
 
+def _titled(line: str) -> bool:
+    """True if `line` ends in a word that is no lead into a date (`_DATE_LEADS`), looking
+    through closing quotes and brackets: a title or author line before a date (#922)."""
+    # Matched from the end of the reversed line: a search for a word at the line's end would
+    # retry at every letter of the last word (quadratic). No lead is near 32 letters long.
+    tail = _WORD.match(line.rstrip().rstrip(_CLOSERS)[-32:][::-1])
+    return tail is not None and tail[0][::-1].lower() not in _DATE_LEADS
+
+
 def _month_line(line: str) -> bool:
-    """True if `line` is a German month (`_MONTHS`) alone or before a year, looking through
-    brackets and quotes: "OKTOBER", "(Oktober 2020" (#893)."""
+    """True if `line` is a German or English month alone or before a year, looking through
+    brackets and quotes: "OKTOBER", "(Oktober 2020" (#893), "June 2020" (#903)."""
     found = _MONTH_LINE.fullmatch(line)
-    return found is not None and found[1].lower() in _MONTHS
+    return found is not None and found[1].lower() in _DATE_MONTHS
 
 
 def _heading(paragraph: list[str], k: int, longest: int) -> bool:
@@ -387,7 +443,13 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
         line.lstrip(_OPENERS)[:1].isupper()
         and not _capitals(line)
         and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
-        and _title(line, after, longest, paragraph[k - 1])
+        and _title(
+            line,
+            after,
+            longest,
+            paragraph[k - 1],
+            paragraph[k + 2] if k + 2 < len(paragraph) else None,
+        )
     )
 
 

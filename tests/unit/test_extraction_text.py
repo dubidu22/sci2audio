@@ -1044,3 +1044,155 @@ def test_a_month_line_after_a_title_line_keeps_its_cut(lines: list[str], tags: s
     (#893). ``p`` is a new paragraph, ``b`` a line joined to the one before."""
     expected = [("p",) if t == "p" else ("p", "br") for t in tags]
     assert tags_of("\n".join(lines) + "\n") == expected
+
+
+# ---- #903: an English month line inside a running sentence -------------------------------
+
+_PUBLISHED = "The first version of the reading tool was published, as planned, in\n"
+_THE = "The second part starts on this line and runs on for a while here.\n"
+_ENGLISH_MONTHS = (
+    *("January", "February", "March", "April", "May", "June", "July", "August"),
+    *("September", "October", "November", "December"),
+)
+
+
+@pytest.mark.parametrize("month", _ENGLISH_MONTHS)
+def test_an_english_month_line_inside_a_running_sentence_stays_in_its_paragraph(
+    month: str,
+) -> None:
+    """ "... published in" / "June 2020" / "The ...": every English month behaves alike, the
+    ones spelled as in German (April) and the English-only ones (June) (#903)."""
+    for line in (month, f"{month} 2020"):
+        text = f"{_PUBLISHED}{line}\n{_THE}"
+        assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")], line
+
+
+# ---- #922: a date line after a long title line ---------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("title", "date", "body"),
+    [
+        ("Jahresbericht der Deutschen Gesellschaft für Akustik", "Oktober 2020", _DIE),
+        ("JAHRESBERICHT DER GESELLSCHAFT FÜR AKUSTIK UND SPRACHE", "Oktober 2020", _DIE),
+        ("Max Mustermann und Erika Musterfrau, Institut für Akustik Berlin", "Mai 2021", _DIE),
+        ("A Study of Reading Scientific Papers Aloud on Phones", "April 2020", _THE),
+    ],
+    ids=["jahresbericht", "capitals", "authors", "english"],
+)
+def test_a_date_line_after_a_long_title_line_is_a_block_of_its_own(
+    title: str, date: str, body: str
+) -> None:
+    """A title or author line longer than `TITLE_SHARE` of the longest line, ending in a
+    word that is no preposition, article or ordinal, before a date: title, date and body
+    are three blocks (#922)."""
+    assert len(title) > 0.6 * len(body.strip())
+    assert tags_of(f"{title}\n{date}\n{body}") == [("p",), ("p",), ("p",)]
+
+
+def test_a_long_word_before_a_date_line_is_read_in_linear_time() -> None:
+    """ "AAAA...A." / "June 2020" / "The ...": the last word of the line before a date is
+    found in time linear in the line, whatever its end (#922)."""
+
+    def sized(size: int) -> str:
+        return f"{'A' * size}.\nJune 2020\n{_THE}"
+
+    assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+@pytest.mark.parametrize(
+    ("lines", "tags"),
+    [
+        (
+            [
+                "All the forms for the second round of the study must be sent in no later than",
+                "June 2020",
+                "and will then be read by the board of the society in the order they came.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "All the forms for the second round of the study must be sent in no later than",
+                "June 2020.",
+                "The board of the society will then read them in the order they came in.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "The board has now read the second report of the society, dated",
+                "June 2020.",
+                "The board of the society will then read them in the order they came in.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "Readers who want to take part in the second round can apply starting",
+                "June 2020.",
+                "Every chapter of the study is then read aloud by two of the voices.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "The first version of the reading tool for phones was finally released",
+                "April 2020.",
+                "The second version followed half a year later with many more voices.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "Die Zahlen in der Tabelle dieses Berichts zeigen den letzten Stand",
+                "Oktober 2020.",
+                "Die Erhebung lief danach noch eine ganze Weile weiter, bis zum Ende.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "Die Zahlen in der Tabelle dieses Berichts zeigen den letzten Stand",
+                "Mai 2021.",
+                "Die Erhebung lief danach noch eine ganze Weile weiter, bis zum Ende.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "Der zweite Bericht der Gesellschaft soll vorliegen bis spätestens",
+                "Oktober 2020.",
+                "Dann liest der Vorstand alle Berichte in der Reihenfolge ihres Eingangs.",
+            ],
+            "pbb",
+        ),
+        (
+            [
+                "Die Zahlen in der Tabelle dieses Berichts geben den Stand",
+                "Oktober 2020",
+                "wieder und werden im nächsten Jahr durch neue Zahlen ersetzt.",
+            ],
+            "pbb",
+        ),
+    ],
+    ids=[
+        "no-later-than",
+        "no-later-than-stop",
+        "dated-stop",
+        "starting-stop",
+        "released-stop",
+        "letzten-stand-oktober",
+        "letzten-stand-mai",
+        "spaetestens-stop",
+        "stand-lower-case",
+    ],
+)
+def test_a_date_line_ending_a_sentence_or_before_lower_case_stays_in_it(
+    lines: list[str], tags: str
+) -> None:
+    """A date after a word that leads into no date stays in its sentence when the date line
+    ends in a stop or the line after it starts in lower case, as before #922: only a date
+    line without a stop before a capital is a block of its own after a title line."""
+    expected = [("p",) if t == "p" else ("p", "br") for t in tags]
+    assert tags_of("\n".join(lines) + "\n") == expected
