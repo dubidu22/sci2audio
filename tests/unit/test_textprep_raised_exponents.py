@@ -115,18 +115,33 @@ def test_a_rebuilt_placeholder_keeps_its_raised_exponents_as_sup_runs() -> None:
     assert raised_exponents(rebuilt) == {0: [(11, 13)]}
 
 
-def test_german_writes_a_raised_exponent_as_printed() -> None:
-    """German pin until `numbers_de` reads a power before a glued letter (after #780): a
-    raised "4" after "10" reads "10 hoch 4" before a space and stays "10⁴K" before "K",
-    the same on a second run; a raised "−1" after a bracket is written as printed."""
-    assert read_twice(tagged("Bei 10", ("4",), " und 10", ("4",), "K.", ), "de") == (
-        "Bei 10 hoch 4 und 10⁴K.",
-        "Bei 10 hoch 4 und 10⁴K.",
+def test_german_reads_a_raised_exponent_before_a_glued_letter_or_after_a_bracket() -> None:
+    """#815: a raised "4" after "10" reads "10 hoch 4" before a space and before a glued
+    "K" ("Kelvin"), a raised "−1" after a bracket "hoch minus 1", the same on a second run;
+    untagged "104K" and "(I − P)−1" stay as printed."""
+    assert read_twice(tagged("Bei 10", ("4",), " und 10", ("4",), "K, nicht 104K.", ), "de") == (
+        "Bei 10 hoch 4 und 10 hoch 4 Kelvin, nicht 104K.",
+        "Bei 10 hoch 4 und 10 hoch 4 Kelvin, nicht 104K.",
     )  # fmt: skip
-    assert read_twice(tagged("Mit (I − P)", ("−1",), " hier."), "de") == (
-        "Mit (I − P)⁻¹ hier.",
-        "Mit (I − P)⁻¹ hier.",
+    assert read_twice(tagged("Mit (I − P)", ("−1",), ", (I − P)−1 hier."), "de") == (
+        "Mit (I − P) hoch minus 1, (I − P)−1 hier.",
+        "Mit (I − P) hoch minus 1, (I − P)−1 hier.",
     )
+
+
+def test_german_reads_a_raised_exponent_set_small_and_raised_in_a_pdf_as_a_power() -> None:
+    """#815: no tag, the run is set small and raised, as a PDF gives it."""
+    runs = [("Bei 10", 10.0, 100.0), ("4", 7.0, 97.0), ("K und (I − P)", 10.0, 100.0)]
+    runs += [("−1", 7.0, 97.0), (".", 10.0, 100.0)]
+    line, x = [], 0.0
+    for text, size, top in runs:
+        line.append(TextRun(text, size=size, box=Box(x, top, x + 5 * len(text), top + size)))
+        x += 5 * len(text)
+    text = "".join(run.text for run in line)
+    page = Page(1, (TextLine("l0", tuple(line)),))
+    block = Block(BlockKind.PARAGRAPH, text, (Part("l0", 0),))
+    document = Document(Content(Source("a.pdf", SourceFormat.PDF), (page,)), "de", (block,))
+    assert read(document, "de") == "Bei 10 hoch 4 Kelvin und (I − P) hoch minus 1."
 
 
 @given(

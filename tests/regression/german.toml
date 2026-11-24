@@ -2927,3 +2927,33 @@ goal = "Ein langer Doppelpfeil aus zwei Zeichen ('=⇒', '⇐=', '⇐=⇒') wird
 language = "de"
 blocks = [{ kind = "paragraph", text = "Also gilt so A =⇒ B und A=⇒B, dann C ⇐= D, und x = 3 gilt genau dann, wenn P ⇐=⇒ Q." }]
 expected = ["Also gilt so A ⇒ B und A⇒B, dann C ⇐ D, und x gleich 3 gilt genau dann, wenn P ⇔ Q."]
+
+[[case]]
+id = "de-raised-exponent-before-a-glued-unit-letter-is-a-power"
+audit = 0
+issue = 815
+goal = "Eine hochgestellte Hochzahl nach '10' vor einem angehängten Einheitenbuchstaben wird als Potenz gelesen ('10 hoch 4 Kelvin'), ob die Hochstellung nur im Lauf steht oder als Zeichen gedruckt ist ('10⁴K'), in beiden Läufen; ungetaggt bleibt '104K' wie gedruckt."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Bei T = 10", { sup = "4" }, "K ist das Gas heiß, bei 10", { sup = "3" }, " K nicht."] },
+    { kind = "paragraph", text = "Bei T = 10⁴K ist es heiß, bei 104K bleibt es gedruckt." },
+]
+expected = [
+    "Bei T gleich 10 hoch 4 Kelvin ist das Gas heiß, bei 10 hoch 3 Kelvin nicht.",
+    "Bei T gleich 10 hoch 4 Kelvin ist es heiß, bei 104K bleibt es gedruckt.",
+]
+
+[[case]]
+id = "de-raised-minus-one-after-a-bracket-is-a-power"
+audit = 0
+issue = 815
+goal = "Ein hochgestelltes '−1' nach ')' oder ']' ist eine Inverse und wird 'hoch minus 1' gelesen, ob die Hochstellung nur im Lauf steht oder als Zeichen gedruckt ist ('(I − P)⁻¹'), in beiden Läufen; ungetaggt bleiben '(I − P)−1' und 'f(x)−1' wie gedruckt (#527)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Wir nehmen (I − P)", { sup = "−1" }, " und [A]", { sup = "−1" }, " hier."] },
+    { kind = "paragraph", text = "Wir nehmen (I − P)⁻¹, aber (I − P)−1 und f(x)−1 bleiben." },
+]
+expected = [
+    "Wir nehmen (I − P) hoch minus 1 und [A] hoch minus 1 hier.",
+    "Wir nehmen (I − P) hoch minus 1, aber (I − P)−1 und f(x)−1 bleiben.",
+]
