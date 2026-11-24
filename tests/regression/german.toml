@@ -2714,6 +2714,21 @@ blocks = [{ kind = "paragraph", text = "Das zeigen frühere Arbeiten (Koch 2019;
 expected = ["Das zeigen frühere Arbeiten."]
 
 [[case]]
+id = "de-dating-bracket-of-several-period-words-kept"
+audit = 0
+issue = 595
+goal = "Eine Klammer, die mit mehreren Wörtern datiert ('(Frühjahr und Sommer 2019)', '(Herbst/Winter 2019)', '(Stand März 2020)'), ist keine Quellenangabe und bleibt wie gedruckt; mit einem Namen ('(Sommer und Koch 2019)') bleibt sie eine und wird entfernt."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020)." },
+    { kind = "paragraph", text = "Das zeigen frühere Arbeiten (Sommer und Koch 2019)." },
+]
+expected = [
+    "Die Daten und gelten, ebenso der Bericht.",
+    "Das zeigen frühere Arbeiten.",
+]
+
+[[case]]
 id = "de-arrow-printed-as-two-glyphs"
 audit = 0
 issue = 527
