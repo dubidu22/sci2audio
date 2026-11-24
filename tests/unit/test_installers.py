@@ -1039,11 +1039,14 @@ def test_the_launch_check_fails_unless_the_log_ends_with_stopped_after_the_quit(
 def test_the_stopped_line_of_an_earlier_start_does_not_count(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    started = "09:00 INFO running in a window on http://127.0.0.1:6\n"
-    bundle, log, _ = launch_setup(tmp_path, monkeypatch, started, None)
-    log.write_text("08:59 INFO stopped\n", encoding="utf-8")
-    with pytest.raises(smoke.Failed, match="does not end with the line 'stopped'"):
-        smoke.smoke_launch(bundle, log, timeout=5, poll=0.05)
+    # a whole start and quit from before this step; this start and quit write nothing, so
+    # only the step's offset into the log keeps the old pair from passing the check
+    bundle, log, services = launch_setup(tmp_path, monkeypatch, None, None)
+    earlier = "08:58 INFO running in a window on http://127.0.0.1:5\n08:59 INFO stopped\n"
+    log.write_text(earlier, encoding="utf-8")
+    with pytest.raises(smoke.Failed, match="no start line"):
+        smoke.smoke_launch(bundle, log, timeout=0.3, poll=0.05)
+    assert not services.running
 
 
 def test_the_stopped_line_is_the_logs_last_line() -> None:

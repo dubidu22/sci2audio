@@ -212,8 +212,9 @@ def kill(bundle: Path) -> None:
 
 
 def quit_app(bundle: Path, identifier: str, timeout: float, poll: float) -> str | None:
-    """Quits the app as the Dock does; a problem when it is still running after `timeout`.
-    Nothing is sent to an app that is not running: the Apple Event would start it."""
+    """Quits the app as the Dock does; a problem when the quit Apple Event gets no answer
+    within `timeout`, or when the app is still running `timeout` after it. Nothing is sent
+    to an app that is not running: the Apple Event would start it."""
     if not running(bundle):
         return None
     quit_it = f'tell application id "{identifier}" to quit'
