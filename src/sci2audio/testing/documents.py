@@ -21,6 +21,7 @@ from sci2audio.core import (
     TextRun,
 )
 from sci2audio.textprep import read_over
+from sci2audio.textprep.footnotes import raised_exponents
 
 BlockLike = Block | tuple[BlockKind | str, str]
 
@@ -145,6 +146,7 @@ def rebuilt_from_script(
         pieces[piece.span.block].append(piece)
     items = document.content.items()
     blocks, pictures, tags = [], {}, {}
+    raised = raised_exponents(document)
     for index, (block, own) in enumerate(zip(document.blocks, pieces, strict=True)):
         if alts := [
             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
@@ -155,7 +157,7 @@ def rebuilt_from_script(
             # placeholder comes back as printed and the second run makes the same notice
             # again, however the notice reads its label (D-707)
             blocks.append(Block(block.kind, block.text, role=block.role, label=block.label))
-            if kept := _run_tags(block, items):
+            if kept := _raised_tags(_run_tags(block, items), raised.get(index, ())):
                 tags[index] = kept  # the printed text is unchanged, so its run tags still fit
             continue
         text = "".join(piece.text for piece in own)
@@ -176,6 +178,20 @@ def rebuilt_from_script(
         pictures=pictures,
         tags=tags,
     )
+
+
+def _raised_tags(
+    kept: list[tuple[int, int, str | tuple[str, ...]]], raised: Iterable[tuple[int, int]]
+) -> list[tuple[int, int, str | tuple[str, ...]]]:
+    """The tagged runs with each raised exponent that only its size and rise show tagged
+    `sup` too, so a placeholder rebuilt as printed reads its powers again (#576, #589): the
+    rebuilt runs carry tags, not sizes or boxes."""
+    added = [
+        (start, end, "sup")
+        for start, end in raised
+        if not any(s < end and start < e for s, e, _ in kept)
+    ]
+    return sorted([*kept, *added], key=lambda found: (found[0], found[1]))
 
 
 def _run_tags(

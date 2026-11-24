@@ -13,7 +13,10 @@ quotes the printed text.
 - N3 (D-182): misaki reads every bare four-digit number as a year; one that the context
   marks as a count gets a thousands comma ("1234 participants" → "1,234").
 - N4 (D-184): trailing zeros kept ("2.50" → "2 point 5 0"); misaki drops them.
-- N5, N6 (D-187): powers: "10⁶", "10^-4", "× 10−4", "x²".
+- N5, N6 (D-187): powers: "10⁶", "10^-4", "× 10−4", "x²", and "(I − P)⁻¹" (#589). An
+  exponent whose raise only its run shows (a `sup` tag, or set small and raised:
+  `footnotes.raised_exponents`) is read as if printed in superscripts, and one no rule here
+  or in the units step reads is written so ("2⁸"), since "28" is another number (#576).
 - N7, N8 (D-186): ratios "3:1" read "3 to 1"; fractions "1/2" read "1 half", "17/20" read
   "17 out of 20".
 - N9 (D-188): ISO dates read "12 March 2019".
@@ -29,7 +32,7 @@ import calendar
 import re
 
 from sci2audio.core import Document, Edit
-from sci2audio.textprep.footnotes import unread_marks
+from sci2audio.textprep.footnotes import as_superscripts, raised_exponents, unread_marks
 from sci2audio.textprep.notation import (
     Candidate,
     arrows,
@@ -41,7 +44,7 @@ from sci2audio.textprep.notation import (
 from sci2audio.textprep.numbers_de import find_numbers_de
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
-from sci2audio.textprep.units import reads_unit_after_per
+from sci2audio.textprep.units import reads_unit_after_per, unit_spans
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
 
@@ -50,7 +53,8 @@ _UNSIGNED = r"\d+(?:\.\d+)?"
 # it is a range dash, N2); the ASCII hyphen-minus is read right by the voice
 # its number may stand on the next line ("−" at a line end): a second run sees the joined
 # "− 5" and reads it so (#336, D-605). Not glued after a closing bracket ("(I − P)−1", an
-# inverse whose raise was lost, may as well be "f(x) minus 1": left as printed, #527, #589);
+# inverse whose raise was lost, may as well be "f(x) minus 1": left as printed, #527; with
+# its raise in its run it is a power, #589);
 # "←−0" is one arrow and a number (`arrows`, the first rule)
 _MINUS = re.compile(r"(?<![\w.,)\]}])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space> ?|\n)(?=\.?\d)")
 
@@ -100,6 +104,11 @@ _SUPER = f"[⁺⁻]?[{_SUPERSCRIPTS}]+(?![⁺⁻^])"
 _POWER_OF_TEN = re.compile(r"(?<![\w.,^])(?P<base>10)(?P<exp>" + _SUPER + ")")
 _SIGNED_POWER = re.compile(
     r"(?<![\w.,^])(?P<base>\d+(?:\.\d+)?)(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + "]+)(?![⁺⁻^])"
+)
+# a signed power of a bracketed term, "(I − P)⁻¹" (an inverse), its raise printed or in its
+# run (#589); not before a letter or digit, which may go on the power ("(x)⁻¹y")
+_BRACKET_POWER = re.compile(
+    r"(?P<base>[)\]])(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + r"]+)(?![\w⁺⁻^" + _SUPERSCRIPTS + "])"
 )
 _CARET = re.compile(
     r"(?<![\w.,])(?P<base>\d+(?:\.\d+)?|[^\W\d_" + _SUPERSCRIPTS + r"])"
@@ -245,13 +254,45 @@ class NumbersStep(TextStep):
         german = context.language.split("-", 1)[0].lower() == "de"
         find = find_numbers_de if german else find_numbers  # German rules: numbers_de.py
         marks = unread_marks(document, context)  # read as a second run reads, without them
+        raised = raised_exponents(document)
         edits = []
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context) or not block.text:
                 continue
             unread = marks.get(index, ())
-            edits += to_edits(index, through_unread(block.text, find, unread), self.id)
+            spans = [
+                (start, end)
+                for start, end in raised.get(index, ())
+                if not any(s < end and start < e for s, e in unread)
+            ]
+            text = as_superscripts(block.text, spans)  # as printed (#576, #589)
+            found = through_unread(text, find, unread)
+            written = _written(block.text, text, spans, found, context.language)
+            edits += to_edits(index, found + written, self.id)
         return edits
+
+
+def _written(
+    printed: str, text: str, raised: list[tuple[int, int]], found: list[Candidate], language: str
+) -> list[Candidate]:
+    """A raised exponent that neither this step nor the units step reads is written in
+    superscript characters, as it is printed ("2⁸", "(I − P)⁻⁰"): its raise is in no run of
+    the script, and "28" is another number, which a second run may read so ("2⁸K" is no
+    "28 thousand"). The voice reads it as it reads it printed so (#576, #589)."""
+    taken = [(c.start, c.end) for c in found]
+    left = [(s, e) for s, e in raised if not any(a < e and s < b for a, b in taken)]
+    if left:
+        taken = unit_spans(text, language)
+        left = [(s, e) for s, e in left if not any(a < e and s < b for a, b in taken)]
+    return [
+        Candidate(
+            start,
+            end,
+            text[start:end],
+            f'raised "{printed[start:end]}" written as printed, "{text[start:end]}"',
+        )
+        for start, end in left
+    ]
 
 
 def find_numbers(text: str) -> list[Candidate]:
@@ -405,6 +446,10 @@ def _powers(text: str, plain: str) -> list[Candidate]:
                     match.start("base"),
                 )
             )
+    for match in _BRACKET_POWER.finditer(text):
+        start, end = match.span("exp")
+        words = f" to the power of {_exponent_words(match['exp'])}"
+        found.append((Candidate(start, end, words, _power_reason(text, match, words)), None))
     for match in _CARET.finditer(plain):
         start, end = match.span("exp")
         grouped = match["grouped"]
