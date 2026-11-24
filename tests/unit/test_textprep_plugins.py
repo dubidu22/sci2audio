@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib.metadata import EntryPoint
 from pathlib import Path
@@ -215,9 +216,11 @@ def hang(monkeypatch: pytest.MonkeyPatch):
     broken.HANG.set()
 
 
-def load_quickly(*entries: EntryPoint):
-    # the guard runs a full collection after every plugin it loads, and on a loaded machine
-    # one takes seconds; it has its own limit, so its time is taken off what is measured
+@contextmanager
+def collections_timed():
+    """The seconds each garbage collection took inside the block, as a list that fills up.
+    The guard runs a full collection after every call of a plugin, and on a loaded machine
+    one takes seconds; it has its own limit, so a bound on the call leaves its time out."""
     collecting: list[float] = []
     collect = gc.collect
 
@@ -230,6 +233,11 @@ def load_quickly(*entries: EntryPoint):
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(gc, "collect", timed_collect)
+        yield collecting
+
+
+def load_quickly(*entries: EntryPoint):
+    with collections_timed() as collecting:
         started = time.monotonic()
         steps = installed_steps(entry_points=[*entries, AMPERSAND], load_timeout=0.2)
         elapsed = time.monotonic() - started
@@ -419,10 +427,12 @@ def test_ctrl_c_in_a_plugin_is_not_swallowed() -> None:
 def test_a_slow_plugin_is_given_up_and_the_run_goes_on() -> None:
     broken.SlowStep.release.clear()
     try:
-        started = time.monotonic()
-        run = run_with("SlowStep", "RemovingStep", timeout=0.2)
-        # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
-        assert time.monotonic() - started < 3
+        with collections_timed() as collecting:
+            started = time.monotonic()
+            run = run_with("SlowStep", "RemovingStep", timeout=0.2)
+            elapsed = time.monotonic() - started
+        # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit, no collections
+        assert elapsed - sum(collecting) < 3
     finally:
         broken.SlowStep.release.set()
     [problem] = run.problems
