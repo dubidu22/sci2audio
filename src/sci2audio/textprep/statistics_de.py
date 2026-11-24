@@ -14,6 +14,8 @@ statistics.py, which also reads the comparison signs with `OPERATORS_DE`:
   Komma 4". German pairs are split by ";" or a comma and a space, since a comma alone is the
   decimal sign ("[1,2; 3,4]").
 - S-de-5: "OR" before a comparison sign read "Odds Ratio".
+- S-de-6 (#796): "⇒", "⇐" and "⇔" between two operands read "daraus folgt", "folgt aus" and
+  "genau dann, wenn"; so are "=>" and "<=>".
 
 The numbers inside a df bracket or an interval are read here, as German says them, since the
 edit covers them; every other number is the numbers step's (numbers_de.py).
@@ -48,6 +50,9 @@ OPERATORS_DE = {
     "≫": "viel größer als",
 }
 
+# S-de-6 (#796): the arrows of logic between two operands, which the voice does not read
+ARROWS_DE = {"⇒": "daraus folgt", "⇐": "folgt aus", "⇔": "genau dann, wenn"}
+
 _OPERATOR_AHEAD = r"\s*(?:̸=|≠|[=<>≤⩽≦≥⩾≧≠≪≫])"
 _THEN_OPERATOR = f"(?={_OPERATOR_AHEAD})"
 # a German number: a decimal comma or point, or a thousands point ("1.234")
@@ -79,9 +84,10 @@ _SQUARED_NAMES = {
 }
 _PARTIAL = "partielles "  # before "Eta-Quadrat" only
 _ODDS_RATIO_WORDS = "Odds Ratio"
-# the readings of S-de-3 and S-de-5, which the sentence cutter keeps whole (#482)
+# the readings of S-de-3, S-de-5 and S-de-6, which the sentence cutter keeps whole (#482)
 SYMBOL_READINGS_DE = frozenset(
     {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], _ODDS_RATIO_WORDS}
+    | set(ARROWS_DE.values())
 )
 # the capital words of those readings: never an author's name before "(2019)" (#101)
 READ_WORDS = frozenset(

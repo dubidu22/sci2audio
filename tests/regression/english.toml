@@ -3053,9 +3053,35 @@ expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold
 id = "a-double-arrow-printed-as-an-equals-sign-and-an-arrow"
 audit = 0
 issue = 590
-goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. The voice says nothing for '⇒' yet; a plain '=' stays as printed."
+goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. Between two operands each is then read as words: 'implies', 'is implied by', 'if and only if' (#796)."
 blocks = [{ kind = "paragraph", text = "So A =⇒ B and C⇐=D, and x = 3 holds iff P ⇐=⇒ Q and X=⇒Y." }]
-expected = ["So A ⇒ B and C⇐D, and x equals 3 holds iff P ⇔ Q and X⇒Y."]
+expected = ["So A implies B and C is implied by D, and x equals 3 holds iff P if and only if Q and X implies Y."]
+
+# ---- implication arrows read as words (#796) ---------------------------------------------------
+
+[[case]]
+id = "implication-arrows-between-operands"
+audit = 0
+issue = 796
+goal = "Between two operands '⇒' is read 'implies', '⇐' 'is implied by' and '⇔' 'if and only if'; the ASCII forms '=>' and '<=>' likewise. The voice says nothing for the arrows (#796)."
+blocks = [{ kind = "paragraph", text = "If A ⇒ B and B ⇐ C, then A ⇔ C; also p => q and (p ∧ q) <=> r." }]
+expected = ["If A implies B and B is implied by C, then A if and only if C; also p implies q and (p ∧ q) if and only if r."]
+
+[[case]]
+id = "implication-arrows-standing-alone"
+audit = 0
+issue = 796
+goal = "An arrow that stands alone, as a list bullet, at a line start or as a figure label, is no sentence word and is left as printed (#796)."
+blocks = [
+    { kind = "list_item", text = "⇒ faster training" },
+    { kind = "paragraph", text = "Two results:\n⇒ faster training\n⇒ less memory" },
+    { kind = "caption", text = "Figure 2: ⇔" },
+]
+expected = [
+    "⇒ faster training",
+    "Two results: ⇒ faster training ⇒ less memory",
+    "Figure 2: ⇔",
+]
 
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 
