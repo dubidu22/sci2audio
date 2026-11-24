@@ -1,9 +1,11 @@
 """The v1.3 markers file, read only since the captures replace it (#474, D-728, #887): the
-file as v1.3 wrote it, the guard that refuses a file v1.3 can't read, and finding a
-sentence again in a changed document, which the captures use (#397)."""
+file as v1.3 wrote it (the tests' own copy of v1.3's writer and reader), the library's
+count of it, which only the carry-over in `app.captures` reads, and finding a sentence
+again in a changed document, which the captures use (#397)."""
 
 from __future__ import annotations
 
+import errno
 import json
 import sys
 from collections.abc import Sequence
@@ -14,30 +16,36 @@ from typing import Any
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from web_helpers import markers_of
-
-from sci2audio.core import Document, Span, apply_edits
-from sci2audio.testing.documents import make_document
-from sci2audio.textprep import cut_utterances
-from sci2audio.web import markers as module
-from sci2audio.web.markers import (
-    MARKERS,
+from web_helpers import (
+    FILE_LIMIT,
     MAX_MARKERS,
     NOTE_LIMIT,
-    Anchor,
     Marker,
     MarkerError,
     MarkerLimit,
     MarkersBroken,
     MarkersTooLarge,
-    State,
-    anchor_of,
-    count_captures,
-    locate,
+    markers_of,
     markers_text,
     note_problem,
     read_markers,
 )
+
+from sci2audio.app import files
+from sci2audio.app.captures import (
+    CAPTURES,
+    MARKERS,
+    MarkersNotCarried,
+    load_captures,
+    peek_captures,
+)
+from sci2audio.core import Document, Span, apply_edits
+from sci2audio.testing.documents import make_document
+from sci2audio.textprep import cut_utterances
+from sci2audio.web import markers as module
+from sci2audio.web.captures import CarryOverUnsaved
+from sci2audio.web.captures import load as captures_load
+from sci2audio.web.markers import Anchor, State, anchor_of, count_captures, locate
 
 DOC = "0123456789abcdef"
 FIRST = "It fell by twelve points on early shifts."
@@ -177,7 +185,7 @@ BROKEN: dict[str, bytes] = {
         }
     ).encode(),
     # a file that reads well but is past the limit: refused for its size alone
-    "too large": json.dumps(_valid()).encode() + b" " * module.FILE_LIMIT,
+    "too large": json.dumps(_valid()).encode() + b" " * FILE_LIMIT,
 }
 
 
@@ -205,6 +213,81 @@ def test_a_link_in_the_markers_place_is_never_followed(work: Path, tmp_path: Pat
     assert count_captures(work, DOC)["unread"] == "markers"
     assert (work / MARKERS).is_symlink()
     assert elsewhere.read_bytes() == before
+
+
+def _surrogate(field: str) -> bytes:
+    """A file v1.3 reads, with a lone surrogate (no UTF-8 form) in one of its texts."""
+    data = _valid()
+    entry = data["markers"][0]
+    if field == "sentence":
+        entry["anchor"]["text"] = "\udfff" + entry["anchor"]["text"]
+    else:
+        entry[field] = "\ud800" + entry[field]
+    return json.dumps(data).encode("utf-8")  # escaped as \ud800, as v1.3 accepts it
+
+
+@pytest.mark.parametrize("field", ["note", "sentence", "created", "changed"])
+def test_markers_the_carry_over_refuses_count_as_unread_as_a_load_finds_them(
+    work: Path, field: str
+) -> None:
+    """#887: v1.3 reads them, but the capture model refuses a lone surrogate (#786), so a
+    load can't carry them over; the library says the same, never counts them."""
+    raw = _surrogate(field)
+    (work / MARKERS).write_bytes(raw)
+    assert len(read_markers(work, DOC)) == 1  # v1.3 reads it
+    with pytest.raises(MarkersNotCarried):
+        peek_captures(work, DOC)
+    assert count_captures(work, DOC) == {"note": 0, "quote": 0, "mark": 0, "unread": "markers"}
+    assert (work / MARKERS).read_bytes() == raw
+    assert sorted(p.name for p in work.iterdir()) == [MARKERS]
+
+
+@pytest.mark.parametrize(("unreadable", "named"), [(CAPTURES, "captures"), (MARKERS, "markers")])
+def test_a_file_that_cant_be_read_at_all_is_named_in_the_count(
+    work: Path, monkeypatch: pytest.MonkeyPatch, unreadable: str, named: str
+) -> None:
+    put(work, [Marker("a" * 16, "t", "t", first(), "mine")])
+    if unreadable == CAPTURES:
+        load_captures(work, DOC)  # carried over: captures.json beside markers.json
+    real = Path.read_bytes
+
+    def read_bytes(self: Path) -> bytes:
+        if self.name == unreadable:
+            raise PermissionError(errno.EACCES, "Permission denied")
+        return real(self)
+
+    monkeypatch.setattr(Path, "read_bytes", read_bytes)
+    assert count_captures(work, DOC) == {"note": 0, "quote": 0, "mark": 0, "unread": named}
+
+
+def test_only_the_carry_over_reads_the_markers_file(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#887: `app.captures` is the one reader of markers.json, so the library's counts, a
+    load and its full-disk check can't judge one file in two ways."""
+    put(work, [Marker("a" * 16, "t", "t", first(), "mine")])
+    readers: list[str] = []
+    real = Path.open
+
+    def opening(self: Path, *args: Any, **kwargs: Any) -> Any:
+        if self.name == MARKERS:
+            frame = sys._getframe(1)
+            while frame.f_globals["__name__"].startswith("pathlib"):
+                frame = frame.f_back  # type: ignore[assignment]
+            readers.append(frame.f_globals["__name__"])
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", opening)
+    assert count_captures(work, DOC)["note"] == 1
+
+    def full(partial: Path, content: str | bytes) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(files, "_write_partial", full)
+    with pytest.raises(CarryOverUnsaved):  # it asks again whether the write was the carry-over
+        captures_load(work, DOC)
+    assert readers
+    assert set(readers) == {"sci2audio.app.captures"}
 
 
 def test_a_file_v13_could_not_read_back_is_never_made() -> None:

@@ -1543,7 +1543,7 @@ def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
     which is when both read text of the same block, the chunk before is the one the page
     draws just before it there, and neither is skipped as empty or overlapping (as
     `_block_view` skips them). Any other `joins` is ignored, so a hand-made or broken file
-    can't make the page, the markers and the player group the chunks differently.
+    can't make the page, the captures and the player group the chunks differently.
 
     A chunk whose span says nothing (`_silent`: a lone "-" of an audiobook made before #652)
     leads the sentence after it in its block when it opens it (`_leaders`, #869), as the
@@ -1605,7 +1605,7 @@ def _leaders(readalong: ReadAlong, silent: frozenset[int]) -> frozenset[int]:
     chapter, the page draws it right after this one there (empty and overlapping spans
     are not drawn), and it has something to say or leads in turn. `_block_view` and
     `sentence_starts` both follow this one rule, so the highlight and Previous, Next and
-    the markers never put such a chunk in different sentences."""
+    the captures never put such a chunk in different sentences."""
     chunks = readalong.chunks
     by_block: dict[int, list[int]] = {}
     for n, chunk in enumerate(chunks):
@@ -1695,7 +1695,7 @@ def player_for(
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
 ) -> tuple[PlayerView, Located, Document]:
     """Everything the listen page shows, or PlayerError saying why it can't, with the
-    document it was made from (for the markers, #474). `folders` are the only folders the
+    document it was made from (for the captures, #397). `folders` are the only folders the
     audiobook may be in (`candidate_folders`, or the one folder a command-line job names,
     #154). Without `figures` no notice box shows its figure (a command-line job, #293).
     `steps` are the server's (its runner's, plugins included, #666); of their plugin steps

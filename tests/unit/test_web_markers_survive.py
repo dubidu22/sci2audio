@@ -15,19 +15,21 @@ from audio_fakes import FakeVoice
 from cli_helpers import Cli, small_pdf
 from test_web_player import make, player_data, work_of
 from web_helpers import (
+    Marker,
     browser,
     events,
     make_config,
+    markers_text,
     offline,  # noqa: F401 - fixture
     program,
+    read_markers,
     set_capture,
     upload,
 )
 
-from sci2audio.app.captures import CAPTURES, load_captures, write_captures
+from sci2audio.app.captures import CAPTURES, MARKERS, load_captures, write_captures
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
 from sci2audio.web import create_app
-from sci2audio.web.markers import MARKERS, Marker, markers_text, read_markers
 from sci2audio.web.markers import Anchor as MarkerAnchor
 
 pytestmark = pytest.mark.usefixtures("offline")
