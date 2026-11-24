@@ -395,6 +395,9 @@ empty = "Noch nichts festgehalten. Drücken Sie beim Hören N, Q oder M oder die
 saved_quote = "Zitat festgehalten."
 saved_mark = "Markiert."
 saved_note = "Notiz gespeichert."
+saved_quote_page = "Zitat festgehalten: Seite {page}."  # die Seite der PDF, auf der der Satz beginnt (#888)
+saved_mark_page = "Markiert: Seite {page}."
+saved_note_page = "Notiz gespeichert: Seite {page}."
 removed_quote = "Zitat entfernt."
 removed_mark = "Marke entfernt."
 removed_note = "Notiz entfernt."
@@ -420,6 +423,7 @@ not_read = "In diesem Hörbuch nicht gelesen. Der Satz und was Sie geschrieben h
 no_audiobook = "Dieses Dokument hat gerade kein Hörbuch. Der Satz und was Sie geschrieben haben bleiben erhalten."
 unreadable = "Ihre Fundstücke ließen sich nicht lesen, daher lässt sich hier nichts festhalten. Die Datei bleibt, wie sie ist: {file}"
 markers = "Ihre Markierungen aus einer früheren Version ließen sich nicht übernehmen, daher lässt sich hier nichts festhalten. Die Datei bleibt, wie sie ist: {file}"
+unsaved = "Ihre Markierungen aus einer früheren Version ließen sich nicht als Fundstücke speichern, daher lässt sich hier nichts festhalten. Die Datei der Markierungen bleibt unverändert: {file}"
 
 [captures]  # die Seite Fundstücke (#398, ADR-008): Marken, Notizen und Zitate aller Dokumente
 title = "Fundstücke"
@@ -439,6 +443,7 @@ listen = "Ab hier hören"
 no_audiobook = "Dieses Dokument hat gerade kein Hörbuch. Der Satz und was Sie geschrieben haben bleiben erhalten."
 unreadable = "Die Fundstücke dieses Dokuments ließen sich nicht lesen, daher wird keines gezeigt. Die Datei bleibt, wie sie ist: {file}"
 markers = "Die Markierungen dieses Dokuments aus einer früheren Version ließen sich nicht übernehmen, daher wird keine gezeigt. Die Datei bleibt, wie sie ist: {file}"
+unsaved = "Die Markierungen dieses Dokuments aus einer früheren Version ließen sich nicht als Fundstücke speichern, daher wird keine gezeigt. Die Datei der Markierungen bleibt unverändert: {file}"
 
 [export]  # die Seite Fundstücke speichert ihre Fundstücke als Dateien (#399, ADR-008 2.1 Punkt 7)
 title = "Als Dateien speichern"
@@ -464,6 +469,7 @@ exists_hint = "Ersetzen legt diese Fundstücke an ihre Stelle. Behalten speicher
 replace = "Ersetzen"
 keep = "Behalten"
 kept = "Nichts gespeichert. {file} bleibt, wie sie war."
+held = "{file} ist wohl in einem anderen Programm geöffnet, daher wurde sie nicht ersetzt und bleibt, wie sie war. Schließen Sie sie dort und versuchen Sie es noch einmal."
 failed = "Nicht gespeichert."
 stem = "Fundstücke"  # der Dateiname, wenn sie mehr als ein Dokument enthält
 page = "S. {page}"  # in der Überschrift jedes Fundstücks in der Markdown- und RIS-Datei
@@ -558,6 +564,7 @@ export-exists = "Eine Datei dieses Namens liegt schon im Ordner. Nichts wurde ge
 export-failed = "Die Datei ließ sich nicht speichern. Es blieb keine halb geschriebene Datei zurück."
 export-folder-missing = "Diesen Ordner gibt es nicht, oder er verschwand beim Speichern. Prüfen Sie den Pfad oder legen Sie den Ordner zuerst an."
 export-folder-needed = "Geben Sie einen vollständigen Pfad für den Ordner ein."
+export-file-held = "Die Datei ist wohl in einem anderen Programm geöffnet, daher wurde sie nicht ersetzt. Schließen Sie sie dort und versuchen Sie es noch einmal."
 export-folder-refused = "sci2audio darf in diesen Ordner nicht schreiben. Wählen Sie einen anderen."
 export-name-is-folder = "In diesem Ordner liegt ein Ordner mit dem Namen der Datei, daher wurde nichts gespeichert. Benennen Sie diesen Ordner um oder wählen Sie einen anderen."
 export-name-too-long = "Der Pfad des Ordners und der Name der Datei sind zusammen zu lang für dieses System. Wählen Sie einen Ordner mit kürzerem Pfad."

@@ -226,6 +226,111 @@ def test_a_file_there_is_replaced_only_on_a_yes(studied: dict[str, Any]) -> None
     assert one.read_bytes() == b"also mine"
 
 
+def test_a_capture_answer_names_the_pdf_page_where_its_sentence_starts(
+    studied: dict[str, Any],
+) -> None:
+    """#888: the toast's page, as the files name it; a text document has none."""
+    client, doc = studied["client"], studied["doc"]
+    data = page_data(client, doc)
+    on_one, on_two = (
+        [n for n in sentences(data) if data["chunks"][n][2] == chapter][-1] for chapter in (0, 1)
+    )
+    assert capture(client, doc, "note", on_two, data["audiobook"], "Why?")["page"] == 2
+    assert capture(client, doc, "quote", on_one, data["audiobook"])["page"] == 1
+    text = make(client, b"Sleep came late. We measured it twice.\n", "note.txt")["doc"]["id"]
+    text_data = page_data(client, text)
+    answer = capture(client, text, "mark", sentences(text_data)[0], text_data["audiobook"])
+    assert answer["page"] is None
+
+
+def test_a_yes_for_another_file_asks_again_only_when_the_new_file_is_there(
+    studied: dict[str, Any],
+) -> None:
+    """#975: the yes was for Captures.ris, the language changed since, so the request now
+    writes Fundstücke.ris. With no such file it is written, never over anything; with one
+    there the question names it, a file that exists."""
+    client, folder = studied["client"], studied["folder"]
+    (folder / "Captures.ris").write_bytes(b"mine")
+    client.cookies.set("sci2audio-language", "de")
+    saved = export(client, folder, "ris", overwrite=True, file="Captures.ris")
+    assert saved["file"] == "Fundstücke.ris"
+    assert (folder / "Fundstücke.ris").read_bytes().startswith(b"TY  - GEN\r\n")
+    assert (folder / "Captures.ris").read_bytes() == b"mine"
+    (folder / "Fundstücke.ris").write_bytes(b"also mine")
+    again = export(client, folder, "ris", 409, overwrite=True, file="Captures.ris")
+    assert (again["error"], again["file"]) == ("export-exists", "Fundstücke.ris")
+    assert (folder / again["file"]).is_file()
+    assert (folder / "Fundstücke.ris").read_bytes() == b"also mine"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.ris", "Fundstücke.ris"]
+
+
+def test_a_new_file_that_appears_during_a_yes_for_another_is_never_replaced(
+    studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#975: the yes was for another file, so the new one is written without `overwrite`,
+    and one put there meanwhile is asked about, not replaced."""
+    client, folder = studied["client"], studied["folder"]
+    (folder / "Captures.ris").write_bytes(b"mine")
+    real = capture_export.write_bytes_atomically
+
+    def appears(target: Path, data: bytes, *, overwrite: bool) -> None:
+        target.write_bytes(b"theirs")
+        real(target, data, overwrite=overwrite)
+
+    monkeypatch.setattr(capture_export, "write_bytes_atomically", appears)
+    client.cookies.set("sci2audio-language", "de")
+    asked = export(client, folder, "ris", 409, overwrite=True, file="Captures.ris")
+    assert (asked["error"], asked["file"]) == ("export-exists", "Fundstücke.ris")
+    assert (folder / "Fundstücke.ris").read_bytes() == b"theirs"
+
+
+def held(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replacing refused as Windows refuses it while another program holds the file open (a
+    sharing violation, after the retries): the folder took the new file's partial."""
+    from sci2audio.app import files
+
+    def refused(partial: Path | str, target: Path | str) -> None:
+        raise PermissionError(errno.EACCES, "Access is denied", str(partial), None, str(target))
+
+    monkeypatch.setattr(files, "_replace_once", refused)
+
+
+def test_replacing_a_file_another_program_holds_open_names_the_file(
+    studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#990: the file is held, not the folder refused; the old file stays."""
+    client, folder = studied["client"], studied["folder"]
+    target = folder / "Captures.csv"
+    target.write_bytes(b"open in Excel")
+    held(monkeypatch)
+    answer = export(client, folder, "csv", 423, overwrite=True, file="Captures.csv")
+    assert answer["error"] == "export-file-held"
+    assert (answer["file"], answer["folder"]) == ("Captures.csv", str(folder))
+    assert "Captures.csv" in answer["message"]
+    assert target.read_bytes() == b"open in Excel"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]  # no partial file
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or os.geteuid() == 0, reason="POSIX permissions, not as root"
+)
+def test_replacing_in_a_folder_it_may_not_write_into_names_the_folder(
+    studied: dict[str, Any],
+) -> None:
+    """#990: a folder that refuses the new file is still the folder's fault."""
+    client, folder = studied["client"], studied["folder"]
+    target = folder / "Captures.csv"
+    target.write_bytes(b"old")
+    folder.chmod(0o500)
+    try:
+        refused = export(client, folder, "csv", 403, overwrite=True, file="Captures.csv")
+    finally:
+        folder.chmod(0o700)
+    assert refused["error"] == "export-folder-refused"
+    assert target.read_bytes() == b"old"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
+
+
 def test_a_folder_with_the_files_name_is_named_and_never_offered_to_replace(
     studied: dict[str, Any],
 ) -> None:

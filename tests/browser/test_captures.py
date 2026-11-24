@@ -9,9 +9,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+from pdf_maker import Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_focus import colours, nobody_focused, order
-from test_player import make_audiobook, paused
+from test_player import listen_to, make_audiobook, paused
 
 from conftest import Live, check_axe, tab_key
 
@@ -102,12 +103,12 @@ def test_m_and_q_capture_at_once_with_a_flag_a_tick_and_undo(signed_in: Page, li
     expect(mark).to_have_attribute("aria-pressed", "false")
     page.keyboard.press("m")
     expect(toast(page)).to_be_visible()
-    expect(said(page)).to_have_text("Marked.")
+    expect(said(page)).to_have_text("Marked: page 1.")
     expect(page.locator("#capture-toast-flag")).to_have_class("flag f-mark")
-    expect(page.locator("#message")).to_have_text("Marked.")  # for screen readers
+    expect(page.locator("#message")).to_have_text("Marked: page 1.")  # for screen readers
     expect(mark).to_have_attribute("aria-pressed", "true")
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     expect(quote).to_have_attribute("aria-pressed", "true")
     assert paused(page)  # nothing started or stopped the voice
     expect(tab(page)).to_have_text("Captures (2)")
@@ -142,7 +143,7 @@ def test_m_and_q_capture_at_once_with_a_flag_a_tick_and_undo(signed_in: Page, li
     page.keyboard.press("m")
     told(page, "Mark removed.")
     page.keyboard.press("m")
-    told(page, "Marked.")
+    told(page, "Marked: page 1.")
     page.locator("#capture-undo").click()
     told(page, "Mark removed.")
     expect(tab(page)).to_have_text("Captures (1)")
@@ -160,13 +161,13 @@ def test_a_new_change_hides_the_toast_before_it_and_undo_waits_its_turn(
     make_audiobook(page, live)
     at_sentence(page)
     page.keyboard.press("m")
-    told(page, "Marked.")
+    told(page, "Marked: page 1.")
     page.keyboard.press("q")  # the key's handler runs before press() returns
     assert page.evaluate(
         "() => document.getElementById('capture-toast').hidden"
-        " || document.getElementById('capture-said').textContent === 'Quote captured.'"
+        " || document.getElementById('capture-said').textContent === 'Quote captured: page 1.'"
     )
-    told(page, "Quote captured.")
+    told(page, "Quote captured: page 1.")
     page.locator("#capture-undo").click()  # the quote's Undo, not the mark's
     told(page, "Quote removed.")
     expect(page.locator("#capture-mark")).to_have_attribute("aria-pressed", "true")
@@ -200,7 +201,7 @@ def test_n_pauses_opens_the_box_and_saves_with_ctrl_enter(signed_in: Page, live:
     box.fill("n q m and space are letters here")
     expect(tab(page)).to_have_text("Captures (0)")  # no key acted
     page.keyboard.press("Control+Enter")
-    expect(said(page)).to_have_text("Note saved.")
+    expect(said(page)).to_have_text("Note saved: page 1.")
     expect(rows(page).first.locator(".cp-note")).to_have_text("n q m and space are letters here")
     expect(rows(page).first.get_by_role("button", name="Edit note")).to_be_focused()
     expect(rows(page).first.locator("blockquote")).to_have_text(quoted)
@@ -259,7 +260,7 @@ def test_an_open_draft_is_never_thrown_away(signed_in: Page, live: Live) -> None
     page.keyboard.press("n")
     page.get_by_role("textbox", name="Your note on this sentence").fill("First.")
     page.keyboard.press("Control+Enter")
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     nobody_focused(page)
     page.keyboard.press("ArrowRight")
     page.keyboard.press("ArrowRight")
@@ -283,7 +284,7 @@ def test_an_open_draft_is_never_thrown_away(signed_in: Page, live: Live) -> None
     rows(page).first.get_by_role("button", name="Edit note").click()
     rows(page).first.locator("textarea").fill("Changed, not saved yet.")
     page.locator("#capture-quote").click()
-    told(page, "Quote captured.")
+    told(page, "Quote captured: page 1.")
     expect(page.locator("#capture-list textarea")).to_have_value("Changed, not saved yet.")
 
 
@@ -334,7 +335,7 @@ def test_a_new_note_saved_twice_at_once_is_sent_and_saved_once(signed_in: Page, 
     page.keyboard.press("n")
     page.locator("#capture-composer textarea").fill("Once.")
     page.get_by_role("button", name="Save and continue").dblclick()
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     expect(page.locator("#capture-undo")).to_be_visible()
     expect(tab(page)).to_have_text("Captures (1)")
     nobody_focused(page)
@@ -344,11 +345,11 @@ def test_a_new_note_saved_twice_at_once_is_sent_and_saved_once(signed_in: Page, 
     page.locator("#capture-composer textarea").fill("Twice pressed.")
     page.keyboard.press("Control+Enter")
     page.keyboard.press("Control+Enter")
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     expect(page.locator("#capture-undo")).to_be_visible()
     expect(tab(page)).to_have_text("Captures (2)")
     page.wait_for_timeout(300)  # a second answer would have come by now
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     assert len(posts) == 2, posts
     path = Path(live.config.work_root) / document / "captures.json"
     notes = [c["text"] for c in json.loads(path.read_text(encoding="utf-8"))["captures"]]
@@ -370,7 +371,7 @@ def test_the_undo_of_a_saved_note_keeps_the_text_typed_in_its_open_box(
     page.keyboard.press("n")
     page.locator("#capture-composer textarea").fill("First.")
     page.keyboard.press("Control+Enter")
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     page.wait_for_function("() => !document.getElementById('audio').paused")
     rows(page).first.get_by_role("button", name="Edit note").click()
     box = rows(page).first.locator("textarea")
@@ -400,7 +401,7 @@ def test_the_undo_of_a_saved_note_keeps_the_text_typed_in_its_open_box(
     expect(second).to_be_focused()
     second.fill("Second.")
     page.keyboard.press("Control+Enter")
-    told(page, "Note saved.")
+    told(page, "Note saved: page 1.")
     page.wait_for_function("() => !document.getElementById('audio').paused")
     rows(page).filter(has_text="Second.").get_by_role("button", name="Edit note").click()
     expect(page.locator("#capture-list textarea")).to_have_value("Second.")
@@ -421,12 +422,12 @@ def test_a_capture_put_back_with_no_audiobook_is_labelled_so_and_listed_last(
     document = make_audiobook(page, live)
     at_sentence(page)
     page.keyboard.press("q")
-    told(page, "Quote captured.")
+    told(page, "Quote captured: page 1.")
     nobody_focused(page)
     page.keyboard.press("ArrowRight")
     page.keyboard.press("ArrowRight")
     page.keyboard.press("m")
-    told(page, "Marked.")
+    told(page, "Marked: page 1.")
     page.locator("#tab-captures").click()
     expect(rows(page)).to_have_count(2)
     (Path(live.config.work_root) / document / "audio.json").unlink()
@@ -454,7 +455,7 @@ def test_play_from_here_and_a_capture_not_found_is_listed_without_it(
     document = make_audiobook(page, live)
     target = at_sentence(page, 3)
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     path = Path(live.config.work_root) / document / "captures.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     lost = dict(data["captures"][0])
@@ -508,7 +509,7 @@ def test_in_focus_listening_q_flags_the_stage_and_n_leaves_for_the_box(
     for word in ("Note", "Quote", "Mark"):
         expect(page.locator(".focus-foot")).to_contain_text(word)
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     staged = page.locator("#focus-flags .flag.f-quote")
     expect(staged).to_be_visible()
     box = staged.bounding_box()
@@ -545,7 +546,7 @@ def test_a_key_early_in_a_sentence_takes_the_one_that_just_ended(
     page.locator(f"#{sentences[3]}").click()  # plays from its start
     page.wait_for_function("() => !document.getElementById('audio').paused")
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     page.locator("#play").click()
     expect(page.locator("#capture-flags [data-for]")).to_have_attribute("data-for", sentences[2])
 
@@ -580,9 +581,9 @@ def test_the_sounds_play_unless_switched_off_in_settings(signed_in: Page, live: 
     listen = page.url
     at_sentence(page)
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     page.keyboard.press("m")
-    expect(said(page)).to_have_text("Marked.")
+    expect(said(page)).to_have_text("Marked: page 1.")
     assert page.evaluate("() => window.tones") == [880, 990]  # each type its own tone
     page.goto(f"{live.url}/settings")
     switch = page.get_by_role("switch", name="Play a short sound when something is captured")
@@ -595,7 +596,7 @@ def test_the_sounds_play_unless_switched_off_in_settings(signed_in: Page, live: 
     page.goto(listen)
     at_sentence(page, 3)
     page.keyboard.press("m")
-    expect(said(page)).to_have_text("Marked.")
+    expect(said(page)).to_have_text("Marked: page 1.")
     assert page.evaluate("() => window.tones") == []
 
 
@@ -606,12 +607,12 @@ def test_a_new_flag_slides_out_and_with_reduced_motion_it_just_stands(
     make_audiobook(page, live)
     sentence = at_sentence(page)
     page.keyboard.press("m")
-    expect(said(page)).to_have_text("Marked.")
+    expect(said(page)).to_have_text("Marked: page 1.")
     flag = page.locator(f'#capture-flags [data-for="{sentence}"]')
     assert flag.evaluate("(f) => getComputedStyle(f).transitionDuration").startswith("0.45s")
     page.emulate_media(reduced_motion="reduce")
     page.keyboard.press("q")
-    expect(said(page)).to_have_text("Quote captured.")
+    expect(said(page)).to_have_text("Quote captured: page 1.")
     for each in flag.all():
         assert each.evaluate("(f) => getComputedStyle(f).transitionDuration") == "0s"
         assert each.evaluate("(f) => getComputedStyle(f).transform") == "none"
@@ -667,7 +668,7 @@ def test_at_1440_and_1280_px_the_keys_and_flags_fit_and_below_the_panel_overlays
         page.keyboard.press("n")
         page.get_by_role("textbox", name="Your note on this sentence").fill("Fits.")
         page.keyboard.press("Control+Enter")
-        expect(said(page)).to_have_text("Note saved.")
+        expect(said(page)).to_have_text("Note saved: page 1.")
         assert [f["kind"] for f in flags_at(page, sentence)] == ["note", "quote", "mark"]
         assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth")
         panel = page.locator("#context").bounding_box()
@@ -763,3 +764,124 @@ def test_a_broken_captures_file_is_named_and_left_alone(signed_in: Page, live: L
     page.keyboard.press("m")
     expect(page.locator("#message")).to_contain_text("can't be read")
     assert path.read_text(encoding="utf-8") == "{broken"
+
+
+def at_words(page: Page, words: str) -> None:
+    """Move sentence by sentence, paused, until the one being read holds `words`."""
+    nobody_focused(page)
+    for _ in range(12):
+        page.keyboard.press("ArrowRight")
+        page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
+        if words in page.locator("#text .s.now").inner_text():
+            return
+    raise AssertionError(f"no sentence with {words!r}")
+
+
+def test_the_toast_names_the_pdf_page_and_no_page_for_a_text(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#888: for a PDF the toast names the page on which the sentence starts, in English
+    and German; for a text it names none."""
+    page = signed_in
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("Sleep came late on the first night.", 72, 100, size=11),
+        ],
+        [
+            Text("Methods", 72, 80, size=14),
+            Text("We measured reaction times twice.", 72, 100, size=11),
+        ],
+    )
+    listen_to(page, live, tmp_path / "two.pdf", pdf)
+    at_words(page, "first night")
+    page.keyboard.press("m")
+    told(page, "Marked: page 1.")
+    at_words(page, "twice")
+    page.keyboard.press("q")
+    told(page, "Quote captured: page 2.")
+    expect(page.locator("#message")).to_have_text("Quote captured: page 2.")  # read out
+    check_axe(page, "listen, the toast with a page")
+    page.set_extra_http_headers({"Accept-Language": "de"})
+    page.reload()
+    at_words(page, "twice")
+    page.keyboard.press("n")
+    page.get_by_role("textbox", name="Ihre Notiz zu diesem Satz").fill("Warum zweimal?")
+    page.keyboard.press("Control+Enter")
+    told(page, "Notiz gespeichert: Seite 2.")
+    page.set_extra_http_headers({})
+    page.goto(live.url)
+    listen_to(page, live, tmp_path / "note.md", b"# Notes\n\nSleep came late. We slept twice.\n")
+    at_words(page, "twice")
+    page.keyboard.press("q")
+    told(page, "Quote captured.")
+    check_axe(page, "listen, the toast without a page")
+
+
+def tab_row(page: Page) -> dict[str, Any]:
+    """The panel's tab row: each tab's top and height, the row's height, and whether every
+    tab ends before the close button."""
+    found: dict[str, Any] = page.evaluate(
+        """() => {
+            const row = document.querySelector('#context .context-tabs');
+            const tabs = [...row.querySelectorAll('[role="tab"]')];
+            const close = document.getElementById('panel-close').getBoundingClientRect();
+            const boxes = tabs.map((tab) => tab.getBoundingClientRect());
+            return {
+                tops: boxes.map((box) => box.top),
+                heights: boxes.map((box) => box.height),
+                row: row.getBoundingClientRect().height,
+                fits: boxes.every((box) => box.right <= close.left),
+                widths: boxes.map((box) => box.width),
+                room: close.left - row.getBoundingClientRect().left,
+            };
+        }"""
+    )
+    return found
+
+
+def on_one_row(page: Page, case: str) -> None:
+    """Every panel tab one line high, side by side on one row, left of the close button."""
+    page.evaluate("() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))")
+    row = tab_row(page)
+    where = f"{case}: {row}"
+    assert len(set(row["tops"])) == 1, where  # no tab on a second row
+    assert set(row["heights"]) == {44}, where  # each tab one line high
+    assert row["row"] == 43, where  # one tab high, on the hairline it overlaps
+    assert row["fits"], where
+
+
+def test_the_panels_tabs_stay_on_one_line_in_german_and_english(
+    signed_in: Page, live: Live
+) -> None:
+    """#889: at 1280 and 1440 px, light and dark, in English and German, every panel tab
+    stays on one line, the third one with its count too."""
+    page = signed_in
+    make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("q")
+    page.keyboard.press("m")
+    page.keyboard.press("n")
+    page.get_by_role("textbox", name="Your note on this sentence").fill("Three.")
+    page.keyboard.press("Control+Enter")
+    expect(tab(page)).to_have_text("Captures (3)")
+    for language, third in (("de", "Fundstücke (3)"), ("en", "Captures (3)")):
+        page.set_extra_http_headers({"Accept-Language": language})
+        page.reload()
+        expect(tab(page)).to_have_text(third)
+        for width in (1280, 1440):
+            page.set_viewport_size({"width": width, "height": 900})
+            for theme in ("light", "dark"):
+                page.emulate_media(color_scheme=theme)
+                on_one_row(page, f"{language} {width} {theme}")
+    # a two-digit count fits too, in German at the narrower panel
+    page.set_extra_http_headers({"Accept-Language": "de"})
+    page.reload()
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.evaluate("(words) => { document.getElementById('tab-captures').textContent = words; }",
+                  "Fundstücke (32)")  # fmt: skip
+    expect(tab(page)).to_have_text("Fundstücke (32)")
+    on_one_row(page, "de 1280, two digits")
+    page.emulate_media(color_scheme="light")
+    page.set_extra_http_headers({})
+    page.set_viewport_size({"width": 1280, "height": 720})

@@ -587,6 +587,8 @@ function readAlong() {
   const undoButton = document.getElementById("capture-undo");
   const capturesUrl = `/api/v1/documents/${encodeURIComponent(data.document)}/captures`;
   const capturesOff = data.captures_off || ""; // a file this version can't read: hands off
+  // why a key captures nothing; `unsaved`: the markers' carry-over could not be written (#910)
+  const offSaid = { markers: "error.markers-not-carried", unsaved: "error.captures-not-saved" };
   const sounding = document.getElementById("listen")?.dataset.sounds === "on"; // Settings (#397)
   const CAPTURE_BACK = 1.2; // seconds into a sentence in which a key takes the one that just ended
   const TOAST_FOR = 60000; // ms the toast's Undo stays
@@ -723,8 +725,14 @@ function readAlong() {
     fresh.add(capture.id);
     keepCapture(capture);
     sound(kind);
-    tell(tr(`capture.saved_${kind}`), kind, () => removeCapture(capture));
+    tell(savedWords(kind, capture.page), kind, () => removeCapture(capture));
     return capture;
+  }
+
+  // a PDF's page where the sentence starts, as the saved files name it (#888); other
+  // documents have no pages, so their toast names none
+  function savedWords(kind, page) {
+    return page ? tr(`capture.saved_${kind}_page`, { page }) : tr(`capture.saved_${kind}`);
   }
 
   async function removeCapture(capture) {
@@ -766,7 +774,7 @@ function readAlong() {
   // sentence removes what the first one set
   function toggleCapture(kind) {
     if (capturesOff) {
-      say(tr(capturesOff === "markers" ? "error.markers-not-carried" : "error.captures-unreadable"), true);
+      say(tr(offSaid[capturesOff] ?? "error.captures-unreadable"), true);
       return;
     }
     const target = captureTarget(); // the sentence when the key was pressed
@@ -799,7 +807,7 @@ function readAlong() {
   // N: the voice pauses and the box opens, on the sentence's note if it has one
   function startNote() {
     if (capturesOff) {
-      say(tr(capturesOff === "markers" ? "error.markers-not-carried" : "error.captures-unreadable"), true);
+      say(tr(offSaid[capturesOff] ?? "error.captures-unreadable"), true);
       return;
     }
     if (toOpenBox()) return;
@@ -1146,7 +1154,7 @@ function readAlong() {
     draft = null;
     keepCapture(saved);
     sound("note");
-    tell(tr("capture.saved_note"), "note");
+    tell(savedWords("note", saved.page), "note");
     closeNote(capture.id);
   }
 

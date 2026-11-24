@@ -195,9 +195,10 @@ def used_keys() -> set[str]:
     kinds = ("note", "quote", "mark")
     found |= {f"capture.{kind}" for kind in kinds}
     found |= {f"capture.{word}_{kind}" for word in ("saved", "removed", "kind") for kind in kinds}
-    found |= {"capture.unreadable", "capture.markers"}
+    found |= {f"capture.saved_{kind}_page" for kind in kinds}  # with a PDF's page (#888)
+    found |= {"capture.unreadable", "capture.markers", "capture.unsaved"}
     # why the Captures page shows none of a document's captures (#398), named in captures.html
-    found |= {"captures.unreadable", "captures.markers"}
+    found |= {"captures.unreadable", "captures.markers", "captures.unsaved"}
     return found
 
 

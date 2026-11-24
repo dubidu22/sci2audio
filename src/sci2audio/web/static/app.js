@@ -565,7 +565,8 @@ function capturesPage() {
 // with the file and folder the server named, never what the field and the filters hold by
 // then; the server refuses it again if that would be another file. Typing in the field or
 // changing the filters ends the question as kept. "Keep it" and Escape leave the file and
-// say so. Every state line has an icon and a word, and is a status line for screen readers.
+// say so. A replace another program refused (it holds the file open, #990) names the file.
+// Every state line has an icon and a word, and is a status line for screen readers.
 function captureExport(current) {
   const aside = document.getElementById("capture-export");
   const none = { shown() {} };
@@ -658,7 +659,10 @@ function captureExport(current) {
           askTitle.focus();
         } else {
           const said = explain(error);
-          const text = typeof said === "string" ? said : said.text;
+          let text = typeof said === "string" ? said : said.text;
+          if (error.kind === "export-file-held" && error.data && error.data.file) {
+            text = tr("export.held", { file: error.data.file }); // the one to close, by name
+          }
           tell("failed", "alert", {
             text: `${tr("export.failed")} ${text}`,
             details: typeof said === "string" ? "" : said.details,

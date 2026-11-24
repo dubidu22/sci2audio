@@ -47,7 +47,7 @@ from sci2audio.voices import (
     voice_pack,
 )
 from sci2audio.web.api import REDIRECTS, plan_hosts
-from sci2audio.web.captures import CapturesUnreadable, MarkersWaiting
+from sci2audio.web.captures import CapturesUnreadable, CarryOverUnsaved, MarkersWaiting
 from sci2audio.web.config import UPLOAD_LIMIT, app_log_file
 from sci2audio.web.documents import StoredDocument, supported_suffixes
 from sci2audio.web.i18n import (
@@ -1444,12 +1444,15 @@ def _captures_data(
 ) -> dict[str, Any]:
     """The document's captures for the page, placed in this audiobook (#397, ADR-008 2.1
     item 3): never one left out. `captures_off` says why the page captures nothing here: a
-    file this version can't read (`unreadable`, named in `captures_file`) or v1.3 markers
-    the carry-over refused (`markers`, #475); else it is ""."""
+    file this version can't read (`unreadable`, named in `captures_file`), v1.3 markers
+    the carry-over refused (`markers`, #475) or could not write (`unsaved`, #910); else
+    it is ""."""
     try:
         found = state.captures.read(work, document_id)
     except MarkersWaiting:
         return {"captures": [], "captures_off": "markers", "captures_file": str(work / MARKERS)}
+    except CarryOverUnsaved:
+        return {"captures": [], "captures_off": "unsaved", "captures_file": str(work / MARKERS)}
     except (CapturesUnreadable, OSError):
         return {"captures": [], "captures_off": "unreadable", "captures_file": str(work / CAPTURES)}
     spans = [chunk.span for chunk in located.readalong.chunks]
@@ -1578,6 +1581,8 @@ def _capture_group(state: ServerState, s: Strings, key: str) -> dict[str, Any] |
         file = state.captures.read(found.work, found.document)
     except MarkersWaiting:
         return group | {"off": "markers", "file": str(found.work / MARKERS)}
+    except CarryOverUnsaved:
+        return group | {"off": "unsaved", "file": str(found.work / MARKERS)}
     except (CapturesUnreadable, OSError):
         return group | {"off": "unreadable", "file": str(found.work / CAPTURES)}
     if file is None or not file.captures:

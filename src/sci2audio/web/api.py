@@ -20,9 +20,9 @@ from fastapi import Path as Path_
 from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
-from sci2audio.app.capture_export import ExportFormat, export_captures
+from sci2audio.app.capture_export import ExportFormat, PageFinder, export_captures
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
-from sci2audio.core import Anchor, Capture, CaptureType, Document, Span, SpanError
+from sci2audio.core import Anchor, Capture, CaptureType, Document, SourceFormat, Span, SpanError
 from sci2audio.output import BookKind
 from sci2audio.textprep import Category
 from sci2audio.voices import (
@@ -65,6 +65,7 @@ from sci2audio.web.markers import (
     Placed,
     UndoExpired,
     anchor_of,
+    finder,
     locate,
     place,
     same_sentence,
@@ -800,7 +801,17 @@ def _capture_out(book: _Book | None, capture: Capture) -> models.CaptureOut:
         text=capture.text,
         chunk=chunk,
         state=state,  # type: ignore[arg-type]
+        page=None if book is None else _capture_page(book.document, capture),
     )
+
+
+def _capture_page(document: Document, capture: Capture) -> int | None:
+    """The PDF page on which the capture's sentence starts, found as the files find it
+    (#399), so the toast (#888) and a saved file name the same page; None without pages."""
+    if document.content.source.format is not SourceFormat.PDF:
+        return None
+    where = finder(document)(capture.anchor)
+    return None if where is None else PageFinder(document).page(*where)
 
 
 def _capturing[T](change: Callable[[], T]) -> T:
@@ -936,6 +947,7 @@ FULL_DISK = frozenset({errno.ENOSPC, getattr(errno, "EDQUOT", errno.ENOSPC)})
     responses={
         **_errors(403, 404, 500, 507, *BODY),
         409: {"model": models.ExportExistsOut, "description": "a file of that name is there"},
+        423: {"model": models.ExportHeldOut, "description": "another program holds the file"},
     },
     summary="Save the captures as a Markdown, RIS or CSV file in a folder",
 )
@@ -946,8 +958,10 @@ def export_captures_file(
     `<folder>/<name>.<format>`: the document's title for one document, else "Captures" in
     the page's language (#399, ADR-008 2.1 item 7). A file of that name is never replaced
     without `overwrite` (409 `export-exists`, nothing written), and `overwrite` replaces only
-    the `file` the 409 answer named: if the request would write another file now, it is
-    refused again; the file is written whole or not at all. No network call."""
+    the `file` the 409 answer named: if the request would write another file now, that one
+    is written only if it is not there, else asked about (#975). A file another program
+    holds open is named (423 `export-file-held`, #990), not the folder; the file is written
+    whole or not at all. No network call."""
     folder = Path(given.folder)
     if not given.folder or not folder.is_absolute():
         raise ApiError(422, "export-folder-needed", f"the folder must be a full path: {folder}")
@@ -967,17 +981,18 @@ def export_captures_file(
         f"{file} is in {folder} already; it is replaced only when asked to",
         fields={"file": file, "folder": str(folder)},
     )
-    if given.overwrite and given.file != file:
-        raise there  # the yes was for another file: the person is asked about this one
+    overwrite = given.overwrite and given.file == file
     try:
         if (folder / file).is_dir():  # never offered to be replaced: it is no export
             raise IsADirectoryError(errno.EISDIR, "a folder has the file's name", file)
+        # a yes for another file (the language or a title changed since) replaces nothing:
+        # this file is written only if it is not there, else the person is asked about it
         path = export_captures(
             folder,
             name,
             form,
             documents,
-            overwrite=given.overwrite,
+            overwrite=overwrite,
             labels=exports.labels(s),
         )
     except FileExistsError as error:
@@ -991,6 +1006,15 @@ def export_captures_file(
             422, "export-folder-missing", f"{folder} is not a folder: {error.strerror}"
         ) from error
     except PermissionError as error:
+        if overwrite and error.filename2 is not None:
+            # the folder took the new file; only moving it into the old one's place was
+            # refused, which on Windows means another program holds that file open
+            raise ApiError(
+                423,
+                "export-file-held",
+                f"could not replace {file}, perhaps open in another program: {error.strerror}",
+                fields={"file": file, "folder": str(folder)},
+            ) from error
         raise ApiError(
             403, "export-folder-refused", f"may not write into {folder}: {error.strerror}"
         ) from error

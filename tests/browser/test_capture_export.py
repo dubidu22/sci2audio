@@ -6,8 +6,10 @@ highlighter on a button, and at 1440 and 1280 px."""
 
 from __future__ import annotations
 
+import errno
 from pathlib import Path
 
+import pytest
 from playwright.sync_api import Page, Route, expect
 from test_captures_page import HIGHLIGHTERS, captured, open_captures
 
@@ -186,6 +188,37 @@ def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
     field.fill(str(a))
     save.click()
     expect(ask).to_be_visible()
+
+
+def test_replacing_a_file_another_program_holds_open_names_the_file(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#990: "Replace it" on a file another program holds open (as Windows refuses it, no
+    real Excel) names that file and asks to close it there; the old file stays."""
+    from sci2audio.app import files
+
+    def refused(partial: Path | str, target: Path | str) -> None:
+        raise PermissionError(errno.EACCES, "Access is denied", str(partial), None, str(target))
+
+    page = signed_in
+    captured(page, live)
+    open_captures(page)
+    folder = folder_of(live)
+    target = folder / "Captures.csv"
+    target.write_bytes(b"open in Excel")
+    monkeypatch.setattr(files, "_replace_once", refused)
+    page.locator("#export-folder-csv").fill(str(folder))
+    page.locator("#export-save-csv").click()
+    page.locator("#export-ask-csv").get_by_role("button", name="Replace it").click()
+    expect(state(page, "csv")).to_contain_text(
+        "Not saved. Captures.csv is probably open in another program, so it was not replaced"
+        " and stays as it was. Close it there and try again."
+    )
+    expect(state(page, "csv")).not_to_contain_text("may not write into that folder")
+    expect(state(page, "csv")).to_have_attribute("data-state", "failed")
+    assert target.read_bytes() == b"open in Excel"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
+    check_axe(page, "captures, a file held open")
 
 
 def test_the_files_by_keyboard(signed_in: Page, live: Live) -> None:

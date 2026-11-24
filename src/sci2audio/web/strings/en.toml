@@ -390,6 +390,9 @@ empty = "Nothing captured yet. Press N, Q or M while listening, or the Note, Quo
 saved_quote = "Quote captured."
 saved_mark = "Marked."
 saved_note = "Note saved."
+saved_quote_page = "Quote captured: page {page}."  # a PDF's page where the sentence starts (#888)
+saved_mark_page = "Marked: page {page}."
+saved_note_page = "Note saved: page {page}."
 removed_quote = "Quote removed."
 removed_mark = "Mark removed."
 removed_note = "Note removed."
@@ -415,6 +418,7 @@ not_read = "Not read in this audiobook. The sentence and what you wrote are kept
 no_audiobook = "This document has no audiobook now. The sentence and what you wrote are kept."
 unreadable = "Your captures could not be read, so nothing can be captured here. The file is left as it is: {file}"
 markers = "Your markers from an earlier version could not be carried over, so nothing can be captured here. The file is left as it is: {file}"
+unsaved = "Your markers from an earlier version could not be saved as captures, so nothing can be captured here. Your markers file is unchanged: {file}"
 
 [captures]  # the Captures page (#398, ADR-008): every document's marks, notes and quotes
 title = "Captures"
@@ -434,6 +438,7 @@ listen = "Listen from here"
 no_audiobook = "This document has no audiobook now. The sentence and what you wrote are kept."
 unreadable = "The captures of this document could not be read, so none are shown. The file is left as it is: {file}"
 markers = "The markers of this document from an earlier version could not be carried over, so none are shown. The file is left as it is: {file}"
+unsaved = "The markers of this document from an earlier version could not be saved as captures, so none are shown. The markers file is unchanged: {file}"
 
 [export]  # the Captures page saves its captures as files (#399, ADR-008 2.1 item 7)
 title = "Save as files"
@@ -459,6 +464,7 @@ exists_hint = "Replacing it puts these captures in its place. Keeping it saves n
 replace = "Replace it"
 keep = "Keep it"
 kept = "Nothing saved. {file} stays as it was."
+held = "{file} is probably open in another program, so it was not replaced and stays as it was. Close it there and try again."
 failed = "Not saved."
 stem = "Captures"  # the file's name when it holds more than one document
 page = "p. {page}"  # in each capture's heading in the Markdown and RIS file
@@ -553,6 +559,7 @@ export-exists = "A file of that name is in the folder already. Nothing was saved
 export-failed = "The file could not be saved. No half-written file was left behind."
 export-folder-missing = "That folder does not exist, or it went away while saving. Check the path, or make the folder first."
 export-folder-needed = "Type a full path for the folder."
+export-file-held = "The file is probably open in another program, so it was not replaced. Close it there and try again."
 export-folder-refused = "sci2audio may not write into that folder. Choose another one."
 export-name-is-folder = "That folder holds a folder with the file’s name, so nothing was saved. Rename that folder or choose another one."
 export-name-too-long = "The folder’s path and the file’s name are too long together for this system. Choose a folder with a shorter path."
