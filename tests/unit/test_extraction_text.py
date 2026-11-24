@@ -2307,3 +2307,45 @@ def test_the_part_word_and_given_name_checks_take_linear_time() -> None:
         )
 
     assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+@pytest.mark.parametrize(
+    ("author", "tags"),
+    [("Brown CD.", "pbpbbp"), ("Brown MC.", "pbpbbp"), ("Smith XI.", "pbbbbp")],
+    ids=["cd", "mc", "xi-the-cost"],
+)
+def test_a_vancouver_author_alone_on_a_line_reads_by_the_numeral_limit(
+    author: str, tags: str
+) -> None:
+    """One Vancouver author alone on a line as a paragraph's second element: initials that
+    read as a numeral above XXXIX ("CD", "MC") stay an author and start an entry; "XI"
+    reads as a part heading, as "Part XI." does, the known cost of #993."""
+    title = "A third study of reading papers aloud on the train. Journal of Sound"
+    second = "Brown B, Green G. Another study of listening to papers. Journal of Sound"
+    text = f"{_VANCOUVER}\nJune 2020.\n{author}\n{title}\nJune 2020.\n{second}\n"
+    assert tags_of(text) == tags_read(tags)
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        (
+            f"{_APA_FIRST}\nJune 2020\nRobust, Self-Supervised, and Fast Speech\nJune 2020\n"
+            "Brown, B. Another study. Journal of Sound\n",
+            "pbpbp",
+        ),
+        (
+            "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal\nJune 2020\n"
+            "Brown, Bob, and Gail Green. Another Study. Journal\nJune 2020.\n"
+            f"Robust, Self-Supervised, and Fast Speech\nJune 2020\n{_BOARD}",
+            "pbpbpbp",
+        ),
+    ],
+    ids=["apa-list", "chicago-list"],
+)
+def test_a_hyphenated_title_in_a_list_reads_as_an_entry(text: str, tags: str) -> None:
+    """A known limit, pinned (#995): inside a list of entries a title shaped like one
+    Chicago author with a hyphenated given name ("Robust, Self-Supervised, ...") cannot be
+    told from "Brown, Jean-Paul. ...", so it reads as an entry, as its unhyphenated form
+    does on main."""
+    assert tags_of(text) == tags_read(tags)
