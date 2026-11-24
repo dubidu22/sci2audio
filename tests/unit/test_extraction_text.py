@@ -668,3 +668,91 @@ def test_a_two_letter_line_can_be_a_title_line() -> None:
     (#561); "0" has none and stays joined."""
     text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
     assert tags_of(text) == [("p",), ("p",)]
+
+
+# ---- #570: a title line between two prose lines ------------------------------------------
+
+
+@pytest.mark.parametrize("end", [".", "!", "?", "…", ".”", ".)"])
+def test_a_title_line_after_the_end_of_a_sentence_starts_an_element_of_its_own(end: str) -> None:
+    """A short line in capitals inside a paragraph, after a line that ends a sentence, is cut
+    before as well as after: the heading is not read as the end of the prose before it."""
+    text = (
+        f"The first part of the note ends here, at the end of the first part{end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_german_title_line_after_a_sentence_starts_an_element_of_its_own() -> None:
+    text = (
+        "Der erste Teil der Notiz endet hier, am Ende des ersten Teils.\n"
+        "ERGEBNISSE DER STUDIE\n"
+        "Der zweite Teil beginnt in dieser Zeile und läuft eine Weile weiter.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("end", ["", ",", ":", ";", "-"])
+def test_a_title_line_after_a_line_that_runs_on_stays_joined_to_it(end: str) -> None:
+    """Without the end of a sentence before it, the short line in capitals ends the element
+    before it, as it did (#466): an acronym wrapped onto a line of its own stays in place."""
+    text = (
+        f"The first part of the note runs on here and names the agency of the{end}\n"
+        "NASA JPL\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_short_last_line_in_capitals_after_a_sentence_stays_joined() -> None:
+    """The last line of a paragraph has no next line to start: a licence in capitals whose
+    short last line follows a full stop stays one paragraph."""
+    text = (
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY. IN NO EVENT SHALL.\n"
+        "THE AUTHORS BE LIABLE.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "item"),
+    [
+        ("- Install the package from the website first.", "- Run the installer now.", "ul"),
+        ("1. Install the package from the website first.", "2. Run the installer now.", "ol"),
+    ],
+)
+def test_a_line_in_capitals_between_two_list_items_keeps_the_list(
+    first: str, second: str, item: str
+) -> None:
+    """The heading rule applies after prose only: a short line in capitals after an item
+    that ends a sentence continues that item, and the next item stays an item (#570)."""
+    assert tags_of(f"{first}\nWINDOWS\n{second}\n") == [
+        (item, "li"),
+        (item, "li", "br"),
+        (item, "li"),
+    ]
+
+
+def test_a_short_mixed_case_line_after_a_sentence_is_not_cut_before() -> None:
+    """Only a line in capitals is cut before (`_capitals`): "Results" or a poem's line after
+    a full stop stays joined to the line before it."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "Results\n"
+        "the second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_long_line_in_capitals_after_a_sentence_is_not_cut_before() -> None:
+    """Only a short line is cut before (`_short`): a full line in capitals after a full stop
+    is wrapped prose, as in a licence that mixes cases."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT ANY WARRANTY OF ANY KIND\n"
+        "and the second part starts on this line and runs on for a while.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
