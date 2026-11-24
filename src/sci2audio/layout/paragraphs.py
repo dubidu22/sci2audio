@@ -481,15 +481,17 @@ class Paragraphs:
 
     def _figure_rows(self, before: Row, run: list[Row]) -> bool:
         """True if the rows are a figure's labels, then perhaps its caption, and nothing
-        else. A label does not fill its column and does not go on with the sentence of the
-        row read before the figure (`_inside`: the short last line of that paragraph would).
-        The caption is a row that opens one and the rows that go on with it."""
+        else. A label does not fill its column. None of them is the figure's if the row read
+        before the figure ends inside a sentence (`_open`): ragged lines that go on with it
+        start in any case (a German noun, a name). The caption is a row that opens one and
+        the rows that go on with it."""
+        if _open(before):
+            return False
         labels = 0
         while (
             labels < len(run)
             and not self._runs_on(run[labels])
             and not opens_caption(run[labels].pieces[0])
-            and not (labels == 0 and _inside(before, run[0]))
         ):
             labels += 1
         caption = run[labels:]
@@ -826,6 +828,13 @@ def _split_word(row: Row, next_row: Row) -> bool:
     with in lower case ("mar")."""
     end, start = row.text.rstrip(), next_row.text.lstrip()
     return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
+
+
+def _open(row: Row) -> bool:
+    """True if the row ends inside a sentence: in a letter, a comma, a semicolon, an open
+    bracket or a slash (as `_inside` reads a row's end)."""
+    end = row.text.rstrip()[-1:]
+    return end.isalpha() or (bool(end) and end in ",;(/")
 
 
 def _inside(row: Row, next_row: Row) -> bool:

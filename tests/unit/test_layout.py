@@ -1167,6 +1167,42 @@ def test_running_text_under_a_figure_in_a_middle_column_stays_in_its_paragraph(
     assert {"c0r26", "c2r0"} <= {ids.get(p.item) for p in block.parts}
 
 
+@pytest.mark.parametrize(
+    ("end", "starts"),
+    [
+        ("Werte in der", ("Messung und", "und so weiter")),
+        ("values of the", ("measurement and", "and so on")),
+    ],
+)
+def test_ragged_lines_that_go_on_with_a_sentence_under_a_middle_figure_stay_in_order(
+    end: str, starts: tuple[str, str]
+) -> None:
+    """#905: the left column of three ends inside a sentence, a figure fills the top of the
+    middle column, and four ragged lines under it go on with that sentence, whether their
+    first word is a German noun in capitals or a lower-case word. They are running text,
+    not the figure's labels: they are read before the right column."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    first, right_start = starts
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line(end, LEFT, 80 + 14 * 26, LEFT + width)
+    right[0] = line(f"{right_start} weiter", x0 + width + GUTTER, 80, RIGHT)
+    middle = [
+        line(
+            f"{first} m{k}" if k == 0 else f"m{k} geht", x0, 80 + 14 * (23 + k), x0 + share * width
+        )
+        for k, share in enumerate((0.86, 0.93, 0.80, 0.90))
+    ]
+    found = content(
+        left + middle + right, drawings=(Drawing("fig", Box(x0, 80, x0 + width, 80 + 14 * 22)),)
+    )
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + middle + right]
+
+
 @pytest.mark.parametrize("captioned", [True, False])
 def test_a_figure_in_a_wide_gutter_keeps_its_labels_and_caption_apart_from_the_columns(
     captioned: bool,
