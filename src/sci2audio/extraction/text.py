@@ -215,8 +215,9 @@ def read_text(data: bytes, name: str) -> Content:
 def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
     for a line after a title line (`_title`) and for a heading between two prose lines
-    (`_heading`), ``ul, li`` or ``ol, li`` for a line that opens a list item, and the tags
-    of the line before plus ``br`` for any other line.
+    (`_heading`, after prose only: a list keeps its items), ``ul, li`` or ``ol, li`` for a
+    line that opens a list item, and the tags of the line before plus ``br`` for any other
+    line.
 
     A line with a list marker (`_items`) opens an item only where the shape says list: as
     the paragraph's first line, right after a line that opens or continues an item, or after
@@ -238,7 +239,7 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
         elif (
             k
             and not _title(paragraph[k - 1], text, longest)
-            and not _heading(paragraph, k, longest)
+            and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
             out.append((*element, "br"))
         else:

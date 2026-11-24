@@ -715,3 +715,44 @@ def test_a_short_last_line_in_capitals_after_a_sentence_stays_joined() -> None:
         "THE AUTHORS BE LIABLE.\n"
     )
     assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "item"),
+    [
+        ("- Install the package from the website first.", "- Run the installer now.", "ul"),
+        ("1. Install the package from the website first.", "2. Run the installer now.", "ol"),
+    ],
+)
+def test_a_line_in_capitals_between_two_list_items_keeps_the_list(
+    first: str, second: str, item: str
+) -> None:
+    """The heading rule applies after prose only: a short line in capitals after an item
+    that ends a sentence continues that item, and the next item stays an item (#570)."""
+    assert tags_of(f"{first}\nWINDOWS\n{second}\n") == [
+        (item, "li"),
+        (item, "li", "br"),
+        (item, "li"),
+    ]
+
+
+def test_a_short_mixed_case_line_after_a_sentence_is_not_cut_before() -> None:
+    """Only a line in capitals is cut before (`_capitals`): "Results" or a poem's line after
+    a full stop stays joined to the line before it."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "Results\n"
+        "the second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_long_line_in_capitals_after_a_sentence_is_not_cut_before() -> None:
+    """Only a short line is cut before (`_short`): a full line in capitals after a full stop
+    is wrapped prose, as in a licence that mixes cases."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT ANY WARRANTY OF ANY KIND\n"
+        "and the second part starts on this line and runs on for a while.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
