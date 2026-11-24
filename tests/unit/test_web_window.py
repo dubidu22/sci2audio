@@ -112,6 +112,8 @@ def folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     monkeypatch.setattr(window, "webview_storage", lambda: tmp_path / "data" / "window")
     monkeypatch.setattr(window, "app_log_file", lambda: tmp_path / "logs" / "app.log")
     monkeypatch.setattr(launch, "SHUTDOWN_WAIT", 0.5)
+    # never pywebview's real Cocoa engine or a real observer in the test process (#717)
+    monkeypatch.setattr(window, "load_appkit", lambda: None)
     handlers = list(window.log.handlers)
     yield tmp_path
     for handler in window.log.handlers:
@@ -290,6 +292,123 @@ def test_a_server_that_cannot_start_ends_the_app_with_an_error(
     webview = FakeWebview()
     assert window.run_window(webview) == 1
     assert webview.windows == []
+
+
+# ---- a quit by the Dock, Cmd-Q or an Apple Event on macOS (#717) ---------------------------
+
+
+class AppEnded(BaseException):
+    """What the process does after NSApplication's `terminate:`: it ends (`exit()`), so
+    `webview.start()` never returns. A BaseException stands in for that here."""
+
+
+class FakeNotificationCenter:
+    def __init__(self) -> None:
+        self.observers: list[tuple[str, Callable[[Any], None]]] = []
+
+    def addObserverForName_object_queue_usingBlock_(
+        self, name: str, sender: Any, queue: Any, block: Callable[[Any], None]
+    ) -> object:
+        self.observers.append((name, block))
+        return object()
+
+    def post(self, name: str) -> None:
+        for observed, block in self.observers:
+            if observed == name:
+                block(None)
+
+
+class FakeAppKit:
+    """The part of AppKit the app uses: the notification that the app will terminate."""
+
+    NSApplicationWillTerminateNotification = "NSApplicationWillTerminateNotification"
+
+    def __init__(self) -> None:
+        self.center = FakeNotificationCenter()
+        center = self.center
+        self.NSNotificationCenter = type(
+            "NSNotificationCenter", (), {"defaultCenter": staticmethod(lambda: center)}
+        )
+
+    def terminate(self) -> None:
+        """What Cocoa does on a quit it was allowed: tell the observers, then exit()."""
+        self.center.post(self.NSApplicationWillTerminateNotification)
+
+
+def test_a_quit_by_apple_event_stops_the_server_and_logs_it_before_the_app_ends(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    appkit = FakeAppKit()
+    monkeypatch.setattr(window, "load_appkit", lambda: appkit)
+    log_file = folders / "logs" / "app.log"
+    window.open_log(log_file)
+    seen: dict[str, Any] = {}
+
+    def quit_by_apple_event(win: FakeWindow) -> None:
+        assert answers(win.url)
+        assert win.events.closing.fire() == [True]  # applicationShouldTerminate asks first
+        appkit.terminate()
+        seen["log"] = log_file.read_text(encoding="utf-8")
+        seen["answers"] = answers(win.url)
+        raise AppEnded  # terminate: calls exit(); nothing after this runs in the real app
+
+    with pytest.raises(AppEnded):
+        window.run_window(FakeWebview(quit_by_apple_event))
+    assert seen["log"].splitlines()[-1].endswith("INFO stopped")
+    assert seen["answers"] is False  # the server stopped cleanly before the app ended
+    assert log_file.read_text(encoding="utf-8").count("stopped") == 1  # never twice
+
+
+def test_closing_the_window_logs_stopped_once_where_the_quit_is_watched(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    appkit = FakeAppKit()
+    monkeypatch.setattr(window, "load_appkit", lambda: appkit)
+    log_file = folders / "logs" / "app.log"
+    window.open_log(log_file)
+    assert window.run_window(FakeWebview()) == 0
+    assert len(appkit.center.observers) == 1
+    appkit.terminate()  # the app ends after the window closed: nothing more to do
+    assert log_file.read_text(encoding="utf-8").count("stopped") == 1
+
+
+def test_a_quit_watch_that_fails_still_stops_the_server(
+    folders: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken() -> Any:
+        raise RuntimeError("the Cocoa engine could not load")
+
+    monkeypatch.setattr(window, "load_appkit", broken)
+    urls: list[str] = []
+    real_bind = window.bind
+
+    def bind_and_note() -> Any:
+        sock = real_bind()
+        urls.append(f"http://127.0.0.1:{sock.getsockname()[1]}/")
+        return sock
+
+    monkeypatch.setattr(window, "bind", bind_and_note)
+    with pytest.raises(RuntimeError):  # `main` then falls back to the browser
+        window.run_window(FakeWebview())
+    assert not answers(urls[0])  # and no second server runs beside the window's
+
+
+def test_appkit_is_loaded_only_on_macos_and_only_from_the_window_engine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import types
+
+    cocoa = types.SimpleNamespace(AppKit="AppKit")
+    platforms = types.SimpleNamespace(cocoa=cocoa)
+    monkeypatch.setitem(sys.modules, "webview", types.SimpleNamespace(platforms=platforms))
+    monkeypatch.setitem(sys.modules, "webview.platforms", platforms)
+    monkeypatch.setitem(sys.modules, "webview.platforms.cocoa", cocoa)
+    assert window.load_appkit("linux") is None
+    assert window.load_appkit("win32") is None
+    assert window.load_appkit("darwin") == "AppKit"
+    del platforms.cocoa
+    monkeypatch.setitem(sys.modules, "webview.platforms.cocoa", None)  # no Cocoa engine
+    assert window.load_appkit("darwin") is None
 
 
 # ---- the engine, the language, the log ----------------------------------------------------
