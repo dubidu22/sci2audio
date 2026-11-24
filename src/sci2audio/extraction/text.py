@@ -143,7 +143,7 @@ _DATE_LEADS = frozenset(
 _WORD = re.compile(r"[^\W\d_]+")
 # a word and at most a year as the whole of a line: "OKTOBER", "(Oktober 2020" (#893)
 _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+(\d{1,4}))?\W*")
-# The start of a reference entry (`_starts_reference`): "[12] ...", or a surname after an
+# The start of a reference entry (`_reference`): "[12] ...", or a surname after an
 # optional number and lower-case particles, then an initial as APA, Harvard and DIN write it
 # ("Smith, J.", "12. Mustermann, M.", "van der Berg, A."), a given name as Chicago does
 # ("Smith, John,", "Smith, John A.,") or initials as Vancouver does ("Smith J,", "Smith JA,").
@@ -151,6 +151,9 @@ _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+(\d{1,4}))?\W*")
 # Matched at the line's start only. The surname, an initial and a given name start with a
 # capital and Vancouver initials are capitals, so "Beispiele, z. B." and "Ziele, d. h." start
 # none. The particle group is bounded, so a match costs a few passes over the line at most.
+# A Chicago or Vancouver shape is also a title's ("Guns, Germs, and Steel", "The US, China
+# ..."): it is only `_WEAK` evidence of an entry, which context has to confirm (`_title`).
+_WEAK, _STRONG = 1, 2
 _NUMBERED_REFERENCE = re.compile(r"\[\d{1,4}\]")
 _REFERENCE = re.compile(
     r"(?:\d{1,4}[.)]\s*)?"
@@ -327,15 +330,17 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
     out: list[tuple[str, ...]] = []
     found: list[int] = []
     element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
-    # the element's first line starts a reference entry; matched once per element, as a
-    # match per line costs a long line's length again for each line after it (#930)
-    reference = False
+    # how surely the element's first line starts a reference entry (`_reference`); matched
+    # once per element, as a match per line costs a long line's length again for each line
+    # after it (#930)
+    reference = 0
+    listed = False  # an earlier element of the paragraph is an entry: this is a list (#947)
     for k, text in enumerate(paragraph):
         anchored = k == 0 or element[0] != "p" or paragraph[k - 1].rstrip().endswith(":")
         opens = k > 0 and out[k - 1] == ("p",)
         if k in items and anchored:
             element = items[k]
-            reference = _starts_reference(text)
+            listed, reference = _listed(listed, reference, text)
             out.append(element)
         elif (
             k
@@ -348,8 +353,9 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
                 opens=opens,
                 # a numbered item may be an entry in a style `_REFERENCE` does not know
                 # ("1. J. Smith, ..."): only paragraphs and bullet items hold wrapped titles
-                wrapped=element != ("ol", "li") and not reference,
+                wrapped=element != ("ol", "li"),
                 reference=reference,
+                listed=listed,
             )
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
@@ -358,9 +364,17 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
                 found.append(k)
         else:
             element = ("p",)
-            reference = _starts_reference(text)
+            listed, reference = _listed(listed, reference, text)
             out.append(element)
     return out, found
+
+
+def _listed(listed: bool, before: int, text: str) -> tuple[bool, int]:
+    """Whether the paragraph is a list of entries once an element starts with `text`, and
+    how surely `text` starts one (`_reference`): it is after an APA or numbered entry, or
+    after two elements in a row that start like entries (#947)."""
+    reference = _reference(text)
+    return listed or before == _STRONG or bool(before and reference), reference
 
 
 def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
@@ -396,7 +410,8 @@ def _title(
     *,
     opens: bool,
     wrapped: bool,
-    reference: bool,
+    reference: int,
+    listed: bool,
 ) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
@@ -418,17 +433,20 @@ def _title(
     of its own (#922, #942): "A Study of ... on Phones" / "April 2020" / "The ..." cuts
     before and after the date (`_dated`). It heads its block if it `opens` it (the
     paragraph's first line, or the one after a title line) or if it is `wrapped` in a
-    paragraph or a bullet item that starts no reference entry and the line before it ends
-    no sentence: a title or author block wrapped over long lines ("A Study of ... Phones
-    and" / "Tablets ..." / "June 2020", "- A Study ..." / "  Tablets ...", #947). After a
-    sentence end inside a paragraph the same long line is prose: the date joins it, and the
-    date line is cut after by the short-line rule below (#942). So is a reference entry wrapped
-    before its date ("Smith, J. ... Journal" / "June 2020" / "Brown, B. ...", #930).
+    paragraph or a bullet item that starts no reference entry (`entry`) and the line before
+    it ends no sentence: a title or author block wrapped over long lines ("A Study of ...
+    Phones and" / "Tablets ..." / "June 2020", "- A Study ..." / "  Tablets ...", #947).
+    After a sentence end inside a paragraph the same long line is prose: the date joins it,
+    and the date line is cut after by the short-line rule below (#942). So is a reference
+    entry wrapped before its date ("Smith, J. ... Journal" / "June 2020" / "Brown, B. ...", #930).
 
-    In a block that starts a `reference` entry, a short line before a month line is the
-    entry's last line before its date, no title ("tablets. Journal of Acoustics" / "June
+    In a block that starts a reference entry (`entry`), a short line before a month line is
+    the entry's last line before its date, no title ("tablets. Journal of Acoustics" / "June
     2020"), and a short line before the start of the next entry ends its entry, as before a
-    capital ("June 2020" / "[2] ...", "June 2020" / "von Neumann, J. ...", #947).
+    capital ("June 2020" / "[2] ...", "June 2020" / "von Neumann, J. ...", #947). A block
+    that starts like an APA or numbered entry is one; one that starts like a Chicago or
+    Vancouver entry only in a `listed` paragraph or if the line `beyond` the date starts an
+    entry too: "Guns, Germs, and Steel" / "June 2020" / "The ..." is a title and its date.
 
     A short line after a long line that does not end a sentence runs on into the next line
     if it is a date in that sentence (`_runs_on`): "... im" / "Oktober 2020" / "Die ..."
@@ -438,18 +456,25 @@ def _title(
     before a line starting with a number ("ANNUAL REPORT" / "JUNE" / "2020 marked ...",
     #930)."""
     first = after.lstrip(_OPENERS)[:1]
+
+    def entry() -> bool:  # matched only where needed: `beyond` costs its length
+        if reference != _WEAK:
+            return reference == _STRONG
+        return listed or (beyond is not None and _reference(beyond) > 0)
+
     if not _short(line, longest):
         # the sentence test last: it runs a search, and few lines come before a date
-        return _dated(line, after, longest, beyond) and (
-            opens or (wrapped and before is not None and not _ends_sentence(before, line))
+        return _dated(line, after, longest, beyond, listed=listed) and (
+            opens
+            or (wrapped and not entry() and before is not None and not _ends_sentence(before, line))
         )
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
-        if reference and _starts_reference(after):
+        if reference and _reference(after):
             return True
         return not first.islower() and not (first.isdigit() and not opens and _month_line(line))
-    if line.rstrip(_CLOSERS)[-1:] in _ENDS or (reference and _month_line(after)):
+    if line.rstrip(_CLOSERS)[-1:] in _ENDS or (reference and _month_line(after) and entry()):
         return False
     if (
         before is not None
@@ -459,13 +484,13 @@ def _title(
         and _runs_on(before, line)
     ):
         return False
-    return first.isupper() or (reference and _starts_reference(after))
+    return first.isupper() or bool(reference and _reference(after))
 
 
-def _dated(line: str, after: str, longest: int, beyond: str | None) -> bool:
+def _dated(line: str, after: str, longest: int, beyond: str | None, *, listed: bool) -> bool:
     """True if `after` is the date line of a long title or author line `line` (#922): a
     short month line without punctuation at its end, after a line ending in a word that
-    leads into no date and that starts no reference entry (`_starts_reference`, #930). A
+    leads into no date and that starts no reference entry (`_reference`, #930, #947). A
     month and a year before `beyond`, the line after it, starting with a capital; a month in
     capitals before a capital, or alone before a number ("JUNE" / "2020 marked ...", #930).
     A date ending in a stop ("... dated" / "June 2020." / "The ...") or before a lower-case
@@ -483,24 +508,34 @@ def _dated(line: str, after: str, longest: int, beyond: str | None) -> bool:
     else:
         dated = found[2] is not None and after.lstrip(_OPENERS)[:1].isupper()
         dated = dated and next_first.isupper()
-    return dated and _titled(line) and not _starts_reference(line)
+    if not dated or not _titled(line):
+        return False
+    # a Chicago or Vancouver shape is an entry only in a list or before another entry (#947)
+    reference = _reference(line)
+    return not reference or (
+        reference == _WEAK and not (listed or (beyond is not None and _reference(beyond)))
+    )
 
 
-def _starts_reference(text: str) -> bool:
-    """True if `text`, past a bullet, starts a reference entry (`_REFERENCE`, #930, #947)."""
+def _reference(text: str) -> int:
+    """How surely `text`, past a bullet, starts a reference entry (`_REFERENCE`, #930,
+    #947): `_STRONG` for "[1]" and an APA initial ("Smith, J."), `_WEAK` for a Chicago
+    given name ("Smith, John,") or Vancouver initials ("Smith JA,"), which titles share
+    ("Guns, Germs, and Steel", "The US, China ..."), else 0."""
     text = text.lstrip()
     if _BULLET.match(text):
         text = text[1:].lstrip()
     if _NUMBERED_REFERENCE.match(text):
-        return True
+        return _STRONG
     found = _REFERENCE.match(text)
-    if found is None:
-        return False
-    surname, initial, given, middle, initials = found.groups()
+    if found is None or not found[1][0].isupper():
+        return 0
+    _, initial, given, middle, initials = found.groups()
     if initials is not None:
-        return surname[0].isupper() and initials.isupper()
-    first = (initial or given)[0]
-    return surname[0].isupper() and first.isupper() and (middle is None or middle.isupper())
+        return _WEAK if initials.isupper() else 0
+    if initial is not None:
+        return _STRONG if initial.isupper() else 0
+    return _WEAK if given[0].isupper() and (middle is None or middle.isupper()) else 0
 
 
 def _runs_on(before: str, line: str) -> bool:
@@ -568,7 +603,8 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
             paragraph[k + 2] if k + 2 < len(paragraph) else None,
             opens=False,
             wrapped=False,
-            reference=False,
+            reference=0,
+            listed=False,
         )
     )
 

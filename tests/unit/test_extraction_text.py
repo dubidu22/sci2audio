@@ -1653,6 +1653,79 @@ def test_a_german_abbreviation_after_a_comma_starts_no_reference(abbreviation: s
     assert tags_of(text) == tags_read("ppp")
 
 
+_BOARD = "The board read it twice and then sent it back with many notes, as usual here.\n"
+_VORSTAND = "Der Vorstand las ihn zweimal und schickte ihn mit vielen Notizen zurück, wie immer.\n"
+
+
+@pytest.mark.parametrize(
+    ("text", "tags"),
+    [
+        (
+            "Guns, Germs, and Steel: The Fates of Human Societies in the Long Run\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (f"Guns, Germs, and Steel\nJune 2020\n{_BOARD}", "ppp"),
+        (
+            "Reading, Writing, and Listening: A Study of Papers Read Aloud on Phones\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (
+            "Kinder, Eltern, Lehrer: Eine Studie über das Vorlesen von Fachtexten\n"
+            f"Oktober 2020\n{_VORSTAND}",
+            "ppp",
+        ),
+        (
+            "zum Beispiel, Kinder, Eltern und Lehrer: Eine Studie über das Vorlesen\n"
+            f"Oktober 2020\n{_VORSTAND}",
+            "ppp",
+        ),
+        (
+            "The US, China and Europe: Research on Reading Papers Aloud at Home\n"
+            f"June 2020\n{_BOARD}",
+            "ppp",
+        ),
+        (
+            "Die EU, China und die USA: Handel und Forschung im Wandel der Zeit\n"
+            f"Oktober 2020\n{_VORSTAND}",
+            "ppp",
+        ),
+        (
+            "Guns, Germs, and Steel: The Fates of Human Societies in the\n"
+            "Long Run of History, from the First Farmers to the Present Day\n"
+            f"June 2020\n{_BOARD}",
+            "pbpp",
+        ),
+        (
+            "Reading Papers Aloud\n"
+            "Smith, Jane, and John Doe, Department of Acoustics, Example University\n"
+            f"June 2020\n{_BOARD}",
+            "pppp",
+        ),
+    ],
+    ids=[
+        "guns-long",
+        "guns-short",
+        "reading-writing",
+        "kinder-eltern",
+        "zum-beispiel",
+        "the-us",
+        "die-eu",
+        "guns-wrapped",
+        "title-authors",
+    ],
+)
+def test_a_title_shaped_like_a_chicago_or_vancouver_entry_keeps_its_date_apart(
+    text: str, tags: str
+) -> None:
+    """ "Guns, Germs, and Steel: ..." or "The US, China ...": a line shaped like a Chicago
+    ("Smith, John,") or Vancouver ("Smith JA,") entry is a reference only in context: when an
+    entry opened an earlier block of the paragraph, or the line after the date starts an
+    entry too. Before a date and prose it is a title, read as on main (#922, #947)."""
+    assert tags_of(text) == tags_read(tags)
+
+
 def test_washington_dc_reads_as_a_reference_entry() -> None:
     """A known limit, pinned (#947): "Washington, D.C." has the shape of an author with two
     initials ("Washington, D. C."), so the line is read as a reference entry and its date
