@@ -229,6 +229,91 @@ def test_a_chapter_file_changed_since_is_not_reused(tmp_path: Path) -> None:
     assert f".{first}.partial" in ffmpeg.written  # encoded again, not taken as it was
 
 
+def stopped_in(tmp_path: Path, title: str) -> None:
+    def stop(text: str) -> bool:
+        if title in text:
+            raise KeyboardInterrupt
+        return False
+
+    with pytest.raises(KeyboardInterrupt):
+        run(tmp_path, FakeVoice(fail_on=stop))
+
+
+def audio_events(tmp_path: Path, voice: FakeVoice, **kwargs) -> list[tuple[AudioProgress, int]]:  # type: ignore[no-untyped-def]
+    """The job's events from the first of its audio stage on (the voice is about to be
+    loaded), each with the number of engines made by then."""
+    events: list[tuple[AudioProgress, int]] = []
+    run(tmp_path, voice, progress=lambda event: events.append((event, voice.made)), **kwargs)
+    start = next(n for n, (e, _) in enumerate(events) if e.phase is Phase.LOADING_VOICE)
+    return events[start:]
+
+
+def test_a_resumed_job_reports_its_made_chapters_as_playable_before_the_voice_loads(
+    tmp_path: Path,
+) -> None:
+    """The making card offers listening from the start of a resume, not only once the
+    first chapter is done again after the voice has loaded (#1065)."""
+    stopped_in(tmp_path, "Beta")
+    voice = FakeVoice()
+    events = audio_events(tmp_path, voice)
+    first, made = events[0]
+    assert made == 0
+    assert first.playable == (0,)
+    assert all(0 in e.playable for e, _ in events)
+    assert all("Alpha" not in text for text in voice.texts)
+    assert events[-1][0].playable == (0, 1, 2)
+
+
+def damage(tmp_path: Path, how: str) -> None:
+    """Spoil the earlier run's book: chapter 2's MP3 gone or cut short, or its read-along
+    file changed."""
+    out = tmp_path / "out"
+    if how == "missing":
+        sorted(out.glob("*.mp3"))[1].unlink()
+    elif how == "truncated":
+        mp3 = sorted(out.glob("*.mp3"))[1]
+        mp3.write_bytes(mp3.read_bytes()[:-100])
+    elif how == "readalong":
+        readalong = next(out.glob("*.readalong.json"))
+        readalong.write_text(readalong.read_text(encoding="utf-8") + " ", encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("how", "overwrite"),
+    # a changed file is not the job's own: it goes on only when told to replace it
+    [("missing", False), ("truncated", True), ("readalong", True)],
+)
+def test_nothing_is_reported_before_the_run_writes_when_the_earlier_book_is_not_whole(
+    tmp_path: Path, how: str, overwrite: bool
+) -> None:
+    """Until the run puts its first file in place, the Listen page plays the earlier run's
+    book only as a whole: with any of its files missing or changed it plays none of it, so
+    no chapter is reported, and a chapter made again only from its own `ready` on."""
+    stopped_in(tmp_path, "Gamma")
+    damage(tmp_path, how)
+    events = audio_events(tmp_path, FakeVoice(), overwrite=overwrite)
+    first_ready = next(n for n, (e, _) in enumerate(events) if e.ready is not None)
+    assert all(e.playable == () for e, _ in events[:first_ready])
+    ready = next(n for n, (e, _) in enumerate(events) if e.ready == 1)
+    assert all(1 not in e.playable for e, _ in events[:ready])
+    assert events[-1][0].playable == (0, 1, 2)
+
+
+def test_made_chapters_are_not_reported_once_the_settings_changed(tmp_path: Path) -> None:
+    """Under the same settings a resume reports the chapters made so far; under others
+    (replace all, D-909) none of them, each only once it is made again."""
+    stopped_in(tmp_path / "same", "Gamma")
+    assert audio_events(tmp_path / "same", FakeVoice())[0][0].playable == (0, 1)
+    stopped_in(tmp_path, "Gamma")
+    events = audio_events(tmp_path, FakeVoice(), settings=JobSettings(speed=1.2), overwrite=True)
+    assert events[0][0].playable == ()
+    seen: tuple[int, ...] = ()
+    for event, _ in events:
+        assert set(event.playable) <= set(seen) | ({event.ready} - {None})
+        seen = event.playable
+    assert seen == (0, 1, 2)
+
+
 def test_a_finished_audiobook_is_still_refused_without_overwrite(tmp_path: Path) -> None:
     run(tmp_path, FakeVoice())
     voice = FakeVoice()
