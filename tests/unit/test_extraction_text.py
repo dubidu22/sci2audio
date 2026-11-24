@@ -968,3 +968,79 @@ def test_an_english_month_line_after_a_number_before_a_stop_stays_a_mixed_case_h
     cut before and after, as without #848."""
     text = f"The first part of the note ends here, and for it we used 3.\nJune 2020\n{_NEW}" * 2
     assert tags_of(text) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
+
+
+def test_a_german_month_in_capitals_after_a_number_before_a_stop_joins_the_sentence() -> None:
+    """The trade-off of #848, pinned (#900): "betrug 3." / "MÄRZ 2021" / "Die ..." reads like
+    "am 3." / "MÄRZ 2021", so the month heading joins the paragraph before it. Only the
+    line's end and the next line's first word are looked at, and nothing there tells a
+    number before a heading from an ordinal before its month; a German date wrapped after
+    its day is the more common of the two. The line after the month still starts a
+    paragraph by the title rule."""
+    text = (
+        "Der Anteil der Teilnehmer aus dem Ausland betrug am Ende nur 3.\n"
+        "MÄRZ 2021\n"
+        "Die Teilnehmer kamen aus ganz Europa zusammen und blieben da noch.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+# ---- #893: a month line inside a running sentence ----------------------------------------
+
+_IM = "Die Konferenz fand in diesem Jahr in Berlin statt, und zwar im\n"
+_YEAR = "2020 kamen die Teilnehmer aus ganz Europa zusammen und blieben da.\n"
+_DIE = "Die Teilnehmer kamen aus ganz Europa zusammen und blieben da noch.\n"
+_DONE = "Die Teilnehmer kamen aus ganz Europa zusammen und blieben lange da.\n"
+
+
+@pytest.mark.parametrize("before", [_ORDINAL, _IM], ids=["am 3.", "im"])
+@pytest.mark.parametrize(
+    ("month", "after"),
+    [("OKTOBER", _YEAR), ("(DEZEMBER", _YEAR), ("Oktober 2020", _DIE)],
+    ids=["OKTOBER", "(DEZEMBER", "Oktober 2020"],
+)
+def test_a_month_line_inside_a_running_sentence_stays_in_its_paragraph(
+    before: str, month: str, after: str
+) -> None:
+    """ "am 3." / "OKTOBER" / "2020 kamen ..." and "im" / "Oktober 2020" / "Die ...": a month,
+    or a month and a year, inside a running sentence is part of a date, not a title; the
+    line after it goes on in the same paragraph (#893)."""
+    assert tags_of(f"{before}{month}\n{after}") == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_month_heading_between_two_finished_paragraphs_still_cuts() -> None:
+    """ "OKTOBER 2020" after a finished sentence, or alone between blank lines, is a heading
+    (#570, #893); so is "Oktober 2020" twice in a document (#812)."""
+    assert tags_of(f"{_DONE}OKTOBER 2020\n{_DIE}") == [("p",), ("p",), ("p",)]
+    assert tags_of(f"{_DONE}\nOKTOBER 2020\n\n{_DIE}") == [("p",), ("p",), ("p",)]
+    twice = f"{_DONE}Oktober 2020\n{_DIE}" * 2
+    assert tags_of(twice) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
+
+
+def test_a_capitals_line_that_is_no_month_before_a_number_still_cuts() -> None:
+    """Only a month line runs on into a line starting with a number: "NASA JPL" / "2020 ..."
+    keeps the title cut it had (#827, #893)."""
+    text = (
+        "The first part of the note runs on here and names the agency of the\n"
+        "NASA JPL\n"
+        "2020 was the year in which the second part starts and runs on here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+@pytest.mark.parametrize(
+    ("lines", "tags"),
+    [
+        (["LISTENING TO PAPERS", "April 2020", "A pilot note on reading papers aloud."], "ppp"),
+        (["Jahresbericht der Gesellschaft", "Oktober 2020", _DIE.strip()], "ppp"),
+        (["Protokoll der Sitzung", "Mai 2021", _DIE.strip()], "ppp"),
+        ([_DONE.strip(), "Ergebnisse", "Oktober 2020", _DIE.strip()], "pbpp"),
+    ],
+    ids=["title-april", "jahresbericht-oktober", "protokoll-mai", "ergebnisse-oktober"],
+)
+def test_a_month_line_after_a_title_line_keeps_its_cut(lines: list[str], tags: str) -> None:
+    """A short title line before a date ends no sentence either, but it is no running
+    sentence: the date in a heading block (title, date, body) keeps the cut after it
+    (#893). ``p`` is a new paragraph, ``b`` a line joined to the one before."""
+    expected = [("p",) if t == "p" else ("p", "br") for t in tags]
+    assert tags_of("\n".join(lines) + "\n") == expected
