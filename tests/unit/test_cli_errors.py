@@ -11,7 +11,7 @@ import pytest
 from cli_helpers import BROKEN, SEABORN, Cli, small_pdf
 from pdf_maker import glyph_number_pdf
 
-from sci2audio.cli import EXIT_CODES_HELP, CliEnv, Exit, _never_fail_on_characters
+from sci2audio.cli import COMMANDS, EXIT_CODES_HELP, CliEnv, Exit, _never_fail_on_characters
 
 
 @pytest.fixture
@@ -207,3 +207,30 @@ def test_the_command_hands_a_packaged_reader_start_to_the_reader(
     monkeypatch.setattr(cli_module, "run", lambda argv, env: calls.append("run") or 0)
     assert cli_module.main([]) == 0
     assert calls == ["freeze", "run"]
+
+
+def test_an_unknown_command_lists_the_choices_quoted(cli: Cli) -> None:
+    result = cli("nosuch")
+    assert result.code == 2
+    assert result.err.splitlines()[-1] == (
+        "sci2audio: error: argument COMMAND: invalid choice: 'nosuch' (choose from "
+        + ", ".join(f"'{name}'" for name in (command.name for command in COMMANDS))
+        + ")"
+    )
+
+
+def test_an_unknown_action_lists_the_choices_quoted(cli: Cli) -> None:
+    result = cli("voices", "nope")
+    assert result.code == 2
+    assert result.err.splitlines()[-1] == (
+        "sci2audio voices: error: argument ACTION: invalid choice: 'nope' (choose from 'download')"
+    )
+
+
+def test_an_unknown_choice_of_an_option_lists_the_choices_quoted(cli: Cli, tmp_path: Path) -> None:
+    result = cli("convert", small_pdf(tmp_path / "in"), "--format", "wav")
+    assert result.code == 2
+    assert result.err.splitlines()[-1] == (
+        "sci2audio convert: error: argument --format: invalid choice: 'wav' "
+        "(choose from 'both', 'm4b', 'mp3')"
+    )
