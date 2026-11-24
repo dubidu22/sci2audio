@@ -386,7 +386,7 @@ def _operators(
             ):
                 continue  # a list bullet, an arrow at a line start: no sentence word
             if left != read_end and _named_in_prose(
-                plain, left, right_start, prose_before=read_abbreviation
+                plain, left, right_start, prose_before=read_abbreviation, language=language
             ):
                 continue  # "where ⇒ marks", "The arrow ⇒ denotes": the symbol itself
             words = arrows[_one_arrow(op)]
@@ -487,12 +487,16 @@ def _read_abbreviation_before(plain: str, left: int, language: str) -> bool:
     return left > 0 and plain[left - 1] == "." and reads_full_stop(plain, left, language)
 
 
-def _named_in_prose(plain: str, left: int, right_start: int, *, prose_before: bool = False) -> bool:
+def _named_in_prose(
+    plain: str, left: int, right_start: int, *, prose_before: bool = False, language: str = "en"
+) -> bool:
     """True if an ordinary prose word ends at `left` and another starts at `right_start`
     ("where ⇒ marks", "The arrow ⇒ denotes"): the arrow between them is named, not read as
     a connective. A symbol is no prose word ("A", "x", "α", "αXγ"). With `prose_before` the
     text before is an abbreviation read as words, one prose word whatever its last printed
-    piece ("z. B. ⇒ Die" is named as "zum Beispiel ⇒ Die" is on a second run, #924)."""
+    piece ("z. B. ⇒ Die" is named as "zum Beispiel ⇒ Die" is on a second run, #924). The
+    "Uhr" of a German clock time with minutes is none: the numbers step reads "13:30 Uhr"
+    as "13 Uhr 30", so a second run sees the minutes before the arrow (#970)."""
     after = right_start
     while after < len(plain) and after - right_start < _PROSE_REACH and _in_word(plain[after]):
         after += 1
@@ -503,7 +507,17 @@ def _named_in_prose(plain: str, left: int, right_start: int, *, prose_before: bo
     before = left
     while before > 0 and left - before < _PROSE_REACH and _in_word(plain[before - 1]):
         before -= 1
+    if (
+        language == "de"
+        and plain[before:left] == "Uhr"
+        and _CLOCK_WITH_MINUTES.search(plain, max(0, before - 16), before)
+    ):
+        return False
     return _prose_word(plain[before:left])
+
+
+# a clock time whose reading ends in its minutes ("13 Uhr 30"); "13:00 Uhr" is "13 Uhr"
+_CLOCK_WITH_MINUTES = re.compile(r"\d[:.](?!00)\d\d\s+\Z")
 
 
 _PROSE_REACH = 40  # a word looked at is at most this long, so long blocks stay linear

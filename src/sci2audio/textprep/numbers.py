@@ -218,7 +218,9 @@ _UNIT_CHAIN_AFTER_FRACTION = re.compile(
 # ("2019-03-01–2019-03-05", "3–1999-02-01", #957)
 _ISO_DATE = re.compile(
     r"(?<![\w.:/-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
-    r"(?![\w⁺⁻^-]|[.,]\d)"  # not before a power: "2019-03-12⁻⁴" is no date
+    # not before a power: "2019-03-12⁻⁴" is no date; nor before a colon and a digit, as in
+    # German: read, "1999:3" would be a ratio on a second run (#1053)
+    r"(?![\w⁺⁻^-]|[.,:]\d)"
 )
 
 # --- N10 grouped digits ----------------------------------------------------------------------

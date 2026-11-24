@@ -35,11 +35,13 @@ space (`_STOP`), since the abbreviations step reads "Abb.1:1" as "Abbildung 1:1"
 
 from __future__ import annotations
 
+import bisect
 import calendar
 import re
 
 from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
+    DOUBLE_ARROW,
     FILE_NUMBER_DE,
     Candidate,
     arrows,
@@ -51,7 +53,12 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.statistics import find_statistics_in_german
 from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE
-from sci2audio.textprep.units import reads_unit_after, reads_unit_after_per, reads_x_after
+from sci2audio.textprep.units import (
+    reads_one_as_word,
+    reads_unit_after,
+    reads_unit_after_per,
+    reads_x_after,
+)
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
@@ -231,6 +238,9 @@ _STOP = (
     # and after "×", which the units step reads "mal"
     r"|(?<=×\.))"
 )
+
+# the first characters of the signs and arrows the statistics step reads as words
+_SIGN_START = "[" + re.escape("".join(sorted({s[0] for s in (*OPERATORS_DE, *ARROWS_DE)}))) + "]"
 
 # --- N-de-1, N-de-2 decimals and thousands ---------------------------------------------------
 _COMMA_DECIMAL = re.compile(
@@ -678,7 +688,15 @@ _ABBREVIATED_NOUNS = _abbreviated_nouns()
 _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
-_ORDINAL = re.compile(r"(?<![^\WxX])(?<![,/:\u2013-])" + _STOP + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_])")
+# a word after it, or what a second run sees as one (`_AfterNumber`): a sign the statistics
+# step reads, a "1" the units step reads before its unit
+_ORDINAL = re.compile(
+    r"(?<![^\WxX])(?<![,/:\u2013-])"
+    + _STOP
+    + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_]|\s*"
+    + _SIGN_START
+    + r"|\s+1(?![\d.,/]))"
+)
 # after an en dash too, which the range rule reads "bis": a second run sees "bis 2019-03-05"
 # (#957)
 _ISO_DATE = re.compile(
@@ -725,7 +743,9 @@ _NUMERIC_DATE = re.compile(
     + _YEARLESS_END
     + r")\d)|(?![\w.,]|\s*(?!"
     + _DATE_AHEAD
-    + r")\d))"
+    # ... or a "1" the units step may read as a word before its unit ("am 3.4. 1 N" is "am
+    # 3.4. ein Newton" after the first run; `_dates` checks that it is, #970)
+    + r"|1(?![\d.,/]))\d))"
 )
 
 
@@ -789,8 +809,9 @@ def _date_words(
     return f"{words} {year_words(int(year))}" if year else words
 
 
-def _dates(text: str) -> list[Candidate]:
+def _dates(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
     found = []
+    after = after or _AfterNumber(text)
     for match in _ISO_DATE.finditer(text):
         year, month, day = int(match["y"]), int(match["m"]), int(match["d"])
         if day > calendar.monthrange(year, month)[1]:
@@ -837,6 +858,13 @@ def _dates(text: str) -> list[Candidate]:
                 read_as_ein = _read_as_ein(text)
             if ahead.end() not in read_as_ein:
                 continue
+        one = None if match["y"] else _ONE_AHEAD.match(text, match.end())
+        if one is not None and not reads_one_as_word(after.printed, one.end(), "de"):
+            continue  # "am 3.4. 1 und 2": no "1" read "ein" before a unit, so the date stays
+        if not match["y"] and after.unread_arrow(text, match.end()):
+            # "am 3.4. ⇒ M": the arrow after a full stop is not read, but after "April" a
+            # second run would read it; so the date stays as printed with it (#970)
+            continue
         words = _date_words(text, match.start(), day, month, match["y"], paired=paired)
         if words and not _year_left_alone(text, match.end()):
             found.append(_date(match, words))
@@ -855,6 +883,51 @@ def _dates(text: str) -> list[Candidate]:
 
 
 _FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
+_ONE_AHEAD = re.compile(r"\s*(?=1(?![\d.,/]))")
+_SIGN_AHEAD = re.compile(r"\s*(?=" + _SIGN_START + ")")
+_SPACES = re.compile(r"\s*")
+_ARROW_AHEAD = re.compile(DOUBLE_ARROW)
+
+
+class _AfterNumber:
+    """What a second run sees right after a number where the first run sees no word: the
+    words of a sign the statistics step reads ("<" is "kleiner als"), or of a "1" the units
+    step reads before its unit ("1 N" is "ein Newton"). `printed` is the block's text before
+    the arrows are joined, as the statistics step reads it; the statistics edits are found
+    once, when first asked."""
+
+    def __init__(self, printed: str) -> None:
+        self.printed = printed
+        self._signs: list[Candidate] | None = None
+        self._starts: list[int] = []
+
+    def _sign_at(self, at: int) -> Candidate | None:
+        if self._signs is None:
+            self._signs = find_statistics_in_german(self.printed)
+            self._starts = [found.start for found in self._signs]
+        index = bisect.bisect_right(self._starts, at) - 1
+        if index >= 0 and self._signs[index].end > at:
+            return self._signs[index]
+        return None
+
+    def word(self, text: str, end: int) -> str | None:
+        """The first word a second run sees after `end`, or None."""
+        sign = _SIGN_AHEAD.match(text, end)
+        if sign is not None:
+            read = self._sign_at(sign.end())
+            words = read.replacement.split() if read is not None else []
+            return words[0] if words else None
+        one = _ONE_AHEAD.match(text, end)
+        if one is not None and one.end() > end and reads_one_as_word(self.printed, one.end(), "de"):
+            return "ein"
+        return None
+
+    def unread_arrow(self, text: str, end: int) -> bool:
+        """True if an arrow of logic follows `end` that the statistics step leaves as printed."""
+        at = _SPACES.match(text, end).end()  # type: ignore[union-attr]
+        return _ARROW_AHEAD.match(self.printed, at) is not None and self._sign_at(at) is None
+
+
 # the dash between the two dates of a range: a hyphen or en dash glued to both, an em dash
 # glued or spaced, or an en dash or hyphen with a space on each side (DIN 5008, #334)
 _PAIR_DASH = re.compile(r"(?:[\u2013-]| ?\u2014 ?| [\u2013-] )\Z")
@@ -891,8 +964,9 @@ _YEAR_LIKE = re.compile(r"1[1-9]\d\d|20\d\d")  # 1100 to 2099
 _AFTER_HUNDRED = re.compile(r"(?<![\d.,])1[1-9] hundert \Z")
 
 
-def _ordinals(text: str) -> list[Candidate]:
+def _ordinals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
     found = []
+    after = after or _AfterNumber(text)
     for match in _ORDINAL.finditer(text):
         n = int(match["n"])
         if not 0 < n <= MAX_ORDINAL:
@@ -918,12 +992,18 @@ def _ordinals(text: str) -> list[Candidate]:
         if previous is not None and previous["word"] in _MONTH_FORMS:
             continue  # "März 2019. Auflage": a date's year (read from "12.03.2019. Auflage")
         following = _NEXT_WORD.match(text, match.end())
-        if following is None:  # unreachable: the pattern looks for a word after it
-            continue
-        noun = following["word"]
+        if following is not None:
+            noun, noun_dot = following["word"], bool(following["dot"])
+        else:
+            # "am 3. < 1" is "am 3. kleiner als 1" after the first run, whose "3." a second
+            # run reads "dritten"; a sign the statistics step leaves is no word (#970)
+            said = after.word(text, match.end())
+            if said is None:
+                continue
+            noun, noun_dot = said, False
         if opens_sentence(text, match.end(), "de"):
             continue  # "Die 12. Dann mehr": a number ends the sentence (#227, D-530)
-        month = noun in _MONTH_FORMS and (noun in MONTHS or following["dot"])
+        month = noun in _MONTH_FORMS and (noun in MONTHS or noun_dot)
         if previous is not None and previous["word"] == noun:
             # "Es gilt Satz 2. Satz 3", "Kap. 2. Kap. 3": a label's number, then the same
             # label again, ends the sentence (D-719); "Im Punkt 2. Teil" keeps its ordinal
@@ -936,9 +1016,9 @@ def _ordinals(text: str) -> list[Candidate]:
         ):
             # a four-digit year before a noun with no word that sets the ending ends its
             # sentence: "Das war 2019. Kapitel 3" (#265, D-646)
-            if following["dot"]:
+            if noun_dot:
                 noun = _ABBREVIATED_NOUNS.get(noun, noun)
-            ending = _NOUN_ENDINGS.get(noun) if noun != "Jh" or following["dot"] else None
+            ending = _NOUN_ENDINGS.get(noun) if noun != "Jh" or noun_dot else None
         if ending is None:
             continue  # "Es waren 3. Die Studie": no article and no known noun
         if month and n > 31:
@@ -1059,8 +1139,18 @@ def _times(text: str) -> list[Candidate]:
             continue  # "um 13:30 N": read "13 Uhr 30 N", a second run would read "30 N"
         hours, minutes = int(match["h"]), int(match["m"])
         words = f"{hours} Uhr {minutes}" if minutes else f"{hours} Uhr"
+        if minutes and _hyphen_range_after(words, text, match.end(), len(str(minutes))):
+            continue  # "um 13:30-1500": "13 Uhr 30-1500" would be a range on a second run
         found.append(Candidate(*match.span(), words, f'time "{match.group()}" read as "{words}"'))
     return found
+
+
+def _hyphen_range_after(words: str, text: str, end: int, digits: int) -> bool:
+    """True if the number that ends `words`, the reading of what ends at `end`, starts a
+    hyphen range `_ranges` reads with what follows (#970). Only a window after `end` is
+    looked at, so long blocks stay linear."""
+    around = words + text[end : end + WINDOW]
+    return _hyphen_range_at(around, len(words) - digits)
 
 
 def _time_before(text: str, match: re.Match[str]) -> bool:
@@ -1221,10 +1311,22 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         found.append((_power(text, match, words), None))
     # as in English (numbers.py): a power joined to a number after it, or a number base joined
     # to a number before it, is left as printed
+    read_as_ein: set[int] | None = None
+    kept = []
+    for c, base in found:
+        joined = _LABEL_JOINED_AFTER.match(text, c.end)
+        if joined and text[joined.end() - 1].isdigit():
+            # "R³ : 1/5" is "R³ : ein Fünftel" after the first run: no number joins the power
+            # there, so it is read on both runs (#970)
+            if read_as_ein is None:
+                read_as_ein = _read_as_ein(text)
+            if joined.end() - 1 in read_as_ein:
+                joined = None
+        kept.append((c, base, joined))
     return [
         c
-        for c, base in found
-        if not _LABEL_JOINED_AFTER.match(text, c.end)
+        for c, base, joined in kept
+        if joined is None
         and not (
             c.replacement[-1:].isdigit()
             and _DASH_DIGIT.match(text, c.end)
@@ -1262,8 +1364,6 @@ _PART_KEYWORDS = frozenset(
     | {"kap", "abschn", "anh", "bd"}
 )
 _ROMAN = r"[IVX]{1,6}"
-# the first characters of the signs and arrows the statistics step reads as words
-_SIGN_START = "[" + re.escape("".join(sorted({s[0] for s in (*OPERATORS_DE, *ARROWS_DE)}))) + "]"
 # a number joined after a Roman numeral or a label's number; unlike `_JOINED_AFTER` not by a
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
 # date as words)
@@ -1384,6 +1484,7 @@ def find_numbers_de(text: str) -> list[Candidate]:
     # the other rules read the text as a second run sees it after the arrows: "←−1:1" is
     # "←1:1", so its ratio is read on both runs, not left after "−" on the first (#593)
     found_arrows = arrows(text)
+    after = _AfterNumber(text)  # the printed text: the statistics step reads its arrows whole
     text = as_one_arrow(text, found_arrows)
     plain = fold(text)
     years = _years(text)
@@ -1392,8 +1493,8 @@ def find_numbers_de(text: str) -> list[Candidate]:
     found = pick(
         [
             *found_arrows,
-            *_dates(text),
-            *_ordinals(text),
+            *_dates(text, after),
+            *_ordinals(text, after),
             *_roman_numerals(plain),
             *labelled,
             *_powers(text, plain),

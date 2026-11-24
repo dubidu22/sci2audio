@@ -3565,3 +3565,23 @@ expected = [
     "It grew 2,019 times 3, 2,019 times 10 and 2,019 times 3.",
     "A 1920 times 1080 and 2019 times 100 screen.",
 ]
+
+[[case]]
+id = "iso-date-before-a-colon-and-a-digit-stays-as-printed"
+audit = 0
+issue = 1053
+goal = "An ISO date glued to a colon and a digit stays as printed, in a paragraph and a heading, as German leaves it: read '1 February 1999:3', a second run read '1999:3' as the ratio '1999 to 3'. After a colon and a space the date is read (#1053)."
+blocks = [
+    { kind = "paragraph", text = "1999-02-01:3" },
+    { kind = "paragraph", text = "1999-02-01: 3" },
+    { kind = "paragraph", text = "1999-02-01:3 × 10−4" },
+    { kind = "heading", text = "1999-02-01:3 × 10−4" },
+    { kind = "heading", text = "1999-02-01:3" },
+]
+expected = [
+    "1999-02-01:3",
+    "1 February 1999: 3",
+    "1999-02-01:3 times 10 to the power of minus 4",
+    "1999-02-01:3 times 10 to the power of minus 4",
+    "1999-02-01:3",
+]

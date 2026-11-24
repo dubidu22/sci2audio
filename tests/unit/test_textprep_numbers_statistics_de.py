@@ -585,6 +585,20 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @example(make_document([(BlockKind.PARAGRAPH, "A \u21d0==> 3x und B")], "de"))  # #984
 @example(make_document([(BlockKind.PARAGRAPH, "Kapitel I. und II.")], "de"))  # #996
 @example(make_document([(BlockKind.HEADING, "Teile I., II. und III.")], "de"))  # #996
+@example(
+    make_document([(BlockKind.PARAGRAPH, "1\u20131um 13:30 Uhr=\u21d2am 3. Mai")], "de")
+)  # #970
+@example(make_document([(BlockKind.PARAGRAPH, "am 3.4. 1 N und am 3. < =1")], "de"))  # #970
+@example(make_document([(BlockKind.PARAGRAPH, "um 13:30-1500 Kapitel")], "de"))  # #970
+@example(
+    make_document([(BlockKind.PARAGRAPH, "1\u20131"), (BlockKind.PARAGRAPH, "\u0338==>1")], "de")
+)
+@example(
+    make_document([(BlockKind.PARAGRAPH, "12\u00adx\u00ad\u2212\u2212\u2192 M\u00e4rz")], "de")
+)
+@example(make_document([(BlockKind.PARAGRAPH, "R\u00b3 : 1/5 \u21d2 \u03c72")], "de"))  # #970
+@example(make_document([(BlockKind.PARAGRAPH, "Abb.\u200b-\n\u0338=\u00ad\u03c72")], "de"))
+@example(make_document([(BlockKind.PARAGRAPH, "1999-02-01:3 \u00d7 10\u22124")], "de"))  # #1053
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
