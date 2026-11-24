@@ -1112,6 +1112,11 @@ _CARET = re.compile(
     # keeps the power as printed where it does not, #253)
     r"(?!(?![xX]\d)[\w.,⁺⁻])"
 )
+# a signed power of a bracketed term, "(I − P)⁻¹" (an inverse), its raise printed or in its
+# run (#815, as numbers.py for #589); not before a letter or digit, which may go on the power
+_BRACKET_POWER = re.compile(
+    r"(?P<base>[)\]])(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + r"]+)(?![\w⁺⁻^" + _SUPERSCRIPTS + "])"
+)
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w⁺⁻]|[.,]\d)")
 # not after a number and a space ("5 m²", the units step's), but after a time ("24:00 n²",
 # which reads "24 Uhr n²", #253)
@@ -1180,6 +1185,9 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         for match in pattern.finditer(text):
             words = f" hoch {_exponent_words(match['exp'])}"
             found.append((_power(text, match, words), match.start("base")))
+    for match in _BRACKET_POWER.finditer(text):
+        words = f" hoch {_exponent_words(match['exp'])}"
+        found.append((_power(text, match, words), None))
     for match in _CARET.finditer(plain):
         exponent = match["braced"] or match["paren"] or match["bare"]
         letter = match["base"].isalpha()
