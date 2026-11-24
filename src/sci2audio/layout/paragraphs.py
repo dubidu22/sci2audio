@@ -23,7 +23,8 @@ interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
 waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
 after it (#648). A figure in a wide gutter is read as a column of its own between two
 columns of text (#873): the rows read in that column right after it, if they are its labels
-and caption and no running text, interrupt a paragraph and never go on with one (#905).
+and caption and no running text, and the row before the figure ends a sentence, interrupt
+a paragraph and never go on with one (#905).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -481,11 +482,12 @@ class Paragraphs:
 
     def _figure_rows(self, before: Row, run: list[Row]) -> bool:
         """True if the rows are a figure's labels, then perhaps its caption, and nothing
-        else. A label does not fill its column. None of them is the figure's if the row read
-        before the figure ends inside a sentence (`_open`): ragged lines that go on with it
-        start in any case (a German noun, a name). The caption is a row that opens one and
-        the rows that go on with it."""
-        if _open(before):
+        else. A label does not fill its column. None of them is the figure's unless the row
+        read before the figure ends a sentence (`_sentence_end`): ragged lines that go on
+        with a sentence start in any case and after any last character (a German noun, a
+        name, "im Jahr 2023"), and reading them after the figure would reorder the text. The
+        caption is a row that opens one and the rows that go on with it."""
+        if not _sentence_end(before):
             return False
         labels = 0
         while (
@@ -830,11 +832,10 @@ def _split_word(row: Row, next_row: Row) -> bool:
     return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
 
 
-def _open(row: Row) -> bool:
-    """True if the row ends inside a sentence: in a letter, a comma, a semicolon, an open
-    bracket or a slash (as `_inside` reads a row's end)."""
-    end = row.text.rstrip()[-1:]
-    return end.isalpha() or (bool(end) and end in ",;(/")
+def _sentence_end(row: Row) -> bool:
+    """True if the row ends a sentence: in ".", "!", "?" or ":", or in closing quotes or
+    brackets right after one."""
+    return row.text.rstrip().rstrip("\"'\u201d\u2019)]").endswith((".", "!", "?", ":"))
 
 
 def _inside(row: Row, next_row: Row) -> bool:

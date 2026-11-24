@@ -1106,13 +1106,16 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     two columns of text: the labels lie on the drawing, and a caption is no column.
 
     The figure's column is read row by row: the drawing (from y 190), the upper row of
-    labels (y 200), the lower one (y 210), then the caption. The left column's last line
-    fills it, so its paragraph goes on in the right column, and the figure, which
-    interrupts it, follows it, as any float does (#905): with a caption that names it, the
-    figure holds its labels. If the left column's last line ends short (`ended`), its
-    paragraph ends there, and the figure is read between the columns' paragraphs."""
-    left = [line(f"L{k}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228) for k in range(30)]
-    right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
+    labels (y 200), the lower one (y 210), then the caption. The left column's paragraph
+    ends in a sentence, whether its last line fills the column or ends short (`ended`), so
+    the figure is read between the columns' paragraphs (#905): with a caption that names
+    it, the figure holds its labels."""
+    stop = {29: "."}  # each column ends its paragraph with a sentence
+    left = [
+        line(f"L{k}{stop.get(k, '')}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228)
+        for k in range(30)
+    ]
+    right = [line(f"R{k}{stop.get(k, '')}", 368, 80 + 14 * k, 526) for k in range(30)]
     # 116 pt wide together, more than a column's least width (114 pt): a column, were they
     # counted
     labels = [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
@@ -1129,16 +1132,14 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [held]
     read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
     middle = ["fig", *upper, *lower, *[li.text for li in caption]]
-    if ended:
+    if captioned:
         assert [b.kind for b in doc.blocks] == [
             BlockKind.PARAGRAPH,
             BlockKind.FIGURE,
             BlockKind.CAPTION,
             BlockKind.PARAGRAPH,
         ]
-        assert read == [li.text for li in left] + middle + [li.text for li in right]
-    else:
-        assert read == [li.text for li in left + right] + middle
+    assert read == [li.text for li in left] + middle + [li.text for li in right]
 
 
 @pytest.mark.parametrize("captioned", [True, False])
@@ -1172,6 +1173,8 @@ def test_running_text_under_a_figure_in_a_middle_column_stays_in_its_paragraph(
     [
         ("Werte in der", ("Messung und", "und so weiter")),
         ("values of the", ("measurement and", "and so on")),
+        ("Werte im Jahr 2023", ("Messung und", "und so weiter")),
+        ("values (Smith 2020)", ("Measurement and", "and so on")),
     ],
 )
 def test_ragged_lines_that_go_on_with_a_sentence_under_a_middle_figure_stay_in_order(
@@ -1179,8 +1182,9 @@ def test_ragged_lines_that_go_on_with_a_sentence_under_a_middle_figure_stay_in_o
 ) -> None:
     """#905: the left column of three ends inside a sentence, a figure fills the top of the
     middle column, and four ragged lines under it go on with that sentence, whether their
-    first word is a German noun in capitals or a lower-case word. They are running text,
-    not the figure's labels: they are read before the right column."""
+    first word is a German noun in capitals or a lower-case word, and whether the sentence
+    breaks after a word, a number or a closing bracket. They are running text, not the
+    figure's labels: they are read before the right column."""
     width = (RIGHT - LEFT - 2 * GUTTER) / 3
     x0 = LEFT + width + GUTTER
     first, right_start = starts
@@ -1209,8 +1213,9 @@ def test_a_figure_in_a_wide_gutter_keeps_its_labels_and_caption_apart_from_the_c
 ) -> None:
     """#905: on the #895 page the figure's labels are in no paragraph of the left or right
     column, and the caption block holds the caption's line alone."""
-    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
-    right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
+    stop = {29: "."}  # each column ends its paragraph with a sentence
+    left = [line(f"L{k}{stop.get(k, '')}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{stop.get(k, '')}", 368, 80 + 14 * k, 526) for k in range(30)]
     labels = [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
     caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
     found = content(
