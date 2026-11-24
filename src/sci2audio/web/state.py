@@ -27,7 +27,12 @@ from sci2audio.web.documents import DocumentStore, StoredDocument
 from sci2audio.web.figures import Figures
 from sci2audio.web.jobs import JobBoard, JobKind, JobRecord, JobState
 from sci2audio.web.markers import MarkerBook
-from sci2audio.web.player import ChapterStates, candidate_folders, chapter_states
+from sci2audio.web.player import (
+    ChapterStates,
+    PositionSaves,
+    candidate_folders,
+    chapter_states,
+)
 from sci2audio.web.tasks import (
     PREVIEW_FOLDER,
     Fetch,
@@ -100,6 +105,8 @@ class ServerState:
     clock: Callable[[], float] = time.monotonic  # the markers' undo store; tests pass a fake
     markers: MarkerBook = field(init=False)  # every write of a markers file (#474)
     figures: Figures = field(default_factory=Figures)  # the player's figures (#293)
+    # every write of a listening position takes its turn here (#790)
+    positions: PositionSaves = field(default_factory=PositionSaves)
     # the app without a window (launched as "browser", #215): the rail's Quit item sets `quit`;
     # `seen` is when the server last answered an authorised request (time.monotonic)
     quit: threading.Event = field(default_factory=threading.Event)
@@ -145,6 +152,7 @@ class ServerState:
             settings,
             self.kept.source(),
             overwrite=overwrite,
+            positions=self.positions,
             keep_settings=keep_settings,
             on_failure=self.kept.dispose,
         )

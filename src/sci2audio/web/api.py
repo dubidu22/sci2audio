@@ -65,7 +65,6 @@ from sci2audio.web.player import (
     recorded_folder,
     sentence_starts,
     whole_book,
-    write_position,
 )
 from sci2audio.web.project import read_project
 from sci2audio.web.removal import KEPT_LIMIT, AudiobookRemoved, Kept, carry_out, plan
@@ -511,7 +510,7 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
     if index is not None:
         position = Position(chapter, time, index, time - starts[chapter])
     try:
-        write_position(document.work, document.document, stamp, position)
+        state.positions.save(document.work, document.document, stamp, position)
     except OSError as error:
         raise ApiError(
             503, "not-saved", f"the listening position could not be saved: {error.strerror}"
