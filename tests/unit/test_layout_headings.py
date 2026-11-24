@@ -1113,6 +1113,54 @@ def test_a_parenthesised_line_under_a_letter_that_is_no_heading_does_not_vote() 
     assert [label for _, label in headings(doc)] == ["I", "A", "A.1", "B", "II", "III"]
 
 
+def test_parenthesised_numbers_do_not_outvote_the_style_of_lettered_third_levels() -> None:
+    """#918: three bold 10 point "1)" lines under "A." in II. do not take the depth-3 style
+    from two bold 11 point "A.1." lines under "A." in I.: each keeps its own style."""
+    page = Page().heading("I. Introduction").body(2).heading("A. Setup", 10.0).body(2)
+    page.heading("A.1. Detail", 11.0).body(2).heading("A.2. More", 11.0).body(2)
+    page.heading("II. Method").body(2).heading("A. Data", 10.0).body(2)
+    for text in ("1) One", "2) Two", "3) Three"):
+        page.heading(text, 10.0).body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == [
+        *("I", "A", "A.1", "A.2", "II", "A", "1)", "2)", "3)", "III")
+    ]
+    assert tree(doc.sections) == [
+        ("I. Introduction", 1),
+        [("A. Setup", 2), [("A.1. Detail", 3), ("A.2. More", 3)]],
+        ("II. Method", 1),
+        [("A. Data", 2), [("1) One", 3), ("2) Two", 3), ("3) Three", 3)]],
+        ("III. Results", 1),
+    ]
+
+
+def test_parenthesised_numbers_in_another_style_than_most_of_them_are_no_headings() -> None:
+    """The "1)" numbers vote among themselves: one in another style is no heading."""
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).body(2)
+    page.heading("1) Hardware", 10.0).body(2).heading("2) Software", 10.0).body(2)
+    page.heading("3) Odd one", 11.0).body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build()
+    assert [label for _, label in headings(doc)] == ["I", "II", "A", "1)", "2)", "III"]
+
+
+def test_a_letter_the_font_rules_drop_numbers_no_parenthesised_line() -> None:
+    """#918: "A. Setup" is set like the letters but stands over a line set larger than the
+    body, so it is no heading; the bold "1)" lines after it have no letter over them, for
+    the font rules and for the outline alike."""
+    page = Page().heading("I. Introduction").body(2).heading("A. Scope", 10.0).body(2)
+    page.heading("B. Plan", 10.0).body(2).heading("II. Method").body(2)
+    page.heading("A. Setup", 10.0).heading("A larger line of text", 11.0, False).body(2)
+    page.heading("1) Hardware", 10.0).body(2).heading("2) Software", 10.0).body(2)
+    plain(page, "3) Fine print").body(2)
+    page.heading("III. Results").body(2)
+    doc = page.build(OutlineEntry("3) Fine print", 1, 1))
+    assert [label for _, label in headings(doc)] == ["I", "A", "B", "II", "", "III"]
+    assert headings(doc)[4] == ("3) Fine print", "")
+
+
 def test_the_outline_reads_no_parenthesised_number_after_a_letter_of_the_section_before() -> None:
     page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
     page.heading("A. Setup", 10.0).body(2)
