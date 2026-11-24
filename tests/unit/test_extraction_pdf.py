@@ -143,6 +143,24 @@ def test_a_line_without_a_run_in_heading_stays_one_line(pieces: list[tuple[str, 
     assert line.text == " ".join(text for text, _ in pieces)
 
 
+def test_an_italic_word_after_the_colon_and_a_regular_space_keeps_the_line_whole() -> None:
+    """The space the page prints after the colon is set in the regular font, and an italic
+    word follows: the text after the heading is emphasised, so the line is not cut (PR #964),
+    as in a line whose colon, space and italic word are all set in one emphasised font."""
+    items, x = [], 50.0
+    for text, font in [
+        ("1) Hardware:", BOLD),
+        (" ", REGULAR),
+        ("The", ITALIC),
+        (" board.", REGULAR),
+    ]:
+        items.append(Text(text, x, 100, font=font))
+        x += width(text, font)
+    (line,) = read_pdf(make_pdf(items), "made.pdf").pages[0].lines
+    assert [run.font for run in line.runs] == [BOLD, ITALIC, REGULAR]
+    assert line.id == "p1-l1"
+
+
 def test_a_raised_smaller_number_stays_in_its_line_as_its_own_run() -> None:
     data = make_pdf([Text("E = mc", 50, 200), Text("2", 81, 196, size=6)])
     (line,) = read_pdf(data, "made.pdf").pages[0].lines

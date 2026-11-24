@@ -86,7 +86,7 @@ from collections import Counter
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Box, Content, OutlineEntry, Section, TextLine
-from sci2audio.layout.geometry import run_in_head, union
+from sci2audio.layout.geometry import run_in_head, same_row, union
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import split_at
 
@@ -136,7 +136,7 @@ def find_headings(
     section tree the headings make."""
     lines = {line.id: line for page in content.pages for line in page.lines}
     whole = blocks
-    blocks, heads_at = _run_ins(whole, lines)
+    blocks, heads_at = _run_ins(whole, lines, settings)
     found = [
         (index, block, _style(block, lines, settings))
         for index, block in enumerate(blocks)
@@ -163,10 +163,15 @@ def find_headings(
     return out, _publisher(tree, {start: end for start, (end, _) in front.items()})
 
 
-def _run_ins(blocks: list[Block], lines: dict[str, TextLine]) -> tuple[list[Block], dict[int, int]]:
+def _run_ins(
+    blocks: list[Block], lines: dict[str, TextLine], settings: LayoutSettings
+) -> tuple[list[Block], dict[int, int]]:
     """The blocks with each block that opens with a heading run into its paragraph
     (`geometry.run_in_head`) cut in two: the heading, then the rest as a paragraph. Also,
-    by the index of each cut block, the index of its heading among the blocks returned."""
+    by the index of each cut block, the index of its heading among the blocks returned. The
+    rest is the line extraction cut off the heading's printed line, on its row: an emphasised
+    "1) Hardware:" alone on its row goes on with the lines under it, as in
+    `Paragraphs.continues`."""
     out: list[Block] = []
     heads: dict[int, int] = {}
     for index, block in enumerate(blocks):
@@ -177,6 +182,7 @@ def _run_ins(blocks: list[Block], lines: dict[str, TextLine]) -> tuple[list[Bloc
             and parts[0].item in lines
             and parts[1].start > 0
             and run_in_head(lines[parts[0].item])
+            and _on_one_row(lines[parts[0].item], lines.get(parts[1].item), settings)
         ):
             paragraph = replace(block, kind=BlockKind.PARAGRAPH, label="")
             pieces = split_at(paragraph, [parts[1].start])
@@ -186,6 +192,12 @@ def _run_ins(blocks: list[Block], lines: dict[str, TextLine]) -> tuple[list[Bloc
                 continue
         out.append(block)
     return out, heads
+
+
+def _on_one_row(head: TextLine, rest: TextLine | None, settings: LayoutSettings) -> bool:
+    if rest is None or head.box is None or rest.box is None:
+        return False
+    return same_row(head.box, rest.box, settings.row_overlap)
 
 
 def _rejoin(
