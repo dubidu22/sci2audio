@@ -12,6 +12,11 @@ step reads a short notice instead, and the player shows the code.
 - Code can only be told from text where the text is not itself typewriter type: when most
   of the document's letters are in a typewriter font (a typed memo, an RFC, a text file
   printed to PDF), nothing is code.
+- Whether a document is typed and the size its body text is set in are judged once per
+  document (`body_text`, #794), from its text lines without the furniture: a running head
+  set in Courier says nothing about the body. Paragraphs (which start a listing on a block
+  of its own), captions (which cut a listing off) and `find_code` all use that one
+  judgement, so no line is cut as code by one and kept as prose by another.
 - After headings are found, a run of PARAGRAPH blocks next to each other in reading
   order, each made only of monospace lines, is one CODE block: its parts in order, its text
   the blocks' texts joined by line breaks. Headings, captions, notes, list items and
@@ -83,16 +88,39 @@ def monospace_line(line: TextLine, size: float = 0.0) -> bool:
     )
 
 
+@dataclass(frozen=True)
+class BodyText:
+    """The judgement that tells code from a document's text, made once per document (#794):
+    whether most of its letters are typewriter type (`typed`: then nothing is code), and the
+    size its body text is set in (`size`; 0 if unknown)."""
+
+    typed: bool
+    size: float
+
+
+def body_text(lines: Iterable[TextLine]) -> BodyText:
+    """The judgement over these text lines: the document's own, without its furniture."""
+    letters: Counter[bool] = Counter()
+    sizes: Counter[float] = Counter()
+    for line in lines:
+        for run in line.runs:
+            letters[monospace(run.font)] += sum(c.isalpha() for c in run.text)
+            sizes[run.size] += len(run.text)
+    size = sizes.most_common(1)[0][0] if sizes else 0.0
+    return BodyText(letters[True] > letters[False], size)
+
+
 def find_code(
-    blocks: list[Block], sections: tuple[Section, ...], content: Content, size: float
+    blocks: list[Block], sections: tuple[Section, ...], content: Content, body: BodyText
 ) -> tuple[list[Block], tuple[Section, ...]]:
     """The blocks with each run of paragraphs made only of monospace lines joined into one
-    CODE block, and the sections and caption links moved to the new block numbers; `size`
-    is the body text's font size (0 if unknown)."""
+    CODE block, and the sections and caption links moved to the new block numbers; `body`
+    is the document's judgement (`body_text`): in a typed document nothing is code."""
+    if body.typed:
+        return blocks, sections
+    size = body.size
     items = content.items()
     lines = {item.id: item for _, item in items.values() if isinstance(item, TextLine)}
-    if typewritten(lines.values()):
-        return blocks, sections
     page_of = {key: page.number for key, (page, _) in items.items()}
     starts = {section.start for section in _all(sections)}
     groups: list[_Group] = []
@@ -191,15 +219,6 @@ def _white(
 
 def _gap(upper: Box, lower: Box) -> float:
     return lower.y0 - upper.y1
-
-
-def typewritten(lines: Iterable[TextLine]) -> bool:
-    """True if most letters of the document are in a typewriter font."""
-    letters: Counter[bool] = Counter()
-    for line in lines:
-        for run in line.runs:
-            letters[monospace(run.font)] += sum(c.isalpha() for c in run.text)
-    return letters[True] > letters[False]
 
 
 def _code_paragraph(block: Block, lines: dict[str, TextLine], size: float) -> bool:

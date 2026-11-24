@@ -26,8 +26,13 @@ A listing starts a block of its own (#599): a line set wholly in a typewriter fo
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
 A single such line is the paragraph's: a code name wrapped onto a line of its own, with
-prose or more white under it (a caption's last line, #603). Links are no listing, and in a
-document set mostly in a typewriter font (a typed memo) nothing is.
+prose or more white under it (a caption's last line, #603), unless it starts at a code
+indent (#787): further in than the prose line right above it and the one under it, by a
+paragraph indent or more. A wrapped code name starts at the paragraph's left edge, so the
+indent tells the two apart; such a line is a block of its own, and the prose under it
+starts the next one. Links are no listing, and in a document set mostly in a typewriter
+font (a typed memo) nothing is. Whether a document is typed and its body size are the one
+judgement `code.find_code` uses too (`code.body_text`, #794).
 """
 
 from __future__ import annotations
@@ -39,7 +44,7 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
-from sci2audio.layout.code import monospace_line, only_links, typewritten
+from sci2audio.layout.code import BodyText, body_text, monospace, monospace_line, only_links
 from sci2audio.layout.geometry import (
     Bars,
     boxed,
@@ -393,9 +398,13 @@ def _bold(runs: list[TextRun], settings: LayoutSettings) -> bool:
     return bool(letters) and bold > settings.bold_share * letters and ends_bold
 
 
-def paragraphs(units: list[Unit], settings: LayoutSettings) -> list[Block]:
-    """The document's rows joined into paragraphs, with the other blocks in their places."""
-    return Paragraphs(units, settings).blocks()
+def paragraphs(
+    units: list[Unit], settings: LayoutSettings, body: BodyText | None = None
+) -> list[Block]:
+    """The document's rows joined into paragraphs, with the other blocks in their places;
+    `body` is the document's judgement of its text (`code.body_text`; if not given, judged
+    from the rows)."""
+    return Paragraphs(units, settings, body).blocks()
 
 
 class Paragraphs:
@@ -408,7 +417,9 @@ class Paragraphs:
     text in the paragraph's size, or a heading, ends the wait.
     """
 
-    def __init__(self, units: list[Unit], settings: LayoutSettings) -> None:
+    def __init__(
+        self, units: list[Unit], settings: LayoutSettings, body: BodyText | None = None
+    ) -> None:
         self.settings = settings
         self.units = units
         self.out: list[Block] = []
@@ -422,8 +433,8 @@ class Paragraphs:
         self.caption: Row | None = None  # the caption that opened the interruption
         rows = [unit for unit in units if isinstance(unit, Row)]
         self.pitch = _pitch(rows, settings) or settings.line_pitch
-        self.body = _body_size(rows)
-        self.typed = typewritten(piece for row in rows for piece in row.pieces)
+        judged = body or body_text(piece for row in rows for piece in row.pieces)
+        self.body, self.typed = judged.size, judged.typed
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
 
@@ -595,7 +606,7 @@ class Paragraphs:
             return False
         if not _split_word(last, next_row) and self._breaks(rows, next_row):
             return False  # (a paragraph does not end inside a word)
-        if self._listing(last, next_row):
+        if self._listing(last, next_row) or self._code_line(last) or self._code_line(next_row):
             return False
         return (
             not spacing
@@ -617,6 +628,28 @@ class Paragraphs:
             and self._monospace(after)
             and not only_links(f"{row.text}\n{after.text}")
         )
+
+    def _code_line(self, row: Row) -> bool:
+        """True if the row is a lone code line set at a code indent (#787): wholly in a
+        typewriter font, right under a row that is not, with no such row under it, and
+        further in than the row above it and the row under it (if any) by a paragraph
+        indent or more. A code name wrapped onto a line of its own starts at the
+        paragraph's left edge (#603). The rest of a link or a code name the row above ends
+        in is no code line (a reference's URL broken onto its hanging indent), nor are
+        links, nor any row of a typed document."""
+        if self.typed or not self._monospace(row) or only_links(row.text):
+            return False
+        earlier, after = self.earlier.get(id(row)), self.later.get(id(row))
+        if earlier is None or self._monospace(earlier) or not self._stacked(earlier, row):
+            return False
+        shown = [run for piece in earlier.pieces for run in piece.runs if run.text.strip()]
+        if shown and monospace(shown[-1].font):
+            return False  # (inline code or a link broken over the line's end)
+        if after is not None and self._monospace(after):
+            return False
+        step = self.settings.indent * row.size
+        inset = row.box.x0 - row.left
+        return all(inset - (r.box.x0 - r.left) >= step for r in (earlier, after) if r)
 
     def _monospace(self, row: Row) -> bool:
         return all(monospace_line(piece, self.body) for piece in row.pieces)
@@ -777,14 +810,6 @@ def _below(upper: Row, lower: Row, settings: LayoutSettings) -> bool:
         and lower.box.y0 > upper.box.y0
         and not same_row(upper.box, lower.box, settings.row_overlap)
     )
-
-
-def _body_size(rows: list[Row]) -> float:
-    """The size most letters of the running text are set in."""
-    letters: dict[float, int] = {}
-    for row in rows:
-        letters[row.size] = letters.get(row.size, 0) + len(row.text)
-    return max(letters, key=lambda size: letters[size]) if letters else 0.0
 
 
 def _pitch(rows: list[Row], settings: LayoutSettings) -> float:

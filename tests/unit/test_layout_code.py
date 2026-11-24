@@ -22,7 +22,7 @@ from sci2audio.core import (
     TextRun,
 )
 from sci2audio.layout import build_document
-from sci2audio.layout.code import find_code, monospace
+from sci2audio.layout.code import BodyText, find_code, monospace
 
 PITCH = 14.0
 HALF = (LEFT + RIGHT) / 2
@@ -475,6 +475,80 @@ def test_a_caption_line_in_a_typewriter_font_larger_than_the_body_text_is_not_cu
     assert kinds(doc)[1:] == [("caption", "Listing 3: The package of this paper, named\nbig\npkg")]
 
 
+@pytest.mark.parametrize("before", [1, 3], ids=["one-full-line", "three-full-lines"])
+def test_an_indented_code_line_between_a_full_line_and_prose_is_its_own_code_block(
+    before: int,
+) -> None:
+    """#787: a single code line set at a code indent, between a paragraph's full line and
+    prose straight under it on the line pitch, is code: its indent tells it from a code
+    name wrapped onto a line of its own, which starts at the paragraph's left edge."""
+    top = 280
+    words = [f"The plot is drawn by the call below, line {k} of the text," for k in range(before)]
+    para = [text_line(prose(w), top + PITCH * k, end=RIGHT) for k, w in enumerate(words)]
+    line = text_line(code("g = sns.relplot(data=fmri)"), top + PITCH * before, x0=LEFT + 21)
+    after = text_line(prose("which returns a grid."), top + PITCH * (before + 1))
+    doc = build(*para, line, after)
+    assert kinds(doc)[1:] == [
+        ("paragraph", "\n".join(words)),
+        ("code", "g = sns.relplot(data=fmri)"),
+        ("paragraph", "which returns a grid."),
+    ]
+
+
+def test_a_code_name_wrapped_at_the_paragraphs_left_edge_stays_in_it() -> None:
+    """A short wrapped line that is only a code name, at the paragraph's left edge with
+    prose straight under it, is the paragraph's, not code (#787 keeps #599 and #603)."""
+    rows = [
+        (prose("The training loop calls the loss function, which is named"), RIGHT),
+        (code("compute_loss()"), LEFT + 84),
+        (prose("and returns a number for every batch of the data set."), HALF),
+    ]
+    lines = [text_line(row, 280 + PITCH * k, end=end) for k, (row, end) in enumerate(rows)]
+    doc = build(*lines)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert kinds(doc)[1][1].endswith("which is named\ncompute_loss()")
+
+
+def test_the_rest_of_a_url_on_a_references_hanging_indent_is_no_code_line() -> None:
+    """A reference whose URL breaks onto its hanging indent, set in a typewriter font, with
+    the next reference under it at the left: the URL's rest is no code line, though it
+    starts further in than both rows (arsiwalla p25, #787)."""
+    first = (
+        TextRun("[96] Mumford, D.: Grammar isn't merely part of language (2016),", "Times", 10.0),
+        TextRun(" https://www.dam.brown.", MONO, 10.0),
+    )
+    lines = [
+        text_line(first, 280, end=RIGHT),
+        text_line(code("edu/people/mumford/blog/2016/grammar.html"), 280 + PITCH, x0=LEFT + 24),
+        text_line(prose("[97] Nagel, T.: What is it like to be a bat? (1974)"), 280 + 2 * PITCH),
+    ]
+    doc = build(*lines)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+
+
+def test_typewriter_furniture_does_not_tip_the_body_into_a_typed_document() -> None:
+    """#794: paragraphs and `find_code` share one judgement of a typed document. Here the
+    body text holds more letters in a proportional font than in a typewriter font, and a
+    running head set in Courier on every page would tip a count over every line the
+    other way: the listing under the full prose lines is still one CODE block."""
+
+    def page(lines: list[TextLine], number: int) -> list[TextLine]:
+        typed_head = (TextRun("Journal of Open Things and Typewriters", "Courier", 10.0),)
+        return [text_line(typed_head, 40, end=300), *lines, page_number(number)]
+
+    words = [f"Prose text of the paper, line {k} of it." for k in range(2)]
+    para = [text_line(prose(w), 100 + PITCH * k, end=RIGHT) for k, w in enumerate(words)]
+    rows = (("import seaborn as sns", 0), ("sns.set_theme()", 0), ("g = sns.relplot(data)", 0))
+    lines = listing(*rows, top=100 + 2 * PITCH)
+    after = text_line(prose("Then the text goes on."), 100 + 6 * PITCH)
+    doc = build_document(content(page([*para, *lines, after], 1), page([], 2), page([], 3)))
+    assert [(kind, text) for kind, text in kinds(doc) if kind != "furniture"] == [
+        ("paragraph", "\n".join(words)),
+        ("code", "\n".join(text for text, _ in rows)),
+        ("paragraph", "Then the text goes on."),
+    ]
+
+
 def test_a_listing_caption_beside_no_code_names_nothing() -> None:
     doc = build(
         caption("Listing 4: Left out of this version.", 280), text_line(prose("Text."), 310)
@@ -567,7 +641,7 @@ def test_furniture_between_two_code_paragraphs_on_one_page_does_not_join_them() 
         Block(BlockKind.FURNITURE, stamp.text, (Part(stamp.id),), role=FurnitureRole.SIDE_STAMP),
         Block(BlockKind.PARAGRAPH, two.text, (Part(two.id),)),
     ]
-    out, _ = find_code(blocks, (), found, 10.0)
+    out, _ = find_code(blocks, (), found, BodyText(typed=False, size=10.0))
     assert [block.kind for block in out] == [BlockKind.CODE, BlockKind.FURNITURE, BlockKind.CODE]
 
 
