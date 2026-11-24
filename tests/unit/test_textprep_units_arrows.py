@@ -80,3 +80,31 @@ def test_x_after_an_arrow_before_a_prose_word_is_times(
     language: str, printed: str, expected: str
 ) -> None:
     assert first_and_second_run(printed, language) == (expected, expected)
+
+
+_ARROW_FORMS = ["⇒", "⇐", "⇔", "=>", "<=>", "=⇒", "⇐=", "⇐=⇒"]
+
+
+@pytest.mark.parametrize("arrow", _ARROW_FORMS)
+@pytest.mark.parametrize(
+    ("language", "template", "reads"),
+    [
+        ("en", "So A {} 3x.", "3x"),
+        ("en", "So 3x {} (a+b) holds.", "3x"),
+        ("en", "So the bound {} 3x.", "3 times"),
+        ("en", "We get 3x {} lower cost.", "3 times"),
+        ("en", "So B {} 3x and more.", "3 times"),
+        ("de", "Also gilt α {} 3x.", "3x"),
+        ("de", "Also gilt 3x {} ¬A.", "3x"),
+        ("de", "Das {} 3x, nicht 4.", "3 mal"),
+        ("de", "Wir haben 3x {} die Daten.", "3 mal"),
+    ],
+)
+def test_the_operand_across_an_arrow_decides_on_both_runs(
+    language: str, template: str, reads: str, arrow: str
+) -> None:
+    """An arrow, printed in any of its forms or read as words, makes "3x" a variable only
+    across from a formula-shaped operand, never across from a prose word (#843)."""
+    first, second = first_and_second_run(template.format(arrow), language)
+    assert reads in first
+    assert second == first

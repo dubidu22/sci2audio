@@ -137,10 +137,16 @@ _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a 
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
 _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
-# the logic arrows: right after the x, "2x" is a variable ("3x ⇒ A"); right before the number
-# only where the x ends the operand ("A ⇐ 3x."), as prose says "implies 3x more memory" (#843)
-_ARROWS = "\u21d2\u21d0\u21d4"
+# a logic arrow next to "2x", printed as the statistics step reads it ("=>", "<=>", "=⇒",
+# "⇐=", "⇐=⇒", "⇒", "⇐", "⇔", #590, #796): "2x" is a variable only where the operand across
+# the arrow is formula-shaped, and, with the arrow before the number, the x ends its operand
+# ("3x ⇒ A", "A ⇐ 3x."), as prose says "3x implies lower cost", "implies 3x more" (#843)
+_ARROW_FORMS = r"⇐=*⇒|⇐=+|=+⇒|[⇒⇐⇔]|<=>|=>"
+_ARROW_AFTER = re.compile(rf"[ \u00a0]*(?:{_ARROW_FORMS})")
+_ARROW_BEFORE = re.compile(rf"(?:{_ARROW_FORMS})[ \u00a0]*\Z")
 _OPERAND_END = ".,;:!?)]}"
+_OPERAND_WORD_AFTER = re.compile(r"\w+")
+_OPERAND_WORD_BEFORE = re.compile(r"\w+\Z")
 # the statistics step's English readings of those signs, which count as the signs around "2x"
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
@@ -839,22 +845,73 @@ def _in_algebra(
         return True  # "y less than 2x" (#358, D-646)
     before = head[-1:]
     after = text[end : end + 3].lstrip(" ")[:1]
-    if _arrow_around(text, start, end, head, after, arrows):
+    arrow_after, arrow_before = _arrows_beside(text, start, end, arrows)
+    if arrow_after is not None and _formula_after(text, arrow_after):
         return True
-    return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")
+    if (
+        arrow_before is not None
+        and (after == "" or after in _OPERAND_END + _OPERATORS + "⇒⇐⇔")
+        and _formula_before(text, arrow_before)
+    ):
+        return True
+    # a sign that is part of an arrow is judged as the arrow, above: "3x => lower" as
+    # "3x implies lower", which a second run sees
+    before_sign = arrow_before is None and before != "" and before in _OPERATORS
+    after_sign = arrow_after is None and after != "" and after in _OPERATORS + "("
+    return before_sign or after_sign
 
 
-def _arrow_around(
-    text: str, start: int, end: int, head: str, after: str, arrows: re.Pattern[str] | None
-) -> bool:
-    """True if a logic arrow, printed or read, makes "2x" a variable (#843): right after the
-    x always ("3x ⇒ A", "3x implies A"); right before the number only where the x ends the
-    operand ("A ⇐ 3x.", "A is implied by 3x,"), as prose says "implies 3x more memory"."""
+def _arrows_beside(
+    text: str, start: int, end: int, arrows: re.Pattern[str] | None
+) -> tuple[int | None, int | None]:
+    """Where a logic arrow, printed or read, right after the x ends, and where one right
+    before the number starts (None where there is none)."""
     said_before, said_after = _said_patterns(arrows.pattern if arrows else r"(?!)")
-    if (after != "" and after in _ARROWS) or said_after.match(text, end):
+    after = _ARROW_AFTER.match(text, end) or said_after.match(text, end)
+    window = max(0, start - 32)
+    before = _ARROW_BEFORE.search(text, window, start) or said_before.search(text, window, start)
+    return (after.end() if after else None), (before.start() if before else None)
+
+
+def _formula_after(text: str, position: int) -> bool:
+    """True if the operand that starts after the arrow ending at `position` is formula-shaped:
+    a letter, a variable ("x1", "x_i", "f(x)"), a number, a bracket or a symbol ("¬A"), not a
+    prose word ("lower", "a", "the", "die")."""
+    while position < len(text) and text[position] in " \u00a0":
+        position += 1
+    char = text[position : position + 1]
+    if char == "":
+        return False
+    word = _OPERAND_WORD_AFTER.match(text, position)
+    if word is None:
+        return char in "([{|-" or unicodedata.category(char).startswith("S")
+    return _formula_word(word.group())
+
+
+def _formula_before(text: str, position: int) -> bool:
+    """True if the operand that ends before the arrow starting at `position` is
+    formula-shaped, as in `_formula_after`; a closing bracket ends one ("(a+b) ⇒ 2x")."""
+    while position > 0 and text[position - 1] in " \u00a0":
+        position -= 1
+    char = text[position - 1 : position]
+    if char == "":
+        return False
+    word = _OPERAND_WORD_BEFORE.search(text, max(0, position - 32), position)
+    if word is None:
+        return char in ")]}|'\u2032" or unicodedata.category(char).startswith("S")
+    return _formula_word(word.group())
+
+
+def _formula_word(word: str) -> bool:
+    """True for a number ("4", "2x"), a single letter other than the words "a" and "I", a
+    letter with digits or an index after it ("x1", "x_i", "A²") or a Greek name ("α")."""
+    if word[0].isdecimal():
         return True
-    if after != "" and after not in _OPERAND_END + _OPERATORS + _ARROWS:
-        return False  # a prose word follows the x: "implies 3x more memory"
-    return (head[-1:] != "" and head[-1:] in _ARROWS) or bool(
-        said_before.search(text, max(0, start - 32), start)
-    )
+    if all("\u0370" <= char <= "\u03ff" for char in word):
+        return True
+    if not word[0].isalpha():
+        return False
+    rest = word[1:]
+    if rest == "":
+        return word not in ("a", "I")
+    return rest[0] == "_" or not any(char.isalpha() for char in rest)
