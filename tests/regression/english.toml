@@ -3198,6 +3198,24 @@ expected = [
     "It rains and shows it.",
 ]
 
+# ---- dating brackets are no citations (#588) -------------------------------------------------
+
+[[case]]
+id = "citations-season-or-term-and-year-in-brackets"
+audit = 0
+issue = 588
+goal = "A bracket of a season or term and a year ('(Summer 2019)', '(Fall 2018)', '(Spring and Summer 2019)') dates something and stays as printed; a bracket with a second author, 'et al.', a lead word or a locator still cites and goes (#588)."
+blocks = [
+    { kind = "paragraph", text = "The data (Summer 2019) and the courses (Fall 2018) show it." },
+    { kind = "paragraph", text = "The survey (Spring and Summer 2019) shows it." },
+    { kind = "paragraph", text = "It holds (Winter et al. 2021; Summer and Lee 2019; see Winter 2021)." },
+]
+expected = [
+    "The data (Summer 2019) and the courses (Fall 2018) show it.",
+    "The survey (Spring and Summer 2019) shows it.",
+    "It holds.",
+]
+
 # ---- #854, #878, #880 inline code ----------------------------------------------------------
 
 [[case]]
