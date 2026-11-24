@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from bisect import bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Sequence
@@ -10,6 +11,20 @@ from statistics import median
 
 from sci2audio.core import Box, Content, Drawing, Page, Picture, TextLine, TextRun
 from sci2audio.layout.settings import LayoutSettings
+
+# an IEEE third-level heading as extraction cuts it off the front of its line (#826)
+_RUN_IN_HEAD = re.compile(r"\d{1,2}\) +\S.*:")
+
+
+def run_in_head(line: TextLine) -> bool:
+    """True for a heading run into its paragraph that extraction cut off the front of its
+    printed line ("1) Hardware:", #826, #963): set wholly in bold or italic, numbered "1)"
+    and ending in a colon. The rest of the line is a line of its own on the same baseline,
+    whose box may start a little inside this one's (glyph boxes overlap); the page prints a
+    space after the colon, which extraction drops."""
+    runs = [run for run in line.runs if run.text.strip()]
+    emphasised = bool(runs) and all(run.bold or run.italic for run in runs)
+    return emphasised and _RUN_IN_HEAD.fullmatch(line.text.strip()) is not None
 
 
 def boxed(item: TextLine | Picture | Drawing) -> Box:
@@ -109,10 +124,12 @@ def separators(
     under earlier letters, is out of its place and keeps a space, so no words run together.
     A digit that starts back under a digit (a fraction 1/2 set as 1 over 2) keeps a space,
     so the two never read as one number (#128). Pieces without a position, or a
-    line without sizes, keep a space (#36, D-274 to D-277). A piece that starts under one
-    of the `bars` drawn below the piece before it is a fraction's denominator under its
-    numerator and keeps a space ("eℏ 2me", not "eℏ2me"; #202, D-575): `bar` and `bar_reach`
-    are `LayoutSettings.fraction_bar` and `fraction_reach`, in em of `size`."""
+    line without sizes, keep a space (#36, D-274 to D-277). A piece after a heading run
+    into its paragraph keeps the space printed after its colon (`run_in_head`, #963). A
+    piece that starts under one of the `bars` drawn below the piece before it is a
+    fraction's denominator under its numerator and keeps a space ("eℏ 2me", not "eℏ2me";
+    #202, D-575): `bar` and `bar_reach` are `LayoutSettings.fraction_bar` and
+    `fraction_reach`, in em of `size`."""
     out = [""] * min(len(pieces), 1)
     reach: float | None = None
     for k, piece in enumerate(pieces):
@@ -128,7 +145,8 @@ def separators(
             under = near and any(
                 fraction_bar(drawn, pieces[k - 1], piece, size, bar, bar_reach) for drawn in bars
             )
-            out.append("" if near and not stacked_digits and not under else " ")
+            apart = stacked_digits or under or run_in_head(pieces[k - 1])
+            out.append("" if near and not apart else " ")
         if piece.box is not None:
             reach = piece.box.x1 if reach is None else max(reach, piece.box.x1)
     return out

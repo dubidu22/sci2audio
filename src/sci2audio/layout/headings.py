@@ -29,7 +29,11 @@ the font rules keep, in the same Roman section: before the first such letter of 
 section, and in a document that is not Roman, "1)" is no heading number, so a "1)" list item
 stays a list item unless it is set like these headings. The "1)" numbers take their style
 from each other, not from the letters at their depth ("A.1.", #918). The outline reads them
-the same way.
+the same way. Such a heading may be run into its paragraph ("1) Hardware: The board …"):
+extraction gives the bold or italic "1) Hardware:" a line of its own (#826), and a block that
+opens with it is read as the heading and the rest (#963). The heading counts only as such a
+"1)" number, may end in its colon and be set in italic, and its title drops the colon; when
+the rules don't take it, its block stays whole, as printed.
 
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
@@ -82,8 +86,9 @@ from collections import Counter
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Box, Content, OutlineEntry, Section, TextLine
-from sci2audio.layout.geometry import union
+from sci2audio.layout.geometry import run_in_head, union
 from sci2audio.layout.settings import LayoutSettings
+from sci2audio.layout.split import split_at
 
 # a printed heading number: "2", "2.1", "A", "A.1", with an optional dot, before the title
 _NUMBER = re.compile(r"(?P<label>(?:\d{1,2}|[A-Z])(?:\.\d{1,2})*)\.?\s+(?=\w)")
@@ -130,6 +135,8 @@ def find_headings(
     """The blocks with their headings marked (kind, printed number as label), and the
     section tree the headings make."""
     lines = {line.id: line for page in content.pages for line in page.lines}
+    whole = blocks
+    blocks, heads_at = _run_ins(whole, lines)
     found = [
         (index, block, _style(block, lines, settings))
         for index, block in enumerate(blocks)
@@ -140,18 +147,74 @@ def find_headings(
         _Text(index, block, Style(sizes[style.size], style.bold)) for index, block, style in found
     ]
     drawings = {drawing.id: drawing.box for page in content.pages for drawing in page.drawings}
-    rules = _Headings(texts, body, settings, lines, drawings)
+    rules = _Headings(texts, body, settings, lines, drawings, set(heads_at.values()))
     levels = rules.levels()
     levels |= _from_outline(texts, content, levels, rules)
+    blocks, levels, run_in = _rejoin(whole, blocks, heads_at, levels)
     out = list(blocks)
     heads = []
     for index, (level, label) in sorted(levels.items()):
         out[index] = replace(blocks[index], kind=BlockKind.HEADING, label=label)
-        heads.append((index, level, title(blocks[index].text)))
+        name = title(blocks[index].text)
+        heads.append((index, level, name[:-1].rstrip() if index in run_in else name))
     front = front_matter(blocks, content, sorted(levels), settings)
     heads += [(start, 1, name) for start, (_, name) in front.items()]
     tree = section_tree(sorted(heads), len(blocks))
     return out, _publisher(tree, {start: end for start, (end, _) in front.items()})
+
+
+def _run_ins(blocks: list[Block], lines: dict[str, TextLine]) -> tuple[list[Block], dict[int, int]]:
+    """The blocks with each block that opens with a heading run into its paragraph
+    (`geometry.run_in_head`) cut in two: the heading, then the rest as a paragraph. Also,
+    by the index of each cut block, the index of its heading among the blocks returned."""
+    out: list[Block] = []
+    heads: dict[int, int] = {}
+    for index, block in enumerate(blocks):
+        parts = block.parts
+        if (
+            block.kind in (BlockKind.PARAGRAPH, BlockKind.LIST_ITEM)
+            and len(parts) > 1
+            and parts[0].item in lines
+            and parts[1].start > 0
+            and run_in_head(lines[parts[0].item])
+        ):
+            paragraph = replace(block, kind=BlockKind.PARAGRAPH, label="")
+            pieces = split_at(paragraph, [parts[1].start])
+            if len(pieces) == 2:
+                heads[index] = len(out)
+                out += pieces
+                continue
+        out.append(block)
+    return out, heads
+
+
+def _rejoin(
+    whole: list[Block],
+    cut: list[Block],
+    heads_at: dict[int, int],
+    levels: dict[int, tuple[int, str]],
+) -> tuple[list[Block], dict[int, tuple[int, str]], set[int]]:
+    """The blocks as `find_headings` gives them: each cut block (`_run_ins`) whose heading
+    the rules took stays cut, any other is whole again, as printed. Also the headings'
+    levels by their new block index, and the indices of the run-in headings kept."""
+    out: list[Block] = []
+    moved: dict[int, int] = {}  # index among the cut blocks -> index among those returned
+    kept: set[int] = set()
+    at = 0
+    for index, block in enumerate(whole):
+        head = heads_at.get(index)
+        if head is None:
+            moved[at] = len(out)
+            out.append(block)
+        elif head in levels:
+            kept.add(len(out))
+            moved[head], moved[head + 1] = len(out), len(out) + 1
+            out += cut[head : head + 2]
+        else:
+            out.append(block)
+        at += 1 if head is None else 2
+    found = {moved[k]: level for k, level in levels.items() if k in moved}
+    return out, found, kept
 
 
 # a list item's label as `lists` gives it for a numbered marker: "1." or "1)"
@@ -277,8 +340,10 @@ class _Headings:
         settings: LayoutSettings,
         lines: dict[str, TextLine],
         drawings: dict[str, Box],
+        run_ins: set[int],
     ) -> None:
         self.texts = texts
+        self.run_ins = run_ins  # block indices of headings run into paragraphs (`_run_ins`)
         self.body = body
         self.settings = settings
         self.lines = lines
@@ -365,6 +430,12 @@ class _Headings:
         numbered = len(self.numbers) >= self.settings.heading_repeats
         found = self._numbered() if numbered else self._unnumbered()
         found |= self._numeral_one(found)
+        # a heading run into its paragraph is only ever a "1)" under a letter (#963)
+        found = {
+            k: level
+            for k, level in found.items()
+            if self.texts[k].index not in self.run_ins or k in self.under
+        }
         kept = self._over_text(found)
         # a "1)" under a letter that is no heading has no letter over it, so it is none
         # either (#918); dropping it may drop the heading over it, so go on until none is
@@ -476,14 +547,16 @@ class _Headings:
 
     def _short(self, text: _Text) -> bool:
         """True if the block may be a heading: a few short lines with at least two letters,
-        bold or larger than the body text, not ending as a sentence or a lead-in does."""
+        bold or larger than the body text, not ending as a sentence or a lead-in does. A
+        heading run into its paragraph (bold or italic, ending in a colon) may be one too."""
         words = text.block.text.strip()
+        run_in = text.index in self.run_ins
         return (
             words.count("\n") < self.settings.heading_lines
             and len(words.split()) <= self.settings.heading_words
             and sum(ch.isalpha() for ch in words) >= self.settings.heading_letters
-            and (text.style.bold or self._larger(text))
-            and not words.endswith((".", ":", ";", ","))
+            and (text.style.bold or self._larger(text) or run_in)
+            and (run_in or not words.endswith((".", ":", ";", ",")))
         )
 
     def _ruled(self, k: int) -> bool:
