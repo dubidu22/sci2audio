@@ -3514,7 +3514,7 @@ expected = [
 id = "four-digit-year-like-count-before-times"
 audit = 0
 issue = 871
-goal = "A year-like four-digit number before '×', an 'x' read as 'times' or the word 'times' is a count, read with its comma on both runs ('2,019 times'), not the year 'twenty nineteen'. Left as printed: before '=' or 'equals' (#844); before a times sign followed by a number, a product or a size such as '1920x1080' (#870), which a second run cannot tell from '1920 times 1080'; after a word that makes it a year ('In 2019 times were hard') (#871)."
+goal = "A year-like four-digit number before '×', an 'x' read as 'times' or the word 'times' is a count, read with its comma on both runs ('2,019 times'), not the year 'twenty nineteen'. Left as printed: before '=' or 'equals' (#844); before a times sign followed by a number of three or more digits, a size such as '1920x1080' (#870), whose '1080' a second run sees there too; after a word that makes it a year ('In 2019 times were hard') (#871)."
 blocks = [
     { kind = "paragraph", text = "It grew 2019× and 2019x larger, then 2019X and 2019 times again." },
     { kind = "paragraph", text = "We set 2019 = A and 2019 equals B." },
@@ -3524,7 +3524,7 @@ blocks = [
 expected = [
     "It grew 2,019 times and 2,019 times larger, then 2,019 times and 2,019 times again.",
     "We set 2019 equals A and 2019 equals B.",
-    "A 1920 times 1080 screen, 1920 times 1,080 pixels and 2019 times 3.",
+    "A 1920 times 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
     "In 2019 times were hard.",
 ]
 
@@ -3544,4 +3544,24 @@ expected = [
     "So A to the power of minus 2 kg and x to the power of minus 1 s here.",
     "So 10 to the power of minus 1 kelvin here.",
     "So 2 to the power of minus 1 times here.",
+]
+
+[[case]]
+id = "four-digit-year-like-count-before-times-and-a-small-number"
+audit = 0
+issue = 871
+goal = "A year-like four-digit number before a times sign and a number of one or two digits is a count, read with its comma on both runs ('2,019 times 3'), in a paragraph and in a heading; only a number of three or more digits after the sign, a size such as '1920x1080' (#870), leaves it as printed (#871)."
+blocks = [
+    { kind = "paragraph", text = "It grew 2019 × 3 and 2019 × 10 in all." },
+    { kind = "heading", text = "2019 × 3" },
+    { kind = "heading", text = "2019 × 10" },
+    { kind = "paragraph", text = "It grew 2019x3, 2019 x 10 and 2019 times 3." },
+    { kind = "paragraph", text = "A 1920 × 1080 and 2019 × 100 screen." },
+]
+expected = [
+    "It grew 2,019 times 3 and 2,019 times 10 in all.",
+    "2,019 times 3",
+    "2,019 times 10",
+    "It grew 2,019 times 3, 2,019 times 10 and 2,019 times 3.",
+    "A 1920 times 1080 and 2019 times 100 screen.",
 ]
