@@ -90,6 +90,26 @@ def test_a_run_of_monospace_lines_is_one_code_block_holding_all_its_lines() -> N
     assert block.label == ""
 
 
+@pytest.mark.parametrize(
+    "rows",
+    [
+        # a conda environment file
+        [("dependencies:", 0), ("- python=3.10", 0), ("- numpy", 0), ("- scipy", 0)],
+        [("name: env", 0), ("dependencies:", 0), ("- python=3.10", 12), ("- numpy", 12)],
+        # a diff
+        [("def f(x):", 0), ("- return x", 0), ("- # old", 0), ("+ return 2 * x", 0)],
+        # hyphen lines only
+        [("- python=3.10", 0), ("- numpy", 0), ("- scipy", 0)],
+    ],
+)
+def test_a_listing_whose_lines_open_with_a_hyphen_is_one_code_block(
+    rows: list[tuple[str, float]],
+) -> None:
+    """#985 made "-" a bullet; a listing's "- " lines are code, not list items."""
+    doc = build(*listing(*rows, top=300))
+    assert kinds(doc)[1:] == [("code", "\n".join(text for text, _ in rows))]
+
+
 def test_a_single_monospace_line_on_its_own_is_code() -> None:
     doc = build(*listing(("pip install seaborn", 0), top=300))
     assert kinds(doc)[1:] == [("code", "pip install seaborn")]

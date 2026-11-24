@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Content, TextLine
+from sci2audio.layout.code import monospace_line
 from sci2audio.layout.split import line_starts, piece_starts, split_at
 
 _ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
@@ -68,7 +69,12 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     for n, k, _ in tried:
         tried_starts.setdefault(n, []).append(k)
     cut = [piece for _, _, piece in tried]
-    markers = [_marker(block.text) if block.kind is BlockKind.PARAGRAPH else None for block in cut]
+    markers = [
+        _marker(block.text)
+        if block.kind is BlockKind.PARAGRAPH and not _code_hyphen(block, lines)
+        else None
+        for block in cut
+    ]
     items: set[int] = set()
     for start, marker in enumerate(markers):
         reading = marker.first() if marker and start not in items else None
@@ -166,6 +172,15 @@ def _ordinal(style: str, n: str) -> int:
     if style in ("(i)", "i)"):
         return _ROMAN.index(n) + 1
     return ord(n) - ord("a") + 1
+
+
+def _code_hyphen(block: Block, lines: dict[str, TextLine]) -> bool:
+    """True if the block opens with a hyphen and every line of it is set in a typewriter
+    font: a line of a listing (a YAML file's "- numpy", a diff's "- return x"), which
+    `code` takes whole, not a list item (#985)."""
+    return block.text.startswith("-") and all(
+        part.item in lines and monospace_line(lines[part.item]) for part in block.parts
+    )
 
 
 def _apart(block: Block, marker: _Marker | None, lines: dict[str, TextLine]) -> bool:
