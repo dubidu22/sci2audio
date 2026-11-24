@@ -58,8 +58,9 @@ OPERATORS = {
     "≫": "much greater than",
 }
 _OPERATOR = re.compile("|".join(sorted(map(re.escape, OPERATORS), key=len, reverse=True)))
-# characters that make an ASCII "<", ">" or "=" part of an arrow or a doubled sign
-_ARROW = frozenset("<>=-−!:~|")
+# characters that make an ASCII "<", ">" or "=" part of an arrow or a doubled sign; "⇐="
+# is a long double arrow the numbers step reads as "⇐" (#590)
+_ARROW = frozenset("<>=-−!:~|⇐")
 # a sign this step reads counts as a word next to another sign, since after the first run it
 # is one ("x = ≤ 3" reads both, so a second run on the script finds nothing more)
 _SIGNS = "".join(sorted({key[0] for key in OPERATORS} | {"\u0338"}))

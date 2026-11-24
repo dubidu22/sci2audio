@@ -2933,6 +2933,14 @@ goal = "An arrow printed as two glyphs ('←−', '−→') is read as one arrow
 blocks = [{ kind = "paragraph", text = "Then β(0, S, 0) ←− 0 and P′ ←− (I − P)−1 and S −→ ε hold." }]
 expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold."]
 
+[[case]]
+id = "a-double-arrow-printed-as-an-equals-sign-and-an-arrow"
+audit = 0
+issue = 590
+goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. The voice says nothing for '⇒' yet; a plain '=' stays as printed."
+blocks = [{ kind = "paragraph", text = "So A =⇒ B and C⇐=D, and x = 3 holds iff P ⇐=⇒ Q and X=⇒Y." }]
+expected = ["So A ⇒ B and C⇐D, and x equals 3 holds iff P ⇔ Q and X⇒Y."]
+
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 
 [[case]]

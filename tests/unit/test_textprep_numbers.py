@@ -42,6 +42,13 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("X −−→ α and Y ←−− β", "X → α and Y ← β"),
         ("X ←−−→ Y and −−→AB", "X ↔ Y and →AB"),
         ("b ←−−1", "b ←1"),
+        # #590: a long double arrow printed as "=" and an arrow is one arrow, never "equals"
+        ("so A =⇒ B", "so A ⇒ B"),
+        ("A=⇒B and C⇐=D", "A⇒B and C⇐D"),
+        ("P ⇐=⇒ Q and P⇐⇒Q", "P ⇔ Q and P⇔Q"),
+        ("A ==⇒ B and C ⇐== D and ⇐=1", "A ⇒ B and C ⇐ D and ⇐1"),
+        # ... and an "=" with no double arrow beside it is left as printed
+        ("x = 3, a == b, y ≤ 2, z => w, ⇒ and ⇔", "x = 3, a == b, y ≤ 2, z => w, ⇒ and ⇔"),
         # ... and a minus sign glued to a closing bracket is left as printed (an inverse
         # whose raise was lost, or "f(x) minus 1": the voice says "minus" either way, #589)
         (
