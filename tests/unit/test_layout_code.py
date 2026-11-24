@@ -527,15 +527,60 @@ def test_the_rest_of_a_url_on_a_references_hanging_indent_is_no_code_line() -> N
 
 
 def test_an_indented_first_line_in_a_typewriter_font_is_read_as_the_paragraphs() -> None:
-    """A paragraph whose indented first line is wholly typewriter type, under a row that
-    ends a sentence: the line opens the paragraph and is read, not cut as code (PR #831)."""
-    name = "numpy.linalg.lstsq(a, b, rcond=None)"
+    """A paragraph whose indented first line is wholly typewriter type runs on to its
+    column's edge: the line opens the paragraph and is read with it, not cut as code (PR
+    #831). A code line stops short of the edge."""
+    first = "numpy.linalg.lstsq(a, b, rcond=None) and numpy.linalg.solve(a, b) both"
     top = 100 + 10 * PITCH
-    first = text_line(code(name), top, x0=LEFT + 12)
-    rest = text_line(prose("solves the least-squares problem for the data."), top + PITCH)
-    doc = build(first, rest)
+    lines = [
+        text_line(code(first), top, x0=LEFT + 12, end=RIGHT),
+        text_line(prose("solve the least-squares problem for the data."), top + PITCH),
+    ]
+    doc = build(*lines)
     assert BlockKind.CODE not in {block.kind for block in doc.blocks}
-    assert any(text.startswith(name) for kind, text in kinds(doc) if kind == "paragraph")
+    assert kinds(doc)[1:] == [
+        ("paragraph", f"{first}\nsolve the least-squares problem for the data.")
+    ]
+
+
+@pytest.mark.parametrize(
+    "words",
+    [
+        "The plot of the signal over time is drawn by the call written as follows:",
+        "The plot of the signal over time is drawn by one call to the package.",
+    ],
+    ids=["colon", "full-stop"],
+)
+def test_a_code_line_after_a_full_line_that_ends_a_sentence_is_code(words: str) -> None:
+    """#787 in its common form: the full line above ends in a colon or a full stop."""
+    lines = [
+        text_line(prose(words), 280, end=RIGHT),
+        text_line(code("g = sns.relplot(data=fmri)"), 280 + PITCH, x0=LEFT + 21),
+        text_line(prose("Users interface with seaborn through functions."), 280 + 2 * PITCH),
+    ]
+    doc = build(*lines)
+    assert kinds(doc)[1:] == [
+        ("paragraph", words),
+        ("code", "g = sns.relplot(data=fmri)"),
+        ("paragraph", "Users interface with seaborn through functions."),
+    ]
+
+
+def test_the_rest_of_a_code_name_broken_over_a_lines_end_is_no_code_line() -> None:
+    """A line above that ends in a code name broken at its end, not a sentence: the
+    indented typewriter line under it is that name's rest, read with the paragraph."""
+    first = (
+        TextRun("The training loop calls the loss function, which is named", "Times", 10.0),
+        TextRun(" compute_loss_for_", MONO, 10.0),
+    )
+    lines = [
+        text_line(first, 280, end=RIGHT),
+        text_line(code("every_batch()"), 280 + PITCH, x0=LEFT + 24, end=LEFT + 104),
+        text_line(prose("and returns a number."), 280 + 2 * PITCH),
+    ]
+    doc = build(*lines)
+    assert BlockKind.CODE not in {block.kind for block in doc.blocks}
+    assert kinds(doc)[1][1].endswith("compute_loss_for_\nevery_batch()")
 
 
 def test_a_code_name_on_a_references_hanging_indent_is_no_code_line() -> None:
