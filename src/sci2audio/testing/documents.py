@@ -22,6 +22,7 @@ from sci2audio.core import (
 )
 from sci2audio.textprep import read_over
 from sci2audio.textprep.footnotes import raised_exponents
+from sci2audio.textprep.runner import CODE_TAG, inline_code
 
 BlockLike = Block | tuple[BlockKind | str, str]
 
@@ -147,6 +148,7 @@ def rebuilt_from_script(
     items = document.content.items()
     blocks, pictures, tags = [], {}, {}
     raised = raised_exponents(document)
+    code = inline_code(document)
     for index, (block, own) in enumerate(zip(document.blocks, pieces, strict=True)):
         if alts := [
             item.alt for part in block.parts if isinstance(item := items[part.item][1], Picture)
@@ -161,6 +163,8 @@ def rebuilt_from_script(
                 tags[index] = kept  # the printed text is unchanged, so its run tags still fit
             continue
         text = "".join(piece.text for piece in own)
+        if kept := _kept_code(block, own, code.get(index, ())):
+            tags[index] = kept
         blocks.append(
             Block(
                 block.kind,
@@ -178,6 +182,28 @@ def rebuilt_from_script(
         pictures=pictures,
         tags=tags,
     )
+
+
+def _kept_code(
+    block: Block, pieces: Sequence[ScriptPiece], code: Sequence[tuple[int, int]]
+) -> list[tuple[int, int, str | tuple[str, ...]]]:
+    """The inline code of a block's kept text, tagged `code` where the rebuilt text has it,
+    so a second run reads it as printed too (#854). A piece is kept text when it reads the
+    characters of its span; no line break is tagged."""
+    found: list[tuple[int, int, str | tuple[str, ...]]] = []
+    at = 0  # where the piece starts in the rebuilt text
+    for piece in pieces:
+        span = piece.span
+        if not piece.pause and piece.text == block.text[span.start : span.end]:
+            for start, end in code:
+                first, last = max(start, span.start), min(end, span.end)
+                position = at + first - span.start
+                for line in piece.text[first - span.start : last - span.start].split("\n"):
+                    if line:
+                        found.append((position, position + len(line), CODE_TAG))
+                    position += len(line) + 1
+        at += len(piece.text)
+    return found
 
 
 def _raised_tags(
