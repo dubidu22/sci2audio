@@ -1417,7 +1417,7 @@ def _markers_data(
     except (MarkersBroken, OSError):
         return {"markers": [], "markers_file": str(work / MARKERS)}
     spans = [chunk.span for chunk in located.readalong.chunks]
-    firsts = sentence_starts(located.readalong)  # a sentence by its first piece (#520)
+    firsts = sentence_starts(located.readalong, made_from)  # a sentence by its first piece (#520)
     return {
         "markers": [
             {
