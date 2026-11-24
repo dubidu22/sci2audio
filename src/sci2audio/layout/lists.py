@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass, replace
 
 from sci2audio.core import Block, BlockKind, Content, TextLine
-from sci2audio.layout.code import monospace_line
+from sci2audio.layout.code import BodyText, monospace_line
 from sci2audio.layout.split import line_starts, piece_starts, split_at
 
 _ROMAN = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
@@ -57,8 +57,9 @@ class _Marker:
         return next((r for r in self.readings if r[1] == 1), None)
 
 
-def find_lists(blocks: list[Block], content: Content) -> list[Block]:
-    """The blocks with each list's items as LIST_ITEM blocks (the marker as label)."""
+def find_lists(blocks: list[Block], content: Content, body: BodyText) -> list[Block]:
+    """The blocks with each list's items as LIST_ITEM blocks (the marker as label). In a
+    typed document (`body.typed`) nothing is code, so no hyphen line is a listing's."""
     lines = {line.id: line for page in content.pages for line in page.lines}
     # each block tried cut at its marker lines: (the block's index, the piece's start, piece)
     tried = []
@@ -71,7 +72,7 @@ def find_lists(blocks: list[Block], content: Content) -> list[Block]:
     cut = [piece for _, _, piece in tried]
     markers = [
         _marker(block.text)
-        if block.kind is BlockKind.PARAGRAPH and not _code_hyphen(block, lines)
+        if block.kind is BlockKind.PARAGRAPH and (body.typed or not _code_hyphen(block, lines))
         else None
         for block in cut
     ]

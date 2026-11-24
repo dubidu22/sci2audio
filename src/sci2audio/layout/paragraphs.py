@@ -77,8 +77,16 @@ _ITEM_MARKS = frozenset("-\u2010\u2012\u2013\u2014\u2022\u25e6\u25aa\u2023\u2043
 # what besides a letter may open the words after it: a quote, an opening bracket, a digit
 _ITEM_OPENS = frozenset("\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{0123456789")
 # a table cell a dash leads as a minus (#985): a number, then only numbers, signs and units
-# of up to three letters ("3 ms", "0.5 (0.1)", "1.5 ± 0.2"), where an item goes on in words
-_NUMBER = re.compile(r"\d[\d.,]*(?:\s*(?:[\d.,()\[\]%±/+-]|(?<![^\W\d_])[^\W\d_]{1,3}\b))*")
+# of up to three letters ("3 ms", "0.5 (0.1)", "1.5 ± 0.2"), where an item goes on in words;
+# a short English or German word that joins numbers ("2 of 5", "3 bis 5") is no unit (#1002)
+_JOINING = (
+    "a|an|and|as|at|by|for|in|of|on|or|per|the|to"
+    "|als|am|auf|aus|bei|bis|im|je|mit|pro|um|und|von|vor|zu|zum|zur"
+)
+_NUMBER = re.compile(
+    r"\d[\d.,]*(?:\s*(?:[\d.,()\[\]%±/+-]"
+    rf"|(?<![^\W\d_])(?!(?i:{_JOINING})\b)[^\W\d_]{{1,3}}\b))*"
+)
 # what may close a sentence after its full stop: quotes (English and German, #958),
 # guillemets either way round, brackets
 _CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"

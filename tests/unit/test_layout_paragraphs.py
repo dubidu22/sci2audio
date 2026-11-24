@@ -729,6 +729,22 @@ def test_a_hyphen_led_list_cut_off_its_items_is_list_items() -> None:
     ]
 
 
+@pytest.mark.parametrize("worded", ["2 of 5", "3 bis 5", "4 and 6", "5 und 7"])
+def test_a_dash_list_with_a_worded_number_item_is_list_items(worded: str) -> None:
+    """#1002: a number joined by a word ("2 of 5", "3 bis 5") is no table cell, so the one
+    item that reads so leaves the dash column a list, every dash opening its item."""
+    intro = lines("p", LEFT, RIGHT, 100, 4, last=1.0)
+    rows = []
+    items = ["first point", worded, "the last one"]
+    for k, item in enumerate(items):
+        y = 100 + PITCH * (5 + k)
+        rows += [line("-", LEFT, y, LEFT + 4), line(item, LEFT + 18, y, LEFT + 300)]
+    doc = build_document(content([*intro, *rows]))
+    assert [(b.label, b.text) for b in doc.blocks if b.kind is BlockKind.LIST_ITEM] == [
+        ("-", f"- {item}") for item in items
+    ]
+
+
 # Properties
 
 

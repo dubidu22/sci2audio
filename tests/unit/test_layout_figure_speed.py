@@ -2,7 +2,7 @@
 
 Before #354, `order.figures` compared each drawing with every later one starting within
 reach of its right edge: 20,000 rectangles at one spot took 54 s, a file of 5 pages of
-100,000 rectangles (the most the reader allows, #185) 198 s of layout. The sweep in
+100,000 rectangles (then the most the reader allowed, #185) 198 s of layout. The sweep in
 `order.touching` gives the same groups (pinned against a plain all-pairs reference) and
 grows about linearly in the drawings on a page, however they lie (pinned with
 `assert_linear`, which times a page of n/8 drawings against one of n), however tall they
@@ -181,8 +181,9 @@ def test_a_page_of_drawings_is_laid_out_in_linear_time(family: str) -> None:
 
 @pytest.mark.benchmark
 def test_benchmark_a_page_of_100_000_drawings(benchmark) -> None:  # type: ignore[no-untyped-def]
-    """A page at the reader's limit (`MAX_PAGE_GRAPHICS`, 100,000 rectangles of 1 pt on a
-    grid, all touching) lays out in under 15 s (#354; 198 s for five such pages before)."""
+    """A stress page of 100,000 rectangles of 1 pt on a grid, all touching, ten times the
+    reader's limit per page (`MAX_PAGE_GRAPHICS`, 10,000 since #355; 50,000 per file), lays
+    out in under 15 s (#354; 198 s for five such pages before)."""
     page = page_of(FAMILIES["grid"](100_000))
     benchmark.pedantic(lambda: build_document(page), rounds=1, iterations=1)
     assert benchmark.stats.stats.max < 15
