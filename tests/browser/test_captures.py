@@ -4,11 +4,13 @@ Undo, the sounds, reduced motion and the highlighter rule."""
 
 from __future__ import annotations
 
+import errno
 import json
 import re
 from pathlib import Path
 from typing import Any
 
+import pytest
 from pdf_maker import Text, make_pdf
 from playwright.sync_api import Page, expect
 from test_focus import colours, nobody_focused, order
@@ -764,6 +766,41 @@ def test_a_broken_captures_file_is_named_and_left_alone(signed_in: Page, live: L
     page.keyboard.press("m")
     expect(page.locator("#message")).to_contain_text("can't be read")
     assert path.read_text(encoding="utf-8") == "{broken"
+
+
+def test_markers_whose_carry_over_cannot_be_written_say_so_on_n_q_and_m(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#910: a full disk while the v1.3 markers are carried over: the page names
+    markers.json, and N, Q and M each say the captures could not be saved, never that a
+    captures file can't be read."""
+    from sci2audio.app import files
+    from sci2audio.web.markers import markers_text
+
+    def full(partial: Path, content: str | bytes) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    page = signed_in
+    document = make_audiobook(page, live)
+    work = Path(live.config.work_root) / document
+    raw = markers_text(document, []).encode("utf-8")
+    (work / "markers.json").write_bytes(raw)
+    monkeypatch.setattr(files, "_write_partial", full)
+    page.reload()
+    page.locator("#tab-captures").click()
+    note = page.locator("#captures-broken")
+    expect(note).to_contain_text("could not be saved as captures")
+    expect(note).to_contain_text(str(work / "markers.json"))
+    at_sentence(page)
+    message = page.locator("#message")
+    for key in "nqm":
+        page.evaluate("() => { document.activeElement?.blur(); }")
+        page.evaluate("() => { document.getElementById('message').textContent = ''; }")
+        page.keyboard.press(key)
+        expect(message).to_have_text("sci2audio could not save your captures.")
+    expect(page.get_by_role("textbox", name="Your note on this sentence")).to_have_count(0)
+    assert (work / "markers.json").read_bytes() == raw
+    assert not (work / "captures.json").exists()
 
 
 def at_words(page: Page, words: str) -> None:
