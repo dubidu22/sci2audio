@@ -248,3 +248,15 @@ def test_convert_keep_settings_with_script_keeps_the_chosen_order(
     assert report["settings"]["chapters"] == [2, 0]
     script = (out / "book.script.txt").read_text(encoding="utf-8")
     assert script.index("# 3. Gamma") < script.index("# 1. Alpha")
+
+
+def test_convert_with_script_on_a_new_project_keeps_the_chosen_order(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    result = cli("convert", source, "-o", out, "-q", "--chapters", "3,1", "--with-script")
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [2, 0]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert script.index("# 3. Gamma") < script.index("# 1. Alpha")
