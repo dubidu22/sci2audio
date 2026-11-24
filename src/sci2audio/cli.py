@@ -822,7 +822,7 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
                 # document lacks stay, so the report still warns of them
                 held = tuple(c.chapter.index for c in job.result.chapters if c.selected)
                 known = {c.chapter.index for c in job.result.chapters}
-                lacking = tuple(i for i in settings.chapters if i not in known)
+                lacking = tuple(i for i in settings.chapters or () if i not in known)
                 script_settings = replace(
                     _kept_settings(work, settings), chapters=(*held, *lacking)
                 )

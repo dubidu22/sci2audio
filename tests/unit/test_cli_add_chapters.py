@@ -194,6 +194,30 @@ def test_convert_keep_settings_with_script_still_warns_of_a_chapter_the_book_lac
     assert any("chapter 9 was chosen" in warning for warning in report["warnings"])
 
 
+def test_convert_keep_settings_with_script_without_chapters_on_a_new_project(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    result = cli("convert", source, "-o", out, "-q", "--keep-settings", "--with-script")
+    assert result.code == 0, result.err
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "# 1. Alpha" in script
+    assert "not spoken" not in script
+
+
+def test_convert_keep_settings_with_script_without_chapters_adds_to_the_project(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--chapters", "1").code == 0
+    result = cli("convert", source, "-o", out, "-q", "--keep-settings", "--with-script")
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [0, 1, 2]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert "not spoken" not in script
+
+
 def test_convert_keep_settings_with_script_keeps_the_chosen_order(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
