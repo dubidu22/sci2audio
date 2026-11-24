@@ -1,7 +1,9 @@
 """The audiobook card while chapter 1 is saved and chapter 2 is spoken (#1054), in the
 browser: the whole job and the current chapter's own progress (its bar fills, a line names
 it), and "Start listening" and the Listen tab opening without a reload once chapter 1 is
-playable, on the job page, in English and German, light and dark, with axe-core.
+playable, on the job page and on the document's Prepare page (#1059), in English and German,
+light and dark, with axe-core; and after a restart, the chapters on disk open the Listen tab
+and play (#1059).
 
 Colin's case: the last sentence of chapter 1 was spoken and its MP3 was being written, which
 takes minutes for a long chapter; the card already said chapter 2 was being spoken, with
@@ -17,11 +19,11 @@ from collections.abc import Iterator
 from typing import Any
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from test_web_listen_growing import three_chapters
 
-from conftest import Hold, Live, at_rest, check_axe, settled
-from sci2audio.app import audio
+from conftest import Hold, Live, SlowFetch, at_rest, check_axe, inside, serve, settled
+from sci2audio.app import JobError, audio
 from sci2audio.web.i18n import COOKIE
 
 PDF = {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": three_chapters()}
@@ -86,9 +88,14 @@ def described(page: Page) -> str:
     )
 
 
+@pytest.mark.parametrize("place", ["job", "document"])
 @pytest.mark.parametrize("language", ["en", "de"])
 def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
-    signed_in: Page, live: Live, first_chapter_saving: tuple[Any, Any], language: str
+    signed_in: Page,
+    live: Live,
+    first_chapter_saving: tuple[Any, Any],
+    language: str,
+    place: str,
 ) -> None:
     page = signed_in
     words = WORDS[language]
@@ -106,8 +113,12 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
         page.reload()
         settled(page)
         at_rest(page)
+        document = page.url.rsplit("/", 1)[-1]
         page.locator("#make").click()
         page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+        if place == "document":  # the same card on the document's own address (#1059)
+            page.goto(f"{live.url}/documents/{document}")
+            expect(page.locator("#making[data-events]")).to_have_count(1)
         expect(page.locator("html")).to_have_attribute("lang", language)
         at_rest(page)
         page.evaluate("() => { window.sameLoad = true; }")
@@ -121,7 +132,7 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
         expect(page.locator("#tab-listen")).to_have_text(words["none"])
         expect(page.locator("#tab-listen")).not_to_have_attribute("href", re.compile("."))
         assert words["saved"] in described(page)
-        check_axe(page, f"{language}: chapter 1 being saved")
+        check_axe(page, f"{language}, {place} page: chapter 1 being saved")
 
         # chapter 1 is playable and chapter 2 half spoken: the card and the tab follow
         gate.set()
@@ -137,7 +148,7 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
         expect(tab.locator("svg use")).to_have_attribute("href", "#i-speaker")
         assert words["half"] in described(page)
         assert page.evaluate("() => window.sameLoad === true")
-        check_axe(page, f"{language}: chapter 2 being spoken, chapter 1 playable")
+        check_axe(page, f"{language}, {place} page: chapter 2 being spoken, chapter 1 playable")
         tab.click()
         page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}/listen$"))
         at_rest(page)
@@ -145,3 +156,67 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
     finally:
         gate.set()
         hold.gate.set()
+
+
+@pytest.fixture
+def second_chapter_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The job fails as chapter 2's files would be written: chapter 1 stays playable, and
+    the audiobook's record (`audio.json`), which only the job's end writes, never comes."""
+    write = audio._Chapters.done
+
+    def writing(chapters: Any, *args: Any, **kwargs: Any) -> Any:
+        if chapters.added:
+            raise JobError("the disk is full")
+        return write(chapters, *args, **kwargs)
+
+    monkeypatch.setattr(audio._Chapters, "done", writing)
+
+
+def test_after_a_restart_the_chapters_on_disk_open_the_listen_tab_and_play(
+    signed_in: Page, live: Live, tmp_path: Any, second_chapter_fails: None
+) -> None:
+    page = signed_in
+    live.install_voice()
+    page.set_input_files("#file", files=[PDF])
+    page.locator("#open-file button[type=submit]").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    document = page.url.rsplit("/", 1)[-1]
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
+    at_rest(page)
+    page.locator("#make").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#making")).to_contain_text("Making the audiobook stopped")
+    assert not (live.config.work_root / document / "audio.json").exists()
+
+    # the next run of sci2audio: no job on its board, only the folder says chapter 1 plays
+    with serve(tmp_path, live.voice, SlowFetch()) as second:
+        page.unroute("**/*")
+
+        def fence(route: Route) -> None:
+            if inside(route.request.url, second.url):
+                route.continue_()
+            else:
+                live.outside.append(route.request.url)
+                route.abort()
+
+        page.route("**/*", fence)
+        page.goto(second.start_url)
+        page.goto(f"{second.url}/documents/{document}")
+        at_rest(page)
+        expect(page.locator("#making")).to_have_count(0)  # the job ended with the last run
+        tab = page.locator("#tab-listen")
+        expect(tab).to_have_attribute("href", f"/documents/{document}/listen")
+        expect(tab).to_have_text("Listen")
+        check_axe(page, "Prepare after a restart, chapter 1 playable")
+        tab.click()
+        page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}/listen$"))
+        at_rest(page)
+        expect(page.locator("#play")).to_be_enabled()
+        chapters = page.evaluate(
+            "() => JSON.parse(document.getElementById('player-data').textContent)"
+            ".chapters.map((c) => c.title)"
+        )
+        assert chapters == ["Introduction"]
+        page.locator("#play").click()
+        page.wait_for_function("() => !document.getElementById('audio').paused")

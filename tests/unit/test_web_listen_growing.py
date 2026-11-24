@@ -11,6 +11,7 @@ first two are playable while the job still runs.
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 from collections.abc import Iterator
@@ -25,13 +26,15 @@ from test_web_player import player_data, server, work_of
 from web_helpers import (
     events,
     offline,  # noqa: F401 - fixture
+    program,
     set_capture,
     upload,
     wait,
 )
 
 from sci2audio.app.playable import read_record
-from sci2audio.web import player
+from sci2audio.web import create_app, player
+from sci2audio.web.documents import AUDIO_RECORD
 from sci2audio.web.player import RECORD as WEB_RECORD
 
 GATE_TEXT = "It worked well."
@@ -89,11 +92,11 @@ def playable(client: Any, job: str) -> list[int]:
     return list(progress.get("playable") or [])
 
 
-def start_growing(tmp_path: Path, ready: int = 2) -> Growing:
+def start_growing(tmp_path: Path, ready: int = 2, gate_text: str = GATE_TEXT) -> Growing:
     gate = threading.Event()
 
     def at_gate(text: str) -> None:
-        if GATE_TEXT in text:
+        if gate_text in text:
             gate.wait(60)
 
     client, config = server(tmp_path, FakeVoice(on_speak=at_gate))
@@ -334,3 +337,80 @@ def test_captures_in_a_chapter_that_just_arrived_get_their_sentence(growing: Gro
     growing.finish()
     final = [json.loads(data) for name, data in events(growing.client, growing.job) if name]
     assert final[-1]["state"] == "done"
+
+
+# ---- after a restart (#1059) ---------------------------------------------------------------
+#
+# A paused, failed or restarted job leaves its playable chapters in `chapters.json` and no
+# `audio.json`, which only the job's end writes. The next run of the server has no job on
+# its board, so nothing but the folder says a chapter can be played.
+
+LISTEN_NONE = "Listen · No audio yet"
+
+
+def restart(book: Growing) -> Any:
+    """The next run of sci2audio on the same folders: its board holds no job."""
+    app = create_app(book.config, voice=lambda models_dir: FakeVoice().source())
+    return program(app, book.config)
+
+
+def listen_tab(client: Any, doc: str) -> str:
+    """The Listen tab on the document's Prepare page, as drawn."""
+    answer = client.get(f"/documents/{doc}")
+    assert answer.status_code == 200, answer.text
+    found = re.search(r'<(a|span)[^>]*id="tab-listen".*?</\1>', answer.text, re.S)
+    assert found is not None, answer.text
+    return found[0]
+
+
+def test_after_a_restart_the_chapters_made_open_the_listen_tab_and_play(tmp_path: Path) -> None:
+    # held inside chapter 2, so only chapter 1 is playable when the job is paused
+    book = start_growing(tmp_path, ready=1, gate_text="We measured it twice.")
+    assert book.stop()["state"] == "cancelled"
+    record = read_record(book.work)
+    assert record is not None
+    assert not record.complete
+    assert [c.title for c in record.chapters] == TITLES[:1]
+    assert not (book.work / AUDIO_RECORD).exists()
+
+    client = restart(book)
+    tab = listen_tab(client, book.doc)
+    assert tab.startswith(f'<a href="/documents/{book.doc}/listen" id="tab-listen"'), tab
+    assert LISTEN_NONE not in tab
+    answer = client.get(f"/documents/{book.doc}/listen")
+    assert answer.status_code == 200, answer.text
+    data = player_data(answer.text)
+    assert [c["title"] for c in data["chapters"]] == TITLES[:1]
+    assert data["growing"]["events"] == ""  # no job to follow
+    audio = client.get(f"/api/v1/documents/{book.doc}/audiobook/{data['chapters'][0]['file']}")
+    assert audio.status_code == 200
+    assert audio.content
+
+
+def test_after_a_restart_a_book_with_no_playable_chapter_has_no_audio_yet(
+    tmp_path: Path,
+) -> None:
+    # held inside chapter 1: nothing is playable when the job is paused
+    book = start_growing(tmp_path, ready=0, gate_text="Things happen and more.")
+    assert book.stop()["state"] == "cancelled"
+    record = read_record(book.work)
+    assert record is None or not record.chapters
+
+    tab = listen_tab(restart(book), book.doc)
+    assert tab.startswith('<span class="tab-off" id="tab-listen"'), tab
+    assert LISTEN_NONE in tab
+
+
+def test_after_a_restart_a_finished_audiobook_opens_the_listen_tab_as_before(
+    tmp_path: Path,
+) -> None:
+    book = start_growing(tmp_path)
+    assert book.finish()["state"] == "done"
+    assert (book.work / AUDIO_RECORD).is_file()
+
+    client = restart(book)
+    tab = listen_tab(client, book.doc)
+    assert tab.startswith(f'<a href="/documents/{book.doc}/listen" id="tab-listen"'), tab
+    data = player_data(client.get(f"/documents/{book.doc}/listen").text)
+    assert "growing" not in data
+    assert [c["title"] for c in data["chapters"]] == TITLES
