@@ -116,6 +116,8 @@ _MONTHS = frozenset(
     )
 )
 _WORD = re.compile(r"[^\W\d_]+")
+# a word and at most a year as the whole of a line: "OKTOBER", "(Oktober 2020" (#893)
+_MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+\d{1,4})?\W*")
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -328,18 +330,32 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     A line in capitals inside a running sentence is an acronym wrapped onto a line of its own,
     not a title (#827): it is not the paragraph's first line (`before` is None), the line
     `before` it does not end a sentence, and `after` starts in lower case ("... scans, e.g." /
-    "PDF" / "files and ..."). A heading before "mRNA ..." or "this paper ..." still cuts."""
+    "PDF" / "files and ..."). A heading before "mRNA ..." or "this paper ..." still cuts.
+
+    A German month, or a month and a year, inside a running sentence is the date it seems
+    (#893): a line in capitals runs on into a line starting with a number ("am 3." /
+    "OKTOBER" / "2020 kamen ...") and a mixed-case line into any line ("im" / "Oktober 2020"
+    / "Die ..."). A month line in capitals before a capital keeps its cut after it: after a
+    number's stop it may be a heading the date rule joined to the line before (#900)."""
     if not _short(line, longest):
         return False
+    first = after.lstrip(_OPENERS)[:1]
     if _capitals(line):
-        return (
-            before is None
-            or _ends_sentence(before, line)
-            or not after.lstrip(_OPENERS)[:1].islower()
-        )
+        if before is None or _ends_sentence(before, line):
+            return True
+        return not first.islower() and not (first.isdigit() and _month_line(line))
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
-    return after.lstrip(_OPENERS)[:1].isupper()
+    if before is not None and _month_line(line) and not _ends_sentence(before, line):
+        return False
+    return first.isupper()
+
+
+def _month_line(line: str) -> bool:
+    """True if `line` is a German month (`_MONTHS`) alone or before a year, looking through
+    brackets and quotes: "OKTOBER", "(Oktober 2020" (#893)."""
+    found = _MONTH_LINE.fullmatch(line)
+    return found is not None and found[1].lower() in _MONTHS
 
 
 def _heading(paragraph: list[str], k: int, longest: int) -> bool:
@@ -375,17 +391,18 @@ def _ends_sentence(line: str, after: str) -> bool:
     and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827).
 
     A number before a full stop ("approximately 3.", "am 3.") is judged by `after`, the next
-    line (#848): one starting in lower case, or with a German month ("am 3." / "Oktober
-    2020", "OKTOBER"), goes on with the sentence, so the stop is no sentence end. Only the
-    line's end and the next line's first word are looked at: this runs on every line."""
+    line (#848): one starting with a German month ("am 3." / "Oktober 2020", "OKTOBER") goes
+    on with the sentence, so the stop is no sentence end. A next line starting in lower case
+    needs no test here (#900): every caller cuts only before a line in capitals or starting
+    with a capital, and a month line is matched in any case. Only the line's end and the
+    next line's first word are looked at: this runs on every line."""
     line = line.rstrip(_CLOSERS)
     # every abbreviation and the character before it fit in the line's last 16 characters
     if not line.endswith(_STOPS) or _ABBREVIATION.search(line[-16:]):
         return False
     if line[-1] == "." and line[-2:-1].isdigit():
-        start = after.lstrip(_OPENERS)
-        word = _WORD.match(start)
-        return not (start[:1].islower() or (word and word[0].lower() in _MONTHS))
+        word = _WORD.match(after.lstrip(_OPENERS))
+        return not (word and word[0].lower() in _MONTHS)
     return True
 
 
