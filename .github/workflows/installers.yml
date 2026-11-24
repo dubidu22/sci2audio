@@ -4,11 +4,12 @@ name: Installers
 # per-user setup.exe for Windows and an AppImage for Linux, each built on its own system,
 # installed there as a person installs it and tested: the command line on a corpus PDF, a
 # short English and German audiobook, offline (Linux), the start through Launch Services as
-# Finder starts it (macOS, #716), the app's window (macOS, Windows, read by its own self
-# test), the browser with Quit and Playwright (Linux) and the uninstaller (Windows). The
-# release workflow calls it, so a release ships what was tested here. On a PR it runs only
-# with the label "ci:installers" (when added, and on each push while it is on); it is a workflow of its own, so it never cancels a CI run (#360), and no job of it is
-# a required check.
+# Finder starts it and the quit by the Dock's Apple Event, which must log "stopped" (macOS,
+# #716, #717), the app's window (macOS, Windows, read by its own self test), the browser
+# with Quit and Playwright (Linux) and the uninstaller (Windows). The release workflow calls
+# it, so a release ships what was tested here. On a PR it runs only with the label
+# "ci:installers" (when added, and on each push while it is on); it is a workflow of its
+# own, so it never cancels a CI run (#360), and no job of it is a required check.
 #
 # FFmpeg is built here from pinned sources: audio only, LGPL (packaging/ffmpeg, D-798), and
 # the fast tests run against that build before anything is frozen with it.
@@ -43,7 +44,8 @@ concurrency:
 jobs:
   ffmpeg:
     name: ffmpeg (${{ matrix.os }})
-    # on a PR only with the label "ci:installers" (another label added starts nothing), never from a fork
+    # on a PR only with the label "ci:installers" (another label added starts nothing),
+    # never from a fork
     if: >-
       github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'ci:installers')
       && github.event.pull_request.head.repo.full_name == github.repository
@@ -107,7 +109,8 @@ jobs:
 
   sources:
     name: source archive
-    # on a PR only with the label "ci:installers" (another label added starts nothing), never from a fork
+    # on a PR only with the label "ci:installers" (another label added starts nothing),
+    # never from a fork
     if: >-
       github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'ci:installers')
       && github.event.pull_request.head.repo.full_name == github.repository
@@ -309,9 +312,12 @@ jobs:
           python=$(uv python find)
           HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 \
             "$python" scripts/installer_smoke.py cli "$CLI" "$VERSION" --models "$MODELS" --work "$WORK/proxy"
-      # as a person starts it: Launch Services runs the bundle's main program, which must be
-      # the app, not the command line (#716); never a program started by its path
-      - name: The app starts from Finder, through Launch Services (macOS)
+      # as a person starts and quits it: Launch Services runs the bundle's main program, which
+      # must be the app, not the command line (#716); never a program started by its path.
+      # The Dock's quit ends the process without returning to Python, so app.log ending with
+      # "stopped" is the proof that the server was stopped (#717). Before the window self
+      # test, so the app's first start is the one Finder makes, as after a person's install.
+      - name: The app starts from Finder and the Dock's quit logs "stopped" (macOS)
         if: runner.os == 'macOS'
         env:
           BUNDLE: ${{ steps.installed.outputs.bundle }}

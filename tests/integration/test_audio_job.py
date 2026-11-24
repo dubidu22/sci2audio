@@ -17,7 +17,7 @@ import pytest
 
 from sci2audio.app import JobSettings, kokoro_voice, run_audio_job
 from sci2audio.app import voice as voice_module
-from sci2audio.output import find_ffmpeg, read_readalong
+from sci2audio.output import OutputSettings, find_ffmpeg, read_readalong
 from sci2audio.testing import no_network
 
 CORPUS = Path(__file__).parents[1] / "corpus"
@@ -54,8 +54,12 @@ def test_a_paper_becomes_an_audiobook_with_the_real_voice_offline(
 ) -> None:
     voice = kokoro_voice(models_dir())
     settings = JobSettings(output_folder=tmp_path / "out")
+    # the job writes no M4B unless asked (#723); the CLI and the web ask the same way
+    wants_m4b = OutputSettings(m4b=True)
     with no_network():
-        job = run_audio_job(PYMEDPHYS, settings, tmp_path / "work", voice=voice)
+        job = run_audio_job(
+            PYMEDPHYS, settings, tmp_path / "work", voice=voice, output_settings=wants_m4b
+        )
     assert job.skipped == ()
     assert job.written.m4b is not None
     assert len(job.written.mp3s) == 4
@@ -83,7 +87,12 @@ def test_a_paper_becomes_an_audiobook_with_the_real_voice_offline(
     monkeypatch.setattr(voice_module, "create_kokoro_engine", counting)
     with no_network():
         again = run_audio_job(
-            PYMEDPHYS, settings, tmp_path / "work", voice=kokoro_voice(models_dir()), overwrite=True
+            PYMEDPHYS,
+            settings,
+            tmp_path / "work",
+            voice=kokoro_voice(models_dir()),
+            output_settings=wants_m4b,
+            overwrite=True,
         )
     assert (again.spoken, made) == (0, [])
     assert again.written.readalong.read_text() == job.written.readalong.read_text()

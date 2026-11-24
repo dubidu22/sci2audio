@@ -21,7 +21,9 @@ REPORT; the app must then stop by itself.
 
 `launch` starts the macOS bundle as Finder does, through Launch Services (`open -a`, no
 program path, no arguments), waits for the app's start line "running in a window" in its
-app.log, and quits it (#716: 1.4.0's bundle started the command line, which quit at once).
+app.log (#716: 1.4.0's bundle started the command line, which quit at once), quits it with
+the quit Apple Event as the Dock does, and checks that app.log then ends with "stopped"
+(#717: such a quit ended the process before the app could say so).
 
 Only the standard library: it runs on the runner's Python, outside the installed program.
 """
@@ -52,6 +54,7 @@ TEXTS = {
 }
 LOCAL = re.compile(r"^http://127\.0\.0\.1:\d+$")
 START_LINE = "running in a window"  # sci2audio.web.window.run_window
+STOP_LINE = "INFO stopped"  # its last line, as "<time> INFO stopped"
 MAC_LOG = Path.home() / "Library" / "Logs" / "sci2audio" / "app.log"
 
 
@@ -204,20 +207,37 @@ def running(bundle: Path) -> bool:
     return found.returncode == 0
 
 
+def kill(bundle: Path) -> None:
+    subprocess.run(["/usr/bin/pkill", "-f", f"{bundle}/Contents/MacOS/"], check=False)
+
+
 def quit_app(bundle: Path, identifier: str, timeout: float, poll: float) -> str | None:
-    """Quits the app as the Dock does; a problem when it is still running after `timeout`.
-    Nothing is sent to an app that is not running: the Apple Event would start it."""
+    """Quits the app as the Dock does; a problem when the quit Apple Event gets no answer
+    within `timeout`, or when the app is still running `timeout` after it. Nothing is sent
+    to an app that is not running: the Apple Event would start it."""
     if not running(bundle):
         return None
     quit_it = f'tell application id "{identifier}" to quit'
-    subprocess.run(["/usr/bin/osascript", "-e", quit_it], timeout=60, check=False)
+    try:
+        subprocess.run(["/usr/bin/osascript", "-e", quit_it], timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        # an app that never answers the event is a failed quit, said as one, not a
+        # traceback; it is ended so the steps after this one start clean
+        kill(bundle)
+        return f"the quit Apple Event got no answer within {timeout:.0f} s"
     deadline = time.monotonic() + timeout
     while running(bundle):
         if time.monotonic() > deadline:
-            subprocess.run(["/usr/bin/pkill", "-f", f"{bundle}/Contents/MacOS/"], check=False)
+            kill(bundle)
             return f"the app was still running {timeout:.0f} s after it was asked to quit"
         time.sleep(poll)
     return None
+
+
+def ends_stopped(lines: str) -> bool:
+    """True when the last line written is the app's "stopped" (#717)."""
+    written = lines.rstrip("\n").splitlines()
+    return bool(written) and written[-1].endswith(" " + STOP_LINE)
 
 
 def smoke_launch(bundle: Path, log: Path, timeout: float = 30, poll: float = 0.5) -> None:
@@ -240,7 +260,13 @@ def smoke_launch(bundle: Path, log: Path, timeout: float = 30, poll: float = 0.5
         f" new lines: {written.strip() or 'none'}",
     )
     check(problem is None, str(problem))
-    say("Launch Services started the app in a window, and it quit")
+    written = new_lines(log, offset)
+    check(
+        ends_stopped(written),
+        f"{log} does not end with the line 'stopped' after the quit Apple Event;"
+        f" new lines: {written.strip() or 'none'}",
+    )
+    say("Launch Services started the app in a window; the quit Apple Event stopped it")
 
 
 # ---- browser ------------------------------------------------------------------------------

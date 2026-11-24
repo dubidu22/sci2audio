@@ -1086,8 +1086,10 @@ def _prepare(
             report=report,
             got=got,
             # the job's chapters are listened to as they are made (#724): the record of the
-            # audiobook comes only at its end (#1054)
-            has_audio=found.has_audio or bool(card and card["playable"]),
+            # audiobook comes only at its end (#1054). `got` is the book the Listen page
+            # plays, a growing one too, so the chapters a paused, failed or earlier run left
+            # on disk open the tab when no job of this run says so (#1059)
+            has_audio=found.has_audio or got is not None or bool(card and card["playable"]),
             prepare=True,
         ),
         side=_side(s, found, about, report),
