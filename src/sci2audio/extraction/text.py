@@ -107,6 +107,15 @@ _ABBREVIATION = re.compile(
     + "|".join(re.escape(a).replace(r"\ ", r"\s*") for a in _ABBREVIATIONS)
     + r")\Z"
 )
+# A German month after "am 3." makes the number an ordinal in a date ("3. Oktober", #848).
+# English writes "3 July" or "July 3", never "3. July": an English month line stays a heading.
+_MONTHS = frozenset(
+    (
+        *("januar", "jänner", "februar", "märz", "maerz", "april", "mai", "juni", "juli"),
+        *("august", "september", "oktober", "november", "dezember"),
+    )
+)
+_WORD = re.compile(r"[^\W\d_]+")
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -323,7 +332,11 @@ def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     if not _short(line, longest):
         return False
     if _capitals(line):
-        return before is None or _ends_sentence(before) or not after.lstrip(_OPENERS)[:1].islower()
+        return (
+            before is None
+            or _ends_sentence(before, line)
+            or not after.lstrip(_OPENERS)[:1].islower()
+        )
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     return after.lstrip(_OPENERS)[:1].isupper()
@@ -334,7 +347,7 @@ def _heading(paragraph: list[str], k: int, longest: int) -> bool:
     capitals (`_title`'s first kind, "RESULTS") after a line that ends a sentence, and not
     the paragraph's last line. A short last line in capitals ends the prose it follows (a
     licence in capitals), and one after a line that runs on stays in its sentence."""
-    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1]):
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1], paragraph[k]):
         return False
     return _short(paragraph[k], longest) and _capitals(paragraph[k])
 
@@ -346,7 +359,7 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
     its end, the next line starting with a capital): "Results" / "The data show ...". The
     next line's first word must also fit after it within the paragraph's longest line: a line
     a hard wrap left short because that word did not fit (a long name, a URL) is no heading."""
-    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1]):
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1], paragraph[k]):
         return False
     line, after = paragraph[k], paragraph[k + 1]
     return (
@@ -357,12 +370,23 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
     )
 
 
-def _ends_sentence(line: str) -> bool:
+def _ends_sentence(line: str, after: str) -> bool:
     """True if `line` ends a sentence: in a stop (`_STOPS`), looking through closing quotes
-    and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827)."""
+    and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827).
+
+    A number before a full stop ("approximately 3.", "am 3.") is judged by `after`, the next
+    line (#848): one starting in lower case, or with a German month ("am 3." / "Oktober
+    2020", "OKTOBER"), goes on with the sentence, so the stop is no sentence end. Only the
+    line's end and the next line's first word are looked at: this runs on every line."""
     line = line.rstrip(_CLOSERS)
     # every abbreviation and the character before it fit in the line's last 16 characters
-    return line.endswith(_STOPS) and not _ABBREVIATION.search(line[-16:])
+    if not line.endswith(_STOPS) or _ABBREVIATION.search(line[-16:]):
+        return False
+    if line[-1] == "." and line[-2:-1].isdigit():
+        start = after.lstrip(_OPENERS)
+        word = _WORD.match(start)
+        return not (start[:1].islower() or (word and word[0].lower() in _MONTHS))
+    return True
 
 
 def _short(line: str, longest: int) -> bool:
