@@ -376,6 +376,51 @@ def test_the_indent_is_measured_on_each_page_and_capped() -> None:
     assert indented(block, lines).split("\n") == ["a(", "  b", "c(", "  d", " " * MAX_INDENT + "e"]
 
 
+def _line(key: str, text: str, x0: float, width: float | None = None) -> TextLine:
+    return TextLine(key, (TextRun(text),), Box(x0, 0, x0 + (width or CHAR * len(text)), 10))
+
+
+def _body(page: int, left: float, count: int = 5) -> list[TextLine]:
+    """Running text on a page, its column `left` points from the page's edge."""
+    return [_line(f"p{page}-{k}", "Running text.", left, width=400) for k in range(count)]
+
+
+def test_a_later_page_part_of_only_indented_lines_keeps_its_indent() -> None:
+    """#612: a listing's part on a later page made only of indented lines is measured
+    against the first page's leftmost line, shifted by the two pages' text-column edges
+    (here page 2's column stands 18 points further right), not drawn flush."""
+    block = Block(
+        BlockKind.CODE, "\n".join(SEABORN[:3]), (Part("a", 0), Part("b", 17), Part("c", 41))
+    )
+    code = {
+        "a": (1, _line("a", SEABORN[0], 72.0)),
+        "b": (2, _line("b", SEABORN[1], 90.0 + 4 * CHAR)),
+        "c": (2, _line("c", SEABORN[2], 90.0 + 4 * CHAR)),
+    }
+    pages = {
+        1: [*_body(1, 72.0), code["a"][1]],
+        2: [code["b"][1], code["c"][1], *_body(2, 90.0)],
+    }
+    assert indented(block, code, pages).split("\n") == [
+        SEABORN[0],
+        "    " + SEABORN[1],
+        "    " + SEABORN[2],
+    ]
+
+
+def test_a_later_page_part_is_never_measured_right_of_its_own_leftmost_line() -> None:
+    """#612: where the column edges would put the reference right of the part's leftmost
+    line, that line is the reference: no line is drawn left of the block's edge."""
+    block = Block(BlockKind.CODE, "f(\nx\ny", (Part("a", 0), Part("b", 3), Part("c", 5)))
+    code = {
+        "a": (1, _line("a", "f(", 72.0)),
+        "b": (2, _line("b", "x", 72.0 + 2 * CHAR)),
+        "c": (2, _line("c", "y", 72.0)),
+    }
+    pages = {1: [*_body(1, 72.0), code["a"][1]], 2: [code["b"][1], code["c"][1], *_body(2, 90.0)]}
+    assert indented(block, code, pages).split("\n") == ["f(", "  x", "y"]
+
+
 def test_one_line_set_wider_does_not_change_the_character_width() -> None:
     """The width is the median over the block's lines: one line whose box is wider than
     its letters (a wide glyph, a box padded by the PDF) leaves the others' indent."""
