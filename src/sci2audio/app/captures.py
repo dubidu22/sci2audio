@@ -10,8 +10,8 @@ stays, also when it holds no capture any more.
 
 Only the interface's server writes the file, with one read, one change and one write per
 change under its own lock (#397), and it reads through `load_captures`, which carries the
-v1.3 markers over first (#475). The job runner, the audio job and the command line never
-read or write it.
+v1.3 markers over first (#475). `peek_captures` gives the same answer without writing
+(#1023). The job runner, the audio job and the command line never read or write it.
 
 The carry-over (ADR-008 2.1 item 5): when a document has `markers.json` and no
 `captures.json`, its markers become captures one to one (a marker without a note a mark,
@@ -115,18 +115,57 @@ def load_captures(work: Path, document_id: str) -> CaptureFile | None:
     captures = read_captures(work, document_id)
     if captures is not None:  # markers.json is not read while captures.json is there
         return captures
-    carried = _carried_markers(work, document_id)
-    if carried is None:
+    pending = _pending_carry_over(work, document_id)
+    if pending is None:
         return None
-    try:
-        text = _sized_text(carried)
-    except ValueError as error:  # CaptureFormatError is a ValueError
-        raise MarkersNotCarried(f"{work / MARKERS} can't be carried over: {error}") from None
+    carried, text = pending
     try:
         write_texts({captures_path(work): text}, overwrite=False)
     except FileExistsError:  # another writer was first: theirs stays
         return read_captures(work, document_id)
     return carried
+
+
+def peek_captures(work: Path, document_id: str) -> CaptureFile | None:
+    """What `load_captures` would return now, written to nowhere: the captures of
+    `captures.json`; while there is none, the v1.3 markers as the carry-over would make
+    them; None if there is neither file. For counts that must not carry the markers over
+    (the removal box, the shelf). It shares the carry-over's checks, so it refuses exactly
+    what a load refuses (CapturesBroken, MarkersNotCarried, OSError) and the two can't
+    drift apart."""
+    captures = read_captures(work, document_id)
+    if captures is not None:
+        return captures
+    return _peek_markers(work, document_id)
+
+
+def peek_carry_over(work: Path, document_id: str) -> CaptureFile | None:
+    """The captures a `load_captures` would now write to a new `captures.json`, written
+    to nowhere; None if there is nothing to carry over (a `captures.json` is there, or no
+    `markers.json`). Tells a failed carry-over from any other failure of a load: when the
+    load raised OSError and this still returns captures, the markers were read and carried
+    in memory and only the write failed. Raises what a load raises (CapturesBroken,
+    MarkersNotCarried, OSError)."""
+    if read_captures(work, document_id) is not None:
+        return None
+    return _peek_markers(work, document_id)
+
+
+def _peek_markers(work: Path, document_id: str) -> CaptureFile | None:
+    pending = _pending_carry_over(work, document_id)
+    return None if pending is None else pending[0]
+
+
+def _pending_carry_over(work: Path, document_id: str) -> tuple[CaptureFile, str] | None:
+    """The captures the carry-over would make and the text it would write, all checked
+    (size limit included) before anything is written; None if there is no `markers.json`."""
+    carried = _carried_markers(work, document_id)
+    if carried is None:
+        return None
+    try:
+        return carried, _sized_text(carried)
+    except ValueError as error:  # CaptureFormatError is a ValueError
+        raise MarkersNotCarried(f"{work / MARKERS} can't be carried over: {error}") from None
 
 
 def _sized_text(captures: CaptureFile) -> str:

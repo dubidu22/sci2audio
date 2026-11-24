@@ -36,6 +36,8 @@ from sci2audio.app.captures import (
     MarkersNotCarried,
     captures_text,
     load_captures,
+    peek_captures,
+    peek_carry_over,
     read_captures,
     write_captures,
 )
@@ -440,6 +442,213 @@ def test_any_v1_file_carries_over_one_to_one_or_nothing_is_written(
             a = marker.anchor
             assert capture.anchor == Anchor(a.block, a.start, a.end, a.text)
         assert read_captures(work, DOC) == carried
+
+
+# ---- looking at what a load would carry over, writing nothing (#1023) ----------------------
+
+
+def _folder(work: Path) -> dict[str, bytes]:
+    """Every entry of the working folder with its bytes (a folder as None): what a call that
+    must write, rename and delete nothing leaves exactly as it was."""
+    return {
+        p.name: (p.read_bytes() if p.is_file() else b"<not a file>") for p in sorted(work.iterdir())
+    }
+
+
+def _copy(work: Path, to: Path) -> Path:
+    to.mkdir()
+    for p in work.iterdir():
+        (to / p.name).write_bytes(p.read_bytes())
+    return to
+
+
+def test_peeking_at_v1_markers_shows_what_the_carry_over_makes_and_writes_nothing(
+    work: Path,
+) -> None:
+    _put_markers(work, V1)
+    before = _folder(work)
+    assert peek_captures(work, DOC) == CARRIED
+    assert peek_captures(work, DOC).count() == {  # type: ignore[union-attr]
+        CaptureType.NOTE: 1,
+        CaptureType.QUOTE: 0,
+        CaptureType.MARK: 2,
+    }
+    assert _folder(work) == before
+    assert not (work / CAPTURES).exists()
+
+
+def test_peeking_with_no_file_at_all_is_none_and_writes_nothing(work: Path) -> None:
+    before = _folder(work)
+    assert peek_captures(work, DOC) is None
+    assert _folder(work) == before
+
+
+def test_peeking_reads_captures_json_and_not_the_markers_beside_it(work: Path) -> None:
+    _put_markers(work, b"{broken")
+    write_captures(work, CARRIED)
+    (work / MARKERS).write_bytes(b"{broken")
+    before = _folder(work)
+    assert peek_captures(work, DOC) == CARRIED
+    assert _folder(work) == before
+
+
+def test_peeking_at_a_broken_captures_json_reports_it_and_leaves_it(work: Path) -> None:
+    _put_markers(work, V1)
+    (work / CAPTURES).write_bytes(b"{broken")
+    before = _folder(work)
+    with pytest.raises(CapturesBroken, match=r"captures\.json") as error:
+        peek_captures(work, DOC)
+    assert not isinstance(error.value, MarkersNotCarried)
+    assert _folder(work) == before
+
+
+@pytest.mark.parametrize("case", sorted(BROKEN_V1) + sorted(SURROGATE_V1))
+def test_peeking_at_a_markers_file_the_carry_over_refuses_gives_its_error_and_writes_nothing(
+    work: Path, tmp_path: Path, case: str
+) -> None:
+    raw = _put_markers(work, {**BROKEN_V1, **SURROGATE_V1}[case])
+    twin = _copy(work, tmp_path / "twin")
+    before = _folder(work)
+    with pytest.raises(MarkersNotCarried) as peeked:
+        peek_captures(work, DOC)
+    with pytest.raises(MarkersNotCarried) as loaded:
+        load_captures(twin, DOC)
+    assert str(peeked.value).replace(str(work), "") == str(loaded.value).replace(str(twin), "")
+    assert _folder(work) == before
+    _untouched(work, raw, captures=False)
+
+
+def test_peeking_at_v1_markers_that_would_pass_the_captures_limit_is_refused_as_a_load_is(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw = _put_markers(work, V1)
+    monkeypatch.setattr(module, "FILE_LIMIT", len(captures_text(CARRIED)) - 1)
+    with pytest.raises(MarkersNotCarried, match="larger than"):
+        peek_captures(work, DOC)
+    _untouched(work, raw, captures=False)
+
+
+def test_peeking_at_a_folder_or_a_link_in_the_markers_place_is_refused_and_not_followed(
+    work: Path, tmp_path: Path
+) -> None:
+    (work / MARKERS).mkdir()
+    with pytest.raises(MarkersNotCarried, match="not a plain file"):
+        peek_captures(work, DOC)
+    (work / MARKERS).rmdir()
+    if sys.platform != "win32":
+        elsewhere = tmp_path / "elsewhere.json"
+        elsewhere.write_text(V1, encoding="utf-8")
+        (work / MARKERS).symlink_to(elsewhere)
+        with pytest.raises(MarkersNotCarried, match="not a plain file"):
+            peek_captures(work, DOC)
+        assert (work / MARKERS).is_symlink()
+    assert not (work / CAPTURES).exists()
+
+
+def test_peeking_never_calls_the_writer_and_never_opens_a_file_for_writing(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _put_markers(work, V1)
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise AssertionError("a peek wrote")
+
+    monkeypatch.setattr(module, "write_texts", refuse)
+    monkeypatch.setattr(files, "write_texts", refuse)
+    monkeypatch.setattr(Path, "write_bytes", refuse)
+    monkeypatch.setattr(Path, "write_text", refuse)
+    monkeypatch.setattr(Path, "unlink", refuse)
+    monkeypatch.setattr(Path, "rename", refuse)
+    monkeypatch.setattr(Path, "replace", refuse)
+    monkeypatch.setattr(os, "replace", refuse)
+    monkeypatch.setattr(os, "rename", refuse)
+    monkeypatch.setattr(os, "remove", refuse)
+    assert peek_captures(work, DOC) == CARRIED
+
+
+@settings(max_examples=100, suppress_health_check=[HealthCheck.too_slow])
+@given(st.lists(_marker, max_size=4), st.booleans())
+def test_a_peek_and_a_load_agree_on_any_v1_file(
+    entries: list[dict[str, Any]], escaped: bool
+) -> None:
+    data = {"format": "sci2audio-web-markers", "version": 1, "document": DOC, "markers": entries}
+    text = json.dumps(data, ensure_ascii=True)
+    if not escaped:
+        try:
+            text = json.dumps(data, ensure_ascii=False)
+            text.encode("utf-8")
+        except UnicodeEncodeError:
+            assume(False)
+    with tempfile.TemporaryDirectory() as folder:
+        work = Path(folder) / "a"
+        twin = Path(folder) / "b"
+        work.mkdir()
+        (work / MARKERS).write_bytes(text.encode("utf-8"))
+        _copy(work, twin)
+        before = _folder(work)
+        try:
+            peeked: CaptureFile | None = peek_captures(work, DOC)
+        except MarkersNotCarried:
+            peeked = None
+        assert _folder(work) == before
+        try:
+            loaded: CaptureFile | None = load_captures(twin, DOC)
+        except MarkersNotCarried:
+            loaded = None
+        assert peeked == loaded
+
+
+# ---- asking whether a carry-over is what is left to do, writing nothing (#1023) ------------
+
+
+def test_the_carry_over_peek_shows_what_a_load_would_write_and_writes_nothing(
+    work: Path,
+) -> None:
+    _put_markers(work, V1)
+    before = _folder(work)
+    assert peek_carry_over(work, DOC) == CARRIED
+    assert _folder(work) == before
+
+
+def test_the_carry_over_peek_is_none_with_no_markers_or_beside_a_captures_json(
+    work: Path,
+) -> None:
+    assert peek_carry_over(work, DOC) is None
+    _put_markers(work, b"{broken")  # not read while captures.json is there
+    write_captures(work, CaptureFile(DOC, migrated_from=MARKERS))
+    before = _folder(work)
+    assert peek_carry_over(work, DOC) is None
+    assert _folder(work) == before
+
+
+def test_the_carry_over_peek_refuses_what_a_load_refuses(work: Path) -> None:
+    _put_markers(work, b"{broken")
+    with pytest.raises(MarkersNotCarried):
+        peek_carry_over(work, DOC)
+    (work / MARKERS).unlink()
+    (work / CAPTURES).write_bytes(b"{broken")
+    with pytest.raises(CapturesBroken):
+        peek_carry_over(work, DOC)
+
+
+def test_after_a_full_disk_the_peek_tells_the_carry_over_from_another_failure(
+    work: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """What the web layer asks after an OSError of a load (#910): the carry-over's own
+    write failed, so the peek still sees the carry-over; if the markers can't be read
+    the peek fails the same way, and nothing is written either way."""
+    raw = _put_markers(work, V1)
+
+    def full(partial: Path, content: str | bytes) -> None:
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(files, "_write_partial", full)
+    with pytest.raises(OSError, match="No space"):
+        load_captures(work, DOC)
+    assert peek_carry_over(work, DOC) == CARRIED
+    _untouched(work, raw, captures=False)
+    (work / MARKERS).unlink()
+    assert peek_carry_over(work, DOC) is None
 
 
 # ---- faults while carrying over -------------------------------------------------------------
