@@ -218,7 +218,13 @@ class _Layout:
         for group in split_cells(rows, edges):
             if group[0].line is None:
                 units += [
-                    Held(_block(e, furniture, settings), page.number, self._inline(e, lines), e.box)
+                    Held(
+                        _block(e, furniture, settings),
+                        page.number,
+                        self._inline(e, lines),
+                        e.box,
+                        tuple(boxed(g) for g in e.graphics),
+                    )
                     for e in group
                 ]
             else:

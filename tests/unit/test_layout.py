@@ -1239,8 +1239,8 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     The figure's column is read row by row: the drawing (from y 190), the upper row of
     labels (y 200), the lower one (y 210), then the caption. The left column's paragraph
     ends in a sentence, whether its last line fills the column or ends short (`ended`), so
-    the figure is read between the columns' paragraphs (#905): with a caption that names
-    it, the figure holds its labels."""
+    the figure is read between the columns' paragraphs (#905), and holds its labels, with a
+    caption that names it or without one (#932)."""
     stop = {29: "."}  # each column ends its paragraph with a sentence
     left = [
         line(f"L{k}{stop.get(k, '')}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228)
@@ -1259,8 +1259,9 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     ids = {li.id: li.text for li in [*left, *right, *labels, *caption]}
     upper, lower = [li.text for li in labels[::2]], [li.text for li in labels[1::2]]
     figures = [b for b in doc.blocks if b.kind is BlockKind.FIGURE]
-    held = ["fig", *upper, *lower] if captioned else ["fig"]
-    assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [held]
+    assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [
+        ["fig", *upper, *lower]
+    ]
     read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
     middle = ["fig", *upper, *lower, *[li.text for li in caption]]
     if captioned:
@@ -1559,6 +1560,239 @@ def test_tick_labels_under_a_gutter_figure_after_a_sentence_end_are_the_figures(
     ids = {li.id: li.text for li in [*left, *right, *ticks, *caption]}
     read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
     assert read == [li.text for li in left + ticks + caption + right]
+
+
+def gutter_page(end: str, middle: list[TextLine]) -> tuple[Content, list[TextLine], list[TextLine]]:
+    """The #895 page: two columns of 30 full lines, the left one ending in `end` and the
+    right one in a full stop, and a drawing in the 140 pt gutter between them (x 236 to
+    360, y 190 to 260) with the lines `middle` (its labels and caption)."""
+    left = [line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    drawing = Drawing("fig", Box(236, 190, 360, 260))
+    return content(left + right + middle, drawings=(drawing,)), left, right
+
+
+def holding(doc: Document, kind: BlockKind) -> list[list[str]]:
+    """The items of each block of the kind, in reading order."""
+    return [[p.item for p in b.parts] for b in doc.blocks if b.kind is kind]
+
+
+def unmixed(doc: Document, text: list[TextLine]) -> bool:
+    """True if no block holds both lines of `text` and anything else."""
+    ids = {li.id for li in text}
+    return not any(
+        {p.item for p in b.parts} & ids and {p.item for p in b.parts} - ids for b in doc.blocks
+    )
+
+
+def gutter_labels() -> list[TextLine]:
+    """The #895 labels: two rows of three on the drawing (y 200 and 210)."""
+    return [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
+
+
+@pytest.mark.parametrize("end", ["L29.", "L29"])
+def test_a_caption_under_a_gutter_figure_names_it(end: str) -> None:
+    """#906: on the #895 page, the caption under the figure in the gutter names it
+    (`describes`), whether the left column ends a sentence or runs on (#958)."""
+    labels = gutter_labels()
+    caption = line("Figure 1: a thing", 240, 280, 356)
+    found, _, _ = gutter_page(end, [*labels, caption])
+    doc = build_document(found)
+    (named,) = [b for b in doc.blocks if b.kind is BlockKind.CAPTION]
+    assert [p.item for p in named.parts] == [caption.id]
+    assert named.describes is not None
+    assert [p.item for p in doc.blocks[named.describes].parts] == [
+        "fig",
+        *[li.id for li in labels[::2]],
+        *[li.id for li in labels[1::2]],
+    ]
+
+
+@pytest.mark.parametrize("labelled", [True, False])
+def test_a_caption_above_a_gutter_figure_is_a_caption_naming_it(labelled: bool) -> None:
+    """#933: on the #895 page with the caption above the drawing (y 170), the caption is a
+    CAPTION block of its own that names the figure, the labels on the drawing are the
+    figure's, and neither joins the left or the right column's paragraph."""
+    labels = gutter_labels() if labelled else []
+    caption = line("Figure 1: a thing", 240, 170, 356)
+    found, left, right = gutter_page("L29.", [caption, *labels])
+    doc = build_document(found)
+    upper, lower = [li.id for li in labels[::2]], [li.id for li in labels[1::2]]
+    assert holding(doc, BlockKind.CAPTION) == [[caption.id]]
+    (named,) = [b for b in doc.blocks if b.kind is BlockKind.CAPTION]
+    assert named.describes is not None
+    assert [p.item for p in doc.blocks[named.describes].parts] == ["fig", *upper, *lower]
+    assert unmixed(doc, left + right)
+    ids = {li.id: li.text for li in [*left, *right, *labels, caption]}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read[: len(left)] == [li.text for li in left]
+    assert read[-len(right) :] == [li.text for li in right]
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_ticks_across_a_gutter_figure_and_its_caption_under_them(captioned: bool) -> None:
+    """#933: on the #895 page a row of five ticks just under the drawing (y 262) spans the
+    gutter's figure from edge to edge, each 2 em from the next, with the caption under
+    them. The ticks are the figure's, not running text that fills its column: the FIGURE
+    block holds them and the CAPTION block holds the caption alone."""
+    ticks = [line(str(10 * k), 238 + 28 * k, 262, 246 + 28 * k) for k in range(5)]
+    caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
+    found, left, right = gutter_page("L29.", [*ticks, *caption])
+    doc = build_document(found)
+    assert holding(doc, BlockKind.FIGURE) == [["fig", *[li.id for li in ticks]]]
+    assert holding(doc, BlockKind.CAPTION) == [[li.id for li in caption]][: len(caption)]
+    assert unmixed(doc, left + right)
+    ids = {li.id: li.text for li in [*left, *right, *ticks, *caption]}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + ticks + caption + right]
+
+
+def bar_chart(x0: float, step: float = 50) -> tuple[Drawing, ...]:
+    """A bar chart from x `x0` and from y 84 to y 197: two axes and four bars 20 pt wide,
+    `step` apart, standing on the x axis."""
+    axes = (
+        Drawing("axis-x", Box(x0, 196, x0 + 4 * step + 10, 197)),
+        Drawing("axis-y", Box(x0, 84, x0 + 1, 197)),
+    )
+    tops = (150, 120, 100, 130)
+    bars = tuple(
+        Drawing(f"bar{k}", Box(x0 + 20 + step * k, top, x0 + 40 + step * k, 196))
+        for k, top in enumerate(tops)
+    )
+    return axes + bars
+
+
+def chart_labels(x0: float) -> list[TextLine]:
+    """Labels in the body size on the bar chart: two rows of two, at y 120 and y 150."""
+    return [
+        line(f"lab{k}", x0 + 10 + 50 * k, 120 + 30 * (k % 2), x0 + 30 + 50 * k) for k in range(4)
+    ]
+
+
+def items_of(doc: Document, lines: list[TextLine]) -> list[list[str]]:
+    """The lines of `lines` each block holds, for the blocks that hold any."""
+    ids = {li.id for li in lines}
+    found = [[p.item for p in b.parts if p.item in ids] for b in doc.blocks]
+    return [items for items in found if items]
+
+
+@pytest.mark.parametrize("end", ["L29", "L29."])
+def test_body_size_labels_of_a_figure_at_a_column_top_stay_with_it(end: str) -> None:
+    """#932: a bar chart at the top of the right column, with two rows of labels set in the
+    body size on it, and the left column ending in a full line, whether it ends a sentence
+    or runs on. The labels are the figure's: each row stands in a block of its own right
+    after the FIGURE block, not in the left column's paragraph, which goes on in the right
+    column if its sentence does."""
+    left = [line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 19 else ''}", 306, 214 + 14 * k, 526) for k in range(20)]
+    labels = chart_labels(310)
+    doc = build_document(content(left + right + labels, drawings=bar_chart(310)))
+    (figure,) = [k for k, b in enumerate(doc.blocks) if b.kind is BlockKind.FIGURE]
+    upper, lower = [li.id for li in labels[::2]], [li.id for li in labels[1::2]]
+    after = doc.blocks[figure + 1 : figure + 3]
+    assert [[p.item for p in b.parts] for b in after] == [upper, lower]
+    assert items_of(doc, labels) == [upper, lower]
+    assert unmixed(doc, left + right)
+    if end == "L29":
+        assert right[0].id in {p.item for p in block_of(doc, left[-1].id).parts}
+
+
+@pytest.mark.parametrize("end", ["L29", "L29."])
+def test_body_text_next_to_or_under_a_figure_is_no_label(end: str) -> None:
+    """#932: running text is never a figure's label. A full line 4 pt under a bar chart at
+    the top of the right column, five lines beside a narrower chart, and short lines on one
+    shaded box at the top of the right column (a background, D-840) are read in the same
+    blocks as without the drawings."""
+    left = [line(end if k == 29 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(30)]
+    under = [line("under goes on", 306, 201, 526)]
+    beside = [line(f"B{k}", 446, 90 + 14 * k, 526) for k in range(5)]
+    shaded = [line(f"x{k} = {k}", 312, 90 + 14 * k, 380) for k in range(4)]
+    shade = (Drawing("shade", Box(306, 84, 526, 148)),)
+    pages = [
+        (under, 215, bar_chart(310)),
+        (beside, 214, bar_chart(306, step=25)),
+        (shaded, 160, shade),
+    ]
+    for lines, top, drawings in pages:
+        right = [line(f"R{k}", 306, top + 14 * k, 526) for k in range(20)]
+        text = left + lines + right
+        drawn = build_document(content(text, drawings=drawings))
+        assert items_of(drawn, text) == items_of(build_document(content(text)), text)
+
+
+def frame(x0: float, y0: float, x1: float, y1: float) -> tuple[Drawing, ...]:
+    """A frame of four rules 1 pt thick around the box."""
+    return (
+        Drawing("frame-top", Box(x0, y0, x1, y0 + 1)),
+        Drawing("frame-bottom", Box(x0, y1 - 1, x1, y1)),
+        Drawing("frame-left", Box(x0, y0, x0 + 1, y1)),
+        Drawing("frame-right", Box(x1 - 1, y0, x1, y1)),
+    )
+
+
+@pytest.mark.parametrize("case", ["running text on the chart", "short lines in a frame"])
+def test_short_lines_at_a_column_top_with_running_text_on_the_figure_or_in_rules_are_text(
+    case: str,
+) -> None:
+    """#932: the left column runs on into the right one, whose top holds short lines on a
+    figure. If a full line of running text lies on the figure too (a bar chart with text
+    set over its foot), or the figure is only rules (a frame around a note), the short lines
+    are running text, not the figure's labels: they are read in the same blocks as without
+    the drawings."""
+    left = [line("L29" if k == 29 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(30)]
+    if case == "running text on the chart":
+        lines = [*chart_labels(310), line("running on over the chart", 306, 176, 526)]
+        drawings, top = bar_chart(310), 214
+    else:
+        lines = [line(f"x{k} = {k}", 312, 90 + 14 * k, 380) for k in range(4)]
+        drawings, top = frame(306, 84, 526, 148), 160
+    right = [line(f"R{k}", 306, top + 14 * k, 526) for k in range(20)]
+    text = left + lines + right
+    drawn = build_document(content(text, drawings=drawings))
+    assert items_of(drawn, text) == items_of(build_document(content(text)), text)
+
+
+def test_ticks_on_a_gutter_figure_do_not_run_on_into_its_caption() -> None:
+    """#933: on the #895 page with the left column running on, a row of ticks across the
+    drawing's foot (on it, each 2 em from the next) and the caption 4 pt under it, as close
+    as running text's next line: the caption is a CAPTION block of its own, not the end of
+    the ticks' paragraph."""
+    ticks = [line(str(10 * k), 238 + 28 * k, 248, 246 + 28 * k) for k in range(5)]
+    caption = line("Figure 1: a thing", 240, 262, 356)
+    found, _, _ = gutter_page("L29", [*ticks, caption])
+    doc = build_document(found)
+    assert holding(doc, BlockKind.CAPTION) == [[caption.id]]
+
+
+def test_a_gutter_figure_of_rules_holds_its_labels() -> None:
+    """#932: on the #895 page the drawing is a frame of four rules: lines only, which alone
+    would join the block before them. With the labels read into its block it is a figure
+    all the same, and the FIGURE block holds the rules and the labels."""
+    labels = gutter_labels()
+    left = [line(f"L{k}{'.' if k == 29 else ''}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    rules = frame(236, 190, 360, 260)
+    doc = build_document(content(left + right + labels, drawings=rules))
+    (figure,) = holding(doc, BlockKind.FIGURE)
+    assert {li.id for li in labels} | {d.id for d in rules} == set(figure)
+
+
+def test_a_gutter_figure_on_two_pages_in_one_place_is_no_running_head() -> None:
+    """#932: the #895 page twice, the figure in the same place on both: a figure whose labels
+    are read into its block is a figure, not a journal's logo repeated on its pages."""
+    pages = []
+    for n in (1, 2):
+        left = [line(f"L{k}{'.' if k == 29 else ''}", 70, 80 + 14 * k, 228) for k in range(30)]
+        right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+        drawing = Drawing(f"fig{n}", Box(236, 190, 360, 260))
+        lines = (*left, *right, *gutter_labels())
+        pages.append(Page(n, lines, width=600, height=800, drawings=(drawing,)))
+    found = Content(Source("test.pdf", SourceFormat.PDF), tuple(pages), Metadata())
+    doc = build_document(found)
+    figures = holding(doc, BlockKind.FIGURE)
+    assert [f[0] for f in figures] == ["fig1", "fig2"]
+    assert all(len(f) == 7 for f in figures)
+    assert not [b for b in doc.blocks if b.kind is BlockKind.FURNITURE]
 
 
 def three_columns(rows: tuple[int, int, int]) -> list[TextLine]:
