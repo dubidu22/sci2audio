@@ -14,8 +14,9 @@ quotes the printed text.
   marks as a count gets a thousands comma ("1234 participants" → "1,234"), and so does one
   before "=" or "equals" unless it is year-like (#844), and one before "×", the word "times"
   or an "x" the units step reads "times" (glued, spaced, capital, before a digit; #844, #870);
-  a year-like one there too ("2,019 times"), unless a number follows ("1920x1080") or a word
-  before makes it a year ("in 2019 times", #871).
+  a year-like one there too ("2,019 times", "2,019 times 3"), unless a number of three or more
+  digits follows (a size, "1920x1080", #870) or a word before makes it a year ("in 2019
+  times", #871).
 - N4 (D-184): trailing zeros kept ("2.50" → "2 point 5 0"); misaki drops them.
 - N5, N6 (D-187): powers: "10⁶", "10^-4", "× 10−4", "x²", and "(I − P)⁻¹" (#589). An
   exponent whose raise only its run shows (a `sup` tag, or set small and raised:
@@ -79,11 +80,14 @@ _AFTER_OPERATOR = re.compile(r"[=<>\u2264\u2265\u2248~]\s*\Z")
 # a sign after the number that the statistics step reads "equals", or that word as a second
 # run sees it (#844); not "==" or "=\u21d2", which no step reads "equals"
 _BEFORE_EQUALS = re.compile(r"\s*=(?![=\u21d2])|\s+equals\b")
-# the times sign the units step reads "times", or that word as a second run sees it (#844),
-# and what follows it: a number makes it a product or a size ("1920 \u00d7 1080", #871)
-_BEFORE_TIMES = re.compile(r"(?:\s*\u00d7|\s+times\b)(?P<number>\s*\.?\d)?")
+# a number of three or more digits, "1,080" too: after a times sign it makes a size, whose
+# first number is no count ("1920x1080", #870); a second run sees it after "times" too, while
+# a smaller factor follows a count there ("2,019 times 3", #871)
+_SIZE = r"(?P<size>\s*(?:\d{1,3}(?:,\d{3})+|\d{3,})(?!\d))?"
+# the times sign the units step reads "times", or that word as a second run sees it (#844)
+_BEFORE_TIMES = re.compile(r"(?:\s*\u00d7|\s+times\b)" + _SIZE)
 # an "x" the units step may read "times": glued, or after one space (#870)
-_X_AFTER = re.compile(r" ?[xX](?P<number>\s*\.?\d)?")
+_X_AFTER = re.compile(r" ?[xX]" + _SIZE)
 _YEAR_LIKE = range(1500, 2100)
 _NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*)")
 _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
@@ -574,9 +578,10 @@ def _counted_before_sign(
     """True if the number is a count by what follows it. Before "=", "×" or an "x" read as
     "times" it is a number, read so on both runs, since a second run sees "equals" and
     "times" there (#844, #870). A year-like one is left as printed before "=" or "equals"
-    (#844), and before "×" or "times" too where a number follows ("1920x1080", a size) or a
-    word before makes it a year ("in 2019 times"); before "×" or "times" otherwise it is a
-    count, not "twenty nineteen times" (#871). Otherwise `_counted`."""
+    (#844), and before "×" or "times" too where a number of three or more digits follows
+    ("1920x1080", a size, #870) or a word before makes it a year ("in 2019 times"); before
+    "×" or "times" otherwise it is a count, not "twenty nineteen times" (#871). Otherwise
+    `_counted`."""
     if _BEFORE_EQUALS.match(text, end):
         return value not in _YEAR_LIKE
     times = times_x or _BEFORE_TIMES.match(text, end)
@@ -585,7 +590,7 @@ def _counted_before_sign(
     if value not in _YEAR_LIKE:
         return True
     previous = _PREVIOUS_WORD.search(before)
-    return times["number"] is None and not (
+    return times["size"] is None and not (
         previous is not None and previous["word"].lower() in _YEAR_WORDS
     )
 
