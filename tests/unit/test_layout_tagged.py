@@ -164,48 +164,53 @@ def test_code_is_a_code_block_and_quotes_are_paragraphs_keeping_their_lines() ->
     assert doc.blocks[0].is_placeholder
 
 
-def test_a_code_block_inside_a_note_is_code_not_footnote_text() -> None:
-    """#890: a `pre` holding `code` is CODE wherever it stands, a note included; the note's
-    own text stays a FOOTNOTE."""
-    fn = ("aside", "epub:footnote")
-    doc = build_document(
-        content(
-            [
-                line("Body text.", "p"),
-                line("See the rule:", *fn, "p"),
-                line("x => 2**3", *fn, "pre", "code"),
-                line("    y", *fn, "pre", "code", "br"),
-            ]
-        )
-    )
-    assert kinds(doc) == [
-        ("paragraph", "Body text."),
-        ("footnote", "See the rule:"),
-        ("code", "x => 2**3\n    y"),
+NOTE = ("aside", "epub:footnote")
+CODE_IN_NOTE = [
+    pytest.param([("x => 2**3", 1), ("After it.", 0)], "x => 2**3 After it.", id="first"),
+    pytest.param(
+        [("Before.", 0), ("x => 2**3", 1), ("After it.", 0)],
+        "Before. x => 2**3 After it.",
+        id="middle",
+    ),
+    pytest.param([("Before.", 0), ("x => 2**3", 1)], "Before. x => 2**3", id="last"),
+    pytest.param(
+        [("Before.", 0), ("x => 2**3", 1), ("Mid.", 0), ("a <=> b", 1)],
+        "Before. x => 2**3 Mid. a <=> b",
+        id="two",
+    ),
+    pytest.param([("x => 2**3", 1)], "x => 2**3", id="only"),
+]
+
+
+def note_lines(parts: list[tuple[str, int]]) -> list:
+    return [line(text, *NOTE, *(("pre", "code") if code else ("p",))) for text, code in parts]
+
+
+@pytest.mark.parametrize(("parts", "read"), CODE_IN_NOTE)
+def test_a_code_block_inside_a_note_leaves_the_note_whole_and_is_read_as_printed(
+    parts: list[tuple[str, int]], read: str
+) -> None:
+    """#890: the note stays one FOOTNOTE block, so its mark, number and place still work;
+    the text of its `pre>code` is read as printed, as inline code is (#854), the prose of
+    the note as words."""
+    mark = runs(("A claim.", P), ("1", ("p", "a", "role:doc-noteref", "link:p1-l2")))
+    doc = build_document(content([mark, *note_lines(parts), line("Next sentence.", "p")]))
+    assert [b.kind for b in doc.blocks] == [
+        BlockKind.PARAGRAPH,
+        BlockKind.FOOTNOTE,
+        BlockKind.PARAGRAPH,
     ]
-    assert doc.blocks[2].is_placeholder
-
-
-def test_the_text_steps_leave_the_code_block_of_an_epub_footnote_as_printed() -> None:
-    """#890 with #854: the block was a FOOTNOTE, so the steps read its arrow and its power
-    as words; the prose of the note is still read as words."""
-    fn = ("aside", "epub:footnote")
-    doc = build_document(
-        content(
-            [
-                line("Body text.", "p"),
-                line("The rule A => B holds:", *fn, "p"),
-                line("x => 2**3", *fn, "pre", "code"),
-            ]
-        )
-    )
     run = run_steps(doc, StepContext("en"), BUILT_IN_STEPS, strict=True)
     assert not run.problems
-    spoken = spoken_text(run.script())
-    assert "A implies B" in spoken
-    assert "A code block is skipped." in spoken
-    assert "power of" not in spoken
-    assert "x implies" not in spoken
+    assert spoken_text(run.script()) == f"A claim.Footnote 1. {read}Next sentence."
+
+
+def test_the_text_steps_still_read_the_prose_of_a_note_that_holds_code() -> None:
+    mark = runs(("A claim.", P), ("1", ("p", "a", "role:doc-noteref", "link:p1-l2")))
+    parts = [("The rule A => B holds:", 0), ("x => 2**3", 1)]
+    doc = build_document(content([mark, *note_lines(parts)]))
+    run = run_steps(doc, StepContext("en"), BUILT_IN_STEPS, strict=True)
+    assert "The rule A implies B holds: x => 2**3" in spoken_text(run.script())
 
 
 def test_a_listing_figcaption_names_its_code_block() -> None:
@@ -421,7 +426,8 @@ def test_a_plain_text_list_numbered_past_99_labels_every_item() -> None:
 
 
 @pytest.mark.parametrize(
-    "text", ["1984 was a year", "-dash", "*emphasis*", "1.5 litres", "a)", "Ein Punkt", "(x"]
+    "text",
+    ["1984 was a year", "1000. x", "-dash", "*emphasis*", "1.5 litres", "a)", "Ein Punkt", "(x"],
 )
 def test_a_list_item_that_opens_with_no_marker_carries_no_label(text: str) -> None:
     doc = build_document(content([line(text, "ol", "li")]))
