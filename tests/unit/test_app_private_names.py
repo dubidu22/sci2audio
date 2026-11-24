@@ -10,13 +10,15 @@ Flagged forms: `from sci2audio.app.audio import _x` (absolute or relative, any `
 `_x` on the module reached through any import (`import sci2audio.app.audio as a`,
 `from sci2audio.app import audio`, `from .. import app; app.audio._x`, `import sci2audio`,
 relative forms of these).
-Names are bound by imports only, in one table per file where the last import of a name wins
-(two functions importing different things under the same name can give a missed or a false hit;
-no module does this). Flagged: a later assignment, parameter or loop variable that reuses the
-imported name (`audio = other(); audio._x`, `def f(audio): return audio._x`) still counts as the
-module. Not flagged: a copy of the module under another name (`b = audio; b._x`),
-`from sci2audio.app import *; audio._x`, `getattr(module, "_x")` and `importlib.import_module`;
-the scan reads imports by syntax only."""
+Names are bound by imports only, in one table per file, filled in breadth-first order: an import
+nested deeper (inside a function) overrides a module-level import of the same name wherever each
+sits in the file, and among imports at one depth the later one wins; so two scopes importing
+different things under the same name give a missed or a false hit (no module does this).
+Flagged: a later assignment, parameter or loop variable that reuses the imported name
+(`audio = other(); audio._x`, `def f(audio): return audio._x`, `for audio in mods: audio._x`)
+still counts as the module. Not flagged: a copy of the module under another name
+(`b = audio; b._x`), `from sci2audio.app import *; audio._x`, `getattr(module, "_x")` and
+`importlib.import_module`; the scan reads imports by syntax only."""
 
 from __future__ import annotations
 
@@ -102,6 +104,18 @@ def test_no_module_outside_app_reaches_a_private_name_of_app_audio() -> None:
 
 
 _ATTR = ["sci2audio.app.audio._kept"]
+_NESTED_IS_OTHER = "def f():\n    from sci2audio.core import audio\n"
+_TOP_IS_APP = "from sci2audio.app import audio\n"
+_DEEPER_WINS_FALSE_HIT = (
+    "from sci2audio.core import audio\n"
+    "def f():\n    from sci2audio.app import audio\n    return audio\n"
+    "audio._kept\n"
+)
+_DEEPER_WINS_FALSE_HIT_REORDERED = (
+    "def f():\n    from sci2audio.app import audio\n    return audio\n"
+    "from sci2audio.core import audio\n"
+    "audio._kept\n"
+)
 
 
 @pytest.mark.parametrize(
@@ -130,6 +144,25 @@ _ATTR = ["sci2audio.app.audio._kept"]
             "sci2audio.web",
             _ATTR,
         ),
+        (
+            "from sci2audio.app import audio\nfor audio in mods:\n    audio._kept\n",
+            "sci2audio.web",
+            _ATTR,
+        ),
+        ("from sci2audio.app.audio import __kept\n", "sci2audio.web", ["__kept"]),
+        ("from sci2audio.app.audio import __kept_\n", "sci2audio.web", ["__kept_"]),
+        (
+            "from sci2audio.app import audio\naudio.__kept\n",
+            "sci2audio.web",
+            ["sci2audio.app.audio.__kept"],
+        ),
+        (
+            "from sci2audio.app import audio\naudio.__kept_\n",
+            "sci2audio.web",
+            ["sci2audio.app.audio.__kept_"],
+        ),
+        (_DEEPER_WINS_FALSE_HIT, "sci2audio.web", _ATTR),
+        (_DEEPER_WINS_FALSE_HIT_REORDERED, "sci2audio.web", _ATTR),
         ("from sci2audio.app.audio import *\n", "sci2audio.web", ["*"]),
         ("from ..app.audio import *\n", "sci2audio.web", ["*"]),
     ],
@@ -149,6 +182,13 @@ _ATTR = ["sci2audio.app.audio._kept"]
         "assignment-does-not-unbind-the-package-chain",
         "assignment-does-not-unbind-the-alias",
         "parameter-does-not-unbind-the-alias",
+        "loop-variable-does-not-unbind-the-alias",
+        "double-underscore-from-import",
+        "double-underscore-trailing-from-import",
+        "double-underscore-attribute",
+        "double-underscore-trailing-attribute",
+        "nested-import-overrides-module-level-after-it",
+        "nested-import-overrides-module-level-before-it",
         "star-import",
         "relative-star-import",
     ],
@@ -173,6 +213,8 @@ def test_the_scan_sees_each_form(source: str, package: str, expected: list[str])
         ("import sci2audio.app.audio.__init__\n", "sci2audio.web"),
         ("from sci2audio.app import audio\nb = audio\nb._kept()\n", "sci2audio.web"),
         ("from sci2audio.app import *\naudio._kept()\n", "sci2audio.web"),
+        (_TOP_IS_APP + _NESTED_IS_OTHER + "audio._kept\n", "sci2audio.web"),
+        (_NESTED_IS_OTHER + _TOP_IS_APP + "audio._kept\n", "sci2audio.web"),
     ],
     ids=[
         "public-from-import",
@@ -188,6 +230,8 @@ def test_the_scan_sees_each_form(source: str, package: str, expected: list[str])
         "dunder-dotted-import",
         "copy-of-the-module-is-not-followed",
         "star-import-of-the-package-is-not-followed",
+        "nested-import-overrides-module-level-after-it",
+        "nested-import-overrides-module-level-before-it",
     ],
 )
 def test_the_scan_ignores_public_dunder_and_unfollowed_names(source: str, package: str) -> None:
