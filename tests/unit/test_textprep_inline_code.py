@@ -173,6 +173,53 @@ def test_a_url_inside_longer_code_stays_as_printed(language: str, printed: str, 
     assert read(markdown(printed, language), language) == said
 
 
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    ("code", "url"),
+    [
+        ("https://example.org/a.", "https://example.org/a"),  # sentence punctuation inside
+        ("https://example.org/a,", "https://example.org/a"),
+        ("<https://example.org/a>", "https://example.org/a"),  # brackets around it
+        ("(https://example.org/a)", "https://example.org/a"),
+        ('"https://example.org/a"', "https://example.org/a"),
+        ("https://example.org/a, https://example.org/b", "https://example.org/b"),  # two
+        ("https://example.org/a https://example.org/b", "https://example.org/b"),
+        ("https://example.org/a,https://example.org/b.", "https://example.org/b"),
+        ("doi:10.1000/xyz123", "10.1000/xyz123"),  # any link the links step finds
+    ],
+)
+def test_a_code_span_of_only_links_is_left_to_the_links_step(
+    language: str, code: str, url: str
+) -> None:
+    printed = {
+        "en": f"The data are available at `{code}` for everyone.",
+        "de": f"Die Daten sind unter `{code}` abrufbar.",
+    }[language]
+    document = markdown(printed, language)
+    assert not inline_code(document)
+    run = run_steps(document, StepContext(language), strict=True)
+    links = [edit for edit in run.edits(Status.ACCEPTED) if edit.step == "links"]
+    assert any(url in document.text_of(edit.span) for edit in links)
+    plain = make_document([(BlockKind.PARAGRAPH, document.blocks[0].text)], language)
+    assert spoken_text(run.script()) == read(plain, language)
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "curl https://example.org/a",
+        "https://example.org/a and https://example.org/b",
+        "https://example.org/a; x => 1",
+        "fetch(https://example.org/a)",
+    ],
+)
+def test_links_with_other_code_stay_as_printed(language: str, code: str) -> None:
+    printed = {"en": f"Run `{code}` now.", "de": f"Führe `{code}` aus."}[language]
+    said = printed.replace("`", "")
+    assert read(markdown(printed, language), language) == said
+
+
 def test_a_second_run_keeps_inline_code_as_printed() -> None:
     document = markdown("Set `n = 2^3` for 10 km.", "en")
     first = run_steps(document, StepContext("en"), strict=True)

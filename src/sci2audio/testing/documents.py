@@ -133,8 +133,10 @@ def rebuilt_from_script(
     from the printed placeholder and its captions only, so the second run makes it again,
     however it reads the label ("Formel 3 Punkt 2", D-707); its text is unchanged, so its
     runs keep their tags, and a hidden run or page-break marker in it is seen again (#463).
-    The section tree is kept, and so is each block's pictures' alt text, which the script
-    cannot carry (#191).
+    In every other block, the inline code (`textprep.runner.inline_code`) that the script
+    keeps comes back tagged `code`, so a second run reads it as printed too (#854); its
+    other run tags are not kept. The section tree is kept, and so is each block's pictures'
+    alt text, which the script cannot carry (#191).
     Used to check that running the steps a second time changes nothing more (idempotence).
 
     The placeholders whose indices are in `own_output` come back as the script reads them

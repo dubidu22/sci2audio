@@ -19,8 +19,10 @@ Inline code is read as printed (#854): an inline edit that touches a run the fil
 code (`inline_code`: a character of it, or a position strictly inside it) is dropped before
 anything else, from built-in steps and plugins alike, so arrows, operators and numbers in
 "Use `x => x + 1` here." stay as typed while the prose around them is still read. Code
-that holds only a URL is not protected: the links step leaves it out as before. Block
-edits (a code block's notice, furniture) and moves claim whole blocks and are not touched.
+that holds only links (URLs, DOIs, e-mail addresses, with the punctuation and brackets
+around them) is not protected: the links step leaves it out as before. Block edits (a code
+block's notice, furniture) and moves claim whole blocks and are not touched. A dropped
+edit is no outcome: the report lists what a rule changes, and inside code none does.
 
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
 run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests. Steps from
@@ -88,11 +90,12 @@ class StepProblem:
 
 @dataclass(frozen=True)
 class StepRun:
-    """Everything the steps proposed for one document, settled.
+    """What the steps proposed for one document, settled.
 
     The data behind the report (UC-01, #70): every edit with its reason, step, category and
     status, set-aside edits with the edit that won, problems and the steps not run for the
-    job's language.
+    job's language. An inline edit that touches inline code is dropped before it gets an
+    outcome (#854), so it is not here: the code is read as printed.
     """
 
     document: Document
@@ -220,13 +223,21 @@ CODE_TAG = "code"
 # a run inside one of these is no inline code: `pre` is a code block, which has its notice;
 # a hidden run or page-break marker is left out by the hidden-runs step
 _NOT_INLINE_CODE = frozenset({"pre"}) | HIDDEN_TAGS | PAGE_BREAK_TAGS
-_URL_KINDS = frozenset({"url", "host"})  # as `links.find_links` names a web address
+# what may stand around and between links in code left to the links step: the punctuation
+# and brackets it strips at a link's end (`links._TRAILING`, `links._PAIRS`), their opening
+# brackets and quotes, and white space
+_AROUND_LINKS = frozenset(
+    ".,;:!?*()[]<>'\" \t\n"
+    "\N{LEFT SINGLE QUOTATION MARK}\N{RIGHT SINGLE QUOTATION MARK}"
+    "\N{LEFT DOUBLE QUOTATION MARK}\N{RIGHT DOUBLE QUOTATION MARK}"
+    "\N{DOUBLE LOW-9 QUOTATION MARK}"
+)
 
 
 def inline_code(document: Document) -> dict[int, list[tuple[int, int]]]:
     """Where each block holds inline code: (start, end) in its text, in order, runs side by
     side joined. Inline code is a run the file tags `code` (Markdown's backticks, an EPUB's
-    `<code>`) outside `pre`, not hidden, and not a URL alone (`_only_a_url`). A line whose
+    `<code>`) outside `pre`, not hidden, and not only links (`_only_links`). A line whose
     text is not where its part says (it never should be) is skipped, so a span never points
     at other text."""
     items = document.content.items()
@@ -248,21 +259,25 @@ def inline_code(document: Document) -> dict[int, list[tuple[int, int]]]:
                         offset = spans.pop()[0]
                     spans.append((offset, end))
                 offset = end
-        if spans := [span for span in spans if not _only_a_url(block.text[slice(*span)])]:
+        if spans := [span for span in spans if not _only_links(block.text[slice(*span)])]:
             found[index] = spans
     return found
 
 
-def _only_a_url(text: str) -> bool:
-    """True for code that holds one URL and nothing else ("`https://example.org`"): the
-    links step leaves it out with its reason, as it does a URL printed without backticks."""
-    stripped = text.strip()
-    links = find_links(stripped)
-    return (
-        len(links) == 1
-        and links[0].kind in _URL_KINDS
-        and (links[0].start, links[0].end) == (0, len(stripped))
-    )
+def _only_links(text: str) -> bool:
+    """True for code that holds links and nothing else (#854): one or more URLs, DOIs,
+    arXiv ids or e-mail addresses as `links.find_links` finds them, with only white space,
+    commas, the sentence punctuation and the brackets and quotes the links step strips
+    around a link between and around them ("`<https://example.org/a>.`", "`https://a.org,
+    https://b.org`"). The links step leaves such code out with its reason, as it does the
+    same links printed without backticks."""
+    links = find_links(text)
+    at = 0
+    for link in links:
+        if not _AROUND_LINKS.issuperset(text[at : link.start].strip()):
+            return False
+        at = link.end
+    return bool(links) and _AROUND_LINKS.issuperset(text[at:].strip())
 
 
 def _in_code(code: Mapping[int, list[tuple[int, int]]], span: Span) -> bool:
