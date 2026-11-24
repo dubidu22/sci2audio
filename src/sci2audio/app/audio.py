@@ -39,6 +39,7 @@ import dataclasses
 import threading
 import time
 import wave
+from collections import Counter
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -185,6 +186,10 @@ class AudioProgress:
     # 0 and False outside the speaking phase's chunks
     chapter_number: int = 0
     chapter_done: bool = False
+    # #1054: the chunk's chapter's own count, done (this chunk included) and in all, so a
+    # page can show how far the chapter being spoken is; 0 outside the speaking phase's chunks
+    chapter_chunks_done: int = 0
+    chapter_chunks_total: int = 0
     chunks_done: int = 0
     chunks_total: int = 0
     reused: int = 0  # chunks found finished in the cache
@@ -402,6 +407,8 @@ class _Speech:
     characters_total: int
     chapters: int
     last_of_chapter: dict[int, int]  # chapter -> index of its last chunk
+    chapter_chunks: dict[int, int] = field(default_factory=dict)  # chapter -> its chunks
+    chapter_chunks_done: dict[int, int] = field(default_factory=dict)  # ... of them done
     chunks_done: int = 0
     reused: int = 0
     spoken: int = 0
@@ -440,6 +447,8 @@ class _Speech:
             chapters=self.chapters,
             chapter_number=order.index(chunk.chapter) + 1,
             chapter_done=self.last_of_chapter[chunk.chapter] == index,
+            chapter_chunks_done=self.chapter_chunks_done.get(chunk.chapter, 0),
+            chapter_chunks_total=self.chapter_chunks.get(chunk.chapter, 0),
             chunks_done=self.chunks_done,
             chunks_total=self.chunks_total,
             reused=self.reused,
@@ -1107,6 +1116,7 @@ def _speak(
         characters_total=sum(needed.values()),
         chapters=len(last_of_chapter),
         last_of_chapter=last_of_chapter,
+        chapter_chunks=dict(Counter(chunk.chapter for chunk in plan.chunks)),
     )
     for characters in needed.values():
         speech.estimate.expect(characters)
@@ -1128,6 +1138,8 @@ def _speak(
             _check_cancel(cancel)
             _one(chunk, work, needed, session, voice_id, speeds, speech)
             speech.chunks_done += 1
+            done = speech.chapter_chunks_done
+            done[chunk.chapter] = done.get(chunk.chapter, 0) + 1
             if speech.first_chapter is not None and index == last_of_chapter[speech.first_chapter]:
                 speech.first_chapter_done = True
             event = speech.progress(chunk, titles[chunk.chapter], index, chapters.playable)
