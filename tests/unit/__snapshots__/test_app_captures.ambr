@@ -1,0 +1,91 @@
+# serializer version: 1
+# name: test_the_file_text_golden_file[carried over]
+  '''
+  {
+   "format": "sci2audio-captures",
+   "version": 1,
+   "document": "0123456789abcdef",
+   "migrated_from": "markers.json",
+   "captures": [
+    {
+     "id": "00000000000000a1",
+     "type": "mark",
+     "created": "2026-11-20T19:04:00Z",
+     "changed": "2026-11-20T19:04:00Z",
+     "anchor": {
+      "block": 1,
+      "start": 0,
+      "end": 44,
+      "text": "Sleep loss lowered recall by 12 % (p < .01)."
+     },
+     "text": ""
+    },
+    {
+     "id": "00000000000000b2",
+     "type": "note",
+     "created": "2026-11-20T19:04:00Z",
+     "changed": "2026-11-20T19:04:00Z",
+     "anchor": {
+      "block": 2,
+      "start": 0,
+      "end": 22,
+      "text": "Naps were not counted."
+     },
+     "text": "Were naps left out on purpose?"
+    }
+   ]
+  }
+  
+  '''
+# ---
+# name: test_the_file_text_golden_file[three types]
+  '''
+  {
+   "format": "sci2audio-captures",
+   "version": 1,
+   "document": "0123456789abcdef",
+   "captures": [
+    {
+     "id": "00000000000000a1",
+     "type": "mark",
+     "created": "2026-11-20T19:04:00Z",
+     "changed": "2026-11-20T19:04:00Z",
+     "anchor": {
+      "block": 1,
+      "start": 0,
+      "end": 44,
+      "text": "Sleep loss lowered recall by 12 % (p < .01)."
+     },
+     "text": ""
+    },
+    {
+     "id": "00000000000000b2",
+     "type": "note",
+     "created": "2026-11-20T19:04:00Z",
+     "changed": "2026-11-20T19:04:00Z",
+     "anchor": {
+      "block": 2,
+      "start": 0,
+      "end": 22,
+      "text": "Naps were not counted."
+     },
+     "text": "Were naps left out on purpose?"
+    },
+    {
+     "id": "00000000000000c3",
+     "type": "quote",
+     "created": "2026-11-20T19:04:00Z",
+     "changed": "2026-11-20T19:04:00Z",
+     "anchor": {
+      "block": 1,
+      "start": 0,
+      "end": 44,
+      "text": "Sleep loss lowered recall by 12 % (p < .01)."
+     },
+     "text": ""
+    }
+   ]
+  }
+  
+  '''
+# ---

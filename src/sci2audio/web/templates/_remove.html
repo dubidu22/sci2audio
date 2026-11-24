@@ -8,8 +8,11 @@
   <summary class="btn quiet sm">{{ icon('x', 's') }}<span>{% if named %}{{ t('remove.summary_named', name=document.name) }}{% else %}{{ t('remove.summary') }}{% endif %}</span></summary>
   <div class="remove-box">
     <p>{{ t('remove.goes', size=size_text(removal.bytes)) }}</p>
-    {#- counted from the markers file as the box is drawn (#474, D-728 ruling 3) #}
-    {% if removal.markers is none %}<p class="remove-markers">{{ t('remove.markers_unread') }}</p>{% elif removal.markers %}<p class="remove-markers">{{ t('remove.markers', n=removal.markers) }}</p>{% endif %}
+    {#- the captures by type, in the dock's order, counted as the box is drawn from
+        captures.json, or from the v1.3 markers.json before the carry-over (D-728 ruling 3,
+        ADR-008 2.1 items 4 and 5) #}
+    {% set captures = removal.captures %}
+    {% if captures.unread == 'captures' %}<p class="remove-captures">{{ t('remove.captures_unread') }}</p>{% elif captures.unread == 'markers' %}<p class="remove-captures">{{ t('remove.markers_unread') }}</p>{% elif captures.note or captures.quote or captures.mark %}<p class="remove-captures">{{ [t('remove.notes', n=captures.note) if captures.note else '', t('remove.quotes', n=captures.quote) if captures.quote else '', t('remove.marks', n=captures.mark) if captures.mark else ''] | select | join(' ') }}</p>{% endif %}
     {#- the project's own audiobook folders (#470, D-751): what goes unless kept #}
     {% for audiobook in removal.audiobooks %}<p class="remove-audiobook">{{ t('remove.audiobook', n=audiobook.files, folder=audiobook.folder, size=size_text(audiobook.bytes)) }}</p>{% endfor %}
     {% if removal.audiobooks %}<p class="remove-keep-line"><label><input type="checkbox" class="remove-keep" id="remove-keep-{{ document.id }}"{% if removal.keep %} checked{% endif %}> {{ t('remove.keep') }}</label></p>{% endif %}

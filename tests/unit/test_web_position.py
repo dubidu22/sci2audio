@@ -24,6 +24,7 @@ from web_helpers import ORIGIN, browser, make_config, program
 from web_helpers import offline as offline
 
 from sci2audio.app import files
+from sci2audio.output import read_readalong
 from sci2audio.web import create_app, player
 from sci2audio.web.player import Position, read_position, write_position
 
@@ -117,6 +118,84 @@ def test_two_saves_at_once_both_succeed(tmp_path: Path) -> None:
     assert json.loads((tmp_path / player.POSITION).read_text(encoding="utf-8"))["time"] >= 0
 
 
+def test_a_change_writes_only_what_it_makes_of_a_record(tmp_path: Path) -> None:
+    """#790: `PositionSaves.change` reads and writes in one turn; no record, or a change
+    that gives None, writes nothing."""
+    saves = player.PositionSaves()
+    seen: list[Position] = []
+
+    def later(position: Position) -> Position | None:
+        seen.append(position)
+        return Position(position.chapter, position.time + 1.0)
+
+    saves.change(tmp_path, DOC, STAMP, later)
+    assert seen == []
+    assert not (tmp_path / player.POSITION).exists()
+    saves.save(tmp_path, DOC, STAMP, Position(1, 7.0))
+    before = (tmp_path / player.POSITION).read_bytes()
+    saves.change(tmp_path, DOC, STAMP, lambda position: None)
+    assert (tmp_path / player.POSITION).read_bytes() == before
+    saves.change(tmp_path, DOC, STAMP, later)
+    assert seen == [Position(1, 7.0)]
+    assert player.recorded_position(tmp_path, DOC, STAMP) == Position(1, 8.0)
+    assert not saves.lock.locked()
+
+
+class Waiting:
+    """A stand-in for the lock of `PositionSaves` that says when a taker has to wait."""
+
+    def __init__(self, blocked: threading.Event) -> None:
+        self.inner = threading.Lock()
+        self.blocked = blocked
+
+    def __enter__(self) -> None:
+        if not self.inner.acquire(blocking=False):
+            self.blocked.set()  # somebody holds it: this one waits
+            self.inner.acquire()
+
+    def __exit__(self, *_exc: object) -> None:
+        self.inner.release()
+
+
+def test_a_save_between_the_read_and_the_removal_of_a_forgotten_position_survives(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#839: the job that forgets the position of another audiobook reads the record and
+    removes it in one turn of `PositionSaves`; a player save that arrives in between
+    waits for it and is written after, so it is not removed with the old record. The
+    save is started when the removal is about to happen and the removal goes on once the
+    save waits on the lock or is done: no clock decides it."""
+    from sci2audio.web import tasks
+    from sci2audio.web.documents import StoredDocument
+
+    client, config = server(tmp_path)
+    doc = make(client)["doc"]["id"]
+    stamp = stamp_of(client, doc)
+    work = work_of(config, doc)
+    (found,) = tmp_path.rglob("*.readalong.json")
+    document = StoredDocument(doc, work, Path("paper.pdf"))
+    write_position(work, doc, "ffffffffffffffff", Position(0, 0.5))  # of another audiobook
+    settled = threading.Event()  # the save waits on the lock, or has been written
+    saves = player.PositionSaves()
+    saves.lock = Waiting(settled)  # type: ignore[assignment]
+    saver = threading.Thread(
+        target=lambda: (saves.save(work, doc, stamp, Position(0, 1.5)), settled.set())
+    )
+    unlink = Path.unlink
+
+    def removing(self: Path, missing_ok: bool = False) -> None:
+        if self.name == player.POSITION and not saver.is_alive() and not settled.is_set():
+            saver.start()
+            assert settled.wait(timeout=60)  # only a hang fails here, not the outcome
+        unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", removing)
+    tasks._forget_other_position(document, found.parent, saves)
+    saver.join(timeout=60)
+    assert not saver.is_alive()
+    assert player.recorded_position(work, doc, stamp) == Position(0, 1.5)
+
+
 def test_no_record_and_a_folder_in_its_place_are_ignored(tmp_path: Path) -> None:
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
     (tmp_path / player.POSITION).mkdir()
@@ -138,14 +217,37 @@ def test_nothing_is_offered_before_the_first_sentence_ends_or_after_the_last(
 
 
 def test_a_position_must_lie_in_the_book() -> None:
-    data = two_chapters()
-    assert player.fits(data, Position(0, 0.0))
-    assert player.fits(data, Position(1, 10.0))  # the end is saved when the book ends
-    assert not player.fits(data, Position(1, 10.5))
-    assert not player.fits(data, Position(0, 5.5))
-    assert not player.fits(data, Position(2, 6.0))
-    assert not player.fits(data, Position(0, float("nan")))
-    assert not player.fits(data, Position(0, float("inf")))
+    fits = player.Bounds.of(two_chapters()).fits
+    assert fits(Position(0, 0.0))
+    assert fits(Position(1, 10.0))  # the end is saved when the book ends
+    assert not fits(Position(1, 10.5))
+    assert not fits(Position(0, 5.5))
+    assert not fits(Position(2, 6.0))
+    assert not fits(Position(0, float("nan")))
+    assert not fits(Position(0, float("inf")))
+
+
+def test_a_time_just_past_a_chapters_end_is_its_end() -> None:
+    """#779: a browser that keeps the padding of the file's last audio frame plays a
+    chapter a few milliseconds longer than the read-along says (Chromium: 5.808 s for
+    5.8 s), so the place it keeps at the end lies just past it. The last chapter's place
+    becomes the book's end, any other chapter's the start of the next one."""
+    bounds = player.Bounds.of(two_chapters())  # chapter 1 from 5 s, the book 10 s long
+    settled = bounds.settled
+    assert settled(Position(1, 10.008)) == Position(1, 10.0)
+    assert settled(Position(1, 10.0 + player.OVERRUN)) == Position(1, 10.0)
+    assert settled(Position(0, 5.008)) == Position(1, 5.0)
+    for kept in (Position(0, 4.9), Position(1, 9.0), Position(1, 10.0)):
+        assert settled(kept) == kept
+    for refused in (
+        Position(1, 10.0 + 2 * player.OVERRUN),  # more than one frame's padding
+        Position(0, 5.0 + 2 * player.OVERRUN),
+        Position(2, 10.0),
+        Position(1, float("nan")),
+        Position(1, float("inf")),
+    ):
+        assert settled(refused) is refused  # left as it is: `fits` refuses it
+        assert not bounds.fits(refused), refused
 
 
 def test_disk_full_leaves_the_old_record(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -253,6 +355,33 @@ def test_a_position_the_audiobook_does_not_have_is_refused(tmp_path: Path) -> No
         assert client.post(url, json={"audiobook": stamp, **body}).status_code == 422, body
     assert client.post(url, json={"chapter": 0, "time": 1}).status_code == 422  # no stamp
     assert not (work_of(_config, doc) / player.POSITION).exists()
+
+
+def test_the_place_kept_at_the_end_of_the_audio_is_the_books_end(tmp_path: Path) -> None:
+    """#779: the save the player sends when the audio ends lies past the read-along's
+    duration by the padding of the file's last frame; it is kept as the book's end, and
+    the end of the first chapter as the start of the second."""
+    client, config = server(tmp_path)
+    doc = make(client)["doc"]["id"]
+    url = f"/api/v1/documents/{doc}/position"
+    stamp = stamp_of(client, doc)
+    (found,) = tmp_path.rglob("*.readalong.json")
+    data = read_readalong(found)
+    second = data.chapters[1].start
+    end = data.duration
+    record = work_of(config, doc) / player.POSITION
+    for sent, kept in (
+        ({"chapter": 1, "time": end + 0.008}, (1, end)),
+        ({"chapter": 0, "time": second + 0.008}, (1, second)),
+        # the page's own chapter and the time inside it (#726): the same end
+        ({"chapter": 1, "time": 0, "index": 1, "within": end - second + 0.008}, (1, end)),
+    ):
+        answer = client.post(url, json={"audiobook": stamp, **sent})
+        assert answer.status_code == 204, (sent, answer.text)
+        saved = json.loads(record.read_text(encoding="utf-8"))
+        assert (saved["chapter"], saved["time"]) == kept, sent
+    late = {"chapter": 1, "time": end + 2 * player.OVERRUN, "audiobook": stamp}
+    assert client.post(url, json=late).status_code == 422
 
 
 def test_no_position_without_a_document_or_an_audiobook(tmp_path: Path) -> None:

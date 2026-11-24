@@ -2,8 +2,10 @@
 
 Each file is written under a temporary name of its own (`.<name>.<pid>-<random>.partial`)
 next to its target and renamed when complete, so two writers of the same file never share
-a temporary file and the last rename wins (#778); on any error the partial files are
-removed. `write_texts` writes
+a temporary file and the last rename wins (#778); on Windows, a replace refused while
+another writer replaces the same file is tried again a few times (#828), and a rename
+without `overwrite` refused there because the file exists is raised as FileExistsError, as
+on POSIX (#850). On any error the partial files are removed. `write_texts` writes
 all its files before it renames any, so a full disk leaves every earlier file as it was,
 and without `overwrite` it puts either all of its files in place or none.
 An existing file is only replaced with `overwrite=True`; without it, a file that appeared
@@ -20,7 +22,7 @@ import re
 import secrets
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 STALE_AFTER_SECONDS = 3600
@@ -28,6 +30,32 @@ STALE_AFTER_SECONDS = 3600
 only on its own machine and in its own PID namespace; in a folder shared with another
 machine or a container, a live writer's file may name a process that looks gone here, and
 a live writer finishes within seconds, so an hour old is a leftover."""
+
+REPLACE_ATTEMPTS = 10
+"""How often a replace (#828) or a no-overwrite rename (#850) refused with
+`PermissionError` on Windows is tried in all. Windows refuses to replace or rename onto a
+file while another writer is replacing the same file; that lasts a moment, so a later try
+succeeds and its file is the last one in place."""
+
+REPLACE_FIRST_PAUSE = 0.002
+"""Seconds to wait before the second try; each later pause is twice the one before."""
+
+REPLACE_MAX_PAUSE = 0.1
+"""The longest pause between two tries, so a file another program holds open fails in
+well under a second (all pauses together come to about 0.43 s)."""
+
+_REPLACE_IS_RETRIED = sys.platform == "win32"
+"""Whether a refused replace or no-overwrite rename is tried again (Windows only, #828,
+#850). Elsewhere a refusal is a real permission problem and is raised at once."""
+
+_IS_WINDOWS = sys.platform == "win32"
+"""Windows has no hard links to rely on, and its rename refuses an existing target."""
+
+# The calls the retry makes, looked up at call time so that tests patch them here only,
+# never `os` or `time` for the whole process (#860).
+_replace_once = os.replace
+_rename_once = os.rename
+_sleep = time.sleep
 
 
 def partial_path(target: Path) -> Path:
@@ -136,11 +164,48 @@ def _write_partial(partial: Path, content: str | bytes) -> None:
             os.fsync(text.fileno())
 
 
+def _replace(partial: Path, target: Path) -> None:
+    """`os.replace`, tried again on Windows while another writer replaces `target`."""
+    _retry_refused(lambda: _replace_once(partial, target))
+
+
+def _rename_new(partial: Path, target: Path) -> None:
+    """`os.rename` on Windows, which refuses an existing target. While another writer
+    replaces `target`, Windows says access denied instead; with a file at the target that
+    is the same answer as POSIX gives, so it is raised as FileExistsError (#850)."""
+
+    def rename() -> None:
+        try:
+            _rename_once(partial, target)
+        except PermissionError as refused:
+            if os.path.lexists(target):
+                raise FileExistsError(f"file appeared during the run: {target}") from refused
+            raise
+
+    _retry_refused(rename)
+
+
+def _retry_refused(move: Callable[[], None]) -> None:
+    """Run `move`; on Windows a `PermissionError` is tried again up to `REPLACE_ATTEMPTS`
+    times in all (#828). Any other error, and every error elsewhere, is raised at once."""
+    pause = REPLACE_FIRST_PAUSE
+    for attempt in range(1, REPLACE_ATTEMPTS + 1):
+        try:
+            move()
+        except PermissionError:
+            if not _REPLACE_IS_RETRIED or attempt == REPLACE_ATTEMPTS:
+                raise
+        else:
+            return
+        _sleep(pause)
+        pause = min(pause * 2, REPLACE_MAX_PAUSE)
+
+
 def _commit(partial: Path, target: Path, overwrite: bool) -> None:
     if overwrite:
-        os.replace(partial, target)
-    elif sys.platform == "win32":
-        os.rename(partial, target)  # refuses an existing target on Windows
+        _replace(partial, target)
+    elif _IS_WINDOWS:
+        _rename_new(partial, target)
     else:
         try:
             os.link(partial, target)  # refuses an existing target

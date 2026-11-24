@@ -8,7 +8,21 @@ from hypothesis import given
 from hypothesis import strategies as st
 from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line
 
-from sci2audio.core import Block, BlockKind, Box, Document, Drawing, Part, TextLine, TextRun
+from sci2audio.core import (
+    Block,
+    BlockKind,
+    Box,
+    Content,
+    Document,
+    Drawing,
+    Metadata,
+    Page,
+    Part,
+    Source,
+    SourceFormat,
+    TextLine,
+    TextRun,
+)
 from sci2audio.layout import build_document
 from sci2audio.layout.geometry import Bars, union
 from sci2audio.layout.order import Element
@@ -1167,3 +1181,149 @@ def test_scripts_outnumbering_their_base_letters_stay_in_the_row() -> None:
     doc = build_document(content([*text[:2], *pieces, *text[3:]]))
     (block,) = paragraphs(doc)
     assert block.split("\n")[2] == "ing integral J1st0[n(-1)E]. Next one feeds the field"
+
+
+# Liu p4's line "conductance ∝ (U3 1 / 2πniU4 0)(mev2F∆2 / (q2Fv2F+∆2)), which dominates as
+# the" (#648): its two fraction bars, drawn side by side, are read as one graphic reaching
+# past the first numerator. Its pieces (runs: text, size, x0, y0, x1, y1) and bars where liu
+# prints them, the pieces in liu's reading order.
+LIU_P4_LINE = "conductance ∝ U3 1 2πniU4 0 mev2F∆2 (q2Fv2F+∆2), which dominates as the"
+LIU_P4_RUNS = {
+    "lead": (
+        ("conductance", 10, 54.0, 218.3, 107.64, 227.14),
+        (" ∝", 10, 110.1, 217.74, 117.84, 227.14),
+    ),
+    "num1": (("U", 7, 130.29, 215.29, 136.1, 221.48), ("3 1", 5, 135.72, 213.66, 139.86, 223.09)),
+    "den2": (
+        ("(", 7, 151.23, 223.7, 154.34, 230.66),
+        ("q", 7, 154.34, 224.09, 157.99, 230.28),
+        ("2", 5, 158.24, 223.07, 161.63, 227.49),
+        ("F", 5, 157.99, 227.83, 162.71, 232.25),
+        ("v", 7, 163.68, 224.09, 167.66, 230.28),
+        ("2", 5, 167.91, 223.07, 171.3, 227.49),
+        ("F", 5, 167.66, 227.83, 172.38, 232.25),
+        ("+∆", 7, 173.35, 223.96, 186.0, 230.28),
+        ("2", 5, 186.01, 223.48, 189.4, 227.9),
+        (")", 7, 189.9, 223.7, 193.01, 230.66),
+        (", which dominates as the", 10, 194.21, 218.3, 298.98, 227.14),
+    ),
+    "num2": (
+        ("m", 7, 156.6, 215.29, 163.66, 221.48),
+        ("e", 5, 163.67, 217.67, 167.04, 222.09),
+        ("v", 7, 167.54, 215.29, 171.52, 221.48),
+        ("2", 5, 171.77, 213.66, 175.16, 218.09),
+        ("F", 5, 171.52, 218.66, 176.24, 223.09),
+        ("∆", 7, 177.21, 215.16, 183.75, 221.48),
+        ("2", 5, 183.75, 213.66, 187.14, 218.09),
+    ),
+    "den1": (
+        ("2", 7, 121.82, 224.09, 125.78, 230.28),
+        ("πn", 7, 125.79, 224.09, 135.62, 230.28),
+        ("i", 5, 135.62, 226.47, 138.28, 230.89),
+        ("U", 7, 138.78, 224.09, 144.59, 230.28),
+        ("4 0", 5, 144.2, 223.07, 148.34, 232.06),
+    ),
+}
+LIU_P4_BARS = ((121.42, 149.24), (150.83, 193.41))  # from x0 to x1, from y 222.32 to 223.12
+
+
+def _liu_p4(dx: float, dy: float) -> tuple[list[TextLine], list[Drawing]]:
+    """Liu p4's pieces of the line, in liu's reading order, and its two bars, moved by
+    (`dx`, `dy`)."""
+    pieces = [
+        ran(
+            f"p4-{key}",
+            *((t, s, x0 + dx, y0 + dy, x1 + dx, y1 + dy) for t, s, x0, y0, x1, y1 in runs),
+        )
+        for key, runs in LIU_P4_RUNS.items()
+    ]
+    bars = [
+        Drawing(f"p4-bar{k}", Box(x0 + dx, 222.32 + dy, x1 + dx, 223.12 + dy))
+        for k, (x0, x1) in enumerate(LIU_P4_BARS)
+    ]
+    return pieces, bars
+
+
+def test_two_fraction_bars_side_by_side_are_a_mark_in_their_line() -> None:
+    """#648: the two bars, read as one graphic between "conductance ∝" and the first
+    numerator, reach past that numerator. They stand inside the printed line all the same
+    (the piece before them and the pieces read after them on that line), so the line is one
+    row and the bars are read after it, not a row of their own that cuts the line in two."""
+    pieces, bars = _liu_p4(0, 0)
+    texts = [Element(piece.box, piece) for piece in pieces if piece.box]
+    boxes = [bar.box for bar in bars if bar.box]
+    mark = Element(union(boxes), graphics=tuple(bars))
+    ordered = [texts[0], mark, *texts[1:]]
+    edges = {id(e): (54.0, 298.9) for e in ordered}
+    rows = rows_of(ordered, edges, LayoutSettings(), SIZE, Bars.of(tuple(boxes), 2.5))
+    assert [[e.line.text if e.line else "<mark>" for e in row] for row in rows] == [
+        ["conductance ∝", "U3 1", "2πniU4 0", "mev2F∆2", "(q2Fv2F+∆2), which dominates as the"],
+        ["<mark>"],
+    ]
+
+
+def _pages(*pages: tuple[list[TextLine], list[Drawing]]) -> Content:
+    return Content(
+        Source("test.pdf", SourceFormat.PDF),
+        tuple(
+            Page(n, tuple(found), width=600, height=800, drawings=tuple(drawn))
+            for n, (found, drawn) in enumerate(pages, start=1)
+        ),
+        Metadata(),
+    )
+
+
+def _across_a_page(*top: TextLine) -> tuple[Document, list[str]]:
+    """Two two-column pages with their page numbers at the top, and the paragraphs expected
+    if nothing parts them but the column breaks: page 1's right column ends inside a
+    paragraph; page 2's left column holds the `top` lines, then liu p4's line, then two more
+    lines ending the sentence."""
+    first = lines("a", LEFT, COLUMN_END, 100, 10)
+    running = lines("b", COLUMN_END + 16, RIGHT, 100, 10, last=1.0)
+    y = 100 + PITCH * len(top)
+    pieces, bars = _liu_p4(FRACTION_X, y - 217.74)
+    rest = lines("c", LEFT, COLUMN_END, y + PITCH, 2)
+    right = lines("d", COLUMN_END + 16, RIGHT, 100, 6)
+    one, two = line("1", RIGHT - 5, 50, RIGHT), line("2", RIGHT - 5, 50, RIGHT)
+    doc = build_document(
+        _pages(([one, *first, *running], []), ([two, *top, *pieces, *rest, *right], bars))
+    )
+    texts = [joined(first), joined(running), *(li.text for li in top), LIU_P4_LINE, joined(rest)]
+    return doc, [*texts, joined(right)]
+
+
+def test_a_paragraph_runs_on_across_a_page_into_two_inline_fractions() -> None:
+    """#648, liu p3 to p4: a paragraph ending a column at a page break goes on at the next
+    page's top, whose first line holds two inline fractions after a word, in one block. The
+    bars are the paragraph's, not the page number's that waited for it to end."""
+    doc, (first, running, fractions, rest, right) = _across_a_page()
+    assert paragraphs(doc) == [first, "\n".join([running, fractions, rest]), right]
+    (block,) = [b for b in doc.blocks if any(p.item == "p4-bar0" for p in b.parts)]
+    assert block.kind is BlockKind.PARAGRAPH
+    assert {p.item for p in block.parts} >= {"p4-bar0", "p4-bar1"}
+    assert [b.text for b in doc.blocks if b.kind is BlockKind.FURNITURE] == ["1", "2"]
+
+
+def test_two_fraction_bars_side_by_side_stand_where_their_printed_line_ends() -> None:
+    """#819, liu p4: no single piece of the line holds the two bars, only its pieces
+    together. They are read at that printed line, right after its last piece where its text
+    ends, as a mark inside one piece is (D-332), not at the paragraph's end."""
+    doc, (_, running, fractions, _, _) = _across_a_page()
+    (block,) = [b for b in doc.blocks if any(p.item == "p4-bar0" for p in b.parts)]
+    end = len(running) + 1 + len(fractions)
+    assert block.text[:end].endswith(LIU_P4_LINE)
+    items = [p.item for p in block.parts]
+    at = items.index("p4-bar0")
+    assert items[at - 1 : at + 2] == ["p4-den2", "p4-bar0", "p4-bar1"]
+    assert [p.start for p in block.parts[at : at + 3]] == [end, end, end + 1]  # the next line
+
+
+def test_a_heading_or_a_new_paragraph_after_the_page_break_does_not_join_it() -> None:
+    """A bold heading, or an indented first line, at the next page's top starts a block of
+    its own; the line with the fractions goes on with the new paragraph, not the old one."""
+    heading = bold("3 Results", LEFT, 100, LEFT + 60)
+    doc, (first, running, title, fractions, rest, right) = _across_a_page(heading)
+    assert paragraphs(doc) == [first, running, title, "\n".join([fractions, rest]), right]
+    indented = line("e0 starts a new paragraph", LEFT + 15, 100, COLUMN_END)
+    doc, (first, running, opening, fractions, rest, right) = _across_a_page(indented)
+    assert paragraphs(doc) == [first, running, "\n".join([opening, fractions, rest]), right]

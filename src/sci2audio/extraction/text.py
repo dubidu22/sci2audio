@@ -16,8 +16,10 @@ Introduction" alone or a German date opening a paragraph ("3. Oktober 1990") sta
 Markdown would make a lone "1." line an item; plain text differs on purpose, for those
 German dates and ordinals. And the line after a title line is tagged ``p``: a short line in
 capitals, or a short line without closing punctuation before a line that starts with a
-capital (`_title`). Hard-wrapped prose keeps its lines together: none of its lines but the
-last is short, measured against its longest line that holds a space.
+capital (`_title`). A short line in capitals after a line that ends a sentence, with a line
+after it, is tagged ``p`` too: a heading typed between two prose lines is cut before as well
+as after (#570). Hard-wrapped prose keeps its lines together: none of its lines but the last
+is short, measured against its longest line that holds a space.
 
 `decode_text` is shared with the Markdown reader: a byte order mark decides the encoding; a
 file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as the WHATWG
@@ -83,6 +85,37 @@ _BULLET = re.compile(r"[-*\u2022]\s+\S")
 _NUMBERED = re.compile(r"(\d{1,3})([.)])\s+\S")
 TITLE_SHARE = 0.6  # a title line is at most this share of its paragraph's longest line
 _ENDS = ".!?:;,\u2026-\u2010\u2011\u2013\u2014/"  # a line ending in one of these runs on
+_STOPS = (".", "!", "?", "\u2026")  # a line ending in one of these ends a sentence (#570)
+# Common English and German abbreviations: a line ending in one does not end a sentence
+# (#827). The textprep list cannot be imported here (layer rules); a space inside an entry
+# may be left out ("z.B.", "e. g.").
+_ABBREVIATIONS = (
+    *("e. g.", "i. e.", "etc.", "cf.", "vs.", "viz.", "approx.", "et al.", "ca.", "resp."),
+    *("Fig.", "Figs.", "Eq.", "Eqs.", "Ref.", "Refs.", "Sec.", "Ch.", "Vol.", "pp."),
+    *("Dr.", "Mr.", "Mrs.", "Ms.", "Prof.", "Jr.", "Sr.", "St."),
+    *("Jan.", "Feb.", "Mar.", "Apr.", "Jun.", "Jul.", "Aug.", "Sep.", "Sept."),
+    *("Oct.", "Okt.", "Nov.", "Dec.", "Dez."),
+    *("Ala.", "Ariz.", "Ark.", "Calif.", "Colo.", "Conn.", "Del.", "Fla.", "Ga.", "Ill."),
+    *("Ind.", "Kan.", "Ky.", "La.", "Md.", "Mass.", "Mich.", "Minn.", "Miss.", "Mo."),
+    *("Mont.", "Neb.", "Nev.", "Okla.", "Ore.", "Pa.", "Tenn.", "Tex.", "Va.", "Vt."),
+    *("Wash.", "Wis.", "Wyo."),
+    *("z. B.", "d. h.", "u. a.", "o. ä.", "u. Ä.", "usw.", "bzw.", "vgl.", "evtl.", "ggf."),
+    *("sog.", "inkl.", "bzgl.", "Abb.", "Tab.", "Nr.", "Hrsg.", "Jh.", "Mio.", "Mrd."),
+)
+_ABBREVIATION = re.compile(
+    r"(?<![^\W\d_])(?:"  # not inside a word
+    + "|".join(re.escape(a).replace(r"\ ", r"\s*") for a in _ABBREVIATIONS)
+    + r")\Z"
+)
+# A German month after "am 3." makes the number an ordinal in a date ("3. Oktober", #848).
+# English writes "3 July" or "July 3", never "3. July": an English month line stays a heading.
+_MONTHS = frozenset(
+    (
+        *("januar", "jänner", "februar", "märz", "maerz", "april", "mai", "juni", "juli"),
+        *("august", "september", "oktober", "november", "dezember"),
+    )
+)
+_WORD = re.compile(r"[^\W\d_]+")
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -193,26 +226,40 @@ def read_text(data: bytes, name: str) -> Content:
             f"{name}: the file holds a paragraph longer than {MAX_PARAGRAPH:,} characters"
             " (counted between blank lines)"
         )
+    paragraphs: list[list[str]] = [[]]
+    for printed in _LINE_END.split(decoded.text):
+        if text := fold(printed):
+            paragraphs[-1].append(text)
+        elif paragraphs[-1]:
+            paragraphs.append([])
     lines: list[TextLine] = []
-    paragraph: list[str] = []
-    for printed in [*_LINE_END.split(decoded.text), ""]:
-        text = fold(printed)
-        if text:
-            paragraph.append(text)
-            continue
-        for text, tags in zip(paragraph, paragraph_tags(paragraph), strict=True):
-            lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=tags),)))
-        paragraph = []
+    for paragraph, tags in zip(paragraphs, document_tags(paragraphs), strict=True):
+        for text, line_tags in zip(paragraph, tags, strict=True):
+            lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=line_tags),)))
     if not lines:
         raise ExtractionError(f"{name}: the file holds no text")
     page = Page(1, lines=tuple(lines), order=tuple(line.id for line in lines))
     return Content(source=source_of(data, name, SourceFormat.TEXT, decoded), pages=(page,))
 
 
-def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
+def document_tags(paragraphs: list[list[str]]) -> list[list[tuple[str, ...]]]:
+    """The tags of each line of each plain-text paragraph (`_paragraph_tags`), and a cut before
+    each mixed-case heading between two prose lines (`_mixed_heading`, #812) when the document
+    holds at least two of them: one stray short line is a wrapped line, not a heading."""
+    tagged = [_paragraph_tags(paragraph) for paragraph in paragraphs]
+    if sum(len(found) for _, found in tagged) >= 2:
+        for tags, found in tagged:
+            for k in found:
+                tags[k] = ("p",)
+    return [tags for tags, _ in tagged]
+
+
+def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[int]]:
     """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
-    for a line after a title line (`_title`), ``ul, li`` or ``ol, li`` for a line that opens a
-    list item, and the tags of the line before plus ``br`` for any other line.
+    for a line after a title line (`_title`) and for a heading between two prose lines
+    (`_heading`, after prose only: a list keeps its items), ``ul, li`` or ``ol, li`` for a
+    line that opens a list item, and the tags of the line before plus ``br`` for any other
+    line.
 
     A line with a list marker (`_items`) opens an item only where the shape says list: as
     the paragraph's first line, right after a line that opens or continues an item, or after
@@ -220,23 +267,33 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     - meist unterwegs - und") stays inside its sentence (#561).
 
     Lines are short against the paragraph's longest line that holds a space: a lone long
-    token (a URL, a DOI) on a line of its own does not make the filled lines short (M2)."""
+    token (a URL, a DOI) on a line of its own does not make the filled lines short (M2).
+
+    Also returns the lines in prose that have the shape of a mixed-case heading
+    (`_mixed_heading`); `document_tags` decides whether they are cut before."""
     items = _items(paragraph)
     widths = [len(text) for text in paragraph if " " in text]
     longest = max(widths) if widths else max(map(len, paragraph), default=0)
     out: list[tuple[str, ...]] = []
+    found: list[int] = []
     element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
     for k, text in enumerate(paragraph):
         anchored = k == 0 or element[0] != "p" or paragraph[k - 1].rstrip().endswith(":")
         if k in items and anchored:
             element = items[k]
             out.append(element)
-        elif k and not _title(paragraph[k - 1], text, longest):
+        elif (
+            k
+            and not _title(paragraph[k - 1], text, longest, paragraph[k - 2] if k > 1 else None)
+            and not (element[0] == "p" and _heading(paragraph, k, longest))
+        ):
             out.append((*element, "br"))
+            if element[0] == "p" and _mixed_heading(paragraph, k, longest):
+                found.append(k)
         else:
             element = ("p",)
             out.append(element)
-    return out
+    return out, found
 
 
 def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
@@ -263,16 +320,81 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int) -> bool:
+def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
-    has no lower-case letter ("LISTENING TO PAPERS") or ends without punctuation, hyphen or
-    dash before a line starting with a capital ("A pilot note" / "Written for ...")."""
-    letters = [c for c in line if c.isalpha()]
-    if len(letters) < 2 or len(line) > TITLE_SHARE * longest:
+    has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
+    hyphen or dash before a line starting with a capital ("A pilot note" / "Written for ...").
+    A line in capitals inside a running sentence is an acronym wrapped onto a line of its own,
+    not a title (#827): it is not the paragraph's first line (`before` is None), the line
+    `before` it does not end a sentence, and `after` starts in lower case ("... scans, e.g." /
+    "PDF" / "files and ..."). A heading before "mRNA ..." or "this paper ..." still cuts."""
+    if not _short(line, longest):
         return False
-    if not any(c.islower() for c in letters) and any(c.isupper() for c in letters):
-        return True
+    if _capitals(line):
+        return (
+            before is None
+            or _ends_sentence(before, line)
+            or not after.lstrip(_OPENERS)[:1].islower()
+        )
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     return after.lstrip(_OPENERS)[:1].isupper()
+
+
+def _heading(paragraph: list[str], k: int, longest: int) -> bool:
+    """True if line `k` is a heading set between two prose lines (#570): a short line in
+    capitals (`_title`'s first kind, "RESULTS") after a line that ends a sentence, and not
+    the paragraph's last line. A short last line in capitals ends the prose it follows (a
+    licence in capitals), and one after a line that runs on stays in its sentence."""
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1], paragraph[k]):
+        return False
+    return _short(paragraph[k], longest) and _capitals(paragraph[k])
+
+
+def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
+    """True if line `k` has the shape of a mixed-case heading between two prose lines (#812):
+    after a line that ends a sentence, not the paragraph's last line, starting with a capital
+    and a title line before the next line by `_title`'s second kind (short, no punctuation at
+    its end, the next line starting with a capital): "Results" / "The data show ...". The
+    next line's first word must also fit after it within the paragraph's longest line: a line
+    a hard wrap left short because that word did not fit (a long name, a URL) is no heading."""
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1], paragraph[k]):
+        return False
+    line, after = paragraph[k], paragraph[k + 1]
+    return (
+        line.lstrip(_OPENERS)[:1].isupper()
+        and not _capitals(line)
+        and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
+        and _title(line, after, longest, paragraph[k - 1])
+    )
+
+
+def _ends_sentence(line: str, after: str) -> bool:
+    """True if `line` ends a sentence: in a stop (`_STOPS`), looking through closing quotes
+    and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827).
+
+    A number before a full stop ("approximately 3.", "am 3.") is judged by `after`, the next
+    line (#848): one starting in lower case, or with a German month ("am 3." / "Oktober
+    2020", "OKTOBER"), goes on with the sentence, so the stop is no sentence end. Only the
+    line's end and the next line's first word are looked at: this runs on every line."""
+    line = line.rstrip(_CLOSERS)
+    # every abbreviation and the character before it fit in the line's last 16 characters
+    if not line.endswith(_STOPS) or _ABBREVIATION.search(line[-16:]):
+        return False
+    if line[-1] == "." and line[-2:-1].isdigit():
+        start = after.lstrip(_OPENERS)
+        word = _WORD.match(start)
+        return not (start[:1].islower() or (word and word[0].lower() in _MONTHS))
+    return True
+
+
+def _short(line: str, longest: int) -> bool:
+    """True if `line` holds at least two letters and is no longer than `TITLE_SHARE` of the
+    paragraph's longest line."""
+    return sum(c.isalpha() for c in line) >= 2 and len(line) <= TITLE_SHARE * longest
+
+
+def _capitals(line: str) -> bool:
+    """True if `line` holds a capital and no lower-case letter."""
+    return not any(c.islower() for c in line) and any(c.isupper() for c in line)

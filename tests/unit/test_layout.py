@@ -179,6 +179,61 @@ def test_a_centred_heading_atop_a_short_column_is_read_in_its_column() -> None:
     assert columns_of(doc) == [2]
 
 
+def nested_columns_page() -> tuple[Content, list[str]]:
+    """A two-column page whose left column holds, between running text above and below, a
+    block of two short columns of its own; the lines stored across the page, row by row.
+    In reading order: the left column's text above, the block's left column, its right
+    column, the left column's text below, then the page's right column (#32, D-67)."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    inner = (lx1 - LEFT - GUTTER) / 2
+    above = column("above-", LEFT, lx1, 100, 6)
+    block_left = column("block-left-", LEFT, LEFT + inner, 100 + 14 * 6, 8)
+    block_right = column("block-right-", lx1 - inner, lx1, 100 + 14 * 6, 8)
+    below = column("below-", LEFT, lx1, 100 + 14 * 14, 6)
+    left = [*above, *interleaved(block_left, block_right), *below]
+    right = column("right-", rx0, RIGHT, 100, len(left))
+    page = [li for pair in zip(left, right, strict=True) for li in pair]
+    order = [*above, *block_left, *block_right, *below, *right]
+    return content(page), [li.text for li in order]
+
+
+def test_two_columns_inside_a_column_are_read_one_after_the_other() -> None:
+    """#32, D-67: the cut into bands and columns is tried again inside each column found."""
+    page, expected = nested_columns_page()
+    doc = build_document(page)
+    assert texts(doc) == expected
+    assert columns_of(doc) == [2]
+
+
+def test_the_cut_inside_a_column_stops_at_the_depth_limit() -> None:
+    """With `column_depth` at 1 only the page's own columns are cut: the block inside the
+    left column is read row by row across its two columns, as before #32."""
+    page, _ = nested_columns_page()
+    doc = build_document(page, LayoutSettings(column_depth=1))
+    found = texts(doc)
+    assert found.index("block-right-0") < found.index("block-left-1")
+
+
+def test_a_table_inside_a_column_is_still_read_row_by_row() -> None:
+    """#32: a gutter between a table's cells inside a column (as in Hardt's Table 1) does
+    not cut it, as the cells leave a ragged edge; only columns of running text are cut."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    above = column("above-", LEFT, lx1, 100, 6)
+    rows = []
+    for k, (label, cell) in enumerate(((50, 40), (53, 96), (20, 63), (48, 79), (56, 99), (30, 57))):
+        y = 100 + 14 * (6 + k)
+        rows += [
+            line(f"label-{k}", LEFT, y, LEFT + label),
+            line(f"cell-{k}", LEFT + 75, y, LEFT + 75 + cell),
+        ]
+    below = column("below-", LEFT, lx1, 100 + 14 * 12, 6)
+    left = [*above, *rows, *below]
+    right = column("right-", rx0, RIGHT, 100, len(left))
+    doc = build_document(content([*left, *right]))
+    words = " ".join(texts(doc)).split()  # a row's cells may be joined into one line
+    assert words == [li.text for li in [*above, *rows, *below, *right]]
+
+
 def test_a_page_background_or_a_frame_does_not_cut_the_columns() -> None:
     for box in (Box(0, 0, 600, 800), Box(60, 90, 536, 520)):
         left, right = two_columns("a", 100, 30)
@@ -1007,8 +1062,43 @@ def found_679() -> tuple[Content, list[str], int]:
     return content(lines), [li.text for li in lines], 3
 
 
+def found_873(middle: dict[int, float]) -> tuple[Content, list[str], int]:
+    """#873, drawn by the `dev` and `nightly` profiles: columns 0 and 2 hold 27 lines each,
+    two of them centred headings (half the column wide), column 1 only 6 lines, which end
+    at `middle` (row: right edge) where they don't fill it. 6 is a tenth of the page's 60
+    lines, so the whole middle column may cross the strip from column 0 to column 2."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    centred = {0: (0, 6), 2: (0, 16)}
+    lines = []
+    for col, rows in enumerate((27, 6, 27)):
+        x0 = LEFT + col * (width + GUTTER)
+        for row in range(rows):
+            start, end = x0, middle.get(row, x0 + width) if col == 1 else x0 + width
+            if row in centred.get(col, ()):
+                start, end = x0 + width / 4, x0 + 3 * width / 4
+            lines.append(line(f"c{col}r{row}", start, 80 + 14 * row, end))
+    return content(lines), [li.text for li in lines], 3
+
+
+def test_a_middle_column_as_short_as_the_crossings_a_gutter_allows_is_a_column() -> None:
+    """#873 without its headings: 6 full lines between two columns of 27 are a tenth of the
+    page, as many as may cross a gutter, yet they are a column of their own."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    lines = [
+        line(f"c{col}r{row}", x0, 80 + 14 * row, x0 + width)
+        for col, rows in enumerate((27, 6, 27))
+        for x0 in [LEFT + col * (width + GUTTER)]
+        for row in range(rows)
+    ]
+    found = content(lines)
+    assert texts(build_document(found)) == [li.text for li in lines]
+    assert columns_per_page(found) == [3]
+
+
 @given(column_pages())
 @example(found_679())
+@example(found_873({2: 298.0, 3: 351.0, 4: 351.0, 5: 298.0}))
+@example(found_873({}))
 def test_any_clean_column_page_reads_column_by_column(page: tuple[Content, list[str], int]) -> None:
     found, expected, count = page
     doc = build_document(found)

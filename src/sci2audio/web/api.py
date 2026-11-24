@@ -61,12 +61,10 @@ from sci2audio.web.player import (
     chapter_index,
     chapter_place,
     current_audiobook,
-    fits,
     load_document,
     recorded_folder,
     sentence_starts,
     whole_book,
-    write_position,
 )
 from sci2audio.web.project import read_project
 from sci2audio.web.removal import KEPT_LIMIT, AudiobookRemoved, Kept, carry_out, plan
@@ -475,8 +473,9 @@ def figure(
 def save_position(state: State, document_id: str, given: models.PositionIn) -> None:
     """The player saves the position while it plays, so the next server run can offer to
     continue there (#153). It is kept in the working folder, stamped with the read-along
-    file it is a time in; a position the audiobook does not have is refused (422), and so
-    is one sent by a page drawn for another audiobook than the one there now (409: the
+    file it is a time in. A position the audiobook does not have is refused (422), except
+    one a frame's padding past a chapter's end, which is kept as that end (#779); one sent
+    by a page drawn for another audiobook than the one there now is refused too (409: the
     audio job ran again while the page stayed open). An audiobook `sci2audio listen` opened
     keeps its position in its working folder too (#154): with the default folders that is
     the file's cache folder, shared with the interface's document of the same file, whose
@@ -491,7 +490,8 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         raise ApiError(404, "not-found", f"{document.name} has no audiobook") from error
     if given.audiobook != stamp:
         raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
-    starts = Bounds.of(located.readalong).starts
+    bounds = Bounds.of(located.readalong)
+    starts = bounds.starts
     chapter, time = given.chapter, given.time
     if given.index is not None and given.within is not None:
         # the page's own chapter (#726, D-909): a chapter added before it since the page
@@ -500,14 +500,17 @@ def save_position(state: State, document_id: str, given: models.PositionIn) -> N
         if place is None or place >= len(starts):
             raise ApiError(422, "no-such-time", "the audiobook has no such chapter")
         chapter, time = place, starts[place] + given.within
-    position = Position(chapter, time)
-    if not fits(located.readalong, position):
+    # the place kept at the end of a chapter's file can lie a frame's padding past the
+    # chapter's end (#779): it is kept as that end
+    position = bounds.settled(Position(chapter, time))
+    if not bounds.fits(position):
         raise ApiError(422, "no-such-time", "the audiobook has no such chapter and time")
+    chapter, time = position.chapter, position.time
     index = chapter_index(document.work, chapter)
     if index is not None:
         position = Position(chapter, time, index, time - starts[chapter])
     try:
-        write_position(document.work, document.document, stamp, position)
+        state.positions.save(document.work, document.document, stamp, position)
     except OSError as error:
         raise ApiError(
             503, "not-saved", f"the listening position could not be saved: {error.strerror}"
@@ -575,7 +578,7 @@ def _book(state: ServerState, document_id: str) -> _Book:
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{listening.name} has no audiobook") from error
     spans = [chunk.span for chunk in located.readalong.chunks]
-    return _Book(listening, document, spans, stamp, sentence_starts(located.readalong))
+    return _Book(listening, document, spans, stamp, sentence_starts(located.readalong, document))
 
 
 def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:
