@@ -311,6 +311,18 @@ def test_a_marker_in_mid_chapter_belongs_to_the_item_it_leads(
     ]
 
 
+def test_a_marker_never_leads_a_sentence_of_the_next_chapter() -> None:
+    """#869: a hand-made or broken file puts the words after a marker in the next chapter,
+    though they share its block. A sentence never runs across chapters, so the marker
+    stays a piece of the sentence before it, with that sentence's element."""
+    document = make_document([("paragraph", "Intro. • Item one.")])
+    data = readalong([(0, 0, 6), (0, 7, 8), (0, 9, 18)], (("One", 0), ("Two", 2)), [0, 0, 1])
+    assert sentence_starts(data, document) == [0, 0, 2]
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2"]
+    assert view.sentences == [0, 0, 2]
+
+
 def test_a_notice_read_for_printed_brackets_is_still_a_sentence() -> None:
     """#652: a placeholder's chunk reads its notice, so printed text of only brackets in a
     code block is no chunk with nothing to speak."""
