@@ -190,9 +190,9 @@ class Budget:
     declaration, processing instruction and CDATA section, so a file of empty elements is
     bounded too (#329)."""
 
-    def __init__(self, limit: int | None = None, markup_limit: int | None = None) -> None:
-        self.limit = MAX_ITEMS if limit is None else limit
-        self.markup_limit = MAX_MARKUP if markup_limit is None else markup_limit
+    def __init__(self) -> None:
+        self.limit = MAX_ITEMS  # read once, so a book keeps the limits it started with
+        self.markup_limit = MAX_MARKUP
         self.used = 0
         self.markup = 0
 

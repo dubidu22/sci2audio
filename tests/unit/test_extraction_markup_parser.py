@@ -94,3 +94,24 @@ def test_the_copy_names_its_source_and_keeps_the_psf_notice() -> None:
         "html",
         "html.entities",
     }
+
+
+def test_a_line_ended_by_a_flush_does_not_continue_unless_it_says_so() -> None:
+    """`continued` is for a <br> or a line feed in <pre>; the end of a block ends the
+    element too (#632)."""
+    reader = markup.PageReader(1, "c1.xhtml", markup.Anchors())
+    reader.feed("one")
+    reader.flush()
+    assert reader.continues is False
+    reader.feed(" two")
+    reader.flush(continued=True)
+    assert reader.continues is True
+
+
+def test_a_flush_that_finds_no_text_keeps_a_continuation_only_if_told_to() -> None:
+    reader = markup.PageReader(1, "c1.xhtml", markup.Anchors())
+    reader.continues = True
+    reader.flush(continued=True)
+    assert reader.continues is True
+    reader.flush()
+    assert reader.continues is False
