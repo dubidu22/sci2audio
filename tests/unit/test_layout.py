@@ -1720,6 +1720,81 @@ def test_body_text_next_to_or_under_a_figure_is_no_label(end: str) -> None:
         assert items_of(drawn, text) == items_of(build_document(content(text)), text)
 
 
+def frame(x0: float, y0: float, x1: float, y1: float) -> tuple[Drawing, ...]:
+    """A frame of four rules 1 pt thick around the box."""
+    return (
+        Drawing("frame-top", Box(x0, y0, x1, y0 + 1)),
+        Drawing("frame-bottom", Box(x0, y1 - 1, x1, y1)),
+        Drawing("frame-left", Box(x0, y0, x0 + 1, y1)),
+        Drawing("frame-right", Box(x1 - 1, y0, x1, y1)),
+    )
+
+
+@pytest.mark.parametrize("case", ["running text on the chart", "short lines in a frame"])
+def test_short_lines_at_a_column_top_with_running_text_on_the_figure_or_in_rules_are_text(
+    case: str,
+) -> None:
+    """#932: the left column runs on into the right one, whose top holds short lines on a
+    figure. If a full line of running text lies on the figure too (a bar chart with text
+    set over its foot), or the figure is only rules (a frame around a note), the short lines
+    are running text, not the figure's labels: they are read in the same blocks as without
+    the drawings."""
+    left = [line("L29" if k == 29 else f"L{k}", 70, 80 + 14 * k, 290) for k in range(30)]
+    if case == "running text on the chart":
+        lines = [*chart_labels(310), line("running on over the chart", 306, 176, 526)]
+        drawings, top = bar_chart(310), 214
+    else:
+        lines = [line(f"x{k} = {k}", 312, 90 + 14 * k, 380) for k in range(4)]
+        drawings, top = frame(306, 84, 526, 148), 160
+    right = [line(f"R{k}", 306, top + 14 * k, 526) for k in range(20)]
+    text = left + lines + right
+    drawn = build_document(content(text, drawings=drawings))
+    assert items_of(drawn, text) == items_of(build_document(content(text)), text)
+
+
+def test_ticks_on_a_gutter_figure_do_not_run_on_into_its_caption() -> None:
+    """#933: on the #895 page with the left column running on, a row of ticks across the
+    drawing's foot (on it, each 2 em from the next) and the caption 4 pt under it, as close
+    as running text's next line: the caption is a CAPTION block of its own, not the end of
+    the ticks' paragraph."""
+    ticks = [line(str(10 * k), 238 + 28 * k, 248, 246 + 28 * k) for k in range(5)]
+    caption = line("Figure 1: a thing", 240, 262, 356)
+    found, _, _ = gutter_page("L29", [*ticks, caption])
+    doc = build_document(found)
+    assert holding(doc, BlockKind.CAPTION) == [[caption.id]]
+
+
+def test_a_gutter_figure_of_rules_holds_its_labels() -> None:
+    """#932: on the #895 page the drawing is a frame of four rules: lines only, which alone
+    would join the block before them. With the labels read into its block it is a figure
+    all the same, and the FIGURE block holds the rules and the labels."""
+    labels = gutter_labels()
+    left = [line(f"L{k}{'.' if k == 29 else ''}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+    rules = frame(236, 190, 360, 260)
+    doc = build_document(content(left + right + labels, drawings=rules))
+    (figure,) = holding(doc, BlockKind.FIGURE)
+    assert {li.id for li in labels} | {d.id for d in rules} == set(figure)
+
+
+def test_a_gutter_figure_on_two_pages_in_one_place_is_no_running_head() -> None:
+    """#932: the #895 page twice, the figure in the same place on both: a figure whose labels
+    are read into its block is a figure, not a journal's logo repeated on its pages."""
+    pages = []
+    for n in (1, 2):
+        left = [line(f"L{k}{'.' if k == 29 else ''}", 70, 80 + 14 * k, 228) for k in range(30)]
+        right = [line(f"R{k}{'.' if k == 29 else ''}", 368, 80 + 14 * k, 526) for k in range(30)]
+        drawing = Drawing(f"fig{n}", Box(236, 190, 360, 260))
+        lines = (*left, *right, *gutter_labels())
+        pages.append(Page(n, lines, width=600, height=800, drawings=(drawing,)))
+    found = Content(Source("test.pdf", SourceFormat.PDF), tuple(pages), Metadata())
+    doc = build_document(found)
+    figures = holding(doc, BlockKind.FIGURE)
+    assert [f[0] for f in figures] == ["fig1", "fig2"]
+    assert all(len(f) == 7 for f in figures)
+    assert not [b for b in doc.blocks if b.kind is BlockKind.FURNITURE]
+
+
 def three_columns(rows: tuple[int, int, int]) -> list[TextLine]:
     """Three columns of full lines, `rows` lines in each, from y 80 down."""
     width = (RIGHT - LEFT - 2 * GUTTER) / 3
