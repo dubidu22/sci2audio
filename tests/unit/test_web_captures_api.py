@@ -4,7 +4,10 @@ that leave `captures.json` as it is, and the Settings page's sounds switch."""
 
 from __future__ import annotations
 
+import errno
+import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +26,7 @@ from web_helpers import (
 from sci2audio.app.captures import CAPTURES
 from sci2audio.web import create_app
 from sci2audio.web.captures import UNDO_SECONDS
-from sci2audio.web.markers import MARKERS
+from sci2audio.web.markers import MARKERS, markers_text
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -213,6 +216,57 @@ def test_markers_not_carried_over_turn_capturing_off_and_stay(tmp_path: Path) ->
     )
     assert (refused.status_code, refused.json()["error"]) == (409, "markers-not-carried")
     assert not (work / CAPTURES).exists()
+
+
+def full_disk_while_carrying_over(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The carry-over's write of captures.json meets a full disk (#910)."""
+    from sci2audio.app import files
+
+    def full(partial: Path, content: str | bytes) -> None:
+        partial.write_bytes(b"")
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(files, "_write_partial", full)
+
+
+@pytest.mark.parametrize(
+    ("language", "words"),
+    [
+        ("en", "could not be saved as captures"),
+        ("de", "ließen sich nicht als Fundstücke speichern"),
+    ],
+)
+def test_a_carry_over_that_cannot_be_written_is_named_as_such(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, language: str, words: str
+) -> None:
+    """#910: a full disk during the carry-over is not an unreadable captures.json; the page
+    names markers.json, which is left as it was, and no captures.json is there."""
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    client = program(create_app(config, voice=lambda models_dir: voice.source()), config)
+    client.cookies.set("sci2audio-language", language)
+    doc = make(client)["doc"]["id"]
+    work = work_of(config, doc)
+    raw = markers_text(doc, []).encode("utf-8")
+    (work / MARKERS).write_bytes(raw)
+    full_disk_while_carrying_over(monkeypatch)
+    data = page_data(client, doc)
+    assert (data["captures"], data["captures_off"]) == ([], "unsaved")
+    assert data["captures_file"] == str(work / MARKERS)
+    page = client.get(f"/documents/{doc}/listen").text
+    note = re.search(r'<p class="note" id="captures-broken">(.*?)</p>', page, re.S)
+    assert note is not None
+    assert words in html.unescape(note[1])
+    assert str(work / MARKERS) in html.unescape(note[1])
+    assert "captures.json" not in note[1]
+    refused = client.post(
+        f"/api/v1/documents/{doc}/captures",
+        json={"type": "mark", "chunk": sentences(data)[0], "audiobook": data["audiobook"]},
+    )
+    assert (refused.status_code, refused.json()["error"]) == (503, "captures-not-saved")
+    assert (work / MARKERS).read_bytes() == raw
+    assert not (work / CAPTURES).exists()
+    assert not [p for p in work.iterdir() if p.name.endswith(".partial")]
 
 
 def test_a_capture_on_text_the_new_audiobook_does_not_read_is_kept_and_listed(

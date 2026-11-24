@@ -406,6 +406,11 @@ class CaptureOut(BaseModel):
         description="found; in text this audiobook does not read; not found in it; or the "
         "document has no audiobook now (a removal or an Undo from the Captures page, #398)"
     )
+    page: int | None = Field(
+        default=None,
+        description="the PDF page on which its sentence starts (#888); null for a document "
+        "without pages, a sentence not found, or no audiobook now",
+    )
 
 
 class CaptureExportIn(Strict):
@@ -448,4 +453,13 @@ class ExportExistsOut(ErrorOut):
     """export-exists: nothing was written; the page asks before it sends `overwrite`."""
 
     file: str = Field(description="the name of the file that is there")
+    folder: str = Field(description="the folder it is in")
+
+
+class ExportHeldOut(ErrorOut):
+    """export-file-held: replacing the file was refused after the new one was written in
+    full, as Windows refuses while another program holds it open (#990); it stays as it
+    was and no other file is left."""
+
+    file: str = Field(description="the name of the file that could not be replaced")
     folder: str = Field(description="the folder it is in")

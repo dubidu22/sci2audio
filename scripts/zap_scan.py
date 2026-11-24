@@ -630,7 +630,13 @@ def walk(config: Any, proxy: str, chromium: str | None) -> None:
             page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
             page.evaluate("() => document.getElementById('audio').pause()")
             page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-            _captures(page, "Zitat festgehalten.", "Markiert.", "Marke entfernt.", "Zurückgeholt.")
+            _captures(
+                page,
+                "Zitat festgehalten: Seite 1.",
+                "Markiert: Seite 1.",
+                "Marke entfernt.",
+                "Zurückgeholt.",
+            )  # the paper is one PDF page (#888)
             context.close()
         finally:
             browser.close()
@@ -814,7 +820,7 @@ def _walk_english(
     # changed in the box, a removal and its Undo; paused so it stays on one sentence
     page.evaluate("() => document.getElementById('audio').pause()")
     page.wait_for_function("() => document.querySelector('#text .s.now') !== null")
-    _captures(page, "Quote captured.", "Marked.", "Mark removed.", "Put back.")
+    _captures(page, "Quote captured: page 1.", "Marked: page 1.", "Mark removed.", "Put back.")
     page.keyboard.press("n")
     box = page.get_by_role("textbox", name="Your note on this sentence")
     box.fill("A note for the scan.")

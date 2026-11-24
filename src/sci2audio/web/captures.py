@@ -21,6 +21,7 @@ too, so a carry-over never meets a change half way.
 
 from __future__ import annotations
 
+import os
 import secrets
 import threading
 import time
@@ -29,7 +30,14 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sci2audio.app.captures import CapturesBroken, MarkersNotCarried, load_captures, write_captures
+from sci2audio.app.captures import (
+    CAPTURES,
+    MARKERS,
+    CapturesBroken,
+    MarkersNotCarried,
+    load_captures,
+    write_captures,
+)
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureFormatError, CaptureType
 from sci2audio.core.captures import MAX_CAPTURES, text_problem
 
@@ -54,6 +62,12 @@ class MarkersWaiting(CaptureError):
     (#475) refused it: nothing is written."""
 
     kind = "markers-not-carried"
+
+
+class CarryOverUnsaved(OSError):
+    """The v1.3 `markers.json` was read, but the `captures.json` carried over from it could
+    not be written (a full disk, say, #910): nothing was written and `markers.json` is as
+    it was. An OSError, so that every reader that keeps going past one still does."""
 
 
 class CaptureLimit(CaptureError):
@@ -102,13 +116,31 @@ def _now() -> str:
 def load(work: Path, document_id: str) -> CaptureFile | None:
     """The document's captures (the v1.3 markers carried over first, #475), None while it
     has none. Raises CapturesUnreadable if the file can't be read, MarkersWaiting if the
-    markers could not be carried over, OSError if the folder can't be read at all."""
+    markers could not be carried over, CarryOverUnsaved if they were read but their
+    `captures.json` could not be written, OSError if the folder can't be read at all."""
     try:
         return load_captures(work, document_id)
     except MarkersNotCarried as error:
         raise MarkersWaiting(str(error)) from None
     except CapturesBroken as error:
         raise CapturesUnreadable(str(error)) from None
+    except OSError as error:
+        if _carrying_over(work):
+            raise CarryOverUnsaved(*error.args) from error
+        raise
+
+
+def _carrying_over(work: Path) -> bool:
+    """After an OSError of `load_captures`: whether it was the carry-over's write. With
+    still no `captures.json` and a `markers.json` that reads, nothing else was left to fail
+    (#910)."""
+    try:
+        if os.path.lexists(work / CAPTURES):
+            return False
+        (work / MARKERS).read_bytes()
+    except OSError:
+        return False
+    return True
 
 
 class CaptureBook:

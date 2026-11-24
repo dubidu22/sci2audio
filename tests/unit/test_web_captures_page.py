@@ -12,7 +12,13 @@ from typing import Any
 
 import pytest
 from audio_fakes import FakeVoice
-from test_web_captures_api import capture, file_of, page_data, sentences
+from test_web_captures_api import (
+    capture,
+    file_of,
+    full_disk_while_carrying_over,
+    page_data,
+    sentences,
+)
 from test_web_player import make, work_of
 from web_helpers import (
     FakeClock,
@@ -25,7 +31,7 @@ from web_helpers import (
 
 from sci2audio.app.captures import CAPTURES
 from sci2audio.web import create_app
-from sci2audio.web.markers import MARKERS
+from sci2audio.web.markers import MARKERS, markers_text
 from sci2audio.web.player import AUDIO_RECORD
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -371,6 +377,28 @@ def test_markers_not_carried_over_are_named_and_left_as_they_are(tmp_path: Path)
     group = root.by_id(f"group-{doc}")
     assert group is not None
     assert str(work / MARKERS) in group.one("note").text
+    assert not (work / CAPTURES).exists()
+
+
+def test_markers_whose_carry_over_cannot_be_written_are_named_and_left_as_they_are(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#910: a full disk during the carry-over: the group says so and names markers.json."""
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    client = program(create_app(config, voice=lambda models_dir: voice.source()), config)
+    doc = make(client)["doc"]["id"]
+    work = work_of(config, doc)
+    raw = markers_text(doc, []).encode("utf-8")
+    (work / MARKERS).write_bytes(raw)
+    full_disk_while_carrying_over(monkeypatch)
+    root = page(client)
+    group = root.by_id(f"group-{doc}")
+    assert group is not None
+    note = group.one("note").text
+    assert "could not be saved as captures" in note
+    assert str(work / MARKERS) in note
+    assert (work / MARKERS).read_bytes() == raw
     assert not (work / CAPTURES).exists()
 
 
