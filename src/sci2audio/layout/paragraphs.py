@@ -24,11 +24,15 @@ interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
 waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
 after it (#648). A figure in a wide gutter is read as a column of its own between two
 columns of text (#873, #938): the rows read in that column right after it, if they are its
-labels (on it or close by it, #945) and caption and no running text, interrupt a paragraph
-and never go on with one, nor set one aside (#905). If the row before the figure ends no
-sentence (an abbreviation's full stop ends none), its labels must lie on it, and its rows
-are the figure's only where the paragraph read before them would not be set aside to go on
-after them (#958).
+labels (on it or close by it, #945; a row of ticks may span it, #933) and caption (under
+them, or above the figure and read before it, #933) and no running text, interrupt a
+paragraph and never go on with one, nor set one aside (#905); the paragraph open there ends
+at the figure, its labels are read into its block (#932) and its caption is a block of its
+own. If the row before the figure ends no sentence (an abbreviation's full stop ends none),
+its labels must lie on it, and its rows are the figure's only where the paragraph read
+before them would not be set aside to go on after them (#958). The rows lying on a figure
+at a column's top (its labels, set in any size) neither go on with a paragraph nor it with
+them: they may interrupt it, and are read as blocks of their own after the figure (#932).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -49,7 +53,7 @@ from __future__ import annotations
 
 import itertools
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
@@ -128,6 +132,8 @@ class Held:
     # counting as a figure, so the paragraph reads as it would without it (#163, D-439)
     inline: bool = False
     box: Box | None = None  # where a figure is drawn: its labels lie on it or by it (#945)
+    # each of its graphics' boxes: one that holds all the text on it is a background (D-840)
+    graphics: tuple[Box, ...] = ()
 
 
 Unit = Row | Held
@@ -520,64 +526,110 @@ class Paragraphs:
         self.pitch = _pitch(rows, settings) or settings.line_pitch
         judged = body or body_text(piece for row in rows for piece in row.pieces)
         self.body, self.typed = judged.size, judged.typed
-        self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
-        self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
+        self._neighbours(rows)
         self.gutter: set[int] = set()  # (`continues` reads it while it is being found)
+        # the labels of figures at a column's top: they neither go on with running text nor
+        # it with them, so they may interrupt it (#932)
+        self.apart: set[int] = set()
         # a figure's rows in a gutter read after a row that ends no sentence, by the id of
         # the first: they join `gutter` when it is read, if it sets no paragraph aside
         self.pending: dict[int, list[Row]] = {}
+        # the labels read into a figure's block, by the id of its unit (#932)
+        self.labels: dict[int, list[Row]] = {}
+        # figures in a gutter read between two paragraphs, by the id of their unit: the
+        # paragraph open there ends at them, as it would at their labels (#905, #932)
+        self.between: set[int] = set()
         self.gutter = self._gutter_figures(units)
+        self.apart = self._column_tops(units)
+        self.folded = {id(row) for found in self.labels.values() for row in found}
+        if self.folded:  # the rows read on either side of a figure's labels meet
+            self._neighbours([row for row in rows if id(row) not in self.folded])
+
+    def _neighbours(self, rows: list[Row]) -> None:
+        self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
+        self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
 
     def _gutter_figures(self, units: list[Unit]) -> set[int]:
         """The rows of figures read in a column of their own between two columns of text,
-        by id: the rows in one column read right after a figure, with the row read before
-        the figure in a column to their left and the row read after them in a column to
-        their right, all on one page. They are fewer than `column_items`, so `order` counts
-        no column of text there, and they are the figure's labels, then perhaps its caption
-        (`_figure_rows`): running text there is never taken out of its paragraph. After a
-        row that ends no sentence they wait in `pending` (#958)."""
+        by id: the rows in one column read right after a figure, and perhaps its caption
+        read right before it (printed above it, #933), with the row read before them in a
+        column to their left and the row read after them in a column to their right, all on
+        one page. They are fewer than `column_items`, so `order` counts no column of text
+        there, and they are the figure's labels and caption (`_figure_rows`): running text
+        there is never taken out of its paragraph. After a row that ends a sentence the
+        labels are read into the figure's block (`labels`, #932) and the caption rows join
+        `gutter`; after a row that ends none all of them wait in `pending` (#958)."""
         found: set[int] = set()
         before: Unit | None = None  # the last unit read that is no figure
         for k, unit in enumerate(units):
-            first = units[k + 1] if k + 1 < len(units) else None
             if not _figure(unit):
                 before = unit
                 continue
-            if not isinstance(first, Row):
-                continue
-            column = (first.page, first.left, first.right)
+            above = self._above(units, k)
+            if above:
+                before = units[k - len(above) - 1] if k > len(above) else None
+            first = units[k + 1] if k + 1 < len(units) else None
+            column = _column(above[0]) if above else _column(first)
             end = k + 1  # each row is in one run at most: the scan stays linear
-            while end < len(units):
-                later = units[end]
-                if not isinstance(later, Row) or (later.page, later.left, later.right) != column:
-                    break
+            while end < len(units) and column is not None and _column(units[end]) == column:
                 end += 1
             run = [u for u in units[k + 1 : end] if isinstance(u, Row)]
             after = units[end] if end < len(units) else None
-            if (
-                isinstance(before, Row)
-                and isinstance(after, Row)
-                and before.page == first.page == after.page
-                and before.right <= first.left
-                and first.right <= after.left
-                and len(run) < self.settings.column_items
-                and self._figure_rows(before, run, unit.box if isinstance(unit, Held) else None)
+            rows = above + run
+            if not rows or not isinstance(before, Row) or not isinstance(after, Row):
+                continue
+            if not (
+                before.page == rows[0].page == after.page
+                and before.right <= rows[0].left
+                and rows[0].right <= after.left
+                and len(rows) < self.settings.column_items
             ):
-                if _sentence_end(before):
-                    found |= {id(row) for row in run}
-                else:
-                    self.pending[id(run[0])] = run
+                continue
+            box = unit.box if isinstance(unit, Held) else None
+            labels = self._figure_rows(before, above, run, box)
+            if labels is None:
+                continue
+            if _sentence_end(before):
+                folded = {id(row) for row in labels}
+                found |= {id(row) for row in rows if id(row) not in folded}
+                self.between.add(id(unit))
+                if labels:
+                    self.labels[id(unit)] = labels
+            else:
+                self.pending[id(rows[0])] = rows
         return found
 
-    def _figure_rows(self, before: Row, run: list[Row], figure: Box | None) -> bool:
-        """True if the rows are a figure's labels, then perhaps its caption, and nothing
-        else. A label does not fill its column and lies on the figure or within `float_gap`
-        of it or of the label before it, as a plot's ticks and its axis's name do: running
-        text under a figure stands further off (#945). Ragged lines that go on with a
-        sentence start in any case and after any last character (a German noun, a name, "im
-        Jahr 2023"), so if the row read before the figure ends no sentence (`_sentence_end`),
-        each label must lie on the figure itself (#958). The caption is a row that opens one
-        and the rows that go on with it."""
+    def _above(self, units: list[Unit], k: int) -> list[Row]:
+        """The rows read right before the figure `units[k]` in one column that stands over
+        it, fewer than `column_items`: its caption printed above it in a gutter (#933), if
+        `_figure_rows` finds they are one. None if the rows before it stand in a column
+        beside it (the figure opens its column) or are more."""
+        unit = units[k]
+        box = unit.box if isinstance(unit, Held) else None
+        last = units[k - 1] if k else None
+        if box is None or not isinstance(last, Row) or not _spans(last, box):
+            return []
+        column = _column(last)
+        start = k - 1
+        while start > 0 and _column(units[start - 1]) == column:
+            start -= 1
+            if k - start >= self.settings.column_items:
+                return []
+        return [u for u in units[start:k] if isinstance(u, Row)]
+
+    def _figure_rows(
+        self, before: Row, above: list[Row], run: list[Row], figure: Box | None
+    ) -> list[Row] | None:
+        """The figure's labels if the rows are its labels and its caption and nothing else,
+        else None. The labels are rows read after the figure, the caption the rows above it
+        (`above`) or else the rows after the labels. A label does not fill its column,
+        unless its pieces stand apart as a plot's ticks do (`_ticks`), and lies on the
+        figure or within `float_gap` of it or of the label before it, as a plot's ticks and
+        its axis's name do: running text under a figure stands further off (#945). Ragged
+        lines that go on with a sentence start in any case and after any last character (a
+        German noun, a name, "im Jahr 2023"), so if the row read before the figure ends no
+        sentence (`_sentence_end`), each label must lie on the figure itself (#958). The
+        caption is a row that opens one and the rows that go on with it."""
         ended = _sentence_end(before)
         reach = self.settings.float_gap * self.body if ended else 0.0
         near = [figure] if figure is not None else []
@@ -587,16 +639,67 @@ class Paragraphs:
                 near.append(run[labels].box)
             labels += 1
         caption = run[labels:]
-        if not caption:
-            return labels > 0
-        return opens_caption(caption[0].pieces[0]) and all(
+        if above:
+            if caption:
+                return None
+            caption = above
+        elif not caption:
+            return run if labels else None
+        named = opens_caption(caption[0].pieces[0]) and all(
             self.continues(caption[:n], caption[n]) for n in range(1, len(caption))
         )
+        return run[:labels] if named else None
+
+    def _column_tops(self, units: list[Unit]) -> set[int]:
+        """The labels of each figure that opens its column, by id: the rows read right after
+        it in the column under it that lie on it (`_label` with no reach). Not if the next
+        row read in that column lies on it too (running text on a shaded box), a single
+        graphic of it holds them all (a background or a frame, D-840) or it is lines or a
+        mark only (`geometry.minor`). Without this, the paragraph of the column before goes
+        on in them (#932). They stay text: without a caption, a figure at a column's top is
+        not told from a table with a shaded head, whose cells are read. A figure whose rows
+        the gutter's rule judged (`_gutter_figures`) is left as that rule has it."""
+        mark, thin = self.settings.mark_height * self.body, self.settings.line_width * self.body
+        judged = self.gutter | {id(row) for rows in self.pending.values() for row in rows}
+        found: set[int] = set()
+        last: Row | None = None  # the last row read
+        for k, unit in enumerate(units):
+            if isinstance(unit, Row):
+                last = unit
+                continue
+            first = units[k + 1] if k + 1 < len(units) else None
+            if (
+                not _figure(unit)
+                or unit.box is None
+                or id(unit) in self.between
+                or not unit.graphics
+                or minor(unit.graphics, mark, thin)
+                or last is None
+                or not isinstance(first, Row)
+                or id(first) in judged
+                or _column(first) == _column(last)
+                or not _spans(first, unit.box)
+            ):
+                continue
+            box, column, end = unit.box, _column(first), k + 1
+            while end < len(units) and _column(units[end]) == column:
+                row = units[end]
+                if not isinstance(row, Row) or not self._label(row, [box], 0.0):
+                    break
+                end += 1
+            labels = [u for u in units[k + 1 : end] if isinstance(u, Row)]
+            rest = units[end] if end < len(units) else None
+            if isinstance(rest, Row) and _column(rest) == column and _meets(rest.box, box):
+                continue
+            if not any(all(holds(g, r.box) for r in labels) for g in unit.graphics):
+                found |= {id(row) for row in labels}
+        return found
 
     def _label(self, row: Row, near: list[Box], reach: float) -> bool:
         """True if the row may be a label (`_figure_rows`): it does not fill its column,
-        opens no caption, and lies within `reach` of one of the boxes `near`."""
-        if self._runs_on(row) or opens_caption(row.pieces[0]):
+        unless its pieces stand apart as ticks do (`_ticks`), opens no caption, and lies
+        within `reach` of one of the boxes `near`."""
+        if (self._runs_on(row) and not self._ticks(row)) or opens_caption(row.pieces[0]):
             return False
         box = row.box
         return any(
@@ -607,10 +710,24 @@ class Paragraphs:
             for b in near
         )
 
+    def _ticks(self, row: Row) -> bool:
+        """True if the row is two or more pieces, each apart from the next by white at least
+        a `gutter` wide: a plot's ticks across it, not running text, whose words stand a
+        space apart (#933)."""
+        white = self.settings.gutter * row.size
+        pieces = [boxed(piece) for piece in row.pieces]
+        return len(pieces) > 1 and all(b.x0 - a.x1 >= white for a, b in itertools.pairwise(pieces))
+
     def blocks(self) -> list[Block]:
         for unit in self.units:
             if isinstance(unit, Held):
-                self._hold(unit)
+                if id(unit) in self.between:
+                    self._finish()
+                    if self.aside:
+                        self._release()
+                self._hold(self._with_labels(unit))
+                continue
+            if id(unit) in self.folded:
                 continue
             self._take(unit)
             self.figure = False
@@ -618,6 +735,16 @@ class Paragraphs:
         if self.aside:
             self._release()
         return self.out
+
+    def _with_labels(self, unit: Held) -> Held:
+        """The figure with its labels read into its block (`labels`): their text, and its
+        graphics at its start (#932)."""
+        labels = self.labels.get(id(unit))
+        if not labels:
+            return unit
+        text = _paragraph(labels, self.settings)
+        graphics = tuple(Part(p.item) for p in unit.block.parts)
+        return replace(unit, block=Block(BlockKind.FIGURE, text.text, graphics + text.parts))
 
     def _take(self, row: Row) -> None:
         # a caption right after a float (a formula across the page, #34) starts afresh
@@ -789,6 +916,10 @@ class Paragraphs:
         last = rows[-1]
         if (id(last) in self.gutter) != (id(next_row) in self.gutter):
             return False  # (a figure's labels and caption are not running text, #905)
+        if id(next_row) in self.gutter and opens_caption(next_row.pieces[0]):
+            return False  # (its labels do not go on in its caption, #933)
+        if (id(last) in self.apart) != (id(next_row) in self.apart):
+            return False  # (nor at a column's top, #932)
         size = max(last.size, next_row.size)
         if abs(last.size - next_row.size) > self.settings.size_change * size:
             return False
@@ -1020,6 +1151,20 @@ def _pitch(rows: list[Row], settings: LayoutSettings) -> float:
         if a.size and _below(a, b, settings) and abs(a.size - b.size) < settings.same_size * a.size
     ]
     return median(found) if found else 0.0
+
+
+def _column(unit: Unit | None) -> tuple[int, float, float] | None:
+    """The page and the column's edges of a row (None for anything else)."""
+    return (unit.page, unit.left, unit.right) if isinstance(unit, Row) else None
+
+
+def _spans(row: Row, box: Box) -> bool:
+    """True if the row's column reaches across part of the box."""
+    return row.left < box.x1 and box.x0 < row.right
+
+
+def _meets(a: Box, b: Box) -> bool:
+    return a.x0 < b.x1 and b.x0 < a.x1 and a.y0 < b.y1 and b.y0 < a.y1
 
 
 def _figure(unit: Unit) -> bool:
