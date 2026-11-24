@@ -188,6 +188,22 @@ def test_a_folder_name_refused_again_falls_back_to_audiobook(
     assert audiobook_folder(work, ID, opened, out) == out / made
 
 
+def test_the_last_fallback_never_takes_over_an_existing_audiobook_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # the last name is tried without a refusal to fall back on: it must still number (D-749)
+    work, out = tmp_path / "work", tmp_path / "out"
+    work.mkdir()
+    (out / "audiobook").mkdir(parents=True)
+    (out / "audiobook" / "mine.mp3").write_bytes(b"the person's")
+    _old_volume(monkeypatch, _new_characters)
+    folder = audiobook_folder(work, ID, "\U0001f3a7\U0001f3a7.pdf", out)
+    assert folder == out / "audiobook (2)"
+    assert sorted(p.name for p in (out / "audiobook").iterdir()) == ["mine.mp3"]
+    assert (out / "audiobook" / "mine.mp3").read_bytes() == b"the person's"
+    assert sorted(p.name for p in out.iterdir()) == ["audiobook", "audiobook (2)"]
+
+
 def test_another_error_making_the_folder_is_not_retried(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
