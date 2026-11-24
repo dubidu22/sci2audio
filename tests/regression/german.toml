@@ -2979,7 +2979,7 @@ expected = [
 id = "de-units-x-after-a-read-arrow-in-prose-is-mal"
 audit = 0
 issue = 843
-goal = "Ein gelesener Pfeil ('folgt aus', 'genau dann, wenn', 'daraus folgt') vor '3x' macht es nicht zur Variable, wenn nach dem x ein Wort der Prosa folgt: '3x so vielen' ist '3 mal so vielen', in beiden Läufen (#843, Review)."
+goal = "Ein gelesener Pfeil ('folgt aus', 'genau dann, wenn', 'daraus folgt') vor '3x' macht es nicht zur Variable, wenn nach dem x ein Wort der Prosa folgt: '3x so vielen' ist '3 mal so vielen', in beiden Läufen (#843)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Das folgt aus 3x so vielen Messungen." },

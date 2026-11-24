@@ -136,14 +136,17 @@ _LETTER_X = re.compile(
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
-# around "2x", it is a variable; so it is beside a logic arrow ("3x ⇒ A", #843)
-_OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265\u21d2\u21d0\u21d4"
+_OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
+# the logic arrows: right after the x, "2x" is a variable ("3x ⇒ A"); right before the number
+# only where the x ends the operand ("A ⇐ 3x."), as prose says "implies 3x more memory" (#843)
+_ARROWS = "\u21d2\u21d0\u21d4"
+_OPERAND_END = ".,;:!?)]}"
 # the statistics step's English readings of those signs, which count as the signs around "2x"
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
 _SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
-# the statistics step's readings of the logic arrows "⇒", "⇐", "⇔" (#796) count as the arrows
-# do, so "3x=>A", read "3x implies A", keeps "3x" on a second run (#843)
+# the statistics step's readings of the logic arrows "⇒", "⇐", "⇔" (#796) count where the
+# arrows do, so "3x=>A", read "3x implies A", keeps "3x" on a second run (#843)
 _SAID_ARROWS_EN = tuple(ARROWS.values())
 _SAID_ARROWS_DE = tuple(ARROWS_DE.values())
 # ... and a bare "less than" / "greater than" counts after a one-letter variable or a closing
@@ -190,6 +193,8 @@ class _Table:
     compared: re.Pattern[str] = re.compile(r"(?!)")
     # "per", "pro", "je" before a unit with no number (#230, D-646)
     per_word: re.Pattern[str] = re.compile(r"(?!)")
+    # the logic arrows as the statistics step reads them ("implies", "daraus folgt", #843)
+    said_arrows: re.Pattern[str] = re.compile(r"(?!)")
 
 
 class UnitStep(TextStep):
@@ -304,6 +309,7 @@ class UnitStep(TextStep):
                 table.said_operators,
                 table.words.decimal,
                 table.compared,
+                table.said_arrows,
             ):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
@@ -370,20 +376,12 @@ def _compiled(language: str) -> _Table | None:
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
     german = language.split("-", 1)[0].lower() == "de"
     said = re.compile(
-        "|".join(
-            map(
-                re.escape,
-                sorted({*OPERATORS_DE.values(), *_SAID_ARROWS_DE}, key=len, reverse=True),
-            )
-        )
+        "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
         if german
-        else "|".join(
-            map(
-                re.escape,
-                sorted({*_SAID_OPERATORS_EN, *_SAID_ARROWS_EN}, key=len, reverse=True),
-            )
-        )
+        else "|".join(map(re.escape, _SAID_OPERATORS_EN))
     )
+    arrows = _SAID_ARROWS_DE if german else _SAID_ARROWS_EN
+    said_arrows = re.compile("|".join(map(re.escape, sorted(arrows, key=len, reverse=True))))
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     per_words = _PER_WORDS.get(language.split("-", 1)[0].lower(), ())
     per_word = re.compile(rf"(?<![\w-])(?:{'|'.join(per_words)}) " if per_words else r"(?!)")
@@ -398,6 +396,7 @@ def _compiled(language: str) -> _Table | None:
         kept,
         language.split("-", 1)[0].lower(),
         per_word=per_word,
+        said_arrows=said_arrows,
         compared=re.compile(r"(?!)") if german else _compared_en(by_form),
     )
 
@@ -760,7 +759,15 @@ def reads_x_after(text: str, end: int, language: str) -> bool:
     times = table.words.words["times"]
     return any(
         match.end("number") == end
-        and _times_x(text, match, times, table.said_operators, table.words.decimal, table.compared)
+        and _times_x(
+            text,
+            match,
+            times,
+            table.said_operators,
+            table.words.decimal,
+            table.compared,
+            table.said_arrows,
+        )
         for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
     )
 
@@ -772,6 +779,7 @@ def _times_x(
     said: re.Pattern[str] | None = None,
     decimal: str = ".",
     compared: re.Pattern[str] | None = None,
+    arrows: re.Pattern[str] | None = None,
 ) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
@@ -789,7 +797,7 @@ def _times_x(
     if len(rest) == 2 and rest[0] in "⁺⁻" and rest[1] in "⁰¹²³⁴⁵⁶⁷⁸⁹":
         return False  # "3x⁻²" is "3 x⁻²", as "1x⁶" is
     return _boundary(text, after) and not _in_algebra(
-        text, match.start("number"), after, times, said, compared
+        text, match.start("number"), after, times, said, compared, arrows
     )
 
 
@@ -813,6 +821,7 @@ def _in_algebra(
     times: str,
     said: re.Pattern[str] | None = None,
     compared: re.Pattern[str] | None = None,
+    arrows: re.Pattern[str] | None = None,
 ) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
     ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
@@ -830,4 +839,22 @@ def _in_algebra(
         return True  # "y less than 2x" (#358, D-646)
     before = head[-1:]
     after = text[end : end + 3].lstrip(" ")[:1]
+    if _arrow_around(text, start, end, head, after, arrows):
+        return True
     return (before != "" and before in _OPERATORS) or (after != "" and after in _OPERATORS + "(")
+
+
+def _arrow_around(
+    text: str, start: int, end: int, head: str, after: str, arrows: re.Pattern[str] | None
+) -> bool:
+    """True if a logic arrow, printed or read, makes "2x" a variable (#843): right after the
+    x always ("3x ⇒ A", "3x implies A"); right before the number only where the x ends the
+    operand ("A ⇐ 3x.", "A is implied by 3x,"), as prose says "implies 3x more memory"."""
+    said_before, said_after = _said_patterns(arrows.pattern if arrows else r"(?!)")
+    if (after != "" and after in _ARROWS) or said_after.match(text, end):
+        return True
+    if after != "" and after not in _OPERAND_END + _OPERATORS + _ARROWS:
+        return False  # a prose word follows the x: "implies 3x more memory"
+    return (head[-1:] != "" and head[-1:] in _ARROWS) or bool(
+        said_before.search(text, max(0, start - 32), start)
+    )

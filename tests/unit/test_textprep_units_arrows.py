@@ -24,7 +24,7 @@ def first_and_second_run(text: str, language: str) -> tuple[str, str]:
     [
         ("en", "So 3x=>A holds."),
         ("en", "So 3x ⇒ A holds."),
-        ("en", "So A ⇐ 3x holds."),
+        ("en", "So A ⇐ 3x, as said."),
         ("en", "So 3x<=>A holds."),
         ("en", "So 3x ⇔ A holds."),
         ("de", "Also gilt 3x=>A."),
@@ -66,4 +66,17 @@ def test_x_beside_a_read_arrow_is_a_variable(language: str, said: str) -> None:
     ],
 )
 def test_times_reads_as_before(language: str, printed: str, expected: str) -> None:
+    assert first_and_second_run(printed, language) == (expected, expected)
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "expected"),
+    [
+        ("en", "So A ⇐ 3x more data.", "So A is implied by 3 times more data."),
+        ("de", "Also A ⇐ 3x so viele Daten.", "Also A folgt aus 3 mal so viele Daten."),
+    ],
+)
+def test_x_after_an_arrow_before_a_prose_word_is_times(
+    language: str, printed: str, expected: str
+) -> None:
     assert first_and_second_run(printed, language) == (expected, expected)

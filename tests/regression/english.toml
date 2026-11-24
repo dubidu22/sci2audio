@@ -3188,7 +3188,7 @@ expected = [
 id = "units-x-after-a-read-arrow-in-prose-is-times"
 audit = 0
 issue = 843
-goal = "A read arrow ('implies', 'is implied by', 'if and only if') before '3x' makes no variable of it when a prose word follows the x: '3x more memory' is '3 times more memory', on both runs (#843 review)."
+goal = "A read arrow ('implies', 'is implied by', 'if and only if') before '3x' makes no variable of it when a prose word follows the x: '3x more memory' is '3 times more memory', on both runs (#843)."
 blocks = [
     { kind = "paragraph", text = "This implies 3x more memory." },
     { kind = "paragraph", text = "Doubling the batch implies 2x the training time." },
