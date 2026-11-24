@@ -579,7 +579,7 @@ def _book(state: ServerState, document_id: str) -> _Book:
     except (PlayerError, OSError) as error:
         raise ApiError(404, "not-found", f"{listening.name} has no audiobook") from error
     spans = [chunk.span for chunk in located.readalong.chunks]
-    return _Book(listening, document, spans, stamp, sentence_starts(located.readalong))
+    return _Book(listening, document, spans, stamp, sentence_starts(located.readalong, document))
 
 
 def _marker_out(book: _Book, marker: Marker) -> models.MarkerOut:

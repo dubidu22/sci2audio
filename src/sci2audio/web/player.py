@@ -18,7 +18,8 @@ span lies inside its block: a wrong highlight is worse than none.
 The page itself (D-297): the blocks of the chapters in the audiobook, in reading order,
 without furniture, with a marker where a new printed page starts; every chunk with a
 non-empty span is one element around exactly its characters; a placeholder whose notice
-was read is a notice box (D-299).
+was read is a notice box (D-299). A chunk whose span holds nothing to speak (a lone "-" of
+an audiobook made before #652) is drawn as an empty span is: it gets no element of its own.
 """
 
 from __future__ import annotations
@@ -59,6 +60,7 @@ from sci2audio.textprep import (
     TableFigureNoticeStep,
     TextStep,
     run_steps,
+    unspoken,
 )
 from sci2audio.web.figures import Catalog, Shown
 from sci2audio.web.project import read_project
@@ -987,7 +989,7 @@ def build_view(
     code_lines = _code_lines(document)
 
     element_of: list[str] = [""] * len(readalong.chunks)
-    firsts = sentence_starts(readalong)
+    firsts = sentence_starts(readalong, document)
     views: list[ChapterView] = []
     used: set[int] = set()
     for index, times in enumerate(readalong.chapters):
@@ -1042,6 +1044,7 @@ def build_view(
                 times.start,
             )
         )
+    _place_silent(readalong, element_of, _silent(document, readalong))
     chunks = [(c.start, c.end, c.chapter, element_of[n]) for n, c in enumerate(readalong.chunks)]
     heard_blocks = {n for c in chapters if c.index in used for n in range(c.start, c.end)}
     return PlayerView(
@@ -1399,13 +1402,17 @@ def _block_view(
     last_element: str | None = None
     sentence = (0, 0, 0)  # the last sentence: its first chunk, its start, its piece's index
     waiting: list[int] = []  # empty spans before the block's first sentence
+    # spans with nothing to say before it (#652): with no sentence in the block, they never
+    # make the block the read element; `_place_silent` gives them a neighbour's
+    quiet: list[int] = []
     for n in sorted(chunk_numbers, key=lambda n: (readalong.chunks[n].span.start, n)):
         span = readalong.chunks[n].span
-        if span.start == span.end or span.start < position:
-            # an empty span (or one that would overlap) belongs to the sentence before it,
-            # or, before the first one, to the first one
+        silent = not block.is_placeholder and unspoken(text[span.start : span.end])
+        if span.start == span.end or span.start < position or silent:
+            # an empty span (or one that would overlap, or say nothing, #652) belongs to the
+            # sentence before it, or, before the first one, to the first one
             if last_element is None:
-                waiting.append(n)
+                (quiet if silent and span.start < span.end else waiting).append(n)
             else:
                 element_of[n] = last_element
             continue
@@ -1422,9 +1429,9 @@ def _block_view(
             view.pieces.append(_piece(text, position, span.start, joined, marks))
         last_element = f"s{n}"
         element_of[n] = last_element
-        for early in waiting:
+        for early in (*waiting, *quiet):
             element_of[early] = last_element
-        waiting = []
+        waiting, quiet = [], []
         sentence = (n, span.start, len(view.pieces))
         view.pieces.append(_piece(text, span.start, span.end, joined, marks, last_element, n))
         position = span.end
@@ -1439,14 +1446,19 @@ def _block_view(
     return view
 
 
-def sentence_starts(readalong: ReadAlong) -> list[int]:
+def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
     """For each chunk, the first chunk of the sentence it is a piece of (#480): itself, unless
     the read-along says it `joins` the chunk before it and the page can show the two as one,
     which is when both read text of the same block, the chunk before is the one the page
     draws just before it there, and neither is skipped as empty or overlapping (as
     `_block_view` skips them). Any other `joins` is ignored, so a hand-made or broken file
-    can't make the page, the markers and the player group the chunks differently."""
+    can't make the page, the markers and the player group the chunks differently.
+
+    A chunk whose span says nothing (`_silent`: a lone "-" of an audiobook made before #652)
+    is a piece of the sentence before it in its chapter, or, as the chapter's first chunk,
+    leads the sentence after it, so Previous and Next never stop on it."""
     chunks = readalong.chunks
+    silent = _silent(document, readalong)
     kept_before: dict[int, int | None] = {}  # a drawn chunk -> the drawn chunk before it
     by_block: dict[int, list[int]] = {}
     for n, chunk in enumerate(chunks):
@@ -1456,15 +1468,51 @@ def sentence_starts(readalong: ReadAlong) -> list[int]:
         last: int | None = None
         for n in sorted(numbers, key=lambda n: (chunks[n].span.start, n)):
             span = chunks[n].span
-            if span.start == span.end or span.start < position:
+            if span.start == span.end or span.start < position or n in silent:
                 continue
             kept_before[n] = last
             last, position = n, span.end
     starts: list[int] = []
     for n, chunk in enumerate(chunks):
         follows = chunk.joins and n > 0 and n in kept_before and kept_before[n] == n - 1
+        same_chapter = n > 0 and chunks[n - 1].chapter == chunk.chapter
+        if same_chapter and (n in silent or (n - 1 in silent and starts[n - 1] == n - 1)):
+            follows = True  # says nothing (#652), or follows one that opens the chapter
         starts.append(starts[n - 1] if follows else n)
     return starts
+
+
+def _silent(document: Document, readalong: ReadAlong) -> frozenset[int]:
+    """The chunks whose span holds text with nothing to speak (#652): a lone "-", a bullet
+    or a bracket an audiobook made before the cutter left them out. A placeholder's chunk
+    never is: it may read a notice for printed text of only brackets ("{ }"). Spans are
+    checked by the caller (`document.check_span`); one outside its block is not silent."""
+    out = set()
+    for n, chunk in enumerate(readalong.chunks):
+        span = chunk.span
+        if span.start < span.end and 0 <= span.block < len(document.blocks):
+            block = document.blocks[span.block]
+            if (
+                not block.is_placeholder
+                and span.end <= len(block.text)
+                and unspoken(block.text[span.start : span.end])
+            ):
+                out.add(n)
+    return frozenset(out)
+
+
+def _place_silent(readalong: ReadAlong, element_of: list[str], silent: frozenset[int]) -> None:
+    """Give a silent chunk that got no element in its block (#652: a block of only "-")
+    the element of the chunk before it in its chapter, else of the one after it: the
+    highlight stays on that sentence while it plays, never on the silent block."""
+    chunks = readalong.chunks
+    for n in sorted(silent):
+        if element_of[n]:
+            continue
+        for k in (n - 1, n + 1):
+            if 0 <= k < len(chunks) and chunks[k].chapter == chunks[n].chapter and element_of[k]:
+                element_of[n] = element_of[k]
+                break
 
 
 def _piece(
