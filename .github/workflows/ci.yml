@@ -138,6 +138,32 @@ jobs:
             test -s "$RUNNER_TEMP/smoke/joss2021-waskom-seaborn.$suffix"
           done
 
+  # requires-python (>=3.12) lets people install on 3.13, where a chapter once lost its text
+  # while 3.12 passed (#587). So every run tests 3.13 too, on Linux only: the 3.12 legs above
+  # keep the three systems and their names, which rules and the ruleset name (#792).
+  tests-py313:
+    name: tests (ubuntu-latest, py3.13)
+    runs-on: ubuntu-latest
+    env:
+      # wins over .python-version for uv sync and uv run; still uv's own CPython (only-managed)
+      UV_PYTHON: "3.13"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          cache-python: true  # the uv-managed CPython 3.13, not downloaded each run
+          cache-suffix: py3.13  # never the cache of the .python-version legs
+      - run: uv sync --locked
+      # Should a later change let .python-version win, this job would test 3.12 twice unseen.
+      - name: The tests run on Python 3.13
+        run: uv run python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
+      - name: Fast tests (unit, property-based, golden files)
+        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
+        env:
+          HYPOTHESIS_PROFILE: ci
+
   # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
   # axe-core. Chromium on Linux on every PR; Firefox and WebKit on a PR that changes a web
   # path (browser-reported) and in the nightly.
@@ -277,7 +303,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, security, tests, browser, web-paths]
+    needs: [lint, licences, security, tests, tests-py313, browser, web-paths]
     runs-on: ubuntu-latest
     permissions:
       contents: read
