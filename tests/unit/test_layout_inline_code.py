@@ -15,6 +15,7 @@ from test_layout_code import MONO, PITCH, build, code, listing, prose, running, 
 
 from sci2audio.core import BlockKind, Content, Document, TextRun
 from sci2audio.layout import build_document
+from sci2audio.textprep import BUILT_IN_STEPS, StepContext, run_steps, spoken_text
 
 CODE = "code"
 
@@ -41,6 +42,37 @@ def test_a_courier_run_mid_sentence_is_tagged_code_and_the_prose_is_not() -> Non
     (block,) = [b for b in doc.blocks if "x =>" in b.text]
     assert block.kind is BlockKind.PARAGRAPH
     assert block.text == "Write the rule x => x + 1 as shown."
+
+
+def read(doc: Document) -> str:
+    run = run_steps(doc, StepContext("en"), BUILT_IN_STEPS, strict=True)
+    assert not run.problems
+    return spoken_text(run.script())
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"), [(" x => x + 1", "x => x + 1"), (" a <=> b", "a <=> b")]
+)
+def test_the_text_steps_read_a_courier_run_as_printed_and_the_prose_around_it(
+    printed: str, said: str
+) -> None:
+    """End to end (#879 with #854): the arrow in the Courier run stays as printed, the same
+    arrow in the Times prose after it is read as words."""
+    line = runs(
+        ("Write the rule", "Times"), (printed, "Courier"), (" and A => B as shown.", "Times")
+    )
+    spoken = read(build(text_line(line, 300, end=RIGHT)))
+    assert f"Write the rule {said} and A implies B as shown." in spoken
+
+
+def test_in_a_typed_document_the_courier_run_is_read_by_the_steps() -> None:
+    typed = [
+        text_line((TextRun(f"Typed text, line {k}.", "Courier", 10.0),), 100 + PITCH * k, end=RIGHT)
+        for k in range(10)
+    ]
+    mixed = text_line(runs(("Signed", "Times"), (" x => y", "Courier"), (" today.", "Times")), 300)
+    spoken = read(build_document(content([*typed, mixed])))
+    assert "Signed x implies y today." in spoken
 
 
 def test_the_tag_is_added_to_the_run_s_own_tags() -> None:
