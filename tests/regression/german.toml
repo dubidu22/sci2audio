@@ -3423,3 +3423,20 @@ expected = [
     "Also A⁻¹ K hier.",
     "Also 2 hoch minus 1 mal hier.",
 ]
+
+[[case]]
+id = "de-a-unit-power-before-a-unit-letter"
+audit = 0
+issue = 816
+goal = "The number of 'hoch', the reading of a power, is no unit's number: '5 A² K' is '5 Ampere hoch 2 K' on both runs, as the first run reads it, where a second run read 'Kelvin' before; a number's power before a unit reads the unit as before (#816)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also 5 A² K hier." },
+    { kind = "paragraph", text = "Also 5 A⁻² K hier." },
+    { kind = "paragraph", text = "Also 10² K hier." },
+]
+expected = [
+    "Also 5 Ampere hoch 2 K hier.",
+    "Also 5 pro Ampere hoch 2 K hier.",
+    "Also 10 hoch 2 Kelvin hier.",
+]

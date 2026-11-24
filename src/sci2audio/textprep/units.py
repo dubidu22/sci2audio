@@ -176,9 +176,12 @@ _MINUS_SAID_AFTER_EN = re.compile(r"\s+minus\s+\.?\d")
 # variable (not "a", "A", "I", which are words) or an opening bracket, mirroring
 # `_COMPARED_EN`: "3x greater than y" is the reading of "3x > y" (#1010, D-646)
 _COMPARED_AFTER_EN = re.compile(r"\s*(?:less|greater) than\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()")
-# the numbers step's reading of a power ("A⁻¹" is "A to the power of minus 1"): its number is
-# an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did (#816)
-_POWER_SAID_EN = re.compile(r"(?<![\w-])to the power of (?:minus )?\Z")
+# the reading of a power ("A⁻¹" is "A to the power of minus 1", "5 A²" "5 Ampere hoch 2"): its
+# number is an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did (#816)
+_POWER_SAID = {
+    "en": re.compile(r"(?<![\w-])to the power of (?:minus )?\Z"),
+    "de": re.compile(r"(?<![\w-])hoch (?:minus )?\Z"),
+}
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
@@ -451,9 +454,8 @@ def _unit_after(
         return None
     if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
         return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
-    if table.language == "en" and _POWER_SAID_EN.search(
-        text, max(0, number.start() - 24), number.start()
-    ):
+    power_said = _POWER_SAID.get(table.language)
+    if power_said and power_said.search(text, max(0, number.start() - 24), number.start()):
         return None
     # after a power printed in superscripts ("10⁴K") a glued letter reads as it does with a
     # space ("10⁴ K"), where the numbers step reads the power before it (#576; German, #815)

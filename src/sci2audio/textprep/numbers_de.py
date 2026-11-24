@@ -1284,8 +1284,11 @@ _ROMAN_RUN = re.compile(
     + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
     + _SIGN_START
     + r")|\s+%|\s+(?:Quadrat|hoch)\b"
-    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&|bis)\s+)"
+    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
     + _ROMAN
+    + r"|\s+bis\s+"
+    + _ROMAN
+    + r"(?!\w)"
     + ")"
 )
 # a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis

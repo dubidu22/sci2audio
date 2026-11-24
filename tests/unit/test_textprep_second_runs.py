@@ -257,6 +257,8 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("So 2⁻¹x.", "en", "So 2 to the power of minus 1 times."),
         ("So 2⁻¹x faster.", "en", "So 2 to the power of minus 1 times faster."),
         ("Also A⁻¹ K.", "de", "Also A⁻¹ K."),
+        ("Also 5 A² K.", "de", "Also 5 Ampere hoch 2 K."),
+        ("Also 10² K.", "de", "Also 10 hoch 2 Kelvin."),
         ("Also 2⁻¹x.", "de", "Also 2 hoch minus 1 mal."),
     ],
 )
