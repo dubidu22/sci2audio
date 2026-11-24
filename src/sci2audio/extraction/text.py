@@ -174,8 +174,9 @@ _REFERENCE = re.compile(
     rf"(?:\d{{1,4}}[.)]\s*)?{_PARTICLES}"
     r"([^\W\d_]+(?:[-'\u2019][^\W\d_]+)*)"  # the surname
     r"(?:,\s*([^\W\d_])\."  # APA: an initial
-    # Chicago: a given name and a middle initial, then the next author or the title (#981)
-    r"|,\s*([^\W\d_]+)(?:\s+([^\W\d_])\.,?|[,.])"
+    # Chicago: a given name, hyphenated or not ("Jean-Paul", #995), and a middle initial,
+    # then the next author or the title (#981)
+    r"|,\s*([^\W\d_]+(?:-[^\W\d_]+)?)(?:\s+([^\W\d_])\.,?|[,.])"
     r"|\s+([^\W\d_]{1,3})[,.])"  # Vancouver: initials
 )
 # The capitals of the Latin, Greek and Cyrillic scripts, for the author lists below: `re`
@@ -202,6 +203,10 @@ _PARTS = (
     r"|Abschnitt|Band|Buch|Anhang|Tabelle|Abbildung|Abb|Tafel|Stufe|Schritt|Gruppe|Klasse"
     r"|Modell|Fall|Studie|Versuch|Sitzung|Runde|Akt|Szene|Lektion|Einheit|Vorlesung|Folge"
     r"|Staffel|Artikel|Anlage)\b)"
+    # A line of any one word and a Roman numeral up to XXXIX and nothing else ("Lot IV.",
+    # "Canto II.") heads a part too (#993). Initials such as "CD" or "MC" read as higher
+    # numerals, so those stay an author.
+    rf"(?!{_UPPER}[^\W\d_]*\s+(?=[IVX])X{{0,3}}(?:IX|IV|V?I{{0,3}})\.\s*\Z)"
 )
 # A whole author list ending as the style ends it (`_NAMED`)
 _NAMED_LIST = re.compile(
@@ -620,7 +625,9 @@ def _reference(text: str) -> int:
         elif initials is not None:
             weak = initials.isupper()
         else:
-            weak = given[0].isupper() and (middle is None or middle.isupper())
+            # each part of a hyphenated given name starts with a capital: "Jean-Paul" (#995)
+            weak = all(part[:1].isupper() for part in given.split("-"))
+            weak = weak and (middle is None or middle.isupper())
     if weak:
         return _NAMED if _NAMED_LIST.match(text) else _WEAK
     if _INITIALS_FIRST.match(text):
