@@ -348,10 +348,21 @@ def _decode(data: bytes) -> str:
             codec = "utf-8"
         if codec.startswith("utf-16") or codec.startswith("utf-32"):
             codec = "utf-8"  # declared but written without a byte-order mark: not readable
+        if not _reads_ascii(codec, found.group(0)):
+            codec = "utf-8"  # punycode on Python 3.13 decodes to nothing instead of failing
     try:
         return data.decode(codec, errors="replace")
     except (LookupError, ValueError):  # not a text codec (hex, base64) or one that can't
         return data.decode("utf-8", errors="replace")  # replace (idna, punycode)
+
+
+def _reads_ascii(codec: str, declaration: bytes) -> bool:
+    """Whether `codec` reads the (ASCII) XML declaration back as it is (#587): a codec that
+    garbles or drops it would garble or drop the chapter too."""
+    try:
+        return declaration.decode(codec) == declaration.decode("ascii")
+    except (LookupError, ValueError, TypeError):
+        return False
 
 
 # ---- the package file ------------------------------------------------------------------
