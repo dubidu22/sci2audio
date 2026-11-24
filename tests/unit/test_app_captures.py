@@ -230,9 +230,20 @@ def test_a_removed_working_folder_fails_clearly_and_is_not_made_again(tmp_path: 
     assert not gone.exists()
 
 
-def test_a_note_that_cannot_be_written_as_utf8_writes_nothing(work: Path, kept: bytes) -> None:
-    lone = Capture("00000000000000e5", CaptureType.NOTE, TIME, TIME, Anchor(0, 0, 1, "x"), "\ud800")
-    with pytest.raises(ValueError):  # noqa: PT011
-        write_captures(work, CaptureFile(DOC, (lone,)))
-    assert (work / CAPTURES).read_bytes() == kept
+@pytest.mark.parametrize(
+    "field",
+    ['"document": "', '"created": "', '"changed": "', '"text": "Sleep', '"text": "Were'],
+)
+def test_a_lone_surrogate_in_any_text_makes_the_file_unreadable(work: Path, field: str) -> None:
+    """Valid UTF-8 JSON, but "\\ud800" has no UTF-8 form: such a file could be read and
+    never written back, so it is refused and left as it is."""
+    text = captures_text(THREE).replace(field, field + "\\ud800", 1)
+    assert field + "\\ud800" in text
+    path = work / CAPTURES
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(CapturesBroken, match="surrogate"):
+        read_captures(work, DOC)
+    with pytest.raises(CapturesBroken):
+        write_captures(work, THREE)
+    assert path.read_text(encoding="utf-8") == text
     _neighbours_untouched(work)

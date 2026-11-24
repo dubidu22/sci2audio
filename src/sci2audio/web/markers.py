@@ -251,15 +251,6 @@ def markers_text(document_id: str, markers: Sequence[Marker]) -> str:
     return text
 
 
-def count_markers(work: Path, document_id: str) -> int | None:
-    """How many markers the file holds now, for the removal box (D-728 ruling 3): 0 with no
-    file, None if it is there but can't be read."""
-    try:
-        return len(read_markers(work, document_id))
-    except (MarkersBroken, OSError):
-        return None
-
-
 def count_captures(work: Path, document_id: str) -> dict[str, Any]:
     """The document's captures by type (`note`, `quote`, `mark`), for the removal box
     (ADR-008 2.1 item 4, #396), counted as the box is drawn: from `captures.json`, or,

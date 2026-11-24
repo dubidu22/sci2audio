@@ -163,6 +163,12 @@ def _changed(path: tuple[Any, ...], value: object) -> dict[str, Any]:
         (("captures", 0, "anchor", "text"), None),
         (("captures", 0, "anchor", "spoken"), "twelve percent"),
         (("captures", 2, "id"), "00000000000000a1"),
+        # a lone surrogate has no UTF-8 form: the file could not be written back
+        (("document",), "doc\ud800"),
+        (("captures", 0, "created"), "2026-11-20T19:04:00Z\udfff"),
+        (("captures", 0, "changed"), "\ud800"),
+        (("captures", 0, "anchor", "text"), "Sleep \udc00loss."),
+        (("captures", 1, "text"), "Ask \ud83d Sam."),
     ],
 )
 def test_data_this_version_cannot_read_is_refused_with_a_reason(

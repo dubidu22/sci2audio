@@ -61,6 +61,8 @@ class Anchor:
             )
         if not self.text:
             raise CaptureFormatError("an anchor holds the sentence's text")
+        if _has_surrogate(self.text):
+            raise CaptureFormatError(f"an anchor's text {_SURROGATE}")
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,8 @@ class Capture:
             raise CaptureFormatError(f"a capture's type is mark, note or quote, not {self.type!r}")
         if len(self.created) > TIME_LIMIT or len(self.changed) > TIME_LIMIT:
             raise CaptureFormatError(f"a capture's times are at most {TIME_LIMIT} characters")
+        if _has_surrogate(self.created) or _has_surrogate(self.changed):
+            raise CaptureFormatError(f"a capture's time {_SURROGATE}")
         problem = text_problem(self.text)
         if problem:
             raise CaptureFormatError(problem)
@@ -101,6 +105,8 @@ class CaptureFile:
     def __post_init__(self) -> None:
         if not self.document:
             raise CaptureFormatError("a captures file names its document")
+        if _has_surrogate(self.document):
+            raise CaptureFormatError(f"the document's name {_SURROGATE}")
         if len(self.captures) > MAX_CAPTURES:
             raise CaptureFormatError(f"a document holds at most {MAX_CAPTURES} captures")
         if len({capture.id for capture in self.captures}) != len(self.captures):
@@ -122,7 +128,18 @@ def text_problem(text: str) -> str | None:
         return f"a note holds at most {TEXT_LIMIT} characters"
     if "\x00" in text:
         return "a note can't hold a NUL character"
+    if _has_surrogate(text):
+        return f"a note {_SURROGATE}"
     return None
+
+
+# A lone surrogate (U+D800 to U+DFFF) reads from JSON as "\ud800" but has no UTF-8 form, so a
+# file holding one could be read and never written back; every text is refused with one.
+_SURROGATE = "holds a lone surrogate, which UTF-8 can't write"
+
+
+def _has_surrogate(text: str) -> bool:
+    return any("\ud800" <= char <= "\udfff" for char in text)
 
 
 # ---- the JSON form ---------------------------------------------------------------------------
