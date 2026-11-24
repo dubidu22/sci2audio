@@ -3249,3 +3249,55 @@ expected = [
     "Ask the authors for the data.",
     "Run curl https://example.org/a first.",
 ]
+
+# ---- #843, #957 readings a second run keeps ---------------------------------------------------
+
+[[case]]
+id = "units-x-beside-an-arrow-of-logic-is-times"
+audit = 0
+issue = 843
+goal = "'Nx' next to an arrow of logic reads 'times' on both runs. This holds whether the arrow is printed whole, in pieces or in ASCII ('3x=>A', '3x ⇒ A', 'B ⇐= 2x'), and matches how a second run reads 'Nx' after 'implies': the arrow is no algebra operator. '3x faster', '3 × 4' and 'y = 2x + 1' read as before (#843)."
+blocks = [
+    { kind = "paragraph", text = "So 3x=>A and 3x ⇒ A." },
+    { kind = "paragraph", text = "Also B <=> 4x, B ⇐= 2x and C =⇒ 5x." },
+    { kind = "paragraph", text = "It runs 3x faster, 3 × 4 is 12 and y = 2x + 1." },
+]
+expected = [
+    "So 3 times implies A and 3 times implies A.",
+    "Also B if and only if 4 times, B is implied by 2 times and C implies 5 times.",
+    "It runs 3 times faster, 3 times 4 is 12 and y equals 2x + 1.",
+]
+
+[[case]]
+id = "an-iso-date-after-a-dash-range"
+audit = 0
+issue = 957
+goal = "An ISO date after an en dash is read as a date on the first run, as after an em dash. The range rule reads the dash 'to', so a second run sees the date on its own. A chain of hyphens stays as printed (#957)."
+blocks = [
+    { kind = "paragraph", text = "3–3–1999-02-01" },
+    { kind = "paragraph", text = "3—3—1999-02-01" },
+    { kind = "paragraph", text = "3-3-1999-02-01" },
+    { kind = "paragraph", text = "We ran it from 2019-03-01–2019-03-05." },
+]
+expected = [
+    "3 to 3 to 1 February 1999",
+    "3 to 3 to 1 February 1999",
+    "3-3-1999-02-01",
+    "We ran it from 1 March 2019 to 5 March 2019.",
+]
+
+# added in review round 1 of PR #971: the English counterpart of the German row
+# "de-an-arrow-after-an-abbreviation-before-a-prose-word"
+[[case]]
+id = "an-arrow-after-an-abbreviation-before-a-prose-word"
+audit = 0
+issue = 924
+goal = "An arrow between an abbreviation read as words ('e.g.', 'i.e.') and a prose word is left as printed on both runs (#924)."
+blocks = [
+    { kind = "paragraph", text = "Values rise, e.g. ⇒ the data show it." },
+    { kind = "paragraph", text = "It is new, i.e. ⇒ we measure it." },
+]
+expected = [
+    "Values rise, for example ⇒ the data show it.",
+    "It is new, that is ⇒ we measure it.",
+]

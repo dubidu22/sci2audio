@@ -201,8 +201,10 @@ _UNIT_CHAIN_AFTER_FRACTION = re.compile(
 )
 
 # --- N9 ISO dates ----------------------------------------------------------------------------
+# after an en dash too, which the range rule reads "to": a second run sees "to 2019-03-05"
+# ("2019-03-01–2019-03-05", "3–1999-02-01", #957)
 _ISO_DATE = re.compile(
-    r"(?<![\w.:/\u2013-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
+    r"(?<![\w.:/-])(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
     r"(?![\w⁺⁻^-]|[.,]\d)"  # not before a power: "2019-03-12⁻⁴" is no date
 )
 

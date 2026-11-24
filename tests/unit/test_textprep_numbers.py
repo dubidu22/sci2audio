@@ -7,7 +7,7 @@ import unicodedata
 from collections.abc import Callable
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from linear_time import assert_linear
 from notation_texts import notation_documents
 
@@ -285,6 +285,9 @@ def test_characters_not_read_do_not_hide_a_number(printed: str, said: str) -> No
 
 
 @given(notation_documents())
+@example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")]))  # #957
+@example(make_document([(BlockKind.PARAGRAPH, "3-3-1999-02-01")]))  # #957
+@example(make_document([(BlockKind.PARAGRAPH, "3\u20143\u20141999-02-01")]))  # #957
 def test_the_step_keeps_the_contract_on_any_document(document: Document) -> None:
     check_text_step(STEP, [document], allow_ask=False)
 

@@ -678,8 +678,10 @@ _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
 _ORDINAL = re.compile(r"(?<![^\WxX])(?<![,/:\u2013-])" + _STOP + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_])")
+# after an en dash too, which the range rule reads "bis": a second run sees "bis 2019-03-05"
+# (#957)
 _ISO_DATE = re.compile(
-    r"(?<![^\WxX])(?<![:/\u2013-])(?<!\d,)"
+    r"(?<![^\WxX])(?<![:/-])(?<!\d,)"
     + _STOP
     + r"(?P<y>1[5-9]\d\d|20\d\d)-\n?(?P<m>0[1-9]|1[0-2])-\n?(?P<d>0[1-9]|[12]\d|3[01])"
     r"(?![\d_]|[⁺⁻^-]|[.,:/]\d)"  # a letter after it: `_year_left_alone` decides

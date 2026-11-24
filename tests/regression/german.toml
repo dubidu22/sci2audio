@@ -3158,3 +3158,110 @@ expected = [
     "Es wuchs 1234 mal im Jahr.",
     "Wir setzen 2019 gleich A.",
 ]
+
+# ---- #843, #924, #957 readings a second run keeps ---------------------------------------------
+
+[[case]]
+id = "de-units-x-beside-an-arrow-of-logic-is-mal"
+audit = 0
+issue = 843
+goal = "'Nx' next to an arrow of logic reads 'mal' on both runs. This holds whether the arrow is printed whole, in pieces or in ASCII ('3x=>A', '3x ⇒ A', 'B ⇐= 2x'), and matches how a second run reads 'Nx' after 'daraus folgt': the arrow is no algebra operator. '3x schneller', '3 × 4' and 'y = 2x + 1' read as before (#843)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also 3x=>A und 3x ⇒ A." },
+    { kind = "paragraph", text = "Auch B <=> 4x, B ⇐= 2x und C =⇒ 5x." },
+    { kind = "paragraph", text = "Es läuft 3x schneller, 3 × 4 ist 12 und y = 2x + 1." },
+]
+expected = [
+    "Also 3 mal daraus folgt A und 3 mal daraus folgt A.",
+    "Auch B genau dann, wenn 4 mal, B folgt aus 2 mal und C daraus folgt 5 mal.",
+    "Es läuft 3 mal schneller, 3 mal 4 ist 12 und y gleich 2x + 1.",
+]
+
+[[case]]
+id = "de-an-arrow-after-an-abbreviation"
+audit = 0
+issue = 924
+goal = "An arrow of logic after an abbreviation that is read with its full stop ('Jh.' as 'Jahrhundert') is read on the first run, as '=' is there (#130). A second run sees the word. Between two prose words the arrow is named and left as printed, on both runs (#924)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Jh.⇒1" },
+    { kind = "paragraph", text = "Im 3. Jh. <=> 10 und z. B. ⇐ 2." },
+    { kind = "paragraph", text = "Jh. ⇒ Das gilt." },
+]
+expected = [
+    "Jahrhundert daraus folgt 1",
+    "Im dritten Jahrhundert genau dann, wenn 10 und zum Beispiel folgt aus 2.",
+    "Jahrhundert ⇒ Das gilt.",
+]
+
+# added in review round 1 of PR #971: an abbreviation read as words counts as one prose word,
+# whatever its last printed piece ("z. B.", "d. h."), so the arrow before a prose word stays
+# named, as on main
+[[case]]
+id = "de-an-arrow-after-an-abbreviation-before-a-prose-word"
+audit = 0
+issue = 924
+goal = "An arrow between an abbreviation read as words and a prose word is named and left as printed on both runs, also where the abbreviation's last piece is one letter ('z. B.', 'd. h.'): the abbreviation is one prose word (#924)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Werte steigen, z. B. ⇒ Die Daten zeigen es." },
+    { kind = "paragraph", text = "Das ist neu, d. h. ⇒ wir messen." },
+    { kind = "paragraph", text = "Siehe dazu s. o. ⇒ die Tabelle." },
+]
+expected = [
+    "Die Werte steigen, zum Beispiel ⇒ Die Daten zeigen es.",
+    "Das ist neu, das heißt ⇒ wir messen.",
+    "Siehe dazu siehe oben ⇒ die Tabelle.",
+]
+
+[[case]]
+id = "de-a-sign-after-a-pieced-left-arrow"
+audit = 0
+issue = 924
+goal = "A sign after a left arrow printed in pieces ('←−=1', '←−− < 31') is read as it is after the printed '←'. The minus signs belong to the arrow, which the numbers step reads as '←', not to the sign (#924)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "←−=1" },
+    { kind = "paragraph", text = "←−− < 31" },
+    { kind = "paragraph", text = "←=1" },
+]
+expected = [
+    "← gleich 1",
+    "← kleiner als 31",
+    "← gleich 1",
+]
+
+[[case]]
+id = "de-kapitel-with-a-roman-numeral"
+audit = 0
+issue = 924
+goal = "'Kapitel I' reads 'Kapitel 1' on both runs (#924)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I" },
+    { kind = "paragraph", text = "Siehe Kapitel I und Kapitel IV dazu." },
+]
+expected = [
+    "Kapitel 1",
+    "Siehe Kapitel 1 und Kapitel 4 dazu.",
+]
+
+[[case]]
+id = "de-an-iso-date-after-a-dash-range"
+audit = 0
+issue = 957
+goal = "An ISO date after an en dash is read as a date on the first run, as after an em dash. The range rule reads the dash 'bis', so a second run sees the date on its own. A chain of hyphens stays as printed (#957)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "3–3–1999-02-01" },
+    { kind = "paragraph", text = "3—3—1999-02-01" },
+    { kind = "paragraph", text = "3-3-1999-02-01" },
+    { kind = "paragraph", text = "Wir maßen vom 2019-03-01–2019-03-05." },
+]
+expected = [
+    "3 bis 3 bis ersten Februar 19 hundert 99",
+    "3 bis 3 bis ersten Februar 19 hundert 99",
+    "3-3-1999-02-01",
+    "Wir maßen vom ersten März 2019 bis fünften März 2019.",
+]
