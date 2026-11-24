@@ -316,8 +316,12 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
     out: list[tuple[str, ...]] = []
     found: list[int] = []
     element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
+    # the element's first line starts a reference entry; matched once per element, as a
+    # match per line costs a long line's length again for each line after it (#930)
+    reference = False
     for k, text in enumerate(paragraph):
         anchored = k == 0 or element[0] != "p" or paragraph[k - 1].rstrip().endswith(":")
+        opens = k > 0 and out[k - 1] == ("p",)
         if k in items and anchored:
             element = items[k]
             out.append(element)
@@ -329,7 +333,8 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
                 longest,
                 paragraph[k - 2] if k > 1 else None,
                 paragraph[k + 1] if k + 1 < len(paragraph) else None,
-                opens=out[k - 1] == ("p",),
+                opens=opens,
+                wrapped=element == ("p",) and not reference,
             )
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
@@ -338,6 +343,7 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
                 found.append(k)
         else:
             element = ("p",)
+            reference = _REFERENCE.match(text.lstrip()) is not None
             out.append(element)
     return out, found
 
@@ -367,7 +373,14 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
 
 
 def _title(
-    line: str, after: str, longest: int, before: str | None, beyond: str | None, *, opens: bool
+    line: str,
+    after: str,
+    longest: int,
+    before: str | None,
+    beyond: str | None,
+    *,
+    opens: bool,
+    wrapped: bool,
 ) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
@@ -384,11 +397,15 @@ def _title(
     / "Die ..."). A month line in capitals before a capital keeps its cut after it: after a
     number's stop it may be a heading the date rule joined to the line before (#900).
 
-    A long line that `opens` a block (the paragraph's first line, or the one after a title
-    line) and ends in a word that leads into no date (`_DATE_LEADS`) before a short date
-    line is a title or author line, and its date a line of its own (#922, #942): "A Study
-    of ... on Phones" / "April 2020" / "The ..." cuts before and after the date (`_dated`).
-    The same long line inside a paragraph is prose: the date joins it, and the date line
+    A long line that heads its block and ends in a word that leads into no date
+    (`_DATE_LEADS`) before a short date line is a title or author line, and its date a line
+    of its own (#922, #942): "A Study of ... on Phones" / "April 2020" / "The ..." cuts
+    before and after the date (`_dated`). It heads its block if it `opens` it (the
+    paragraph's first line, or the one after a title line) or if it is `wrapped` in a
+    paragraph block that starts no reference entry and the line before it ends no sentence:
+    a title or author block wrapped over long lines ("A Study of ... Phones and" /
+    "Tablets ..." / "June 2020"). After a sentence
+    end inside a paragraph the same long line is prose: the date joins it, and the date line
     is cut after by the short-line rule below (#942). So is a reference entry wrapped
     before its date ("Smith, J. ... Journal" / "June 2020" / "Brown, B. ...", #930).
 
@@ -399,7 +416,10 @@ def _title(
     "2020 marked ...", #930)."""
     first = after.lstrip(_OPENERS)[:1]
     if not _short(line, longest):
-        return opens and _dated(line, after, longest, beyond)
+        # the sentence test last: it runs a search, and few lines come before a date
+        return _dated(line, after, longest, beyond) and (
+            opens or (wrapped and before is not None and not _ends_sentence(before, line))
+        )
     if _capitals(line):
         if before is None or _ends_sentence(before, line):
             return True
@@ -425,10 +445,10 @@ def _dated(line: str, after: str, longest: int, beyond: str | None) -> bool:
     ending in a stop ("... dated" / "June 2020." / "The ...") or before a lower-case line
     ("... den Stand" / "Oktober 2020" / "wieder und ...") ends or goes on with the sentence
     it is in, and a lone mixed-case month may be no date at all (the modal "May", #930)."""
-    if beyond is None or after.rstrip(_CLOSERS)[-1:] in _ENDS or not _short(after, longest):
+    if beyond is None or after.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     found = _MONTH_LINE.fullmatch(after)
-    if found is None or found[1].lower() not in _DATE_MONTHS:
+    if found is None or found[1].lower() not in _DATE_MONTHS or not _short(after, longest):
         return False
     next_first = beyond.lstrip(_OPENERS)[:1]
     if _capitals(after):
@@ -503,6 +523,7 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
             paragraph[k - 1],
             paragraph[k + 2] if k + 2 < len(paragraph) else None,
             opens=False,
+            wrapped=False,
         )
     )
 

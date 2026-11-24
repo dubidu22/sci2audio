@@ -1256,6 +1256,85 @@ def test_a_date_line_after_a_title_is_cut_before_only_when_it_is_short(
 
 
 @pytest.mark.parametrize(
+    ("lines", "tags"),
+    [
+        (
+            [
+                "A Study of Reading Scientific Papers Aloud on Phones and",
+                "Tablets in the Train, the Bus, the Car and on Foot at Home",
+                "June 2020",
+                _THE.strip(),
+            ],
+            "pbpp",
+        ),
+        (
+            [
+                "Jahresbericht der Deutschen Gesellschaft für Akustik und",
+                "Sprache sowie für das Hören von Fachtexten unterwegs",
+                "Oktober 2020",
+                _DIE.strip(),
+            ],
+            "pbpp",
+        ),
+        (
+            [
+                "Reading Papers Aloud",
+                "Jane Smith, John Brown and Erika Mustermann of the Society",
+                "Institute for Acoustics and Speech, University of Somewhere",
+                "June 2020",
+                _THE.strip(),
+            ],
+            "ppbpp",
+        ),
+        (
+            [
+                "Vorlesen von Fachtexten",
+                "Erika Mustermann, Max Mustermann und Anna Beispiel vom Verein",
+                "Institut für Akustik und Sprache, Universität Musterstadt",
+                "Oktober 2020",
+                _DIE.strip(),
+            ],
+            "ppbpp",
+        ),
+        (
+            [
+                "A Study of Reading Scientific Papers Aloud on Phones",
+                "Jane Smith, John Brown and Erika Mustermann, Society",
+                "June 2020",
+                _THE.strip(),
+            ],
+            "pbpp",
+        ),
+        (
+            [
+                "Jahresbericht der Deutschen Gesellschaft für Akustik",
+                "Erika Mustermann und Max Mustermann, Institut Berlin",
+                "Oktober 2020",
+                _DIE.strip(),
+            ],
+            "pbpp",
+        ),
+    ],
+    ids=[
+        "wrapped-title",
+        "wrapped-title-de",
+        "title-authors-affiliation",
+        "title-authors-affiliation-de",
+        "title-authors",
+        "title-authors-de",
+    ],
+)
+def test_a_title_block_wrapped_over_long_lines_keeps_the_cut_before_its_date(
+    lines: list[str], tags: str
+) -> None:
+    """A title or author block wrapped over two long lines, none of them ending a sentence,
+    is still a title block: its date is cut before and after (#922). Only a long line after
+    a sentence end inside a paragraph is prose (#942)."""
+    assert all(len(line) > 0.6 * len(lines[-1]) for line in lines[-4:-2])
+    assert tags_of("\n".join(lines) + "\n") == tags_read(tags)
+
+
+@pytest.mark.parametrize(
     ("text", "tags"),
     [
         (
