@@ -3337,3 +3337,77 @@ expected = [
     "So A is implied by greater than 3 times and B.",
     "So A is implied by if and only if 3 times and B.",
 ]
+
+[[case]]
+id = "a-bare-comparison-sign-before-nx"
+audit = 0
+issue = 988
+goal = "A bare '<' or '>' before 'Nx' makes it the variable only where its words do on a second run: after a one-letter variable or a closing bracket (D-646). After any other word a bare 'less than' or 'greater than' is prose (D-605), so 'Nx' reads 'N times' on both runs, as after an arrow (#984, #988). A sign the statistics step leaves as printed ('<<', '<=') keeps 'Nx' as printed."
+blocks = [
+    { kind = "paragraph", text = "So A > 3x and the cost < 3x." },
+    { kind = "paragraph", text = "Some cases, e.g. < 3x and e.g. > 3x, were left out." },
+    { kind = "paragraph", text = "It is > 3x faster." },
+    { kind = "paragraph", text = "We have y > 3x and (a) < 3x." },
+    { kind = "paragraph", text = "So A << 3x and A <= 3x." },
+]
+expected = [
+    "So A greater than 3 times and the cost less than 3 times.",
+    "Some cases, for example less than 3 times and for example greater than 3 times, were left out.",
+    "It is greater than 3 times faster.",
+    "We have y greater than 3x and (a) less than 3x.",
+    "So A << 3x and A <= 3x.",
+]
+
+[[case]]
+id = "a-minus-sign-before-nx"
+audit = 0
+issue = 997
+goal = "A minus sign before 'Nx' makes it the variable, and so does 'minus', how the numbers step reads that sign, so a second run reads it the same: 'A − 3x' is 'A minus 3x' on both runs. A '±' before it is no operator: 'plus or minus 3 times', as before (#997)."
+blocks = [
+    { kind = "paragraph", text = "So A − 3x and B." },
+    { kind = "paragraph", text = "So A = − 3x and A ⇒ − 3x." },
+    { kind = "paragraph", text = "− 3x" },
+    { kind = "paragraph", text = "So y = −3x + 1 and A ± 3x." },
+]
+expected = [
+    "So A minus 3x and B.",
+    "So A equals minus 3x and A implies minus 3x.",
+    "minus 3x",
+    "So y equals minus 3x + 1 and A plus or minus 3 times.",
+]
+
+[[case]]
+id = "a-printed-minus-before-nx"
+audit = 0
+issue = 997
+goal = "A printed 'minus' before 'Nx' reads as the minus sign it is the reading of, so 'minus 3x' keeps '3x' as 'A − 3x' does (was 'minus 3 times' before #997); any white space between them counts. 'plus or minus' and 'plus/minus', in any case and with any white space, are the reading of '±', which is no operator: they keep 'N times', as before. A capital 'Minus' is no reading of the sign and keeps 'N times', as before (#997)."
+blocks = [
+    { kind = "paragraph", text = "It was minus 3x here." },
+    { kind = "paragraph", text = "It was minus  3x here." },
+    { kind = "paragraph", text = "It was minus\n3x here." },
+    { kind = "paragraph", text = "It was plus or minus 3x here." },
+    { kind = "paragraph", text = "Plus or minus 3x is the spread." },
+    { kind = "paragraph", text = "It was PLUS OR minus 3x here." },
+    { kind = "paragraph", text = "It was plus or  minus 3x here." },
+    { kind = "paragraph", text = "It was plus or\nminus 3x here." },
+    { kind = "paragraph", text = "It was plus\nor minus 3x here." },
+    { kind = "paragraph", text = "It was plus or minus 3x here." },
+    { kind = "paragraph", text = "It was plus/minus 3x here." },
+    { kind = "paragraph", text = "It was plus / minus 3x here." },
+    { kind = "paragraph", text = "Minus 3x is the spread." },
+]
+expected = [
+    "It was minus 3x here.",
+    "It was minus 3x here.",
+    "It was minus 3x here.",
+    "It was plus or minus 3 times here.",
+    "Plus or minus 3 times is the spread.",
+    "It was PLUS OR minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus or minus 3 times here.",
+    "It was plus/minus 3 times here.",
+    "It was plus / minus 3 times here.",
+    "Minus 3 times is the spread.",
+]

@@ -284,31 +284,93 @@ def test_a_new_file_that_appears_during_a_yes_for_another_is_never_replaced(
     assert (folder / "Fundstücke.ris").read_bytes() == b"theirs"
 
 
-def held(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Replacing refused as Windows refuses it while another program holds the file open (a
-    sharing violation, after the retries): the folder took the new file's partial."""
+def refused_replace(
+    monkeypatch: pytest.MonkeyPatch, *, windows: bool, code: int, winerror: int | None
+) -> None:
+    """Replacing refused after the folder took the new file's partial, as `windows` (or
+    macOS and Linux) refuses it: `winerror` 32 is a sharing violation, 5 access denied, as
+    Windows says while another program holds the file open (after the retries); a sticky
+    folder or an immutable file gives EACCES or EPERM elsewhere (#990, #1003)."""
     from sci2audio.app import files
+    from sci2audio.web import api
 
     def refused(partial: Path | str, target: Path | str) -> None:
-        raise PermissionError(errno.EACCES, "Access is denied", str(partial), None, str(target))
+        error = PermissionError(code, os.strerror(code), str(partial), None, str(target))
+        error.winerror = winerror  # type: ignore[attr-defined]  # only Windows sets it
+        raise error
 
     monkeypatch.setattr(files, "_replace_once", refused)
+    monkeypatch.setattr(api, "_IS_WINDOWS", windows)
 
 
+@pytest.mark.parametrize("winerror", [32, 33, 5])
 def test_replacing_a_file_another_program_holds_open_names_the_file(
-    studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+    studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch, winerror: int
 ) -> None:
-    """#990: the file is held, not the folder refused; the old file stays."""
+    """#990: on Windows the file is held, not the folder refused; the old file stays."""
     client, folder = studied["client"], studied["folder"]
     target = folder / "Captures.csv"
     target.write_bytes(b"open in Excel")
-    held(monkeypatch)
+    refused_replace(monkeypatch, windows=True, code=errno.EACCES, winerror=winerror)
     answer = export(client, folder, "csv", 423, overwrite=True, file="Captures.csv")
     assert answer["error"] == "export-file-held"
     assert (answer["file"], answer["folder"]) == ("Captures.csv", str(folder))
     assert "Captures.csv" in answer["message"]
     assert target.read_bytes() == b"open in Excel"
     assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]  # no partial file
+
+
+REFUSED_NOT_HELD = [
+    pytest.param(False, errno.EACCES, None, id="posix-sticky-folder"),
+    pytest.param(False, errno.EPERM, None, id="posix-immutable-file"),
+    pytest.param(False, errno.EACCES, 32, id="posix-never-held"),
+    pytest.param(True, errno.EACCES, None, id="windows-no-code"),
+    pytest.param(True, errno.EACCES, 1920, id="windows-other-code"),
+]
+
+
+@pytest.mark.parametrize(("windows", "code", "winerror"), REFUSED_NOT_HELD)
+def test_a_refused_replace_that_is_no_held_file_never_blames_another_program(
+    studied: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    windows: bool,
+    code: int,
+    winerror: int | None,
+) -> None:
+    """#1003: on macOS and Linux an open file never blocks a replace, so a refusal there
+    (a sticky folder, an immutable flag) names the file as refused, not held, and so does
+    a Windows refusal that is no sharing violation. The old file stays, no partial."""
+    client, folder = studied["client"], studied["folder"]
+    target = folder / "Captures.csv"
+    target.write_bytes(b"old")
+    refused_replace(monkeypatch, windows=windows, code=code, winerror=winerror)
+    answer = export(client, folder, "csv", 403, overwrite=True, file="Captures.csv")
+    assert answer["error"] == "export-file-refused"
+    assert (answer["file"], answer["folder"]) == ("Captures.csv", str(folder))
+    assert "Captures.csv" in answer["message"]
+    assert "program" not in answer["message"]
+    assert target.read_bytes() == b"old"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
+
+
+@pytest.mark.skipif(sys.platform == "win32" or os.geteuid() == 0, reason="not as root")
+def test_access_denied_on_windows_for_a_read_only_file_is_no_held_file(
+    studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1003: Windows says access denied (5) for a read-only file too, which no program
+    holds: that refusal names the file as refused."""
+    client, folder = studied["client"], studied["folder"]
+    target = folder / "Captures.csv"
+    target.write_bytes(b"old")
+    target.chmod(0o444)
+    refused_replace(monkeypatch, windows=True, code=errno.EACCES, winerror=5)
+    try:
+        answer = export(client, folder, "csv", 403, overwrite=True, file="Captures.csv")
+    finally:
+        target.chmod(0o644)
+    assert answer["error"] == "export-file-refused"
+    assert target.read_bytes() == b"old"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
 
 
 @pytest.mark.skipif(

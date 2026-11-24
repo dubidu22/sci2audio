@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 from pdf_maker import Text, make_pdf
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from test_focus import colours, nobody_focused, order
 from test_player import listen_to, make_audiobook, paused
 
@@ -413,6 +413,123 @@ def test_the_undo_of_a_saved_note_keeps_the_text_typed_in_its_open_box(
     expect(page.locator("#capture-list textarea")).to_have_count(0)
     expect(tab(page)).to_have_text("Captures (1)")
     page.wait_for_function("() => !document.getElementById('audio').paused")
+
+
+def test_text_typed_while_an_undo_removes_the_note_is_never_dropped_unsaid(
+    signed_in: Page, live: Live
+) -> None:
+    """#955: while the toast's Undo removes a new note whose box is open, the box takes no
+    typing and its live line says why; if the removal fails, the box takes typing again,
+    and once it is done the box closes with nothing typed in it lost."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    path = Path(live.config.work_root) / document / "captures.json"
+    held: list[Route] = []
+
+    def hold(route: Route) -> None:
+        if route.request.method == "DELETE":
+            held.append(route)
+        else:
+            route.continue_()
+
+    page.route("**/api/v1/documents/*/captures/*", hold)
+    at_sentence(page)
+    for words, answer in (("First.", "refused"), ("Second.", "removed")):
+        page.keyboard.press("n")
+        page.locator("#capture-composer textarea").fill(words)
+        page.keyboard.press("Control+Enter")
+        told(page, "Note saved: page 1.")
+        made = rows(page).filter(has_text=words).get_attribute("data-capture")
+        row = page.locator(f'#capture-list li[data-capture="{made}"]')
+        row.get_by_role("button", name="Edit note").click()
+        box = row.locator("textarea")
+        expect(box).to_have_value(words)
+        page.locator("#capture-undo").click()
+        for _ in range(200):  # the handler runs while the page is waited on
+            if held:
+                break
+            page.wait_for_timeout(25)
+        assert len(held) == 1, answer
+        expect(box).not_to_be_editable()
+        expect(box).to_have_attribute("aria-busy", "true")
+        expect(row.locator(".cp-left")).to_have_text("Removing this note…")
+        box.click()
+        page.keyboard.type(" And more.")
+        expect(box).to_have_value(words)  # nothing typed went in, so nothing goes out
+        if answer == "refused":
+            held.pop().abort("connectionrefused")
+            expect(box).to_be_editable()
+            expect(box).to_have_attribute("aria-busy", "false")
+            expect(row.locator(".cp-left")).to_have_text("")
+            box.press_sequentially(" Kept.")
+            expect(box).to_have_value(f"{words} Kept.")
+            page.keyboard.press("Control+Enter")
+            told(page, "Note saved: page 1.")
+            nobody_focused(page)
+            page.keyboard.press("ArrowRight")  # on to the next sentence's note
+            page.keyboard.press("ArrowRight")
+        else:
+            held.pop().continue_()
+            told(page, "Note removed.")
+            expect(page.locator("#capture-list textarea")).to_have_count(0)
+            expect(tab(page)).to_have_text("Captures (1)")
+    page.unroute("**/api/v1/documents/*/captures/*")
+    notes = [c["text"] for c in json.loads(path.read_text(encoding="utf-8"))["captures"]]
+    assert notes == ["First. Kept."]
+
+
+def test_every_capture_state_has_an_icon_and_a_word_and_passes_axe(
+    signed_in: Page, live: Live
+) -> None:
+    """#955: found, not read, not found and no audiobook, side by side in the Captures
+    tab; each state but found has an icon beside its word; axe in light and dark."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    work = Path(live.config.work_root) / document
+    at_sentence(page)
+    page.keyboard.press("q")
+    told(page, "Quote captured: page 1.")
+    nobody_focused(page)
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("m")
+    told(page, "Marked: page 1.")
+    # a sentence of the reference list, which this audiobook leaves out, and one it lost
+    blocks = json.loads((work / "document.json").read_text(encoding="utf-8"))["blocks"]
+    unread = len(blocks) - 1
+    assert blocks[unread]["text"] == "Smith, J. 2020. A book about things."
+    path = work / "captures.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for id_, text, block in (("d" * 16, blocks[unread]["text"], unread),
+                             ("f" * 16, "Not in here.", 0)):  # fmt: skip
+        other = json.loads(json.dumps(data["captures"][0]))
+        other.update(id=id_, type="note", text="Still mine.")
+        other["anchor"] = {"block": block, "start": 0, "end": len(text), "text": text}
+        data["captures"].append(other)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    page.reload()
+    page.locator("#tab-captures").click()
+    expect(rows(page)).to_have_count(4)
+    (work / "audio.json").unlink()
+    mark = rows(page).filter(has_text="Mark")
+    mark.get_by_role("button", name="Remove").click()
+    told(page, "Mark removed.")
+    page.locator("#capture-undo").click()
+    told(page, "Put back.")
+    expect(rows(page)).to_have_count(4)
+    states = {
+        "d" * 16: "Not read in this audiobook",
+        "f" * 16: "Not found in this audiobook",
+    }
+    for id_, word in states.items():
+        notice = page.locator(f'#capture-list li[data-capture="{id_}"] .cp-state')
+        expect(notice).to_contain_text(word)
+        expect(notice.locator("svg")).to_have_count(1)
+    put_back = rows(page).filter(has_text="Mark").locator(".cp-state")
+    expect(put_back).to_contain_text("This document has no audiobook now")
+    expect(put_back.locator("svg")).to_have_count(1)
+    expect(rows(page).filter(has_text="Quote to cite").locator(".cp-at")).to_be_visible()
+    check_axe(page, "listen, captures in every state")
 
 
 def test_a_capture_put_back_with_no_audiobook_is_labelled_so_and_listed_last(
@@ -922,3 +1039,74 @@ def test_the_panels_tabs_stay_on_one_line_in_german_and_english(
     page.emulate_media(color_scheme="light")
     page.set_extra_http_headers({})
     page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_the_panels_tabs_stay_on_one_line_with_a_three_digit_count(
+    signed_in: Page, live: Live
+) -> None:
+    """#1000: at 1280 and 1440 px, in German and English, a count of 999 keeps every tab
+    on one line, at 13 px text or more, and the tab's name still says the whole number."""
+    page = signed_in
+    make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("q")
+    expect(tab(page)).to_have_text("Captures (1)")
+    for language, name in (("de", "Fundstücke (999)"), ("en", "Captures (999)")):
+        page.set_extra_http_headers({"Accept-Language": language})
+        page.reload()
+        # the tab in the page's own words for 999 captures (player.js, drawList), without
+        # making 999 of them
+        page.evaluate(
+            "() => { document.getElementById('tab-captures').textContent ="
+            " tr('capture.tab_count', { n: 999 }); }"
+        )
+        expect(tab(page)).to_have_text(name)
+        expect(tab(page)).to_have_accessible_name(name)
+        assert page.evaluate(
+            "() => [...document.querySelectorAll('#context [role=tab]')]"
+            ".map((t) => parseFloat(getComputedStyle(t).fontSize))"
+        ) == [13, 13, 13]
+        for width in (1280, 1440):
+            page.set_viewport_size({"width": width, "height": 900})
+            for theme in ("light", "dark"):
+                page.emulate_media(color_scheme=theme)
+                on_one_row(page, f"{language} {width} {theme}, three digits")
+    page.emulate_media(color_scheme="light")
+    page.set_extra_http_headers({})
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_the_shelf_item_of_the_document_follows_its_captures(signed_in: Page, live: Live) -> None:
+    """#962: on the Listen page the rail's item of this document shows its flags and counts
+    as captures are added and removed, drawn as the server draws them after a reload."""
+    page = signed_in
+    make_audiobook(page, live)
+    page.reload()  # opened now, so the shelf holds it
+    item = page.locator(".shelf a[aria-current='page']")
+    expect(item).to_have_count(1)
+    expect(item.locator(".flagstrip")).to_have_count(0)
+    at_sentence(page)
+    page.keyboard.press("q")
+    told(page, "Quote captured: page 1.")
+    expect(item).to_have_accessible_name(re.compile(r"1 quote$"))
+    page.keyboard.press("m")
+    told(page, "Marked: page 1.")
+    expect(item).to_have_accessible_name(re.compile(r"1 quote, 1 mark$"))
+    expect(item.locator(".flagstrip .num")).to_have_text(["1", "1"])
+    strip = "(a) => [a.querySelector('.flagstrip').outerHTML, a.lastElementChild.outerHTML]"
+    drawn = item.evaluate(strip)
+    page.reload()  # the item may now be Continue listening: its strip is drawn alike
+    assert item.evaluate(strip) == drawn
+    at_sentence(page)
+    page.keyboard.press("q")  # the same sentence: the quote goes
+    told(page, "Quote removed.")
+    expect(item).to_have_accessible_name(re.compile(r"1 mark$"))
+    expect(item.locator(".flag")).to_have_count(1)
+    page.keyboard.press("m")
+    told(page, "Mark removed.")
+    expect(item.locator(".flagstrip")).to_have_count(0)
+    expect(item.locator(".visually-hidden")).to_have_count(0)
+    page.locator("#capture-undo").click()
+    told(page, "Put back.")
+    expect(item).to_have_accessible_name(re.compile(r"1 mark$"))
+    check_axe(page, "listen, the shelf with its flags")

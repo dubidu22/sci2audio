@@ -59,6 +59,7 @@ from sci2audio.textprep.footnotes import (
 from sci2audio.textprep.notation import (
     DOUBLE_ARROW,
     FILE_NUMBER_DE,
+    LEFT_ARROW_TAIL,
     edits_through_unread,
     in_ascii_run,
 )
@@ -152,6 +153,17 @@ _SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equa
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
 # after the first run), filled in by `_compiled`
 _COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z"
+# the characters that join a "<" or ">" to the sign before it ("<<", "=<", "->"): the
+# statistics step then leaves it as printed (its `_ARROW`), so it stays a sign on a second run
+_JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
+# the numbers step's English reading of a minus sign before a number: it counts as the sign
+# before "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the
+# times sign and "times" do (#253); white space between them is joined to one space by then
+_MINUS_SAID_EN = re.compile(r"(?<![\w-])minus\s*\Z")
+# ... but not after "plus or" or "plus/", in any case and with any white space: "plus or minus"
+# is the reading of "±", which is no such sign ("± 3x" is "plus or minus 3 times"), and a
+# second run sees its white space joined ("plus or\nminus" is "plus or minus" then)
+_PLUS_OR_BEFORE_EN = re.compile(r"plus(?:\s+or\s+|\s*/\s*)\Z", re.IGNORECASE)
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
@@ -832,6 +844,8 @@ def _in_algebra(
         return True
     if compared is not None and compared.search(text, max(0, start - 24), start):
         return True  # "y less than 2x" (#358, D-646)
+    if english and _minus_said_before(text, start):
+        return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
     ahead = text[end : end + 3]
@@ -842,11 +856,14 @@ def _in_algebra(
     # ... nor, in English, a "<" or ">" right after such an arrow: its reading follows the
     # arrow's words ("is implied by greater than 3x"), where a bare "greater than" is prose
     # and a second run reads "3 times" (D-605, #984)
+    # ... nor, in English, any bare "<" or ">" the statistics step reads as words, unless its
+    # words are the sign on a second run: "y > 3x", "(a) > 3x", but not "A > 3x" (#988, D-646)
     if (
         before != ""
         and before in _OPERATORS
         and not _arrow_before(text, start)
         and not (english and before in "<>" and _arrow_before(text, before_at))
+        and not (english and _bare_comparison(text, before, before_at, compared))
     ):
         return True
     return (
@@ -854,6 +871,28 @@ def _in_algebra(
         and after in _OPERATORS + "("
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
     )
+
+
+def _minus_said_before(text: str, start: int) -> bool:
+    """True if "minus" stands right before the number at `start` as the reading of a minus
+    sign, not as the end of "plus or minus" ("±")."""
+    minus = _MINUS_SAID_EN.search(text, max(0, start - 24), start)
+    return minus is not None and not _PLUS_OR_BEFORE_EN.search(
+        text, max(0, minus.start() - 24), minus.start()
+    )
+
+
+def _bare_comparison(text: str, sign: str, at: int, compared: re.Pattern[str] | None) -> bool:
+    """True if the `sign` at `at` is a "<" or ">" the statistics step reads alone as "less
+    than" or "greater than", and those words after what stands before it are prose on a second
+    run (`_COMPARED_EN`): then the sign makes no variable of the "Nx" after it either."""
+    if sign not in ("<", ">") or compared is None:
+        return False
+    joined = at > 0 and text[at - 1] in _JOINED_TO_SIGN
+    if joined and not LEFT_ARROW_TAIL.search(text, max(0, at - 16), at):
+        return False  # "A << 3x", "A -> 3x": left as printed, a sign on both runs
+    said_before = text[max(0, at - 32) : at].rstrip(" ") + " less than "
+    return compared.search(said_before) is None
 
 
 def _arrow_before(text: str, at: int) -> bool:

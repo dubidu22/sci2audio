@@ -585,6 +585,8 @@ function readAlong() {
   const toastFlag = document.getElementById("capture-toast-flag");
   const toastSaid = document.getElementById("capture-said");
   const undoButton = document.getElementById("capture-undo");
+  // this document's item on the rail's shelf, whose flags and counts follow the captures (#962)
+  const shelfItem = document.querySelector(".shelf a[aria-current='page']");
   const capturesUrl = `/api/v1/documents/${encodeURIComponent(data.document)}/captures`;
   const capturesOff = data.captures_off || ""; // a file this version can't read: hands off
   // why a key captures nothing; `unsaved`: the markers' carry-over could not be written (#910)
@@ -599,6 +601,7 @@ function readAlong() {
   let undo = null; // what the toast's Undo does
   let toastTimer = 0;
   let editing = null; // the note whose box is open in its row
+  let removing = null; // the note whose removal is on its way: its box takes no typing
   let composing = null; // a new note's box: {chunk, id, sentence}
   let draft = null; // the text typed in a note's open box in its row, while it is drawn again
   let resumeAfterNote = false;
@@ -743,8 +746,17 @@ function readAlong() {
       toOpenBox();
       return;
     }
+    // text typed while the removal is on its way would go with the box when the answer
+    // closes it, so the box takes none until then and says why (#955)
+    removing = capture.id;
+    if (open) holdBox(open, true);
     const gone = await captureCall(`${capturesUrl}/${capture.id}`, "DELETE");
-    if (!gone) return;
+    removing = null;
+    if (!gone) {
+      const still = editing === capture.id ? openBox() : null;
+      if (still) holdBox(still, false);
+      return;
+    }
     if (editing === gone.id) {
       editing = null;
       draft = null;
@@ -950,14 +962,23 @@ function readAlong() {
     return button;
   }
 
-  // a state the page can't act on gets an icon beside its word (Form-Not-Colour)
-  function infoIcon() {
+  // the open box of a note being removed: read-only, its live line saying so
+  function holdBox(area, on) {
+    area.readOnly = on;
+    area.setAttribute("aria-busy", String(on));
+    const left = document.getElementById(`${area.id}-left`);
+    if (on && left) left.textContent = tr("capture.removing");
+    if (!on) area.dispatchEvent(new Event("input")); // the count of what is left again
+  }
+
+  // an icon of the page's sprite, small, as templates/_icons.html draws it
+  function spriteIcon(name) {
     const svg = document.createElementNS(captureTicks.namespaceURI, "svg");
     svg.setAttribute("class", "i s");
     svg.setAttribute("aria-hidden", "true");
     svg.setAttribute("focusable", "false");
     const use = document.createElementNS(captureTicks.namespaceURI, "use");
-    use.setAttribute("href", "#i-info");
+    use.setAttribute("href", `#i-${name}`);
     svg.append(use);
     return svg;
   }
@@ -983,7 +1004,8 @@ function readAlong() {
         "no-audiobook": tr("capture.no_audiobook"),
       };
       const notice = made("p", "cp-state", words[capture.state]);
-      if (capture.state === "no-audiobook") notice.prepend(infoIcon());
+      // a state the page can't act on: an icon beside its word, every one (#955)
+      notice.prepend(spriteIcon("info"));
       item.append(notice);
     }
     const quote = quoted(capture.sentence);
@@ -1001,7 +1023,9 @@ function readAlong() {
     }
     if (editing === capture.id) {
       const value = draft ?? capture.text;
-      item.append(noteBox(value, capture.id, (words) => saveNote(capture, words), () => closeNote(capture.id)));
+      const box = noteBox(value, capture.id, (words) => saveNote(capture, words), () => closeNote(capture.id));
+      if (removing === capture.id) holdBox(box.querySelector("textarea"), true);
+      item.append(box);
       return item;
     }
     if (capture.text) item.append(made("p", "cp-note", capture.text));
@@ -1140,6 +1164,7 @@ function readAlong() {
   }
 
   async function saveNote(capture, value) {
+    if (removing === capture.id) return; // its removal is on its way: the box says so
     if (!value.trim()) {
       editing = null; // a note emptied is removed, with Undo
       draft = null;
@@ -1176,6 +1201,33 @@ function readAlong() {
     drawTicks();
     captureState();
     placeBars();
+    drawShelf();
+  }
+
+  // the shelf item's flag strip and the words its link's name says, as the server draws them
+  // (templates/_icons.html, flagstrip); left as drawn while this page captures nothing
+  function drawShelf() {
+    if (!shelfItem || capturesOff) return;
+    const strip = shelfItem.querySelector(".flagstrip");
+    if (strip) {
+      const said = strip.nextElementSibling;
+      if (strip.nextSibling?.nodeType === Node.TEXT_NODE) strip.nextSibling.remove();
+      if (said?.classList.contains("visually-hidden")) said.remove();
+      strip.remove();
+    }
+    const counted = KINDS.map((kind) => [kind, captures.filter((c) => c.type === kind).length]).filter(([, n]) => n);
+    if (!counted.length) return;
+    const flagstrip = made("span", "flagstrip");
+    flagstrip.setAttribute("aria-hidden", "true");
+    for (const [kind, n] of counted) {
+      const flag = made("span", `flag f-${kind}`);
+      flag.append(spriteIcon(kind));
+      const each = made("span", "fs");
+      each.append(flag, made("span", "num", String(n)));
+      flagstrip.append(each);
+    }
+    const words = counted.map(([kind, n]) => tr(`library.${kind}s`, { n })).join(", ");
+    shelfItem.append(flagstrip, " ", made("span", "visually-hidden", words));
   }
 
   function setFocus(on) {

@@ -456,6 +456,18 @@ class ExportExistsOut(ErrorOut):
     folder: str = Field(description="the folder it is in")
 
 
+class ExportRefusedOut(ErrorOut):
+    """export-folder-refused: the folder took no file; export-file-refused: the new file
+    was written in full but replacing the old one was refused for a reason other than a
+    program holding it (a sticky folder, a locked or read-only file, #1003). The old file
+    stays as it was and no other file is left."""
+
+    file: str | None = Field(
+        default=None, description="export-file-refused: the file that could not be replaced"
+    )
+    folder: str | None = Field(default=None, description="export-file-refused: its folder")
+
+
 class ExportHeldOut(ErrorOut):
     """export-file-held: replacing the file was refused after the new one was written in
     full, as Windows refuses while another program holds it open (#990); it stays as it

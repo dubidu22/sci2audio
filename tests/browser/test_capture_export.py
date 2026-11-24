@@ -190,23 +190,34 @@ def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
     expect(ask).to_be_visible()
 
 
+def refuse_replace(monkeypatch: pytest.MonkeyPatch, *, windows: bool) -> None:
+    """Replacing refused after the new file was written: on Windows as a sharing violation
+    (winerror 32) while another program holds the file, elsewhere as a sticky folder or an
+    immutable file refuses it (#990, #1003)."""
+    from sci2audio.app import files
+    from sci2audio.web import api
+
+    def refused(partial: Path | str, target: Path | str) -> None:
+        error = PermissionError(errno.EACCES, "Access is denied", str(partial), None, str(target))
+        error.winerror = 32 if windows else None  # type: ignore[attr-defined]
+        raise error
+
+    monkeypatch.setattr(files, "_replace_once", refused)
+    monkeypatch.setattr(api, "_IS_WINDOWS", windows)
+
+
 def test_replacing_a_file_another_program_holds_open_names_the_file(
     signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """#990: "Replace it" on a file another program holds open (as Windows refuses it, no
     real Excel) names that file and asks to close it there; the old file stays."""
-    from sci2audio.app import files
-
-    def refused(partial: Path | str, target: Path | str) -> None:
-        raise PermissionError(errno.EACCES, "Access is denied", str(partial), None, str(target))
-
     page = signed_in
     captured(page, live)
     open_captures(page)
     folder = folder_of(live)
     target = folder / "Captures.csv"
     target.write_bytes(b"open in Excel")
-    monkeypatch.setattr(files, "_replace_once", refused)
+    refuse_replace(monkeypatch, windows=True)
     page.locator("#export-folder-csv").fill(str(folder))
     page.locator("#export-save-csv").click()
     page.locator("#export-ask-csv").get_by_role("button", name="Replace it").click()
@@ -219,6 +230,30 @@ def test_replacing_a_file_another_program_holds_open_names_the_file(
     assert target.read_bytes() == b"open in Excel"
     assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
     check_axe(page, "captures, a file held open")
+
+
+def test_a_replace_refused_on_macos_or_linux_blames_no_other_program(
+    signed_in: Page, live: Live, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1003: an open file never blocks a replace there, so the page says the file may
+    not be replaced, never that another program holds it; the old file stays."""
+    page = signed_in
+    captured(page, live)
+    open_captures(page)
+    folder = folder_of(live)
+    target = folder / "Captures.csv"
+    target.write_bytes(b"old")
+    refuse_replace(monkeypatch, windows=False)
+    page.locator("#export-folder-csv").fill(str(folder))
+    page.locator("#export-save-csv").click()
+    page.locator("#export-ask-csv").get_by_role("button", name="Replace it").click()
+    expect(state(page, "csv")).to_contain_text(
+        "Not saved. sci2audio may not replace that file, so it stays as it was."
+    )
+    expect(state(page, "csv")).not_to_contain_text("another program")
+    expect(state(page, "csv")).to_have_attribute("data-state", "failed")
+    assert target.read_bytes() == b"old"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
 
 
 def test_the_files_by_keyboard(signed_in: Page, live: Live) -> None:
