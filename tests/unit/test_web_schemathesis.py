@@ -31,6 +31,7 @@ from sci2audio.testing import no_network
 from sci2audio.web import create_app
 
 HOST = ORIGIN.removeprefix("http://")
+EXPORT = "/api/v1/captures/export"
 EXAMPLES = 300 if os.environ.get("HYPOTHESIS_PROFILE") == "nightly" else 25
 
 
@@ -58,6 +59,7 @@ def served(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "document": doc["id"],
         "job": job["id"],
         "marker": marker["id"],
+        "exports": folder / "exports",
     }
 
 
@@ -83,6 +85,12 @@ schema = schemathesis.pytest.from_fixture("api_schema")
 def test_the_api_matches_its_schema(case: Any, served: dict[str, Any]) -> None:
     config = served["config"]
     headers = {"Authorization": f"Bearer {config.token}", "Host": HOST}
+    body = case.body
+    if case.operation.path.endswith(EXPORT) and isinstance(body, dict) and "folder" in body:
+        # a generated path could name a real folder of this computer: the export writes
+        # only into the run's own folder
+        served["exports"].mkdir(exist_ok=True)
+        case.body = {**body, "folder": str(served["exports"])}
     with no_network():
         case.call_and_validate(headers=headers, excluded_checks=[positive_data_acceptance])
         known = {

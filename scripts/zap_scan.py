@@ -924,8 +924,9 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
     with tempfile.TemporaryDirectory(prefix="sci2audio-zap-export-") as folder:
         body = {"format": "md", "folder": folder}
         call("POST", export, 201, data=body, headers=same)
-        call("POST", export, 409, data=body, headers=same)
-        call("POST", export, 201, data={**body, "overwrite": True}, headers=same)
+        asked = call("POST", export, 409, data=body, headers=same).json()
+        yes = {**body, "overwrite": True, "file": asked["file"]}
+        call("POST", export, 201, data=yes, headers=same)
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

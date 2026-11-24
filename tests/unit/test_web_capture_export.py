@@ -34,7 +34,10 @@ from web_helpers import (
 
 from sci2audio.app import capture_export
 from sci2audio.app.captures import CAPTURES
+from sci2audio.core import Anchor
 from sci2audio.web import create_app
+from sci2audio.web.markers import finder
+from sci2audio.web.player import load_document
 
 pytestmark = pytest.mark.usefixtures("offline")
 
@@ -205,8 +208,94 @@ def test_a_file_there_is_replaced_only_on_a_yes(studied: dict[str, Any]) -> None
     assert (asked["file"], asked["folder"]) == ("Captures.ris", str(folder))
     assert target.read_bytes() == b"mine"
     assert sorted(p.name for p in folder.iterdir()) == ["Captures.ris"]  # no partial file
-    export(client, folder, "ris", overwrite=True)
+    # a yes replaces only the file the answer named: without it, or for another file
+    # (the filters or the folder changed since), the person is asked again
+    for named in ("", "Captures.md", "other.pdf.ris"):
+        again = export(client, folder, "ris", 409, overwrite=True, file=named)
+        assert (again["error"], again["file"]) == ("export-exists", "Captures.ris")
+        assert target.read_bytes() == b"mine"
+    one = folder / "other.pdf.ris"
+    one.write_bytes(b"also mine")
+    other = studied["other"]
+    yes_for_all = export(client, folder, "ris", 409, overwrite=True, file="Captures.ris",
+                         document=other)  # fmt: skip
+    assert yes_for_all["file"] == "other.pdf.ris"
+    assert one.read_bytes() == b"also mine"
+    export(client, folder, "ris", overwrite=True, file="Captures.ris")
     assert target.read_bytes().startswith(b"TY  - GEN\r\n")
+    assert one.read_bytes() == b"also mine"
+
+
+def test_a_folder_with_the_files_name_is_named_and_never_offered_to_replace(
+    studied: dict[str, Any],
+) -> None:
+    client, folder = studied["client"], studied["folder"]
+    (folder / "Captures.md").mkdir()
+    (folder / "Captures.md" / "inside.txt").write_text("kept", encoding="utf-8")
+    for yes in ({}, {"overwrite": True, "file": "Captures.md"}):
+        answer = export(client, folder, "md", 422, **yes)
+        assert answer["error"] == "export-name-is-folder"
+    assert (folder / "Captures.md" / "inside.txt").read_text(encoding="utf-8") == "kept"
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.md"]
+
+
+def test_a_path_too_long_is_named(studied: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    def too_long(target: Path, data: bytes, *, overwrite: bool) -> None:
+        raise OSError(errno.ENAMETOOLONG, "File name too long", str(target))
+
+    monkeypatch.setattr(capture_export, "write_bytes_atomically", too_long)
+    folder = studied["folder"]
+    assert export(studied["client"], folder, "md", 422)["error"] == "export-name-too-long"
+    assert list(folder.iterdir()) == []
+
+
+def test_a_sentence_split_over_a_page_break_has_the_page_where_it_starts(
+    tmp_path: Path,
+) -> None:
+    """The layout reads the sentence as two blocks, the second, on page 2, holding most of
+    it: the finder places it there, but the export names page 1, where it starts."""
+    voice = FakeVoice()
+    config = make_config(tmp_path)
+    app = create_app(config, voice=lambda models_dir: voice.source(), clock=FakeClock())
+    client = program(app, config)
+    pdf = make_pdf(
+        [
+            Text("Introduction", 72, 80, size=14),
+            Text("Sleep came first. The effect held after", 72, 100, size=11),
+        ],
+        [
+            Text("controlling for age, caffeine, the season and the time of day in", 72, 100),
+            Text("every one of the groups of shift workers we followed for a year.", 72, 114),
+        ],
+    )
+    doc = make(client, pdf, "split.pdf")["doc"]["id"]
+    work = work_of(config, doc)
+    document = load_document(work)
+    texts = [block.text for block in document.blocks]
+    first = next(n for n, text in enumerate(texts) if text.endswith("held after"))
+    second = next(n for n, text in enumerate(texts) if text.startswith("controlling"))
+    assert first < second  # two blocks: the finder goes across them
+    sentence = f"The effect held after {texts[second]}"
+    assert len(texts[second]) > len("The effect held after")
+    data = page_data(client, doc)
+    capture(client, doc, "quote", sentences(data)[1], data["audiobook"])
+    stored = file_of(work)
+    stored["captures"][0]["anchor"] = {
+        "block": second,
+        "start": 0,
+        "end": len(texts[second]),
+        "text": sentence,
+    }
+    (work / CAPTURES).write_text(json.dumps(stored), encoding="utf-8")
+    assert finder(document)(Anchor(second, 0, len(texts[second]), sentence)) == (
+        first,
+        texts[first].index("The effect"),
+    )
+    folder = tmp_path / "exports"
+    folder.mkdir()
+    export(client, folder, "csv")
+    (row,) = rows_of(folder / "Captures.csv")[1:]
+    assert (row[2], row[3]) == ("1", sentence)
 
 
 @pytest.mark.parametrize(
@@ -235,7 +324,7 @@ def test_a_missing_folder_or_a_file_in_its_place_is_named(studied: dict[str, Any
     assert nul.status_code == 422
     body = json.dumps({"format": "md", "folder": f"{folder}/\ud800"})  # escaped as \ud800
     surrogate = client.post(URL, content=body, headers={"content-type": "application/json"})
-    assert surrogate.status_code == 422
+    assert (surrogate.status_code, surrogate.json()["error"]) == (422, "invalid")
     assert sorted(p.name for p in folder.iterdir()) == ["a-file"]
 
 
@@ -270,7 +359,7 @@ def test_a_full_disk_leaves_no_file_and_says_so(
     assert list(folder.iterdir()) == []
     # replacing on a yes: the old file stays as it was
     (folder / "Captures.csv").write_bytes(b"old")
-    export(studied["client"], folder, "csv", 507, overwrite=True)
+    export(studied["client"], folder, "csv", 507, overwrite=True, file="Captures.csv")
     assert (folder / "Captures.csv").read_bytes() == b"old"
     assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv"]
 

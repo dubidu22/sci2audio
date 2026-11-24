@@ -86,6 +86,60 @@ def test_save_ask_before_replacing_keep_and_a_missing_folder(signed_in: Page, li
     assert live.outside == []  # no request left the test server
 
 
+def test_replace_it_replaces_only_the_file_the_question_named(signed_in: Page, live: Live) -> None:
+    """A question about folder A ends as kept when another folder is typed or the filters
+    change, so its "Replace it" can never reach B's file or another file name; and the
+    request it sends is the one asked about, with the file and folder the server named."""
+    page = signed_in
+    made = captured(page, live)
+    open_captures(page)
+    a, b = folder_of(live) / "a", folder_of(live) / "b"
+    for folder in (a, b):
+        folder.mkdir()
+        (folder / "Captures.ris").write_bytes(b"mine")
+        (folder / "paper.ris").write_bytes(b"mine too")
+    field, save = page.locator("#export-folder-ris"), page.locator("#export-save-ris")
+    ask = page.locator("#export-ask-ris")
+    field.fill(str(a))
+    save.click()
+    expect(ask).to_be_visible()
+    field.fill(str(b))  # another folder typed: the question was about A
+    expect(ask).to_be_hidden()
+    expect(state(page, "ris")).to_have_text("Nothing saved. Captures.ris stays as it was.")
+    # a filter changed: the question was about what was shown before
+    save.click()
+    expect(ask).to_be_visible()
+    page.locator("#capture-from").select_option(made["document"])
+    expect(ask).to_be_hidden()
+    page.locator('.cap-kinds button[data-kind="quote"]').click()
+    save.click()
+    expect(page.locator("#export-ask-ris-title")).to_have_text(
+        "paper.ris is in this folder already."
+    )
+    page.locator('.cap-kinds button[data-kind="all"]').click()
+    expect(ask).to_be_hidden()
+    for folder in (a, b):
+        assert (folder / "Captures.ris").read_bytes() == b"mine"
+        assert (folder / "paper.ris").read_bytes() == b"mine too"
+    # the yes sends the request asked about: B, the one document, quotes only
+    page.locator('.cap-kinds button[data-kind="quote"]').click()
+    save.click()
+    with page.expect_request("**/api/v1/captures/export") as sent:
+        ask.get_by_role("button", name="Replace it").click()
+    assert sent.value.post_data_json == {
+        "format": "ris",
+        "folder": str(b),
+        "type": "quote",
+        "document": made["document"],
+        "file": "paper.ris",
+        "overwrite": True,
+    }
+    expect(state(page, "ris")).to_have_text(f"Saved as paper.ris in {b}.")
+    assert (b / "paper.ris").read_bytes().startswith(b"TY  - GEN\r\n")
+    assert (b / "Captures.ris").read_bytes() == b"mine"
+    assert (a / "paper.ris").read_bytes() == b"mine too"
+
+
 def test_the_files_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     captured(page, live)

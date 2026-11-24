@@ -98,7 +98,7 @@ def _exported(state: ServerState, found: Listening, kind: str) -> ExportedDocume
         if where is None:
             placed.append(((1, 0, 0, 0, order), ExportedCapture(capture)))
             continue
-        block, start, _ = where
+        block, start = where  # where the sentence starts, also when the layout splits it
         at = (0, block, start, _dock(capture), order)
         placed.append((at, ExportedCapture(capture, pages.page(block, start))))
     placed.sort(key=lambda entry: entry[0])

@@ -561,9 +561,11 @@ function capturesPage() {
 // ---- the Captures page's files (#399, ADR-008 2.1 item 7) -------------------------------------
 // Each target saves what the filters show (`current`) into the folder typed beside it. A file
 // of that name already there is never replaced on the first press: the server refuses it,
-// and the target asks in its place; only "Replace it" sends the same request with
-// `overwrite`. "Keep it" and Escape leave the file and say so. Every state line has an icon
-// and a word, and is a status line for screen readers.
+// and the target asks in its place. "Replace it" sends the request the question is about,
+// with the file and folder the server named, never what the field and the filters hold by
+// then; the server refuses it again if that would be another file. Typing in the field or
+// changing the filters ends the question as kept. "Keep it" and Escape leave the file and
+// say so. Every state line has an icon and a word, and is a status line for screen readers.
 function captureExport(current) {
   const aside = document.getElementById("capture-export");
   const none = { shown() {} };
@@ -571,6 +573,8 @@ function captureExport(current) {
   const count = document.getElementById("export-count");
   const targets = [...aside.querySelectorAll(".target")];
   let shownNow = Number(count.dataset.n);
+  const questions = []; // each target's way to end its open question as kept
+  let shownFor = current();
   // taken from an icon on the page: the script names no address, not even a namespace's
   const svgSpace = aside.querySelector("svg").namespaceURI;
 
@@ -594,7 +598,7 @@ function captureExport(current) {
     const askTitle = document.getElementById(`export-ask-${format}-title`);
     const replace = ask.querySelector("button[data-replace]");
     const keep = ask.querySelector("button[data-keep]");
-    let asked = null; // the file the question is about
+    let asked = null; // the question's file, and the request it is about
     let busy = false;
 
     function tell(kind, name, said) {
@@ -620,7 +624,8 @@ function captureExport(current) {
       asked = null;
     }
 
-    async function save(overwrite) {
+    // `yes`: the question answered "Replace it", whose request is sent as it was asked
+    async function save(yes) {
       // one request at a time; the button stays enabled, so the focus stays on it
       if (busy) return;
       busy = true;
@@ -628,22 +633,19 @@ function captureExport(current) {
       const before = { kind: state.dataset.state, children: [...state.childNodes] };
       tell("saving", "download", tr("export.saving"));
       const wanted = current();
-      const body = {
-        format,
-        folder: field.value,
-        type: wanted.type,
-        document: wanted.document,
-        overwrite,
-      };
+      const body = yes
+        ? { ...yes.body, folder: yes.folder, file: yes.file, overwrite: true }
+        : { format, folder: field.value, type: wanted.type, document: wanted.document };
       try {
         const saved = await send("/api/v1/captures/export", json("POST", body));
         tell("saved", "check", tr("export.saved", { file: saved.file, folder: saved.folder }));
       } catch (error) {
         if (error.kind === "export-exists" && error.data && error.data.file) {
-          asked = error.data.file;
+          const { file: _, overwrite: __, ...asking } = body;
+          asked = { file: error.data.file, folder: error.data.folder, body: asking };
           state.dataset.state = before.kind; // nothing changed yet: the question says why
           state.replaceChildren(...before.children);
-          askTitle.textContent = tr("export.exists", { file: asked });
+          askTitle.textContent = tr("export.exists", { file: asked.file });
           ask.hidden = false;
           askTitle.focus();
         } else {
@@ -659,36 +661,48 @@ function captureExport(current) {
       }
     }
 
-    function kept() {
-      const file = asked;
+    function kept(focus = true) {
+      if (!asked) return;
+      const file = asked.file;
       close();
       tell("kept", "info", tr("export.kept", { file }));
-      button.focus();
+      if (focus) button.focus();
     }
+    questions.push(() => kept(false));
 
-    button.addEventListener("click", () => save(false));
+    button.addEventListener("click", () => save(null));
     replace.addEventListener("click", () => {
+      const yes = asked;
+      if (!yes) return;
       button.focus(); // the question goes away with the button pressed in it
-      save(true);
+      save(yes);
     });
-    keep.addEventListener("click", kept);
+    keep.addEventListener("click", () => kept());
     ask.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       kept();
     });
+    // another folder typed: the question was about the one before
+    field.addEventListener("input", () => kept(false));
     field.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" || button.disabled) return;
       event.preventDefault();
-      save(false);
+      save(null);
     });
     button.disabled = shownNow === 0; // drawn disabled: a click before this ran would be lost (#350)
   }
 
   return {
-    // what the filters show now: the count line, and no button that would save nothing
+    // what the filters show now: the count line, and no button that would save nothing; a
+    // question asked about what they showed before ends as kept
     shown(n) {
+      const now = current();
+      if (n !== shownNow || now.type !== shownFor.type || now.document !== shownFor.document) {
+        for (const end of questions) end();
+      }
       shownNow = n;
+      shownFor = current();
       count.textContent = tr("export.count", { n });
       for (const button of aside.querySelectorAll("button[data-export]")) button.disabled = n === 0;
     },

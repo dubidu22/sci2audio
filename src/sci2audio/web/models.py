@@ -427,7 +427,13 @@ class CaptureExportIn(Strict):
     )
     overwrite: StrictBool = Field(
         default=False,
-        description="replace a file of that name: only after the person said yes to it",
+        description="replace the file `file` names: only after the person said yes to it",
+    )
+    file: str = Field(
+        default="",
+        max_length=300,
+        description="with overwrite: the file the 409 answer named and the person said yes "
+        "to replacing; a request that would write another file is refused again",
     )
 
 
