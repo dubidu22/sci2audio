@@ -72,12 +72,10 @@ from sci2audio.web.player import (
     Made,
     PlayerError,
     Position,
+    PositionSaves,
     chapter_index,
     current_audiobook,
     load_document,
-    recorded_position,
-    remove_position,
-    write_position,
     write_record,
 )
 from sci2audio.web.project import ProjectError, audiobook_folder, record_files
@@ -163,13 +161,15 @@ def audio_work(
     voice: VoiceSource,
     *,
     overwrite: bool,
+    positions: PositionSaves,
     keep_settings: bool = False,
     on_failure: Callable[[], None] = lambda: None,
 ) -> Callable[[JobRecord], Sequence[Path]]:
     """`settings.output_folder` must be set (the server fills in its default): the
     audiobook goes into the project's own folder in it (D-749). With `keep_settings` the
     chapters added are made with the settings the project's chapters were made with (#726).
-    `on_failure` runs when the job fails (the server drops its kept engine)."""
+    `positions` are the server's turns of listening-position writes (#790). `on_failure`
+    runs when the job fails (the server drops its kept engine)."""
     output = settings.output_folder
     if output is None:
         raise ValueError("the audio job needs an output folder")
@@ -183,7 +183,7 @@ def audio_work(
         made_with = _kept_settings(document, settings) if keep_settings else settings
         try:
             # chapters added before the place the person listened to move it (#726)
-            _keep_position_by_chapter(document, folder)
+            _keep_position_by_chapter(document, folder, positions)
         except OSError as error:
             logger.warning("could not keep the listening position by its chapter: %s", error)
 
@@ -244,7 +244,7 @@ def audio_work(
         try:
             # a new audiobook starts at the start (#153); a position kept while this one
             # was growing is in it, and stays (#724)
-            _forget_other_position(document, written.readalong.parent)
+            _forget_other_position(document, written.readalong.parent, positions)
         except OSError as error:  # its stamp no longer fits: the page ignores it anyway
             logger.warning("could not forget the listening position: %s", error)
         files = [
@@ -379,41 +379,39 @@ def _kept_settings(document: StoredDocument, settings: JobSettings) -> JobSettin
         return settings
 
 
-def _keep_position_by_chapter(document: StoredDocument, folder: Path) -> None:
+def _keep_position_by_chapter(
+    document: StoredDocument, folder: Path, positions: PositionSaves
+) -> None:
     """Keep the listening position in the audiobook now in `folder` with its chapter's
     index and the time inside it, before a job adds chapters that may come before it
-    (#726, D-909); a position kept before this version holds only its book time. Raises
-    OSError."""
+    (#726, D-909); a position kept before this version holds only its book time. The read
+    and the write take one turn with the player's saves (#790). Raises OSError."""
     try:
         located = current_audiobook(document.folder, document.id, [folder]).located
-        stamp = located.stamp
     except PlayerError:
         return
-    position = recorded_position(document.folder, document.id, stamp)
-    if position is None:
-        return
     starts = Bounds.of(located.readalong).starts
-    index = chapter_index(document.folder, position.chapter)
-    if index is None or not 0 <= position.chapter < len(starts):
-        return
-    within = max(0.0, position.time - starts[position.chapter])
-    write_position(
-        document.folder,
-        document.id,
-        stamp,
-        Position(position.chapter, position.time, index, within),
-    )
+
+    def by_chapter(position: Position) -> Position | None:
+        index = chapter_index(document.folder, position.chapter)
+        if index is None or not 0 <= position.chapter < len(starts):
+            return None
+        within = max(0.0, position.time - starts[position.chapter])
+        return Position(position.chapter, position.time, index, within)
+
+    positions.change(document.folder, document.id, located.stamp, by_chapter)
 
 
-def _forget_other_position(document: StoredDocument, folder: Path) -> None:
-    """Remove the listening position unless it is in the audiobook now in `folder`.
-    Raises OSError."""
+def _forget_other_position(
+    document: StoredDocument, folder: Path, positions: PositionSaves
+) -> None:
+    """Remove the listening position unless it is in the audiobook now in `folder`, in one
+    turn with the player's saves (#839). Raises OSError."""
     try:
         stamp = current_audiobook(document.folder, document.id, [folder]).located.stamp
     except PlayerError:
         stamp = ""
-    if not stamp or recorded_position(document.folder, document.id, stamp) is None:
-        remove_position(document.folder)
+    positions.forget_unless(document.folder, document.id, stamp)
 
 
 def voices_work(models_dir: Path, fetch: Fetch | None) -> Callable[[JobRecord], Sequence[Path]]:

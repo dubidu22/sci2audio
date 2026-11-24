@@ -549,7 +549,7 @@ def run_audio_job(
         }
         # the chapter choice is not part of the key: adding chapters keeps the settings (#726)
         key = settings_key(made)
-        chosen, _ = selected(find_chapters(document), settings.chapters)
+        chosen, ignored = selected(find_chapters(document), settings.chapters)
         order = "book" if list(chosen) == sorted(chosen) else "chosen"
         owned = record.owned(out_folder) if record is not None else set()
         union = _adding(
@@ -559,6 +559,9 @@ def run_audio_job(
             settings = replace(settings, chapters=union)
         tell(AudioProgress(Phase.TEXT_STEPS))
         result = prepare_script(document, settings, steps, max_chars)
+        # the union holds only chapters the document has: the numbers it does not have are
+        # the person's choice, reported as in a fresh run (#810)
+        result = replace(result, ignored_chapters=ignored)
         plan = plan_audio(
             result,
             engine=voice.engine,

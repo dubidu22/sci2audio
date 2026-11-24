@@ -10,11 +10,12 @@ never a traceback or a hang (D-315).
 
 from __future__ import annotations
 
+import codecs
 import re
 import time
 import tracemalloc
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -327,6 +328,34 @@ def test_text_in_utf_16_and_with_bad_bytes_is_read() -> None:
 def test_a_declared_codec_that_is_not_for_text_reads_as_utf_8(codec: str) -> None:
     document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
     assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+def _lossy_codec(name: str) -> codecs.CodecInfo | None:
+    """A text codec that, like punycode on Python 3.13 (#587), drops every byte it cannot
+    decode under `errors="replace"` instead of raising."""
+    if name != "sci2audio_test_lossy":
+        return None
+    utf_8 = codecs.lookup("utf-8")
+    return codecs.CodecInfo(utf_8.encode, lambda data, errors="strict": ("", len(data)), name=name)
+
+
+@pytest.fixture
+def lossy_codec() -> Iterator[str]:
+    codecs.register(_lossy_codec)
+    yield "sci2audio_test_lossy"
+    codecs.unregister(_lossy_codec)
+
+
+def test_a_declared_codec_that_loses_the_text_reads_as_utf_8(lossy_codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{lossy_codec}"')
+    assert texts(read(make_epub_document(document)).pages[0]) == ["Plain café"]
+
+
+@pytest.mark.parametrize("codec", ["latin-1", "cp1252", "mac-roman"])
+def test_a_declared_codec_that_keeps_ascii_is_used(codec: str) -> None:
+    document = xhtml("<p>Plain café</p>").replace('encoding="utf-8"', f'encoding="{codec}"')
+    pages = read(Book(items=[Item("c1", "c1.xhtml", content=document.encode(codec))]).bytes()).pages
+    assert texts(pages[0]) == ["Plain café"]
 
 
 @pytest.mark.parametrize("codec", ["utf-16", "UTF-32", "utf-16-le"])
@@ -894,6 +923,88 @@ def test_a_damaged_outline_never_fails_the_file(ncx: str | bytes | None) -> None
 def test_a_damaged_navigation_document_never_fails_the_file(entries: str) -> None:
     content = read(make_epub("<p>x</p>", nav_entries=entries))
     assert texts(content.pages[0]) == ["x"]
+
+
+NCX_ELEMENTS = 17  # of NCX: ncx, head, docTitle, text, navMap and three navPoints of four
+
+
+def ncx_of_points(count: int) -> str:
+    point = (
+        '<navPoint id="n"><navLabel><text>T</text></navLabel><content src="c1.xhtml"/></navPoint>'
+    )
+    return NCX.split("<navMap>")[0] + "<navMap>" + point * count + "</navMap></ncx>"
+
+
+def test_an_ncx_with_more_elements_than_the_limit_gives_no_outline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#608, D-311: a table of contents too large to read is a damaged one, so the book has
+    none and is read as before."""
+    monkeypatch.setattr(epub_module, "MAX_NCX_ELEMENTS", NCX_ELEMENTS)
+    assert len(read(ncx_book(NCX).bytes()).outline) == 3
+    monkeypatch.setattr(epub_module, "MAX_NCX_ELEMENTS", NCX_ELEMENTS - 1)
+    content = read(ncx_book(NCX).bytes())
+    assert content.outline == ()
+    assert len(content.pages) == 2
+
+
+def test_the_ncx_is_counted_before_its_tree_is_built(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = ncx_book(ncx_of_points(1000)).bytes()
+
+    from_string = epub_module.ET.fromstring
+
+    built: list[bytes] = []
+
+    def fromstring(text: bytes, *args: object) -> object:
+        built.append(text)  # the outline swallows an error raised here, so only record it
+        return from_string(text, *args)
+
+    monkeypatch.setattr(epub_module, "MAX_NCX_ELEMENTS", 999)
+    monkeypatch.setattr(epub_module.ET, "fromstring", fromstring)
+    assert read(data).outline == ()
+    assert built  # the package and container files
+    assert all(b"navMap" not in text for text in built)
+
+
+def test_the_elements_of_the_ncx_count_whatever_they_are(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pageList or a long run of empty elements is as costly as navPoints."""
+    ncx = NCX.replace("</navMap>", "</navMap><pageList>" + "<x/>" * 10 + "</pageList>")
+    monkeypatch.setattr(epub_module, "MAX_NCX_ELEMENTS", NCX_ELEMENTS + 11)
+    assert len(read(ncx_book(ncx).bytes()).outline) == 3
+    monkeypatch.setattr(epub_module, "MAX_NCX_ELEMENTS", NCX_ELEMENTS + 10)
+    assert read(ncx_book(ncx).bytes()).outline == ()
+
+
+def test_an_ncx_past_the_real_limit_is_dropped_in_bounded_memory() -> None:
+    """Counted by the parser's start handler, no tree is built: 16 MB of navPoints took 230 MB
+    to read before (#608); this one of 4.4 MB is one navPoint past the decided limit."""
+    data = ncx_book(ncx_of_points(49_999)).bytes()
+    tracemalloc.start()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert content.outline == ()
+    assert peak < 20 * 1024 * 1024
+
+
+def test_an_ncx_at_the_real_limit_still_gives_its_outline() -> None:
+    """Measured at the limit: 49,998 navPoints (199,997 elements) peak at about 60 MB under
+    tracemalloc."""
+    data = ncx_book(ncx_of_points(49_998)).bytes()
+    tracemalloc.start()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert len(content.outline) == 49_998
+    assert peak < 100 * 1024 * 1024
+
+
+def test_the_ncx_limit_is_the_decided_one() -> None:
+    assert epub_module.MAX_NCX_ELEMENTS == 200_000  # #608
 
 
 def test_a_deeply_nested_ncx_stops_at_level_fifteen() -> None:

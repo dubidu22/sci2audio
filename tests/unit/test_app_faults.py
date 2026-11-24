@@ -8,6 +8,7 @@ import errno
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -206,5 +207,10 @@ def test_a_run_killed_outright_can_be_run_again(tmp_path: Path, at: int) -> None
     else:  # killed while writing the record: the outputs are complete, the record missing
         assert targets == ["note.report.json", "note.report.md", "note.script.txt"]
         assert all(left[name] == contents(clean)[name] for name in targets)
+    # a leftover is swept once it is an hour old (a process id means little in a shared
+    # folder, #778): let the time pass
+    long_ago = time.time() - files_module.STALE_AFTER_SECONDS - 60
+    for leftover in killed.rglob("*.partial"):
+        os.utime(leftover, (long_ago, long_ago))
     run_script_job(source, JobSettings(), killed / "work", overwrite=at > 3)
     assert contents(killed) == contents(clean)

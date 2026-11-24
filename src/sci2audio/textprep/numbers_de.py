@@ -155,6 +155,17 @@ YEAR_WORDS = frozenset(
 _MAYBE_YEAR_WORDS = frozenset(
     {"seit", "bis", "ab", "um", "von", "zwischen", "im", "anfang", "mitte", "ende"}
 )
+# nouns before a number that make it a year as the words above do, printed with a capital
+# ("Ausgabe 1998", but "er stand 1998"; "Stand 1500 Punkte" is a count, #591). Not in
+# YEAR_WORDS, which the citations step reads too. "Version" is none: "Version 1909" and
+# "(Version 1234)" are software's version numbers
+_EDITION_WORDS = frozenset({"ausgabe", "stand", "fassung", "jahrgang"})
+# ... and "Auflage" only when the number ends the phrase ("(Auflage 1985)"): "Die Auflage
+# 1500 wurde verkauft" is a print run (#591)
+_PRINT_RUN = "auflage"
+# ... and with a colon after it ("Stand: 1998", #782)
+_COLON_WORD = re.compile(r"(?P<word>[^\W\d_]+):\s+\Z")
+_PHRASE_END = re.compile(r"\s*(?:[)\],;:!?]|\.(?!\d)|\Z)")
 # "zwischen 1990 und 1995": a number joined on to a year is a year too
 _DIGIT_BEFORE = re.compile(r"\d\s*\Z")
 # a "bis" a range made: after a number, or after "Uhr" ("13 Uhr–1234")
@@ -164,7 +175,9 @@ _RANGE_BEFORE = re.compile(r"(?:\d[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]{0,2}|\b
 _JOINED_YEAR = re.compile(r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)\Z")
 _JOINED_NEXT = re.compile(
     r"(?:\s*[\u2013\u2012\u2014-]\s*|\s+(?:und|oder|bis|bzw\.)\s+)"
-    r"(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?![\d.,])"
+    # a full stop or a comma after the run ends it ("Auflage 1998 und 1999.", #806), as ")"
+    # does; a decimal ("1999,5") does not
+    r"(?:1[1-9]\d\d|\d{1,2}\.\d{3})(?!\d|[.,]\d)"
 )
 
 
@@ -178,13 +191,18 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     joined = [end_ for _, end_ in years if end_ <= start]
     if joined and _JOINED_YEAR.fullmatch(text, joined[-1], start):
         return True
-    previous = _PREVIOUS_WORD.search(before)
+    # "Stand: 1998" as "Stand 1998" (#782), but "Anzahl: 1998" and "seit: 1998" stay counts
+    colon = _COLON_WORD.search(before)
+    previous = colon or _PREVIOUS_WORD.search(before)
     if previous is None:
         return False
     word = previous["word"].lower()
+    edition = previous["word"][0].isupper() and word in _EDITION_WORDS | {_PRINT_RUN}
+    if colon is not None and not edition:
+        return False
     if word in YEAR_WORDS:
         return True
-    if word not in _MAYBE_YEAR_WORDS or previous["dot"]:
+    if not (edition or word in _MAYBE_YEAR_WORDS) or (colon is None and previous["dot"]):
         return False
     if word == "bis" and _RANGE_BEFORE.search(before, 0, previous.start()):
         return False  # "1 bis 1234": a range ("1–1234" on the first run), not "bis 1998"
@@ -192,6 +210,8 @@ def _is_year(text: str, start: int, end: int, years: list[tuple[int, int]]) -> b
     # decides for the whole run, as on a second run, where "1234 und" has no year before it
     while joined_next := _JOINED_NEXT.match(text, end):
         end = joined_next.end()
+    if word == _PRINT_RUN:
+        return _PHRASE_END.match(text, end) is not None
     if unit_follows(text, end, "de"):
         return False  # "seit 1998 %": the units step's ("1998 Prozent", a capital after it)
     following = _NEXT_WORD.match(text, end)
@@ -1092,6 +1112,11 @@ _CARET = re.compile(
     # keeps the power as printed where it does not, #253)
     r"(?!(?![xX]\d)[\w.,⁺⁻])"
 )
+# a signed power of a bracketed term, "(I − P)⁻¹" (an inverse), its raise printed or in its
+# run (#815, as numbers.py for #589); not before a letter or digit, which may go on the power
+_BRACKET_POWER = re.compile(
+    r"(?P<base>[)\]])(?P<exp>[⁺⁻][" + _SUPERSCRIPTS + r"]+)(?![\w⁺⁻^" + _SUPERSCRIPTS + "])"
+)
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w⁺⁻]|[.,]\d)")
 # not after a number and a space ("5 m²", the units step's), but after a time ("24:00 n²",
 # which reads "24 Uhr n²", #253)
@@ -1160,6 +1185,9 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         for match in pattern.finditer(text):
             words = f" hoch {_exponent_words(match['exp'])}"
             found.append((_power(text, match, words), match.start("base")))
+    for match in _BRACKET_POWER.finditer(text):
+        words = f" hoch {_exponent_words(match['exp'])}"
+        found.append((_power(text, match, words), None))
     for match in _CARET.finditer(plain):
         exponent = match["braced"] or match["paren"] or match["bare"]
         letter = match["base"].isalpha()

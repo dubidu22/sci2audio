@@ -42,6 +42,13 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("X −−→ α and Y ←−− β", "X → α and Y ← β"),
         ("X ←−−→ Y and −−→AB", "X ↔ Y and →AB"),
         ("b ←−−1", "b ←1"),
+        # #590: a long double arrow printed as "=" and an arrow is one arrow, never "equals"
+        ("so A =⇒ B", "so A ⇒ B"),
+        ("A=⇒B and C⇐=D", "A⇒B and C⇐D"),
+        ("P ⇐=⇒ Q and P⇐⇒Q", "P ⇔ Q and P⇔Q"),
+        ("A ==⇒ B and C ⇐== D and ⇐=1", "A ⇒ B and C ⇐ D and ⇐1"),
+        # ... and an "=" with no double arrow beside it is left as printed
+        ("x = 3, a == b, y ≤ 2, z => w, ⇒ and ⇔", "x = 3, a == b, y ≤ 2, z => w, ⇒ and ⇔"),
         # ... and a minus sign glued to a closing bracket is left as printed (an inverse
         # whose raise was lost, or "f(x) minus 1": the voice says "minus" either way, #589)
         (
@@ -70,6 +77,14 @@ def read(text: str, kind: BlockKind = BlockKind.PARAGRAPH) -> str:
         ("the 1234 cells", "the 1,234 cells"),
         ("2050 people", "2,050 people"),
         ("1905 children", "1,905 children"),
+        # ... and before a sign or the word a second run sees for it, unless year-like (#844)
+        ("1234 = A", "1,234 = A"),
+        ("1234×", "1,234×"),
+        ("1234x larger", "1,234x larger"),
+        ("1234 times", "1,234 times"),
+        ("2019 = A", "2019 = A"),
+        ("2019 equals A", "2019 equals A"),
+        ("1234 == A", "1234 == A"),
         # N4 trailing zeros
         ("2.50", "2 point 5 0"),
         ("1.00", "1 point 0 0"),

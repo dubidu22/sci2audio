@@ -25,6 +25,7 @@ from sci2audio.textprep import (
     cut_utterances,
     run_steps,
     spoken_text,
+    unspoken,
 )
 from sci2audio.textprep.utterances import (
     _BEFORE_NUMBERS,
@@ -44,6 +45,29 @@ def cut(text: str, max_chars: int = DEFAULT_MAX_CHARS, language: str = "en") -> 
     return [
         u.text for u in cut_utterances(document, apply_edits(document, []), language, max_chars)
     ]
+
+
+def only_unspoken_left_out(said: list[str], spoken: str) -> bool:
+    """True if the utterances, in order and each whole, are the spoken text with only gaps of
+    nothing to say between, before and after them (#652): white space aside, every stretch
+    the cutter left out is `unspoken`, and nothing else moved, changed or went missing."""
+    target = re.sub(r"\s", "", spoken)
+    end = len(target)
+    # speakable[i]: where the first character at or after i with something to say stands
+    speakable = [end] * (end + 1)
+    for i in range(end - 1, -1, -1):
+        speakable[i] = speakable[i + 1] if unspoken(target[i]) else i
+    reached = {0}  # where the text matched so far may end
+    for part in (re.sub(r"\s", "", text) for text in said):
+        reached = {
+            j + len(part)
+            for i in reached
+            for j in range(i, speakable[i] + 1)  # a gap from i to j says nothing
+            if target.startswith(part, j)
+        }
+        if not reached:
+            return False
+    return any(speakable[i] == end for i in reached)
 
 
 @pytest.mark.parametrize(
@@ -811,18 +835,22 @@ def test_utterances_cover_the_script_inside_their_blocks_in_order(
     for index in range(len(document.blocks)):
         spoken = spoken_text([p for p in script if p.span.block == index and not p.pause])
         said = [u.text for u in utterances if u.span.block == index and not u.pause]
-        # nothing lost or added; a cut inside a word adds a space, so compare without them
-        assert re.sub(r"\s", "", "".join(said)) == re.sub(r"\s", "", spoken)
+        # nothing lost or added but what says nothing (#652); a cut inside a word adds a
+        # space, so compare without them
+        whole = re.sub(r"\s", "", "".join(said)) == re.sub(r"\s", "", spoken)
+        assert whole or only_unspoken_left_out(said, spoken)
         pieces = [p for p in script if p.span.block == index]
-        if all(len(word) <= max_chars for word in spoken.split()) and all(
-            not p.pause and p.text == document.text_of(p.span) for p in pieces
+        if (
+            whole
+            and all(len(word) <= max_chars for word in spoken.split())
+            and all(not p.pause and p.text == document.text_of(p.span) for p in pieces)
         ):  # no replacement or pause, which may cut inside a word
             assert " ".join(said) == spoken
         # a replacement that fits the limit is read whole, inside one utterance
         for piece in pieces:
             words = spoken_text([piece])
             replaced = not piece.pause and piece.text != document.text_of(piece.span)
-            if replaced and 0 < len(words) <= max_chars:
+            if replaced and 0 < len(words) <= max_chars and not unspoken(words):
                 assert any(words in text for text in said), (words, said)
     pauses = [p.span for p in script if p.pause]
     assert [u.span for u in utterances if u.pause] == pauses
@@ -848,8 +876,12 @@ def test_continuing_utterances_join_into_the_uncut_sentences(
     assert [u.pause for u in whole] == [group[0].pause for group in groups]
     for group, sentence in zip(groups, whole, strict=True):
         joined = "".join(u.text for u in group)
-        assert re.sub(r"\s", "", joined) == re.sub(r"\s", "", sentence.text)
-        assert group[0].span.start == sentence.span.start
+        if re.sub(r"\s", "", joined) == re.sub(r"\s", "", sentence.text):
+            assert group[0].span.start == sentence.span.start
+        else:
+            # only a part with nothing to say is left out of a cut sentence (#652)
+            assert only_unspoken_left_out([u.text for u in group], sentence.text)
+            assert group[0].span.start >= sentence.span.start
 
 
 @given(documents())
@@ -886,7 +918,8 @@ def test_every_corpus_paper_cuts_into_utterances_under_the_limit(paper: Path) ->
             assert a.span.end <= b.span.start
         spoken = spoken_text([p for p in script if p.span.block == index and not p.pause])
         said = [u.text for u in mine if not u.pause]
-        assert " ".join(said) == spoken  # exact, block by block
+        # exact, block by block, but for what says nothing (a lone bullet, #652)
+        assert " ".join(said) == spoken or only_unspoken_left_out(said, spoken)
 
 
 @pytest.mark.benchmark
@@ -1192,3 +1225,138 @@ def test_a_cut_that_leaves_two_parts_of_40_is_fair() -> None:
     leaves a part of 20."""
     text = "wwwwx, vvvvy, uuuuz, " + " ".join(["tttt"] * 12) + "."
     assert [len(part) for part in cut(text, max_chars=60)] == [40, 40]
+
+
+# ---- nothing to speak (#652) ---------------------------------------------------------------
+
+# every shape of #652 (criterion 6): dashes, bullets, quote marks, brackets, and a mix
+UNSPOKEN_SHAPES = [
+    "-", "\u2013", "\u2014", "\u2022", "\u00b7", "\u201e", "\u201c", '"', "(", ")", "[", "]",
+    "\u2013 \u2022",
+]  # fmt: skip
+
+
+def blocks_cut(texts: list[str], language: str = "en") -> list[Utterance]:
+    """The utterances of a document of one paragraph per text, as printed."""
+    document = make_document([(BlockKind.PARAGRAPH, text) for text in texts], language)
+    return list(cut_utterances(document, apply_edits(document, []), language))
+
+
+@pytest.mark.parametrize(
+    ("said", "spoken", "left_out"),
+    [
+        (["- One?", "Two?"], "- One? - Two? -", True),
+        (["One."], "• One. ( )", True),
+        (["One.", "Two."], "One. Two.", True),
+        (["stateof"], "state-of", False),  # an in-word hyphen lost
+        (["He said Stop."], 'He said "Stop."', False),  # quote marks lost mid-sentence
+        (["a b,"], "a, b", False),  # a comma moved
+        (["See Table 2."], "See (Table 2).", False),  # brackets lost around words
+        (["Two.", "One."], "One. Two.", False),  # out of order
+        (["One. x"], "One.", False),  # something added
+    ],
+)
+def test_only_gaps_with_nothing_to_say_count_as_left_out(
+    said: list[str], spoken: str, left_out: bool
+) -> None:
+    """The check the property tests use (#652): a gap left out between whole
+    utterances must say nothing; any other loss, move or addition fails."""
+    assert only_unspoken_left_out(said, spoken) is left_out
+
+
+@pytest.mark.parametrize("shape", [*UNSPOKEN_SHAPES, " ", "\u2023 \u25e6 \u25aa", "\u2026", ".?!"])
+def test_dashes_bullets_quotes_and_brackets_are_unspoken(shape: str) -> None:
+    assert unspoken(shape)
+
+
+@pytest.mark.parametrize("text", ["a", "7", "%", "\u00a7", "&", "*", "+", "=", "\u20ac", "- a"])
+def test_a_letter_a_digit_or_a_symbol_with_a_reading_is_spoken(text: str) -> None:
+    assert not unspoken(text)
+
+
+@pytest.mark.parametrize("shape", UNSPOKEN_SHAPES)
+def test_a_block_of_only_an_unspoken_shape_gives_no_utterance(shape: str) -> None:
+    """#652 (1): a block with nothing to speak has no neighbour in its block: it is dropped."""
+    utterances = blocks_cut(["First item.", shape, "Second item."])
+    assert [u.text for u in utterances] == ["First item.", "Second item."]
+    assert [u.span.block for u in utterances] == [0, 2]
+
+
+@pytest.mark.parametrize("shape", UNSPOKEN_SHAPES)
+def test_an_unspoken_shape_on_its_own_line_is_never_a_sentence(shape: str) -> None:
+    """#652 (1, 6): on a line between two sentences, after one, or before one, the shape is no
+    utterance of its own, and nothing is lost but the shape."""
+    for text in (
+        f"One is here.\n{shape}\nTwo is here.",
+        f"One is here.\n{shape}",
+        f"{shape}\nOne is here.",
+    ):
+        said = cut(text)
+        assert said, text
+        assert not any(unspoken(utterance) for utterance in said), (text, said)
+        assert "".join(said).replace(" ", "").replace(shape.replace(" ", ""), "") == (
+            text.replace("\n", "").replace(" ", "").replace(shape.replace(" ", ""), "")
+        )
+
+
+@pytest.mark.parametrize("marker", ["-", "\u2013", "\u2014", "\u2022", "\u00b7", "\u2023"])
+def test_a_list_marker_on_a_new_line_starts_the_item_it_leads(marker: str) -> None:
+    """#652 (3): the marker that opens a list line goes with its own line, not to the end of
+    the line before it."""
+    text = f"{marker} Is it one?\n{marker} Is it two?\n{marker} Is it three?"
+    assert cut(text) == [f"{marker} Is it one?", f"{marker} Is it two?", f"{marker} Is it three?"]
+
+
+def test_a_dash_on_the_line_after_a_sentence_leads_the_next_line() -> None:
+    """#652 (3, 5): the reported shape in one block: the middle dash stands on a line of its
+    own; it leads the question after it, and nothing trails a question mark."""
+    text = (
+        "- Welche Räume stehen offen?\n-\nWelche Hürden treten auf?\n- Mit wem lässt sich planen?"
+    )
+    assert cut(text, language="de") == [
+        "- Welche Räume stehen offen?",
+        "- Welche Hürden treten auf?",
+        "- Mit wem lässt sich planen?",
+    ]
+
+
+def test_a_list_marker_ending_a_block_leads_nothing_there_and_is_dropped() -> None:
+    """#652 (1, 3): the handout's layout put the dash of the next item at the end of the line
+    before; it leads nothing in its block, so it is not read and not highlighted: the
+    sentence ends at its question mark."""
+    document = make_document([(BlockKind.PARAGRAPH, "Welche Hürden treten auf?\n-")], "de")
+    [utterance] = cut_utterances(document, apply_edits(document, []))
+    assert utterance.text == "Welche Hürden treten auf?"
+    assert utterance.span == Span(0, 0, len("Welche Hürden treten auf?"))
+
+
+def test_a_dash_inside_a_line_is_no_list_marker() -> None:
+    """Only a marker at the start of a line opens a sentence: an inline dash after a question
+    goes on with it, as before."""
+    assert cut("Was nun? \u2013 das bleibt offen.", language="de") == [
+        "Was nun? \u2013 das bleibt offen."
+    ]
+
+
+def test_an_unspoken_part_of_a_long_sentence_is_dropped_and_the_limit_holds() -> None:
+    """#652 (1): at 5 characters the length cut makes "aaaa", "\u2013" and "bbbb." of this
+    sentence; the dash alone gives no utterance, the parts around it keep the limit and their
+    words, and the one after it still continues the sentence (its span starts after the
+    dash, which stays inside the sentence on the page)."""
+    text = "aaaa \u2013 bbbb."
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    utterances = cut_utterances(document, apply_edits(document, []), max_chars=5)
+    assert [(u.text, u.span, u.continues) for u in utterances] == [
+        ("aaaa", Span(0, 0, 4), False),
+        ("bbbb.", Span(0, 7, 12), True),
+    ]
+
+
+@given(scripts(), st.integers(1, 80), st.sampled_from(["en", "de"]))
+def test_no_utterance_is_only_unspoken_characters(
+    case: tuple[Document, tuple[ScriptPiece, ...]], max_chars: int, language: str
+) -> None:
+    """#652 (1): whatever the text, the voice is never given something with nothing to say."""
+    document, script = case
+    for utterance in cut_utterances(document, script, language, max_chars):
+        assert utterance.pause or not unspoken(utterance.text), utterance

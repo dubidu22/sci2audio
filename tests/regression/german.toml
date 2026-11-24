@@ -2813,3 +2813,147 @@ expected = [
     "Wir danken Müller hier.",
     "Es regnet und zeigt es.",
 ]
+
+# ---- #594, #249, #591 German number readings ------------------------------------------------
+
+[[case]]
+id = "de-time-with-uhr-on-the-next-line-reads-uhr-once"
+audit = 0
+issue = 594
+goal = "Eine Uhrzeit, deren 'Uhr' nach einem Zeilenumbruch oder Tabulator steht, liest 'Uhr' einmal ('13 Uhr 30'), in beiden Läufen; ein Datum danach bleibt 'dritter Mai'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Sitzung beginnt um 13:30\nUhr 3. Mai im Hörsaal." },
+    { kind = "paragraph", text = "Die Pause beginnt um 15:45\tUhr im Foyer." },
+    { kind = "paragraph", text = "Das Ende ist um 17:30 Uhr." },
+]
+expected = [
+    "Die Sitzung beginnt um 13 Uhr 30 dritter Mai im Hörsaal.",
+    "Die Pause beginnt um 15 Uhr 45 im Foyer.",
+    "Das Ende ist um 17 Uhr 30.",
+]
+
+[[case]]
+id = "de-dotted-labels-read-punkt-in-utterances"
+audit = 0
+issue = 249
+goal = "Eine Formel '(3.2)', eine Tabelle 'Tabelle 2.1' und 'Abschnitt 3.2' im Text lesen den Punkt als 'Punkt', in Hinweis, Bildunterschrift und Äußerungen, in beiden Läufen; unverändert spräche die Stimme 'drei.zwei'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Abschnitt 3.2 zeigt die Werte." },
+    { kind = "formula", text = "a = b (3.2)", label = "3.2" },
+    { kind = "caption", text = "Tabelle 2.1: Mittelwerte.", label = "Tabelle 2.1", describes = 3 },
+    { kind = "table", text = "a b" },
+]
+expected = [
+    "Abschnitt 3 Punkt 2 zeigt die Werte.",
+    "Formel 3 Punkt 2 wird übersprungen.",
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+]
+utterances = [
+    "Abschnitt 3 Punkt 2 zeigt die Werte.",
+    "Formel 3 Punkt 2 wird übersprungen.",
+    "Tabelle 2 Punkt 1: Mittelwerte.",
+    "Tabelle 2 Punkt 1 wird übersprungen.",
+]
+
+[[case]]
+id = "de-year-after-an-edition-word-reads-in-hundreds"
+audit = 0
+issue = 591
+goal = "Ein Jahr von 1100 bis 1999 nach 'Ausgabe', 'Stand', 'Fassung' oder 'Jahrgang' wird in Hunderten gelesen ('19 hundert 98'), nach 'Auflage' nur, wenn die Zahl die Wendung schließt ('(Auflage 1985)'), in beiden Läufen; folgt ein Nomen ('1500 Exemplare', '1500 Punkte') oder nach 'Auflage' ein weiteres Wort ('Die Auflage 1500 wurde verkauft'), bleibt es eine Anzahl. Nach 'Version' bleibt jede Zahl eine Versionsnummer ('Version 1909', 'Version 1234.'). Unverändert spräche die Stimme 'tausendneunhundertachtundneunzig'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Bericht (Ausgabe 1998), die Norm (Stand 1998) und das Gesetz (Fassung 1998) gelten." },
+    { kind = "paragraph", text = "Der Jahrgang 1998 erschien in der dritten Auflage (Auflage 1985)." },
+    { kind = "paragraph", text = "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft." },
+    { kind = "paragraph", text = "Die Auflage 1500 wurde verkauft, Windows 10 (Version 1909) und Version 1234." },
+]
+expected = [
+    "Der Bericht (Ausgabe 19 hundert 98), die Norm (Stand 19 hundert 98) und das Gesetz (Fassung 19 hundert 98) gelten.",
+    "Der Jahrgang 19 hundert 98 erschien in der dritten Auflage (Auflage 19 hundert 85).",
+    "Die Auflage 1500 Exemplare, der Stand 1500 Punkte und Version 1234 läuft.",
+    "Die Auflage 1500 wurde verkauft, Windows 10 (Version 1909) und Version 1234.",
+]
+
+[[case]]
+id = "de-year-after-an-edition-word-and-a-colon-reads-in-hundreds"
+audit = 0
+issue = 782
+goal = "Ein Jahr nach 'Stand:', 'Ausgabe:', 'Fassung:', 'Jahrgang:' oder 'Auflage:' mit Doppelpunkt wird wie ohne gelesen ('Stand: 19 hundert 98'), in beiden Läufen; nach einem anderen Wort mit Doppelpunkt ('Anzahl: 1998'), vor einem Nomen ('Stand: 1500 Punkte') oder nach 'Auflage:' vor einem weiteren Wort bleibt es eine Anzahl. Unverändert spräche die Stimme 'tausendneunhundertachtundneunzig'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Norm (Stand: 1998), der Bericht (Ausgabe: 1998) und das Gesetz (Fassung: 1998) gelten." },
+    { kind = "paragraph", text = "Der Jahrgang: 1998 erschien in der Auflage: 1985." },
+    { kind = "paragraph", text = "Die Anzahl: 1998, der Stand: 1500 Punkte und die Auflage: 1500 wurde verkauft." },
+]
+expected = [
+    "Die Norm (Stand: 19 hundert 98), der Bericht (Ausgabe: 19 hundert 98) und das Gesetz (Fassung: 19 hundert 98) gelten.",
+    "Der Jahrgang: 19 hundert 98 erschien in der Auflage: 19 hundert 85.",
+    "Die Anzahl: 1998, der Stand: 1500 Punkte und die Auflage: 1500 wurde verkauft.",
+]
+
+[[case]]
+id = "de-joined-edition-years-read-alike-before-a-bracket-or-a-full-stop"
+audit = 0
+issue = 806
+goal = "Eine mit 'und', 'bis' oder 'oder' verbundene Jahresfolge nach 'Auflage' oder 'Ausgabe' wird gleich gelesen, ob sie mit ')', '.' oder ',' endet ('Auflage 19 hundert 98 und 19 hundert 99.'), in beiden Läufen; folgt nach 'Auflage' ein weiteres Wort, bleibt es eine Anzahl."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Werke (Auflage 1998 und 1999), (Auflage 1998 bis 1999) und (Auflage 1998 oder 1999) liegen vor." },
+    { kind = "paragraph", text = "Sie erschienen in Auflage 1998 und 1999." },
+    { kind = "paragraph", text = "Sie erschienen in Auflage 1998 bis 1999." },
+    { kind = "paragraph", text = "Sie erschienen in Auflage 1998 oder 1999." },
+    { kind = "paragraph", text = "Sie erschienen in Auflage 1998 und 1999, dann nicht mehr." },
+    { kind = "paragraph", text = "Sie erschienen (Ausgabe 1998 und 1999) und in Ausgabe 1998 bis 1999." },
+    { kind = "paragraph", text = "Die Auflage 1500 und 1600 wurde verkauft." },
+]
+expected = [
+    "Die Werke (Auflage 19 hundert 98 und 19 hundert 99), (Auflage 19 hundert 98 bis 19 hundert 99) und (Auflage 19 hundert 98 oder 19 hundert 99) liegen vor.",
+    "Sie erschienen in Auflage 19 hundert 98 und 19 hundert 99.",
+    "Sie erschienen in Auflage 19 hundert 98 bis 19 hundert 99.",
+    "Sie erschienen in Auflage 19 hundert 98 oder 19 hundert 99.",
+    "Sie erschienen in Auflage 19 hundert 98 und 19 hundert 99, dann nicht mehr.",
+    "Sie erschienen (Ausgabe 19 hundert 98 und 19 hundert 99) und in Ausgabe 19 hundert 98 bis 19 hundert 99.",
+    "Die Auflage 1500 und 1600 wurde verkauft.",
+]
+
+[[case]]
+id = "de-double-arrow-printed-as-an-equals-sign-and-an-arrow"
+audit = 0
+issue = 795
+goal = "Ein langer Doppelpfeil aus zwei Zeichen ('=⇒', '⇐=', '⇐=⇒') wird als ein Pfeil gelesen ('⇒', '⇐', '⇔'), auch an Buchstaben geklebt, nie als 'gleich', was den Sinn umkehrt (#590), und zwischen zwei Operanden in Worten gelesen ('daraus folgt', 'folgt aus', 'genau dann, wenn', #796); ein einfaches '=' wird weiter 'gleich' gelesen."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Also gilt so A =⇒ B und A=⇒B, dann C ⇐= D, und x = 3 gilt genau dann, wenn P ⇐=⇒ Q." }]
+expected = ["Also gilt so A daraus folgt B und A daraus folgt B, dann C folgt aus D, und x gleich 3 gilt genau dann, wenn P genau dann, wenn Q."]
+
+[[case]]
+id = "de-raised-exponent-before-a-glued-unit-letter-is-a-power"
+audit = 0
+issue = 815
+goal = "Eine hochgestellte Hochzahl nach '10' vor einem angehängten Einheitenbuchstaben wird als Potenz gelesen ('10 hoch 4 Kelvin'), ob die Hochstellung nur im Lauf steht oder als Zeichen gedruckt ist ('10⁴K'), in beiden Läufen; ungetaggt bleibt '104K' wie gedruckt."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Bei T = 10", { sup = "4" }, "K ist das Gas heiß, bei 10", { sup = "3" }, " K nicht."] },
+    { kind = "paragraph", text = "Bei T = 10⁴K ist es heiß, bei 104K bleibt es gedruckt." },
+]
+expected = [
+    "Bei T gleich 10 hoch 4 Kelvin ist das Gas heiß, bei 10 hoch 3 Kelvin nicht.",
+    "Bei T gleich 10 hoch 4 Kelvin ist es heiß, bei 104K bleibt es gedruckt.",
+]
+
+[[case]]
+id = "de-raised-minus-one-after-a-bracket-is-a-power"
+audit = 0
+issue = 815
+goal = "Ein hochgestelltes '−1' nach ')' oder ']' ist eine Inverse und wird 'hoch minus 1' gelesen, ob die Hochstellung nur im Lauf steht oder als Zeichen gedruckt ist ('(I − P)⁻¹'), in beiden Läufen; ungetaggt bleiben '(I − P)−1' und 'f(x)−1' wie gedruckt (#527)."
+language = "de"
+blocks = [
+    { kind = "paragraph", runs = ["Wir nehmen (I − P)", { sup = "−1" }, " und [A]", { sup = "−1" }, " hier."] },
+    { kind = "paragraph", text = "Wir nehmen (I − P)⁻¹, aber (I − P)−1 und f(x)−1 bleiben." },
+]
+expected = [
+    "Wir nehmen (I − P) hoch minus 1 und [A] hoch minus 1 hier.",
+    "Wir nehmen (I − P) hoch minus 1, aber (I − P)−1 und f(x)−1 bleiben.",
+]

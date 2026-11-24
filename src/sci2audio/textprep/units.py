@@ -23,7 +23,12 @@ expression, magnitude letter or symbol, with the words of `data/<language>/units
   number set small and raised ("⁴⁰K" as a `sup` run, `footnotes.raised_numbers`) the letter is
   an element symbol: the raised digits are written as superscript digits, which is how they
   are printed and which no step reads as a number, so the letter stays as printed on both
-  runs (#449). The voice reads "⁴⁰K" as it reads "40K".
+  runs (#449). The voice reads "⁴⁰K" as it reads "40K". After a power printed in
+  superscripts the letter is no magnitude either (#576): a one-letter unit glued to it reads
+  as with a space ("10⁴K" as "10⁴ K", "kelvin"; German too, #815), and "M" or "B" is set apart
+  ("10⁶M" reads "10⁶ M"), so a second run does not read "6M" as "6 million".
+- **Raised exponents:** an exponent whose raise only its run shows ("10" and a raised "4",
+  `footnotes.raised_exponents`) is read as if printed in superscripts (#576, #589).
 - **Symbols:** "≈" reads "approximately" and "×" "times" (D-242: explicit, though espeak-ng
   says the same); "~" and "∼" read "about" right before a number; a letter "x" reads "times"
   between two numbers or glued after one ("10x speedup"); the micro sign "µ" that is not a
@@ -45,7 +50,12 @@ from dataclasses import dataclass
 from functools import cache
 
 from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.footnotes import raised_numbers, unread_marks
+from sci2audio.textprep.footnotes import (
+    as_superscripts,
+    raised_exponents,
+    raised_numbers,
+    unread_marks,
+)
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE
@@ -66,7 +76,7 @@ _NUMBER_START = (
     r"|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹][xX])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹] [xX]))"  # after a power's x too (#253)
 )
 _EXPONENT = (
-    r"(?P<exponent>[\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+"
+    r"(?P<exponent>[\u207a\u207b\u2212]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+"
     r"|\^[-\u2212]?\d+|\^\{[-\u2212]?\d+\})?"
 )
 _NUMBER = re.compile(
@@ -190,13 +200,14 @@ class UnitStep(TextStep):
             return []
         marks = unread_marks(document, context)  # read as a second run reads, without them
         raised = raised_numbers(document) if table.words.magnitudes else {}
+        exponents = raised_exponents(document)
         edits = []
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context):
                 continue
             found = edits_through_unread(
                 index,
-                block.text,
+                as_superscripts(block.text, exponents.get(index, ())),  # as printed (#576)
                 lambda read: _without_overlaps(self._edits(index, read, table)),  # noqa: B023
                 self.id,
                 marks.get(index, ()),
@@ -308,10 +319,13 @@ class UnitStep(TextStep):
         return self._edit(index, position, position + 1, lead + word + trail, text[position])
 
     def _edit(self, index: int, start: int, end: int, reads: str, shown: str) -> Edit:
+        said = f'"{shown}" read as "{reads.strip()}"'
+        if reads.strip() == shown:  # "10⁶M": the letter set apart from the power (#576)
+            said = f'"{shown}" after a power is no magnitude: set apart, kept as printed'
         return Edit(
             Span(index, start, end),
             EditKind.REPLACE,
-            reason=f'"{shown}" read as "{reads.strip()}"',
+            reason=said,
             step=self.id,
             replacement=reads,
         )
@@ -402,13 +416,17 @@ def _unit_after(
         return None
     if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
         return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
+    # after a power printed in superscripts ("10⁴K") a glued letter reads as it does with a
+    # space ("10⁴ K"), where the numbers step reads the power before it (#576; German, #815)
+    exponent = number["exponent"] or ""
+    powered = exponent[:1] not in ("", "^")
     parsed = _expression(text, start, table)
     if parsed is not None:
         terms, stop = parsed
         first = terms[0].unit
         single = _single_letter(text[start:stop], first)
         glued = start == end
-        if (single and glued) or _word_not_unit(text, terms, stop):
+        if (single and glued and not powered) or _word_not_unit(text, terms, stop):
             parsed = None
         else:
             attributive = (hyphen and table.words.hyphen_singular) or _after_article(
@@ -434,6 +452,12 @@ def _unit_after(
                 # space too) becomes the compound's hyphen, so the edit starts at it (#233)
                 return end, stop, f"-{reads}", shown, _COMPOUND
             return start, stop, (" " if glued else "") + reads, shown, gender
+    if powered and gap == end:
+        magnitude = table.magnitude.match(text, end)
+        if magnitude and _boundary(text, magnitude.end()):
+            # "10⁶M": after a power the letter is no "million"; set apart, it stays as printed
+            # and a second run does not read "6M" as "6 million" (#576)
+            return end, magnitude.end(), f" {magnitude.group()}", magnitude.group(), ""
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)
         if (
@@ -681,6 +705,16 @@ def reads_unit_after(text: str, end: int, language: str) -> bool:
         match.end() == end and _unit_after(text, match, table) is not None
         for match in table.number.finditer(text, max(0, end - 64), end)
     )
+
+
+def unit_spans(text: str, language: str) -> list[tuple[int, int]]:
+    """What the step reads in `text`, as spans: the numbers step writes a raised exponent as
+    printed only where this step does not read it ("5 mL⁻¹" is "per millilitre", #589)."""
+    table = _compiled(language)
+    if table is None:
+        return []
+    found = _without_overlaps(UnitStep()._edits(0, text, table))
+    return [(edit.span.start, edit.span.end) for edit in found]
 
 
 def reads_unit_after_per(text: str, position: int, language: str) -> bool:

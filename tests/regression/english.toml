@@ -606,6 +606,32 @@ goal = "Years, round hundreds and model numbers left to misaki (TP-09, D-176, D-
 blocks = [{ kind = "paragraph", text = "In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti." }]
 expected = ["In 2019 studies used the 2019 guidelines; we select 1000 examples on a GTX 1080 Ti."]
 
+# #844: a four-digit number before a sign, and before the word a second run sees in its place
+
+[[case]]
+id = "four-digit-count-before-a-sign"
+audit = 0
+issue = 844
+goal = "A four-digit number before '=', '×' or an 'x' read as 'times' is a number, read with its comma on the first run as on a second run, which sees 'equals' and 'times' (D-182, D-577)."
+blocks = [{ kind = "paragraph", text = "We set 1234 = A and 1234=B; it grew 1234× and 1234x larger, 1234 × 5 in all." }]
+expected = ["We set 1,234 equals A and 1,234 equals B; it grew 1,234 times and 1,234 times larger, 1,234 times 5 in all."]
+
+[[case]]
+id = "four-digit-count-before-a-said-sign"
+audit = 0
+issue = 844
+goal = "A four-digit number before 'equals' or 'times' printed as words is read as before the sign (D-182)."
+blocks = [{ kind = "paragraph", text = "We set 1234 equals A; it grew 1234 times." }]
+expected = ["We set 1,234 equals A; it grew 1,234 times."]
+
+[[case]]
+id = "four-digit-year-before-a-sign"
+audit = 0
+issue = 844
+goal = "A year-like four-digit number (1500 to 2099) before a sign or its word is left as printed on both runs, as '2019 = A' was before (D-182, D-577)."
+blocks = [{ kind = "paragraph", text = "We set 2019 = A and 2019 equals B; it grew 2019× and 2019 times." }]
+expected = ["We set 2019 equals A and 2019 equals B; it grew 2019 times and 2019 times."]
+
 [[case]]
 id = "ordinary-numbers"
 audit = 0
@@ -1183,6 +1209,46 @@ issue = 449
 goal = "Plain '40K' cannot be told from 'a 40K run' and keeps reading 'thousand' (#449)."
 blocks = [{ kind = "paragraph", text = "We use 40K and 87Rb atoms in 441K runs." }]
 expected = ["We use 40 thousand and 87Rb atoms in 441 thousand runs."]
+
+[[case]]
+id = "units-raised-exponent-before-a-magnitude-letter-is-a-power"
+audit = 0
+issue = 576
+goal = "Raised digits glued after a number are its exponent, before a magnitude letter or not: '10⁴K' is ten thousand kelvin, never '104 thousand'. The K reads 'kelvin' as it does in '10⁴ K'; an M that is no unit is set apart, since after a power it is no 'million'."
+blocks = [
+    { kind = "paragraph", runs = ["At T = 10", { sup = "4" }, "K the gas is hot."] },
+    { kind = "paragraph", runs = ["10", { sup = "3" }, "K and 10", { sup = "6" }, "M stars."] },
+    { kind = "paragraph", runs = ["It grows as 10", { sup = "4" }, " in the limit, as 2", { sup = "8" }, " and 10", { sup = "-3" }, " s do."] },
+]
+expected = [
+    "At T equals 10 to the power of 4 kelvin the gas is hot.",
+    "10 to the power of 3 kelvin and 10 to the power of 6 M stars.",
+    "It grows as 10 to the power of 4 in the limit, as 2⁸ and 10 to the power of minus 3 seconds do.",
+]
+
+[[case]]
+id = "units-printed-power-before-a-magnitude-letter-is-no-magnitude"
+audit = 0
+issue = 576
+goal = "A power printed with superscripts before a glued K or M reads the same on both runs: '10⁴K' was '10 to the power of 4K' and then '4 thousand'."
+blocks = [{ kind = "paragraph", text = "At T = 10⁴K and 10⁶M the gas is hot." }]
+expected = ["At T equals 10 to the power of 4 kelvin and 10 to the power of 6 M the gas is hot."]
+
+[[case]]
+id = "numbers-raised-minus-one-after-a-bracket-or-letter-is-a-power"
+audit = 0
+issue = 589
+goal = "A raised '−1' after ')', ']' or a letter is an inverse, read as a power from its raise; untagged, '(I − P)−1' and 'f(x)−1' stay as printed (#527)."
+blocks = [
+    { kind = "paragraph", runs = ["We take (I − P)", { sup = "−1" }, " and [A]", { sup = "−1" }, " here."] },
+    { kind = "paragraph", runs = ["We take A", { sup = "−1" }, " and x", { sup = "−2" }, " here."] },
+    { kind = "paragraph", text = "We take (I − P)⁻¹ and f(x)−1 here." },
+]
+expected = [
+    "We take (I − P) to the power of minus 1 and [A] to the power of minus 1 here.",
+    "We take A to the power of minus 1 and x to the power of minus 2 here.",
+    "We take (I − P) to the power of minus 1 and f(x)−1 here.",
+]
 
 [[case]]
 id = "symbols-approximately-about"
@@ -2036,6 +2102,56 @@ expected = [
     "We thank Smith.",
     "We thank Smith for help.",
     "We downloaded it and ran it.",
+]
+
+[[case]]
+id = "links-no-two-join-words-around-a-removed-link"
+audit = 0
+issue = 628
+goal = "A join word right before a removed link goes with it when another join word follows the link, or follows a citation removed after the link, so no two join words are read side by side."
+blocks = [
+    { kind = "paragraph", text = "Then it and https://x.org/8 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then the data , and https://x.org/5 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then Müller, , and https://x.org/4 and more." },
+    { kind = "paragraph", text = "Then it and https://x.org/8 and more." },
+    { kind = "paragraph", text = "Then it or https://x.org/8 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) and more." },
+]
+expected = [
+    "Then it and more.",
+    "Then the data , and more.",
+    "Then Müller, , and more.",
+    "Then it and more.",
+    "Then it and more.",
+    "Then it and more.",
+]
+
+[[case]]
+id = "links-a-word-glued-after-a-removed-bracket-stays-a-word"
+audit = 0
+issue = 629
+goal = "A word glued right after the closing bracket or quotation mark of a removed link or citation is read as its own word, with no stray bracket or quotation mark left."
+blocks = [
+    { kind = "paragraph", text = "Text (see https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text [see https://a.org]Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text (https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text [1](https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text <https://a.org>Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text \"https://a.org\"Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text (Smith, 2019)Lee and https://x.org here." },
+    { kind = "paragraph", text = "Text (see https://a.org)Smith here." },
+    { kind = "paragraph", text = "Text “https://a.org”Smith here." },
+]
+expected = [
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Lee here.",
+    "Text Smith here.",
+    "Text Smith here.",
 ]
 
 [[case]]
@@ -2932,6 +3048,109 @@ issue = 527
 goal = "An arrow printed as two glyphs ('←−', '−→') is read as one arrow ('left arrow', 'right arrow'), never 'minus'. A raised '−1' glued to a closing bracket is left as printed, since without the raise it may be 'f(x) minus 1'; the voice still says 'minus one' there (#589)."
 blocks = [{ kind = "paragraph", text = "Then β(0, S, 0) ←− 0 and P′ ←− (I − P)−1 and S −→ ε hold." }]
 expected = ["Then β(0, S, 0) ← 0 and P′ ← (I − P)−1 and S → ε hold."]
+
+[[case]]
+id = "a-double-arrow-printed-as-an-equals-sign-and-an-arrow"
+audit = 0
+issue = 590
+goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒') is read as one arrow ('⇒', '⇐', '⇔'), also glued to its letters, never 'equals', which flips the meaning. Between two operands each is then read as words: 'implies', 'is implied by', 'if and only if' (#796)."
+blocks = [{ kind = "paragraph", text = "So A =⇒ B and C⇐=D, and x = 3 holds iff P ⇐=⇒ Q and X=⇒Y." }]
+expected = ["So A implies B and C is implied by D, and x equals 3 holds iff P if and only if Q and X implies Y."]
+
+# ---- implication arrows read as words (#796) ---------------------------------------------------
+
+[[case]]
+id = "implication-arrows-between-operands"
+audit = 0
+issue = 796
+goal = "Between two operands '⇒' is read 'implies', '⇐' 'is implied by' and '⇔' 'if and only if'; the ASCII forms '=>' and '<=>' likewise. The voice says nothing for the arrows (#796)."
+blocks = [{ kind = "paragraph", text = "If A ⇒ B and B ⇐ C, then A ⇔ C; also p => q and (p ∧ q) <=> r." }]
+expected = ["If A implies B and B is implied by C, then A if and only if C; also p implies q and (p ∧ q) if and only if r."]
+
+[[case]]
+id = "implication-arrows-standing-alone"
+audit = 0
+issue = 796
+goal = "An arrow that stands alone, as a list bullet, at a line start or as a figure label, is no sentence word and is left as printed (#796)."
+blocks = [
+    { kind = "list_item", text = "⇒ faster training" },
+    { kind = "paragraph", text = "Two results:\n⇒ faster training\n⇒ less memory" },
+    { kind = "caption", text = "Figure 2: ⇔" },
+]
+expected = [
+    "⇒ faster training",
+    "Two results: ⇒ faster training ⇒ less memory",
+    "Figure 2: ⇔",
+]
+
+# ---- #652 nothing to speak: a lone dash, bullet, quote mark or bracket ------------------------
+# The German cases stand here because german.toml is held by an open PR; they set language = "de".
+
+[[case]]
+id = "de-dash-list-middle-dash-on-its-own-line"
+audit = 0
+issue = 652
+goal = "Three dash-led questions, the middle dash on a line of its own: three utterances, each led by its own dash, none only '-', nothing after a question mark (#652)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?\n-\nWelche Hürden treten auf und wie lassen sie sich abbauen?\n- Mit wem lässt sich der Ort gemeinsam gestalten?" }]
+expected = ["- Welche Räume stehen offen und wie lassen sie sich nutzen? - Welche Hürden treten auf und wie lassen sie sich abbauen? - Mit wem lässt sich der Ort gemeinsam gestalten?"]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "- Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "- Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+[[case]]
+id = "de-dash-list-split-into-blocks-by-layout"
+audit = 0
+issue = 652
+goal = "The same list as layout split it in the reported handout: a block of only '-', and the next item's dash at the end of the block before. No utterance is only '-', and none ends in a dash after its question mark (#652)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?" },
+    { kind = "paragraph", text = "-" },
+    { kind = "paragraph", text = "Welche Hürden treten auf und wie lassen sie sich abbauen?\n-" },
+    { kind = "paragraph", text = "Mit wem lässt sich der Ort gemeinsam gestalten?" },
+]
+expected = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "-",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen? -",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+[[case]]
+id = "lone-bullets-quotes-and-brackets-are-no-utterance"
+audit = 0
+issue = 652
+goal = "A list marker on the line after a sentence leads its own item; a block of only a bullet, a quote mark or brackets gives no utterance (#652)."
+blocks = [
+    { kind = "paragraph", text = "• Which data were used?\n•\nHow were they cleaned?\n• Who checked them?" },
+    { kind = "paragraph", text = "•" },
+    { kind = "paragraph", text = "“" },
+    { kind = "paragraph", text = "( )" },
+    { kind = "paragraph", text = "– •" },
+    { kind = "paragraph", text = "The list ends here." },
+]
+expected = [
+    "• Which data were used? • How were they cleaned? • Who checked them?",
+    "•",
+    "“",
+    "( )",
+    "– •",
+    "The list ends here.",
+]
+utterances = [
+    "• Which data were used?",
+    "• How were they cleaned?",
+    "• Who checked them?",
+    "The list ends here.",
+]
 
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 

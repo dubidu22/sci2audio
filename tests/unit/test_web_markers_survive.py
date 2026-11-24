@@ -25,6 +25,8 @@ from web_helpers import (
     upload,
 )
 
+from sci2audio.app.captures import CAPTURES, write_captures
+from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
 from sci2audio.web import create_app
 from sci2audio.web.markers import MARKERS, UNDO_SECONDS
 from sci2audio.web.player import audiobook_stamp
@@ -281,12 +283,15 @@ def test_the_command_line_never_touches_the_file(tmp_path: Path) -> None:
     assert (work / MARKERS).read_text(encoding="utf-8") == kept
 
 
-# ---- the removal box counts them, and the removal takes them (#120, D-728 ruling 3) ------------
+# ---- the removal box counts them, and the removal takes them (#120, D-728 ruling 3, #396) ------
 
 
 def test_the_removal_box_counts_the_markers_as_it_is_drawn_and_removal_takes_them(
     marked: dict[str, Any],
 ) -> None:
+    """Before the carry-over (#475) the v1.3 markers are counted as the captures they will
+    become (ADR-008 2.1 item 5): a marker without a note as a mark, one with a note as a
+    note."""
     app, config, client, doc, work = (
         marked["app"],
         marked["config"],
@@ -296,18 +301,53 @@ def test_the_removal_box_counts_the_markers_as_it_is_drawn_and_removal_takes_the
     )
     page = browser(app, config)
     for address in ("/", f"/documents/{doc}"):
-        assert "Your 2 markers and their notes go too." in page.get(address).text
+        assert "Your note goes too. Your mark goes too." in page.get(address).text
+    data = marked["data"]
+    second = set_marker(client, doc, sentences(data)[0], data["audiobook"])
+    assert "Your note goes too. Your 2 marks go too." in page.get("/").text
+    client.delete(f"/api/v1/documents/{doc}/markers/{second['id']}")
     client.delete(f"/api/v1/documents/{doc}/markers/{marked['ids'][0]}")
-    assert "Your marker and its note go too." in page.get(f"/documents/{doc}").text
+    assert "Your note goes too.</p>" in page.get(f"/documents/{doc}").text
     german = page.get("/", headers={"Accept-Language": "de"}).text
-    assert "Ihre Markierung und ihre Notiz werden ebenfalls entfernt." in german
+    assert "Ihre Notiz wird ebenfalls entfernt." in german
     (work / MARKERS).write_text("{broken", encoding="utf-8")
     assert "Your markers file goes too." in page.get("/").text
     (work / MARKERS).unlink()
-    assert "remove-markers" not in page.get("/").text
+    assert "remove-captures" not in page.get("/").text
     (work / MARKERS).write_bytes(marked["bytes"])
     assert client.delete(f"/api/v1/documents/{doc}?keep_audiobook=false").status_code == 200
     assert not work.exists()
+
+
+def test_the_removal_box_counts_the_captures_by_type_and_not_the_markers_beside_them(
+    marked: dict[str, Any],
+) -> None:
+    """ADR-008 2.1 item 4: with `captures.json` there, it alone is counted; `markers.json`
+    beside it is not read (item 5)."""
+    app, config, doc, work = marked["app"], marked["config"], marked["doc"], marked["work"]
+    page = browser(app, config)
+    anchor = Anchor(1, 0, 4, "Some")
+    stamp = "2026-11-20T19:04:00Z"
+    captures = (
+        Capture("00000000000000a1", CaptureType.NOTE, stamp, stamp, anchor, "Ask Sam."),
+        Capture("00000000000000a2", CaptureType.NOTE, stamp, stamp, anchor),
+        Capture("00000000000000a3", CaptureType.QUOTE, stamp, stamp, anchor),
+    )
+    write_captures(work, CaptureFile(doc, captures))
+    english = page.get("/").text
+    assert "Your 2 notes go too. Your quote goes too.</p>" in english
+    assert "mark" not in english.split("remove-captures", 1)[1].split("</p>", 1)[0]
+    german = page.get(f"/documents/{doc}", headers={"Accept-Language": "de"}).text
+    assert "Ihre 2 Notizen werden ebenfalls entfernt. Ihr Zitat wird ebenfalls entfernt." in german
+    write_captures(work, CaptureFile(doc, ()))  # the file stays, with no capture in it
+    assert "remove-captures" not in page.get("/").text
+    (work / CAPTURES).write_text("{broken", encoding="utf-8")
+    for address in ("/", f"/documents/{doc}"):
+        assert "Your file of marks, notes and quotes goes too." in page.get(address).text
+    german = page.get("/", headers={"Accept-Language": "de"}).text
+    assert "Ihre Datei mit Markierungen, Notizen und Zitaten wird ebenfalls entfernt." in german
+    assert (work / CAPTURES).read_text(encoding="utf-8") == "{broken"
+    assert (work / MARKERS).read_bytes() == marked["bytes"]
 
 
 # ---- a new audiobook that reads less ------------------------------------------------------

@@ -19,7 +19,15 @@ change between italic and upright ends the paragraph (#454).
 A paragraph goes on across a column or page break when its last line fills the column and
 the next column starts with a line in the same style that is not indented. Figures and
 furniture met while a paragraph is open wait until it closes, and so does text that
-interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float.
+interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Of what
+waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
+after it (#648).
+A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
+line of the paragraph that is not, with another such line right under it on the line
+pitch, ends the paragraph, so code printed right under a full line is not read as prose.
+A single such line is the paragraph's: a code name wrapped onto a line of its own, with
+prose or more white under it (a caption's last line, #603). Links are no listing, and in a
+document set mostly in a typewriter font (a typed memo) nothing is.
 """
 
 from __future__ import annotations
@@ -31,6 +39,7 @@ from statistics import median
 
 from sci2audio.core import Block, BlockKind, Box, Part, TextLine, TextRun
 from sci2audio.layout.captions import opens_caption
+from sci2audio.layout.code import monospace_line, only_links, typewritten
 from sci2audio.layout.geometry import (
     Bars,
     boxed,
@@ -91,11 +100,13 @@ def rows_of(
 ) -> list[list[Element]]:
     """The page's text lines grouped into printed lines: neighbours in the reading order on
     one baseline in one column (`edges` gives each element's column edges). A loose line or
-    mark read between two pieces of one printed line, inside the two together (a fraction
-    bar, an icon by a name), does not end the line: it is read just after it (#163, D-438).
-    The denominator of a fraction in the line, under one of the page's `bars`, is in the
-    line too, and is read right after its numerator (#322). `size` is the body text's
-    size."""
+    mark read between two pieces of one printed line, inside that line (a fraction bar, an
+    icon by a name), does not end the line: it is read just after it (#163, D-438). The
+    line is the piece before the mark and the pieces read after it on one line with that
+    piece: two fraction bars side by side, read as one graphic, reach past the first
+    numerator (liu p4, #648). The denominator of a fraction in the line, under one of the
+    page's `bars`, is in the line too, and is read right after its numerator (#322).
+    `size` is the body text's size."""
     bars = bars or Bars()
     found: list[list[Element]] = []
     after: list[Element] = []  # marks drawn inside the printed line being read
@@ -105,11 +116,15 @@ def rows_of(
         latest = last[-1] if last and last[-1].line is not None else None
         if element.line is None:
             ahead = following[id(element)]
+            rest = (
+                _rest_of_line(ordered, ahead, latest, edges, settings)
+                if latest is not None and ahead is not None
+                else []
+            )
             if (
                 latest is not None
-                and ahead is not None
-                and _one_line(latest, ahead, edges, settings)
-                and holds(union([latest.box, ahead.box]), element.box)
+                and rest
+                and holds(union([latest.box, *(e.box for e in rest)]), element.box)
                 and inline_mark(element, size, settings)
             ):
                 after.append(element)
@@ -252,14 +267,34 @@ def _weighted_median(values: list[float], weights: list[int]) -> float:
     return pairs[-1][0]
 
 
-def _following_lines(ordered: list[Element]) -> dict[int, Element | None]:
-    """The text line read next after each element, if any."""
-    found: dict[int, Element | None] = {}
-    ahead: Element | None = None
-    for element in reversed(ordered):
-        found[id(element)] = ahead
-        if element.line is not None:
-            ahead = element
+def _following_lines(ordered: list[Element]) -> dict[int, int | None]:
+    """Where in the reading order the text line read next after each element stands, if
+    there is one."""
+    found: dict[int, int | None] = {}
+    ahead: int | None = None
+    for k in range(len(ordered) - 1, -1, -1):
+        found[id(ordered[k])] = ahead
+        if ordered[k].line is not None:
+            ahead = k
+    return found
+
+
+def _rest_of_line(
+    ordered: list[Element],
+    start: int,
+    latest: Element,
+    edges: dict[int, tuple[float, float]],
+    settings: LayoutSettings,
+) -> list[Element]:
+    """The text pieces read from `start` on that stand on one printed line with `latest`,
+    up to the first element that does not (a mark, the next line)."""
+    found: list[Element] = []
+    k = start
+    while k < len(ordered) and ordered[k].line is not None:
+        if not _one_line(latest, ordered[k], edges, settings):
+            break
+        found.append(ordered[k])
+        k += 1
     return found
 
 
@@ -381,12 +416,14 @@ class Paragraphs:
         self.waiting: list[Block] = []  # figures and furniture met while it is open
         self.aside: list[Row] = []  # an interrupted paragraph
         self.held: list[Block] = []  # the interruption, in order: it follows the paragraph
+        self.marks: set[int] = set()  # marks drawn in a waiting paragraph's lines, by id
         self.figure = False  # a figure came since the last row
         self.marked = False  # the interruption holds a figure or smaller letters
         self.caption: Row | None = None  # the caption that opened the interruption
         rows = [unit for unit in units if isinstance(unit, Row)]
         self.pitch = _pitch(rows, settings) or settings.line_pitch
         self.body = _body_size(rows)
+        self.typed = typewritten(piece for row in rows for piece in row.pieces)
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
 
@@ -449,6 +486,7 @@ class Paragraphs:
         block = unit.block
         if unit.inline and self.open:
             self.waiting.append(block)
+            self.marks.add(id(block))
             return
         if self.open and block.kind is BlockKind.FORMULA and unit.page == self.open[-1].page:
             self._finish()
@@ -467,14 +505,22 @@ class Paragraphs:
     def _finish(self) -> None:
         """The open paragraph ends: it comes out, then what waited for it."""
         if self.open:
-            self._emit([_paragraph(self.open, self.settings), *self.waiting])
+            self._emit([_paragraph(self.open, self.settings), *self._after(self.waiting)])
         self.open, self.waiting = [], []
 
     def _release(self) -> None:
         """The set-aside paragraph won't go on: it comes out, then what interrupted it."""
-        self.out += [_paragraph(self.aside, self.settings), *self.held]
+        self.out += [_paragraph(self.aside, self.settings), *self._after(self.held)]
         self.aside, self.held = [], []
         self.caption = None
+
+    def _after(self, blocks: list[Block]) -> list[Block]:
+        """What waited for a paragraph, the marks drawn in its own lines first: they are
+        read just after their line (#163), so a page number or a float that waited for the
+        paragraph does not come between it and them and take them (liu p4, #648)."""
+        ours = {id(block) for block in blocks} & self.marks
+        self.marks -= ours
+        return [b for b in blocks if id(b) in ours] + [b for b in blocks if id(b) not in ours]
 
     def _pauses(self, row: Row) -> bool:
         """True if the open paragraph is running text that could go on and the row interrupts
@@ -549,11 +595,31 @@ class Paragraphs:
             return False
         if not _split_word(last, next_row) and self._breaks(rows, next_row):
             return False  # (a paragraph does not end inside a word)
+        if self._listing(last, next_row):
+            return False
         return (
             not spacing
             or not _below(last, next_row, self.settings)
             or self._close_by(last, next_row)
         )
+
+    def _listing(self, last: Row, row: Row) -> bool:
+        """True if a listing starts at the row (#599): it is set wholly in a typewriter font
+        and the paragraph's last row is not, and another such row stands right under it. A
+        lone such row is the paragraph's (a code name wrapped onto a line of its own, #603),
+        and so are links and any row of a typed document."""
+        if self.typed or not self._monospace(row) or self._monospace(last):
+            return False
+        after = self.later.get(id(row))
+        return (
+            after is not None
+            and self._stacked(row, after)
+            and self._monospace(after)
+            and not only_links(f"{row.text}\n{after.text}")
+        )
+
+    def _monospace(self, row: Row) -> bool:
+        return all(monospace_line(piece, self.body) for piece in row.pieces)
 
     def _breaks(self, rows: list[Row], next_row: Row) -> bool:
         """True if a change of weight, a short line, an indent or an outdent ends the

@@ -172,6 +172,7 @@ def test_bad_sequences_after_a_byte_order_mark_become_replacement_characters() -
         (b"GIF89a" + b"rest", "not a text file"),
         (b"GIF87a" + b"rest", "not a text file"),
         (b"\x1f\x8b\x08" + b"rest", "not a text file"),
+        (b"word " * 800_001, "holds a paragraph longer than 4,000,000 characters"),  # #607
     ],
 )
 def test_broken_files_fail_with_a_clear_message(data: bytes, message: str) -> None:
@@ -193,8 +194,10 @@ def test_the_limit_is_the_decided_one() -> None:
 
 
 def test_a_large_file_is_read_in_linear_time() -> None:
-    """Eight times the lines against a base run, on CPU time (#298)."""
-    line = "A line of an ordinary plain-text file, about sixty chars.\n"
+    """Eight times the lines against a base run, on CPU time (#298). One paragraph of 100,000
+    lines, so that a reader quadratic in a paragraph's lines fails; the lines are short (28
+    characters) to keep the paragraph, 2.8 million characters, under `MAX_PARAGRAPH` (#607)."""
+    line = "A short line of plain text.\n"
     content = assert_linear(lambda text: read(text.encode()), lambda n: line * n, 100_000)
     assert len(content.pages[0].lines) == 100_000
 
@@ -249,6 +252,136 @@ def test_every_printed_line_counts_blank_ones_too(
 
 def test_the_line_limit_is_the_decided_one() -> None:
     assert text_module.MAX_LINES == 500_000  # D-579
+
+
+# ---- the paragraph limit (#607, D-777) -----------------------------------------------------
+
+PARAGRAPH_MESSAGE = (
+    "notes.txt: the file holds a paragraph longer than {:,} characters"
+    " (counted between blank lines)"
+)
+
+
+def refused_before_it_is_split(data: bytes, monkeypatch: pytest.MonkeyPatch) -> int:
+    """The peak (tracemalloc) of refusing `data`, which must happen before any line is built."""
+
+    def fold(_: str) -> str:
+        raise AssertionError("a line was built")
+
+    monkeypatch.setattr(text_module, "fold", fold)
+    tracemalloc.start()
+    try:
+        with pytest.raises(ExtractionError) as error:
+            read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert str(error.value) == PARAGRAPH_MESSAGE.format(4_000_000)
+    return peak
+
+
+def test_one_long_line_past_the_paragraph_limit_is_refused_before_lines_are_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One line of 64 MB took 1 GB to read and handed layout one paragraph of that size."""
+    peak = refused_before_it_is_split(b"word " * (8 * 1024 * 1024 // 5), monkeypatch)
+    assert peak < 40 * 1024 * 1024
+
+
+def test_a_paragraph_of_many_lines_past_the_limit_is_refused_before_lines_are_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    peak = refused_before_it_is_split(
+        (b"word " * 53 + b"\n") * (8 * 1024 * 1024 // 266), monkeypatch
+    )
+    assert peak < 40 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param(b"w" * 4_000_000, id="one line"),
+        pytest.param((b"word " * 53 + b"\n") * (4_000_000 // 266), id="short lines"),
+    ],
+)
+def test_a_paragraph_at_the_real_limit_still_reads_in_bounded_memory(data: bytes) -> None:
+    """Measured at the limit: one line of "word " peaks at 58 MB under tracemalloc, short lines
+    at 19 MB."""
+    assert text_module.longest_paragraph(data.decode()) <= 4_000_000
+    tracemalloc.start()
+    try:
+        content = read(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 100 * 1024 * 1024
+    assert content.pages[0].lines
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 9 + "\n\n" + "b" * 9, id="paragraphs"),
+        pytest.param("a" * 9 + "\n \t\f\n" + "b" * 9, id="a blank line of white space"),
+        pytest.param("a" * 8 + "\r\n\r\n" + "b" * 9, id="CR LF"),
+        pytest.param("a" * 9 + "\r\r" + "b" * 9, id="CR"),
+        pytest.param("a" * 10, id="one line"),
+        pytest.param("a" * 4 + "\n" + "b" * 5, id="two lines"),
+    ],
+)
+def test_paragraphs_at_the_limit_read(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    """Each paragraph holds at most 10 characters, its line ends included."""
+    monkeypatch.setattr(text_module, "MAX_PARAGRAPH", 10)
+    assert read(text.encode()).pages[0].lines
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a" * 11, id="one line"),
+        pytest.param("a" * 5 + "\n" + "b" * 5, id="two lines"),
+        pytest.param("x\n\n" + "a" * 5 + "\r\n" + "b" * 5, id="CR LF inside a paragraph"),
+        pytest.param("a\nb\nc\nd\ne\nf", id="many short lines"),
+        pytest.param("a" * 6 + "\n\u00a0\n" + "b" * 6, id="a no-break space is no blank line"),
+    ],
+)
+def test_a_paragraph_past_the_limit_fails(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    monkeypatch.setattr(text_module, "MAX_PARAGRAPH", 10)
+    with pytest.raises(ExtractionError) as error:
+        read(text.encode())
+    assert str(error.value) == PARAGRAPH_MESSAGE.format(10)
+
+
+@pytest.mark.parametrize(
+    ("text", "longest"),
+    [
+        ("", 0),
+        ("\n\n", 0),
+        ("abc", 3),
+        ("abc\n", 4),
+        ("ab\ncd\n\nefghij", 6),
+        ("ab\r\ncd\r\n \r\nx", 8),
+        ("ab\rcd\r\t\r", 6),
+        ("  \t\f  \n", 0),
+        (" " * 100 + "x", 101),  # spaces before text make no blank line
+        ("a\n\u00a0\nb", 5),  # a no-break space is text, as `fold` has it
+    ],
+)
+def test_the_longest_paragraph_counts_characters_between_blank_lines(
+    text: str, longest: int
+) -> None:
+    assert text_module.longest_paragraph(text) == longest
+
+
+def test_the_longest_paragraph_is_found_in_linear_time() -> None:
+    def sized(size: int) -> str:
+        return ("a" * 50 + "\n" + " " * 50 + "\n\n") * (size // 103)
+
+    assert_linear(text_module.longest_paragraph, sized, 4_000_000)
+
+
+def test_the_paragraph_limit_is_the_decided_one() -> None:
+    assert text_module.MAX_PARAGRAPH == 4_000_000  # D-777, as markup.MAX_LINE
 
 
 # ---- properties --------------------------------------------------------------------------
@@ -535,3 +668,303 @@ def test_a_two_letter_line_can_be_a_title_line() -> None:
     (#561); "0" has none and stays joined."""
     text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
     assert tags_of(text) == [("p",), ("p",)]
+
+
+# ---- #570: a title line between two prose lines ------------------------------------------
+
+
+@pytest.mark.parametrize("end", [".", "!", "?", "…", ".”", ".)"])
+def test_a_title_line_after_the_end_of_a_sentence_starts_an_element_of_its_own(end: str) -> None:
+    """A short line in capitals inside a paragraph, after a line that ends a sentence, is cut
+    before as well as after: the heading is not read as the end of the prose before it."""
+    text = (
+        f"The first part of the note ends here, at the end of the first part{end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_german_title_line_after_a_sentence_starts_an_element_of_its_own() -> None:
+    text = (
+        "Der erste Teil der Notiz endet hier, am Ende des ersten Teils.\n"
+        "ERGEBNISSE DER STUDIE\n"
+        "Der zweite Teil beginnt in dieser Zeile und läuft eine Weile weiter.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("end", ["", ",", ":", ";", "-"])
+def test_a_title_line_after_a_line_that_runs_on_stays_joined_to_it(end: str) -> None:
+    """Without the end of a sentence before it, the short line in capitals ends the element
+    before it, as it did (#466): an acronym wrapped onto a line of its own stays in place."""
+    text = (
+        f"The first part of the note runs on here and names the agency of the{end}\n"
+        "NASA JPL\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_short_last_line_in_capitals_after_a_sentence_stays_joined() -> None:
+    """The last line of a paragraph has no next line to start: a licence in capitals whose
+    short last line follows a full stop stays one paragraph."""
+    text = (
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY. IN NO EVENT SHALL.\n"
+        "THE AUTHORS BE LIABLE.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "item"),
+    [
+        ("- Install the package from the website first.", "- Run the installer now.", "ul"),
+        ("1. Install the package from the website first.", "2. Run the installer now.", "ol"),
+    ],
+)
+def test_a_line_in_capitals_between_two_list_items_keeps_the_list(
+    first: str, second: str, item: str
+) -> None:
+    """The heading rule applies after prose only: a short line in capitals after an item
+    that ends a sentence continues that item, and the next item stays an item (#570)."""
+    assert tags_of(f"{first}\nWINDOWS\n{second}\n") == [
+        (item, "li"),
+        (item, "li", "br"),
+        (item, "li"),
+    ]
+
+
+def test_a_short_mixed_case_line_after_a_sentence_is_not_cut_before() -> None:
+    """Only a line in capitals is cut before (`_capitals`): "Results" or a poem's line after
+    a full stop stays joined to the line before it."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "Results\n"
+        "the second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_long_line_in_capitals_after_a_sentence_is_not_cut_before() -> None:
+    """Only a short line is cut before (`_short`): a full line in capitals after a full stop
+    is wrapped prose, as in a licence that mixes cases."""
+    text = (
+        "The first part of the note ends here, at the end of the first part.\n"
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT ANY WARRANTY OF ANY KIND\n"
+        "and the second part starts on this line and runs on for a while.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+# ---- #827: a line ending in an abbreviation does not end a sentence ----------------------
+
+
+@pytest.mark.parametrize(
+    "end",
+    ["e.g.", "i.e.", "etc.", "Calif.", "Jan.", "z. B.", "d. h.", "usw.", "(e.g.", "e.g.)"],
+)
+def test_a_line_ending_in_an_abbreviation_keeps_a_capitals_line_in_its_sentence(
+    end: str,
+) -> None:
+    """An abbreviation's full stop is not the end of a sentence: an acronym wrapped onto a
+    line of its own after it stays in the paragraph, as after a line that runs on (#827)."""
+    text = (
+        f"The tool reads many kinds of input, among them scanned pages and {end}\n"
+        "PDF\n"
+        "files and plain text, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_the_issue_example_after_e_g_stays_one_paragraph() -> None:
+    text = (
+        "The tool reads many kinds of input, such as text, markdown and scans, e.g.\n"
+        "PDF\n"
+        "files and plain text, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize("end", ["the end of the first part.", "the age of three.", "go."])
+def test_a_word_ending_like_an_abbreviation_still_ends_a_sentence(end: str) -> None:
+    """Only a listed abbreviation is looked through: an ordinary last word ("part.", "three.",
+    "go.") still ends the sentence before a capitals heading (#570)."""
+    text = (
+        f"The first part of the note ends here, and it ends at {end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_capitals_line_before_a_lower_case_line_does_not_end_its_paragraph() -> None:
+    """A short line in capitals before a line starting in lower case is a wrapped acronym,
+    not a title: the sentence runs on through it (#827)."""
+    text = (
+        "The first part of the note runs on here and names the agency of the\n"
+        "NASA JPL\n"
+        "and its partners, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+# ---- #812: a mixed-case heading between two prose lines ----------------------------------
+
+_INTRO = "The first part of the note ends here, at the end of the first part.\n"
+_BODY = "The next part starts on this line and runs on for a while here.\n"
+
+
+def test_two_mixed_case_headings_between_prose_lines_start_elements_of_their_own() -> None:
+    """A short capitalised line without a sentence end, between a line that ends a sentence
+    and a prose line, is a heading when another line of the document has the same shape."""
+    text = f"{_INTRO}Methods\n{_BODY}{_INTRO}Results and discussion\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
+
+
+def test_mixed_case_headings_count_across_paragraphs() -> None:
+    text = f"{_INTRO}Methods\n{_BODY}\n{_INTRO}Ergebnisse\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p",), ("p",), ("p",)]
+
+
+def test_one_stray_mixed_case_line_between_prose_lines_stays_joined() -> None:
+    """One such line alone is not cut before: it may be a short wrapped line."""
+    text = f"{_INTRO}Methods\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_mixed_case_heading_shape_needs_the_end_of_a_sentence_before_it() -> None:
+    """After a line that runs on, or a line ending in an abbreviation, the short line stays
+    in its sentence even when the document shows the heading shape elsewhere."""
+    runs_on = "The first part of the note runs on here and names the agency of the\n"
+    abbreviation = "The first part of the note runs on here and names, e.g.\n"
+    text = (
+        f"{_INTRO}Methods\n{_BODY}{_INTRO}Results\n{_BODY}"
+        f"{runs_on}Results\n{_BODY}{abbreviation}Results\n{_BODY}"
+    )
+    br = ("p", "br")
+    assert tags_of(text) == [
+        *[("p",), ("p",), ("p",), br, ("p",), ("p",)],
+        *[br, br, ("p",)],
+        *[br, br, ("p",)],
+    ]
+
+
+def test_short_last_lines_and_lines_that_run_on_stay_joined() -> None:
+    """A paragraph's short last line, a short line ending in punctuation and a short line
+    before a line in lower case stay joined, however often they occur (#812)."""
+    br = ("p", "br")
+    last = f"{_INTRO}Thank you\n"
+    assert tags_of(f"{last}\n{last}") == [("p",), br, ("p",), br]
+    punctuated = f"{_INTRO}Results of the study,\n{_BODY}"
+    assert tags_of(punctuated * 2) == [("p",), *[br] * 5]
+    lower = f"{_INTRO}Results of the\nnext part start on this line and run on for a while.\n"
+    assert tags_of(lower * 2) == [("p",), *[br] * 5]
+
+
+def test_a_short_line_a_hard_wrap_left_before_a_long_word_is_no_mixed_case_heading() -> None:
+    """A short line whose next line's first word would not have fit after it is a hard wrap,
+    not a heading, however often it occurs (#812)."""
+    word = "Rindfleischetikettierungsueberwachungsaufgabenuebertragungsgesetze"
+    text = f"{_INTRO}The new\n{word}.\n" * 2
+    br = ("p", "br")
+    assert tags_of(text) == [("p",), br, ("p",), br, br, ("p",)]
+
+
+# ---- #827: a capitals title before a lower-case first word still cuts --------------------
+
+
+@pytest.mark.parametrize(
+    "after", ["this paper presents a method", "mRNA vaccines are discussed", "pH values rose"]
+)
+def test_a_first_line_in_capitals_before_a_lower_case_line_is_a_title_line(after: str) -> None:
+    """A heading whose next line starts in lower case ("mRNA", "pH") still ends its element:
+    only a capitals line inside a running sentence runs on (#827)."""
+    text = f"ABSTRACT\n{after} and runs on for a long line here as prose does.\n"
+    assert tags_of(text) == [("p",), ("p",)]
+
+
+@pytest.mark.parametrize("heading", ["INTRODUCTION", "RESULTS"])
+def test_a_capitals_heading_after_a_sentence_before_a_lower_case_line_is_cut(
+    heading: str,
+) -> None:
+    text = (
+        "The samples were prepared as before and all of them were checked twice.\n"
+        f"{heading}\n"
+        "mRNA levels and pH values rose in every sample, and it runs on here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_short_line_in_capitals_without_a_colon_is_a_title_line() -> None:
+    """The no-colon variant of the "ABSTRACT:" pin above."""
+    assert tags_of("ABSTRACT\nthe text of the abstract runs on for a long line.\n") == [
+        ("p",),
+        ("p",),
+    ]
+
+
+# ---- #848: a number before a full stop ---------------------------------------------------
+
+_ORDINAL = "Die Konferenz fand in diesem Jahr in Berlin statt, und zwar am 3.\n"
+_NUMBER = "The tool reads many kinds of input, and the error rose to approximately 3.\n"
+_NEW = "The second part starts on this line and runs on for a while here.\n"
+
+
+@pytest.mark.parametrize("month", ["OKTOBER", "MAERZ", "MÄRZ", "DEZEMBER", "(JULI"])
+def test_a_german_ordinal_before_a_month_in_capitals_stays_in_its_sentence(month: str) -> None:
+    """ "am 3." / "OKTOBER" is a date wrapped over two lines, not a sentence end before a
+    heading: the month stays in the sentence (#848). (The line after the month is judged by
+    the title rule, which this issue leaves alone.)"""
+    text = f"{_ORDINAL}{month}\nDie Teilnehmer kamen aus ganz Europa zusammen und blieben da.\n"
+    assert tags_of(text)[:2] == [("p",), ("p", "br")]
+
+
+def test_a_german_ordinal_before_a_month_is_no_sentence_end_for_a_mixed_case_heading() -> None:
+    """ "am 3." / "Oktober 2020" twice in a document: the month line is the date's second
+    half, not a mixed-case heading after a sentence end (#848)."""
+    second = "Die Auswertung lief danach noch eine ganze Weile, und zwar bis zum 7.\n"
+    after = "Die Teilnehmer kamen aus ganz Europa zusammen und blieben lange da.\n"
+    text = f"{_ORDINAL}Oktober 2020\n{after}{second}März 2021\n{after}"
+    br = ("p", "br")
+    assert tags_of(text)[:2] == [("p",), br]
+    assert tags_of(text)[3:5] == [br, br]
+
+
+def test_a_german_ordinal_before_a_line_that_goes_on_stays_one_paragraph() -> None:
+    text = f"{_ORDINAL}Oktober 2020 in einem grossen Saal mit vielen Teilnehmern aus Europa.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_a_number_before_a_stop_runs_on_into_a_lower_case_line() -> None:
+    """ "approximately 3." / "files and ...": a lower-case next line goes on (#848)."""
+    text = f"{_NUMBER}files and plain text, and it runs on for a while here as prose does.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+@pytest.mark.parametrize("heading", ["RESULTS", "MARCH", "MAY 2020", "JULY", "PDF"])
+def test_a_capitals_heading_after_a_number_before_a_stop_is_cut_before_a_new_sentence(
+    heading: str,
+) -> None:
+    """ "approximately 3." / "RESULTS" / "The second ...": the number's stop ends a sentence
+    and the heading is cut before and after (#570, #848). An English month is a heading:
+    English writes no "3. March"."""
+    assert tags_of(f"{_NUMBER}{heading}\n{_NEW}") == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("heading", ["RESULTS", "PDF"])
+def test_a_capitals_heading_after_a_number_before_a_stop_keeps_its_cuts_before_lower_case(
+    heading: str,
+) -> None:
+    """ "approximately 3." / "RESULTS" / "mRNA levels ...": a short capitals line keeps its
+    title cuts after a number's stop, as after any sentence end (#827, #848)."""
+    after = "mRNA levels and pH values rose in every sample, and it runs on here.\n"
+    assert tags_of(f"{_NUMBER}{heading}\n{after}") == [("p",), ("p",), ("p",)]
+
+
+def test_an_english_month_line_after_a_number_before_a_stop_stays_a_mixed_case_heading() -> None:
+    """ "we used 3." / "June 2020" / "The second ..." twice: both month lines are headings,
+    cut before and after, as without #848."""
+    text = f"The first part of the note ends here, and for it we used 3.\nJune 2020\n{_NEW}" * 2
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
