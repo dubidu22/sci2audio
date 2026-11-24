@@ -17,6 +17,13 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
   `data/en/sentence_openers.toml` ("set A. Then", "the U.S. The data"), not before a name
   ("J. Smith", "U.S. Census Bureau"). Its limit: "in the U.S. Researchers found" stays one
   utterance (a pause and the pitch move, no text is lost).
+- A list marker (a dash or a bullet) that opens a line after ".", "?" or "!" starts the next
+  sentence, as an opening quote does: "werden?\n- Welche" is cut before the dash (#652).
+- Nothing to say is never an utterance (#652, `unspoken`): a sentence of only dashes,
+  bullets, quote marks or brackets leads the sentence after it in its run (a list marker its
+  item); with none after it, it leads nothing read with it and is left out, so a block of only
+  "-" gives no utterance. A part of a cut sentence with nothing to say is left out too (its
+  text stays inside the sentence's span on the page).
 - A section number alone ("1.", "2.1.") starts the sentence of its title ("1. Introduction");
   its full stop ends nothing (D-719).
 - When a step removed printed text that ended the sentence, the sentence ends there even after
@@ -69,7 +76,7 @@ from functools import cache
 from itertools import pairwise
 
 from sci2audio.core import Document, ScriptPiece, Span
-from sci2audio.textprep.spoken import spoken_text
+from sci2audio.textprep.spoken import spoken_text, unspoken
 from sci2audio.textprep.wordlists import abbreviations, clause_openers, opens_sentence, units
 
 # Kokoro speaks about 510 phoneme tokens per call. Measured on prose (#480, #494): English 0.97
@@ -272,13 +279,29 @@ def cut_utterances(
             utterances.append(Utterance("", run_or_pause.span, pause=True))
             continue
         run = run_or_pause
-        for start, end in _sentences(run, abbreviations, language):
+        for start, end in _leading(run.text, _sentences(run, abbreviations, language)):
             continues = False  # the sentence's first utterance starts it
             for a, b in _fitted(run, start, end, max_chars, openers, pairs, readings):
+                if unspoken(run.text[a:b]):
+                    continue  # a part with nothing to say (#652): its sentence goes on
                 if utterance := _utterance(run, a, b, continues):
                     utterances.append(utterance)
                     continues = True
     return tuple(utterances)
+
+
+def _leading(text: str, sentences: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """The sentences, each with nothing to say joined to the sentence after it, which it
+    leads: a list marker its item, an opening quote or bracket its words (#652). One with
+    no sentence after it in the run leads nothing that is read with it and is left out."""
+    out, lead = [], None
+    for start, end in sentences:
+        if unspoken(text[start:end]):
+            lead = start if lead is None else lead
+            continue
+        out.append((start if lead is None else lead, end))
+        lead = None
+    return out
 
 
 def _runs(document: Document, pieces: Iterable[ScriptPiece]) -> list[_Run | ScriptPiece]:
@@ -381,7 +404,12 @@ def _sentences(
     cuts = [0]
     for match in (_SENTENCE_END_DE if german else _SENTENCE_END).finditer(text):
         following = match.group(1)[0]
-        if not (following.isupper() or following.isdigit() or following in opening):
+        if not (
+            following.isupper()
+            or following.isdigit()
+            or following in opening
+            or _list_marker(text, match.end(), match.start(1))
+        ):
             continue
         if match.end() in run.ended:
             # the printed sentence ended in text a step removed after this full stop
@@ -437,6 +465,21 @@ def _sentences(
         cuts.append(cut)
     cuts.append(len(text))
     return [(a, b) for a, b in pairwise(cuts) if a < b]
+
+
+# what opens a list line: dashes and bullets (#652)
+_LIST_MARKERS = frozenset("-\u2010\u2013\u2014\u2022\u00b7\u2023\u2043\u2219\u25aa\u25e6")
+
+
+def _list_marker(text: str, gap: int, at: int) -> bool:
+    """True if text[at] is a list marker that opens a line: a line break in the white space
+    `text[gap:at]` before it and white space (or the end) after it ("werden?\n- Welche",
+    #652). It opens the next sentence, as an opening quote does."""
+    return (
+        text[at] in _LIST_MARKERS
+        and "\n" in text[gap:at]
+        and (at + 1 == len(text) or text[at + 1].isspace())
+    )
 
 
 _WORD_BEFORE = re.compile(r"(\S+)\s+\Z")
