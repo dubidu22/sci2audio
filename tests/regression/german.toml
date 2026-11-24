@@ -3364,3 +3364,79 @@ expected = [
     "Also A daraus folgt − 3x.",
     "− 3x",
 ]
+
+[[case]]
+id = "de-a-part-number-before-a-full-stop-and-a-sign"
+audit = 0
+issue = 1010
+goal = "A part keyword's Roman numeral before a full stop glued to a sign the statistics step reads ('Kapitel IV.=1') is read as before a full stop and a space, since a second run sees 'Kapitel IV. gleich 1': 'Kapitel 4. gleich 1' on both runs, in a paragraph and in a heading. A sign the step leaves as printed ('IV.==1', 'IV.⇒1') and another keyword ('Typ II.=1') leave the numeral as before (#1010)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel IV.=1" },
+    { kind = "heading", text = "Kapitel IV.=1" },
+    { kind = "paragraph", text = "Siehe Kapitel IV.<1 und Teil II.=1 hier." },
+    { kind = "paragraph", text = "Kapitel IV.==1 und Kapitel IV.⇒1" },
+    { kind = "paragraph", text = "Typ II.=1 und Kapitel I.2" },
+]
+expected = [
+    "Kapitel 4. gleich 1",
+    "Kapitel 4. gleich 1",
+    "Siehe Kapitel 4. kleiner als 1 und Teil 2. gleich 1 hier.",
+    "Kapitel IV.==1 und Kapitel IV.⇒1",
+    "Typ II. gleich 1 und Kapitel I.2",
+]
+
+[[case]]
+id = "de-a-range-of-part-numbers-in-roman-numerals"
+audit = 0
+issue = 1010
+goal = "A range of Roman numerals after a part keyword joined by 'bis' ('Kapitel I bis III') is left as printed as a whole, as 'Kapitel I. bis III.' is (#996): never only its first numeral. A list joined by 'und' reads both, as before (#1010)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I bis III" },
+    { kind = "paragraph", text = "Siehe Kapitel II bis IV hier." },
+    { kind = "heading", text = "Kapitel I bis III" },
+    { kind = "paragraph", text = "Kapitel I und II" },
+]
+expected = [
+    "Kapitel I bis III",
+    "Siehe Kapitel II bis IV hier.",
+    "Kapitel I bis III",
+    "Kapitel 1 und 2",
+]
+
+[[case]]
+id = "de-signs-and-powers-beside-nx-as-before"
+audit = 0
+issue = 1010
+goal = "German readings of an '=' glued before a spaced minus, of 'Nx' before a sign, of a letter's power before a unit letter and of '2⁻¹x' stay as they were when English changes (#1010, #816); each reads the same on a second run."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A=− 3 hier." },
+    { kind = "paragraph", text = "Also 3x > 2 und 3x − 2 hier." },
+    { kind = "paragraph", text = "Also A⁻¹ K hier." },
+    { kind = "paragraph", text = "Also 2⁻¹x hier." },
+]
+expected = [
+    "Also A=− 3 hier.",
+    "Also 3x größer als 2 und 3x − 2 hier.",
+    "Also A⁻¹ K hier.",
+    "Also 2 hoch minus 1 mal hier.",
+]
+
+[[case]]
+id = "de-a-unit-power-before-a-unit-letter"
+audit = 0
+issue = 816
+goal = "The number of 'hoch', the reading of a power, is no unit's number: '5 A² K' is '5 Ampere hoch 2 K' on both runs, as the first run reads it, where a second run read 'Kelvin' before; a number's power before a unit reads the unit as before (#816)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also 5 A² K hier." },
+    { kind = "paragraph", text = "Also 5 A⁻² K hier." },
+    { kind = "paragraph", text = "Also 10² K hier." },
+]
+expected = [
+    "Also 5 Ampere hoch 2 K hier.",
+    "Also 5 pro Ampere hoch 2 K hier.",
+    "Also 10 hoch 2 Kelvin hier.",
+]

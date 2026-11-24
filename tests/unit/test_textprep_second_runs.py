@@ -3,8 +3,9 @@
 """Readings a second run over the first run's script keeps (D-577): an arrow of logic beside
 "Nx" (#843, #984), an arrow or a sign where another step reads what stands before it (#924,
 #972), an ISO date after a dash range (#957), a part's Roman numeral before a full stop
-(#976) and a list of them (#996), and "<", ">" or a minus sign before "Nx" (#988, #997). Each
-is pinned on the printed text and on its first run's script, in English and German."""
+(#976) and a list of them (#996), and "<", ">" or a minus sign before "Nx" (#988, #997) and
+after it (#1010). Each is pinned on the printed text and on its first run's script, in English
+and German."""
 
 import pytest
 
@@ -163,6 +164,106 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("A = − 3x", "de", "A gleich − 3x"),
         ("A ⇒ − 3x", "de", "A daraus folgt − 3x"),
         ("− 3x", "de", "− 3x"),
+        # #1021: "plus" joined to "minus" by a dash or a Unicode hyphen is "±", as with "-"
+        ("A plus–minus 3x", "en", "A plus–minus 3 times"),
+        ("A plus—minus 3x", "en", "A plus—minus 3 times"),
+        ("A plus‐minus 3x", "en", "A plus‐minus 3 times"),
+        ("A plus‑minus 3x", "en", "A plus‑minus 3 times"),
+        ("PLUS–minus 3x", "en", "PLUS–minus 3 times"),
+        ("A plus – minus 3x", "en", "A plus – minus 3x"),  # spaced: as "plus - minus", as before
+        # #1010: a sign after "Nx", as one before it (#988, #997)
+        ("So 3x > 2.", "en", "So 3 times greater than 2."),
+        ("So 3x < 2.", "en", "So 3 times less than 2."),
+        ("So 3x>2.", "en", "So 3 times greater than 2."),
+        ("So 3x > A.", "en", "So 3 times greater than A."),
+        ("So 3x > a b.", "en", "So 3 times greater than a b."),
+        ("So 3x > e.g. 2.", "en", "So 3 times greater than for example 2."),
+        ("So 3x > y.", "en", "So 3x greater than y."),
+        ("So 3x >\ny.", "en", "So 3x greater than y."),
+        ("So 3x < (a).", "en", "So 3x less than (a)."),
+        ("So 3x >> 2 and 3x >= 2.", "en", "So 3x >> 2 and 3x >= 2."),
+        ("So 3x >y.", "en", "So 3x >y."),
+        ("So 3x − 2.", "en", "So 3x minus 2."),
+        ("So 3x −2.", "en", "So 3x minus 2."),
+        ("So 3x − .5.", "en", "So 3x minus .5."),
+        ("So 3x − 2y.", "en", "So 3x minus 2y."),
+        ("So 3x minus 2.", "en", "So 3x minus 2."),  # printed: as its sign
+        ("So 3x minus\n2.", "en", "So 3x minus 2."),
+        ("So 3x minus the rest.", "en", "So 3 times minus the rest."),
+        ("So 3x Minus 2.", "en", "So 3 times Minus 2."),
+        ("So 3x ± 2.", "en", "So 3 times plus or minus 2."),
+        ("So 3x > 2.", "de", "So 3x größer als 2."),
+        ("So 3x − 2.", "de", "So 3x − 2."),
+        # #1010: "=" glued before a spaced minus sign the numbers step reads
+        ("So A=− 3.", "en", "So A equals minus 3."),
+        ("So A =− 3.", "en", "So A equals minus 3."),
+        ("So A=−\n3.", "en", "So A equals minus 3."),
+        ("So A=‒ 3.", "en", "So A equals minus 3."),
+        ("So A=− .5.", "en", "So A equals minus .5."),
+        ("So A=- 3.", "en", "So A=- 3."),
+        ("So A <− 3.", "en", "So A <minus 3."),
+        ("So A=− 3.", "de", "So A=− 3."),
+        # #1010: a sign after a citation that starts the block and is removed
+        ("[1] < 3x", "en", "less than 3 times"),
+        ("[1] > 3", "en", "greater than 3"),
+        ("[1, 2] ≤ 3x", "en", "less than or equal to 3x"),
+        ("[1, 2] < 3x", "en", "less than 3 times"),
+        ("It holds. [1] < 3x.", "en", "It holds. less than 3 times."),
+        ("[1] = 3", "en", "= 3"),  # "=" needs a word before it: as before
+        ("So [1] < 3x.", "en", "So less than 3 times."),
+        ("[1] < 3x", "de", "kleiner als 3x"),
+        # #1010: a part's numeral before a full stop and a sign the statistics step reads
+        ("Kapitel IV.=1", "de", "Kapitel 4. gleich 1"),
+        ("Kapitel IV.<1", "de", "Kapitel 4. kleiner als 1"),
+        ("Kapitel IV.≤1", "de", "Kapitel 4. kleiner oder gleich 1"),
+        ("Kapitel IV.=x", "de", "Kapitel 4. gleich x"),
+        ("Kap. IV.=1", "de", "Kapitel 4. gleich 1"),
+        ("Kapitel IV.==1", "de", "Kapitel IV.==1"),
+        ("Kapitel IV.⇒1", "de", "Kapitel IV.⇒1"),
+        ("Typ II.=1", "de", "Typ II. gleich 1"),
+        # #1010: a range joined by "bis" is read none, as with full stops (#996)
+        ("Kapitel I bis III", "de", "Kapitel I bis III"),
+        ("Kapitel II bis IV folgen.", "de", "Kapitel II bis IV folgen."),
+        ("Teil I bis II", "de", "Teil I bis II"),
+        ("Kapitel I und II", "de", "Kapitel 1 und 2"),
+        ("Kapitel I bis 3", "de", "Kapitel 1 bis 3"),
+        # #870, #871: a four-digit number before an "x" read as "times"
+        ("It grew 1234 x 5.", "en", "It grew 1,234 times 5."),
+        ("It grew 1234x5.", "en", "It grew 1,234 times 5."),
+        ("It grew 1234 X 5.", "en", "It grew 1,234 times 5."),
+        ("It is 1234X larger.", "en", "It is 1,234 times larger."),
+        ("It is 1234X.", "en", "It is 1,234 times."),
+        ("It is 1920x1080.", "en", "It is 1920 times 1080."),
+        ("It is 1234x, then.", "en", "It is 1,234 times, then."),
+        ("It is 1234xy.", "en", "It is 1234xy."),
+        ("It is 1234 xy.", "en", "It is 1234 xy."),
+        ("It grew 2019× more.", "en", "It grew 2,019 times more."),
+        ("It grew 2019x larger.", "en", "It grew 2,019 times larger."),
+        ("It grew 2019 times.", "en", "It grew 2,019 times."),
+        ("It grew 2019X.", "en", "It grew 2,019 times."),
+        ("It is 2019 × 3.", "en", "It is 2,019 times 3."),
+        ("It is 2019 × 10.", "en", "It is 2,019 times 10."),
+        ("It is 2019 x 3.", "en", "It is 2,019 times 3."),
+        ("It is 2019 times 3.", "en", "It is 2,019 times 3."),
+        ("It is 2019 × 100.", "en", "It is 2019 times 100."),  # a size (#870)
+        ("It is 1920 × 1,080.", "en", "It is 1920 times 1,080."),
+        ("It is 1920 times 1,080.", "en", "It is 1920 times 1,080."),
+        ("It is 2019 = 3.", "en", "It is 2019 equals 3."),
+        ("In 2019 times were hard.", "en", "In 2019 times were hard."),
+        ("Since 2019× more.", "en", "Since 2019 times more."),
+        ("It grew 2000×.", "en", "It grew 2000 times."),
+        # #816: the number of "to the power of" is no unit's number
+        ("So A⁻¹ K.", "en", "So A to the power of minus 1 K."),
+        ("So A⁻² kg.", "en", "So A to the power of minus 2 kg."),
+        ("So (A)⁻¹ m.", "en", "So (A) to the power of minus 1 m."),
+        ("So A² K.", "en", "So A squared K."),
+        ("So 10⁻¹ K.", "en", "So 10 to the power of minus 1 kelvin."),
+        ("So 2⁻¹x.", "en", "So 2 to the power of minus 1 times."),
+        ("So 2⁻¹x faster.", "en", "So 2 to the power of minus 1 times faster."),
+        ("Also A⁻¹ K.", "de", "Also A⁻¹ K."),
+        ("Also 5 A² K.", "de", "Also 5 Ampere hoch 2 K."),
+        ("Also 10² K.", "de", "Also 10 hoch 2 Kelvin."),
+        ("Also 2⁻¹x.", "de", "Also 2 hoch minus 1 mal."),
     ],
 )
 def test_the_reading_is_the_same_on_both_runs(printed: str, language: str, said: str) -> None:
@@ -176,6 +277,8 @@ def test_the_reading_is_the_same_on_both_runs(printed: str, language: str, said:
         ("Teil II.", "Teil 2."),
         ("Typ I.", "Typ I."),
         ("Kapitel I. und II.", "Kapitel I. und II."),  # #996
+        ("Kapitel IV.=1", "Kapitel 4. gleich 1"),  # #1010
+        ("Kapitel I bis III", "Kapitel I bis III"),  # #1010
     ],
 )
 def test_a_heading_reads_a_part_number_as_a_paragraph_does(printed: str, said: str) -> None:

@@ -628,9 +628,9 @@ expected = ["We set 1,234 equals A; it grew 1,234 times."]
 id = "four-digit-year-before-a-sign"
 audit = 0
 issue = 844
-goal = "A year-like four-digit number (1500 to 2099) before a sign or its word is left as printed on both runs, as '2019 = A' was before (D-182, D-577)."
+goal = "A year-like four-digit number (1500 to 2099) before '=' or 'equals' is left as printed on both runs, as '2019 = A' was before (D-182, D-577); before '×' or 'times' it is a count, read with its comma (#871)."
 blocks = [{ kind = "paragraph", text = "We set 2019 = A and 2019 equals B; it grew 2019× and 2019 times." }]
-expected = ["We set 2019 equals A and 2019 equals B; it grew 2019 times and 2019 times."]
+expected = ["We set 2019 equals A and 2019 equals B; it grew 2,019 times and 2,019 times."]
 
 [[case]]
 id = "ordinary-numbers"
@@ -3410,4 +3410,158 @@ expected = [
     "It was plus/minus 3 times here.",
     "It was plus / minus 3 times here.",
     "Minus 3 times is the spread.",
+]
+
+[[case]]
+id = "plus-and-minus-joined-by-a-dash-before-nx"
+audit = 0
+issue = 1021
+goal = "'plus–minus' and 'plus—minus' (en and em dash) and the Unicode hyphens ('plus‐minus', 'plus‑minus') before 'Nx' are the reading of '±', as 'plus-minus' is: 'N times' on both runs, in a paragraph and in a heading (#1021)."
+blocks = [
+    { kind = "paragraph", text = "It was plus–minus 3x here." },
+    { kind = "paragraph", text = "It was plus—minus 3x here." },
+    { kind = "heading", text = "Plus–minus 3x" },
+    { kind = "heading", text = "Plus—minus 3x" },
+    { kind = "paragraph", text = "It was plus‐minus 3x and plus‑minus 3x here." },
+    { kind = "paragraph", text = "It was plus-minus 3x here." },
+]
+expected = [
+    "It was plus–minus 3 times here.",
+    "It was plus—minus 3 times here.",
+    "Plus–minus 3 times",
+    "Plus—minus 3 times",
+    "It was plus‐minus 3 times and plus‑minus 3 times here.",
+    "It was plus-minus 3 times here.",
+]
+
+[[case]]
+id = "a-sign-after-nx"
+audit = 0
+issue = 1010
+goal = "A sign after 'Nx' reads the same on both runs, as one before it does (#988, #997). A minus sign the numbers step reads makes 'Nx' the variable, and so does its reading 'minus' before a number ('3x − 2' is '3x minus 2'). A bare '<' or '>' the statistics step reads as words does so only where its words do on a second run, before a one-letter variable or an opening bracket: '3x > 2' is '3 times greater than 2', as '2 < 3x' is, and '3x > y' keeps '3x' (#1010)."
+blocks = [
+    { kind = "paragraph", text = "So 3x > 2 and 3x < 2 here." },
+    { kind = "paragraph", text = "So 3x > A here." },
+    { kind = "paragraph", text = "So 3x > y and 3x < (a) here." },
+    { kind = "paragraph", text = "So 3x − 2 and 3x −2 here." },
+    { kind = "paragraph", text = "It was 3x minus 2 here." },
+    { kind = "paragraph", text = "It was 3x minus the rest." },
+    { kind = "paragraph", text = "So 3x >= 2, 3x ≥ 2, 3x >y and 3x − y." },
+]
+expected = [
+    "So 3 times greater than 2 and 3 times less than 2 here.",
+    "So 3 times greater than A here.",
+    "So 3x greater than y and 3x less than (a) here.",
+    "So 3x minus 2 and 3x minus 2 here.",
+    "It was 3x minus 2 here.",
+    "It was 3 times minus the rest.",
+    "So 3x >= 2, 3x greater than or equal to 2, 3x >y and 3x − y.",
+]
+
+[[case]]
+id = "an-equals-sign-glued-before-a-spaced-minus"
+audit = 0
+issue = 1010
+goal = "An '=' glued before a minus sign the numbers step reads with a space or a line break before its number ('A=− 3') is no arrow: it reads 'equals' on the first run, as on a second, which sees 'A=minus 3'. A hyphen-minus there stays an arrow, and so does a '<' before a minus sign, as before (#1010)."
+blocks = [
+    { kind = "paragraph", text = "So A=− 3 and A =− 3 here." },
+    { kind = "paragraph", text = "So A=−\n3 here." },
+    { kind = "paragraph", text = "So A=‒ 3 here." },
+    { kind = "paragraph", text = "So A=−3, A=- 3 and A <− 3 here." },
+]
+expected = [
+    "So A equals minus 3 and A equals minus 3 here.",
+    "So A equals minus 3 here.",
+    "So A equals minus 3 here.",
+    "So A equals minus 3, A=- 3 and A <minus 3 here.",
+]
+
+[[case]]
+id = "a-sign-after-a-removed-citation-at-the-block-start"
+audit = 0
+issue = 1010
+goal = "A comparison sign after a citation that starts the block and is removed is read on the first run, as on a second run, where the sign starts the block: the citation's removal takes the space after it, which no longer sets the sign's reading aside (#1010)."
+blocks = [
+    { kind = "paragraph", text = "[1] < 3x" },
+    { kind = "paragraph", text = "[2] > 3 in all." },
+    { kind = "paragraph", text = "So [1] < 3x." },
+]
+expected = [
+    "less than 3 times",
+    "greater than 3 in all.",
+    "So less than 3 times.",
+]
+
+[[case]]
+id = "four-digit-count-before-a-spaced-or-capital-x"
+audit = 0
+issue = 870
+goal = "A four-digit number before a spaced 'x', a capital 'X' or an 'x' glued before a digit, each read 'times', is a count read with its comma on the first run, as on a second run, which sees 'times'; '1920x1080' and '1234x,' read as before (#870)."
+blocks = [
+    { kind = "paragraph", text = "It grew 1234 x 5." },
+    { kind = "paragraph", text = "It grew 1234x5 and 1234 X 5 here." },
+    { kind = "paragraph", text = "It is 1234X larger." },
+    { kind = "paragraph", text = "It is 1920x1080 and 1234x, here." },
+]
+expected = [
+    "It grew 1,234 times 5.",
+    "It grew 1,234 times 5 and 1,234 times 5 here.",
+    "It is 1,234 times larger.",
+    "It is 1920 times 1080 and 1,234 times, here.",
+]
+
+[[case]]
+id = "four-digit-year-like-count-before-times"
+audit = 0
+issue = 871
+goal = "A year-like four-digit number before '×', an 'x' read as 'times' or the word 'times' is a count, read with its comma on both runs ('2,019 times'), not the year 'twenty nineteen'. Left as printed: before '=' or 'equals' (#844); before a times sign followed by a number of three or more digits, a size such as '1920x1080' (#870), whose '1080' a second run sees there too; after a word that makes it a year ('In 2019 times were hard') (#871)."
+blocks = [
+    { kind = "paragraph", text = "It grew 2019× and 2019x larger, then 2019X and 2019 times again." },
+    { kind = "paragraph", text = "We set 2019 = A and 2019 equals B." },
+    { kind = "paragraph", text = "A 1920x1080 screen, 1920 × 1080 pixels and 2019 x 3." },
+    { kind = "paragraph", text = "In 2019 times were hard." },
+]
+expected = [
+    "It grew 2,019 times and 2,019 times larger, then 2,019 times and 2,019 times again.",
+    "We set 2019 equals A and 2019 equals B.",
+    "A 1920 times 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
+    "In 2019 times were hard.",
+]
+
+[[case]]
+id = "a-power-of-a-letter-before-a-unit-letter"
+audit = 0
+issue = 816
+goal = "The number of 'to the power of', the numbers step's reading of a power, is no unit's number: 'A⁻¹ K' keeps its 'K' on both runs, as the first run reads it. A number's power before a unit reads the unit as before, and '2⁻¹x' reads 'times' on both runs (#816)."
+blocks = [
+    { kind = "paragraph", text = "So A⁻¹ K here." },
+    { kind = "paragraph", text = "So A⁻² kg and x⁻¹ s here." },
+    { kind = "paragraph", text = "So 10⁻¹ K here." },
+    { kind = "paragraph", text = "So 2⁻¹x here." },
+]
+expected = [
+    "So A to the power of minus 1 K here.",
+    "So A to the power of minus 2 kg and x to the power of minus 1 s here.",
+    "So 10 to the power of minus 1 kelvin here.",
+    "So 2 to the power of minus 1 times here.",
+]
+
+[[case]]
+id = "four-digit-year-like-count-before-times-and-a-small-number"
+audit = 0
+issue = 871
+goal = "A year-like four-digit number before a times sign and a number of one or two digits is a count, read with its comma on both runs ('2,019 times 3'), in a paragraph and in a heading; only a number of three or more digits after the sign, a size such as '1920x1080' (#870), leaves it as printed (#871)."
+blocks = [
+    { kind = "paragraph", text = "It grew 2019 × 3 and 2019 × 10 in all." },
+    { kind = "heading", text = "2019 × 3" },
+    { kind = "heading", text = "2019 × 10" },
+    { kind = "paragraph", text = "It grew 2019x3, 2019 x 10 and 2019 times 3." },
+    { kind = "paragraph", text = "A 1920 × 1080 and 2019 × 100 screen." },
+]
+expected = [
+    "It grew 2,019 times 3 and 2,019 times 10 in all.",
+    "2,019 times 3",
+    "2,019 times 10",
+    "It grew 2,019 times 3, 2,019 times 10 and 2,019 times 3.",
+    "A 1920 times 1080 and 2019 times 100 screen.",
 ]
