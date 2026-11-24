@@ -1062,8 +1062,43 @@ def found_679() -> tuple[Content, list[str], int]:
     return content(lines), [li.text for li in lines], 3
 
 
+def found_873(middle: dict[int, float]) -> tuple[Content, list[str], int]:
+    """#873, drawn by the `dev` and `nightly` profiles: columns 0 and 2 hold 27 lines each,
+    two of them centred headings (half the column wide), column 1 only 6 lines, which end
+    at `middle` (row: right edge) where they don't fill it. 6 is a tenth of the page's 60
+    lines, so the whole middle column may cross the strip from column 0 to column 2."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    centred = {0: (0, 6), 2: (0, 16)}
+    lines = []
+    for col, rows in enumerate((27, 6, 27)):
+        x0 = LEFT + col * (width + GUTTER)
+        for row in range(rows):
+            start, end = x0, middle.get(row, x0 + width) if col == 1 else x0 + width
+            if row in centred.get(col, ()):
+                start, end = x0 + width / 4, x0 + 3 * width / 4
+            lines.append(line(f"c{col}r{row}", start, 80 + 14 * row, end))
+    return content(lines), [li.text for li in lines], 3
+
+
+def test_a_middle_column_as_short_as_the_crossings_a_gutter_allows_is_a_column() -> None:
+    """#873 without its headings: 6 full lines between two columns of 27 are a tenth of the
+    page, as many as may cross a gutter, yet they are a column of their own."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    lines = [
+        line(f"c{col}r{row}", x0, 80 + 14 * row, x0 + width)
+        for col, rows in enumerate((27, 6, 27))
+        for x0 in [LEFT + col * (width + GUTTER)]
+        for row in range(rows)
+    ]
+    found = content(lines)
+    assert texts(build_document(found)) == [li.text for li in lines]
+    assert columns_per_page(found) == [3]
+
+
 @given(column_pages())
 @example(found_679())
+@example(found_873({2: 298.0, 3: 351.0, 4: 351.0, 5: 298.0}))
+@example(found_873({}))
 def test_any_clean_column_page_reads_column_by_column(page: tuple[Content, list[str], int]) -> None:
     found, expected, count = page
     doc = build_document(found)
