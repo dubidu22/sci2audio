@@ -341,6 +341,20 @@ def _meta(s: Strings, authors: tuple[str, ...], pages: int | None, got: Heard | 
     return " · ".join(parts)
 
 
+def _capture_flags(s: Strings, work: Path, document_id: str) -> dict[str, Any]:
+    """A document's captures by type for the library's Captures column and the shelf's flag
+    strip (#418): counted as the removal box counts them (`count_captures`), so listing the
+    library only reads `captures.json`, or the v1.3 `markers.json` as the carry-over will map
+    them, and never writes or carries over a file. `unread`: a file there it can't read."""
+    counts = count_captures(work, document_id)
+    kinds = [(kind, counts[kind]) for kind in CAPTURE_KINDS if counts[kind]]
+    return {
+        "kinds": kinds,
+        "said": ", ".join(s(f"library.{kind}s", n=n) for kind, n in kinds),
+        "unread": counts["unread"] is not None,
+    }
+
+
 def _library_row(
     state: ServerState, s: Strings, document: StoredDocument, saved: Path | None
 ) -> dict[str, Any]:
@@ -366,6 +380,7 @@ def _library_row(
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": made,
+        "captures": _capture_flags(s, document.folder, document.id),
         "opened": _when_text(s, read_opened(document.folder)),
         "document": document,
     }
@@ -387,6 +402,7 @@ def _outside_row(s: Strings, job: Any) -> dict[str, Any]:
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": None,
+        "captures": _capture_flags(s, job.work, job.document),
         "opened": "",
         "document": None,
     }
@@ -421,6 +437,7 @@ def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
                 "text": s("shelf.continue", time=clock(got.time)),
                 "percent": _percent(part),
                 "current": key == here,
+                "captures": _capture_flags(s, work, document),
             }
             break
 
@@ -454,6 +471,7 @@ def _shelf(state: ServerState, s: Strings, here: str | None) -> dict[str, Any]:
                 "text": text,
                 "percent": _percent(part) if got is not None else None,
                 "current": document.id == here,
+                "captures": _capture_flags(s, document.folder, document.id),
             }
         )
     return {"continue": keep, "recent": recent}
