@@ -153,11 +153,16 @@ class Reading:
 
     `sides` gives, for an element read inside a column, the gutter on its left and on its
     right (None at the text's edge); an element read across the page has no entry.
+
+    `columns` counts the page's own columns, as the corpus truth gives them; `nested`
+    counts the columns read side by side at the page's widest, a column cut again inside
+    (#32) counting as the columns found in it (#866). Both judge the same bands.
     """
 
     ordered: list[Element]
     columns: int
     sides: Sides
+    nested: int = 1
 
 
 def reading_order(
@@ -188,10 +193,14 @@ def reading_order(
         cuts = gutters(band, width, size, settings)
         band = across(band, cuts, width, size, settings)
         depth = settings.column_depth - 1
-        reading.ordered += _read_band(band, cuts, size, settings, reading.sides, depth)
+        ordered, breadth = _read_band(band, cuts, size, settings, reading.sides, depth)
+        reading.ordered += ordered
         mine = counted(band)
         if _text(mine) >= settings.column_text * total and _filled(mine, cuts, settings):
-            reading.columns = max(reading.columns, _text_columns(mine, cuts, width, size, settings))
+            count = _text_columns(mine, cuts, width, size, settings)
+            reading.columns = max(reading.columns, count)
+            # what the cuts inside the page's columns add to their count
+            reading.nested = max(reading.nested, count + breadth - (len(cuts) + 1))
         if after:
             reading.ordered.append(after)
     return reading
@@ -520,25 +529,32 @@ def _read_band(
     settings: LayoutSettings,
     sides: Sides,
     depth: int,
-) -> list[Element]:
+) -> tuple[list[Element], int]:
     """Columns left to right, cut again where an element crosses a gutter; inside each
-    column, columns of its own are looked for `depth` more levels down."""
+    column, columns of its own are looked for `depth` more levels down. Also how many
+    columns are read side by side at the band's widest, counting those found inside."""
     crossers = [e for e in elements if _spans(e, cuts)]
     taken = {id(e) for e in crossers}
     rest = [e for e in elements if id(e) not in taken]
     ordered: list[Element] = []
+    breadth = 1
     edges: list[float | None] = [None, *(x for cut in cuts for x in cut), None]
     for band, after in _bands(rest, _edges(crossers, elements, settings)):
+        side_by_side = 0
         for index, column in enumerate(_columns(band, cuts)):
             if not cuts:
                 ordered += by_rows(column, settings.row_overlap)
+                side_by_side += 1
                 continue
             outer = (edges[2 * index], edges[2 * index + 1])
             sides.update((id(e), outer) for e in column)
-            ordered += _read_column(column, outer, size, settings, sides, depth)
+            found, inside = _read_column(column, outer, size, settings, sides, depth)
+            ordered += found
+            side_by_side += inside
+        breadth = max(breadth, side_by_side)
         if after:
             ordered.append(after)
-    return ordered
+    return ordered, breadth
 
 
 def _read_column(
@@ -548,8 +564,9 @@ def _read_column(
     settings: LayoutSettings,
     sides: Sides,
     depth: int,
-) -> list[Element]:
-    """One column found on the page, in reading order (#32, D-67).
+) -> tuple[list[Element], int]:
+    """One column found on the page, in reading order (#32, D-67), and how many columns
+    it is read in side by side at its widest (1 if it is read row by row).
 
     The column is cut as a page is: what is wider than `wide` of the column cuts it into
     bands, and gutters cut each band into columns of running text. If no band has such a
@@ -558,7 +575,7 @@ def _read_column(
     (`outer`) at its edges.
     """
     if depth <= 0 or len(elements) < 2 * settings.column_items:
-        return by_rows(elements, settings.row_overlap)
+        return by_rows(elements, settings.row_overlap), 1
     width = max(e.box.x1 for e in elements) - min(e.box.x0 for e in elements)
     wide = [e for e in elements if e.box.x1 - e.box.x0 > settings.wide * width]
     taken = {id(e) for e in wide}
@@ -568,17 +585,20 @@ def _read_column(
         cuts = gutters(band, width, size, settings)
         bands.append((band, after, cuts if _running(band, cuts, size, settings) else []))
     if not any(cuts for _, _, cuts in bands):
-        return by_rows(elements, settings.row_overlap)
+        return by_rows(elements, settings.row_overlap), 1
     ordered: list[Element] = []
+    breadth = 1
     inner: Sides = {}
     for band, after, cuts in bands:
         band = across(band, cuts, width, size, settings)
-        ordered += _read_band(band, cuts, size, settings, inner, depth - 1)
+        found, wide_as = _read_band(band, cuts, size, settings, inner, depth - 1)
+        ordered += found
+        breadth = max(breadth, wide_as)
         if after:
             ordered.append(after)
     for key, (left, right) in inner.items():
         sides[key] = (outer[0] if left is None else left, outer[1] if right is None else right)
-    return ordered
+    return ordered, breadth
 
 
 def _running(band: list[Element], cuts: Cuts, size: float, settings: LayoutSettings) -> bool:

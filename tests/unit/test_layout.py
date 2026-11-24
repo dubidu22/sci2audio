@@ -31,6 +31,7 @@ from sci2audio.core import (
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.build import _in_page_order, columns_per_page
 from sci2audio.layout.furniture import _is_stamp, _pages_near, _repeated, edges
+from sci2audio.layout.order import Element, Reading, reading_order
 from sci2audio.layout.split import kept
 
 LEFT, RIGHT, GUTTER = 70.0, 526.0, 16.0
@@ -213,6 +214,136 @@ def test_the_cut_inside_a_column_stops_at_the_depth_limit() -> None:
     doc = build_document(page, LayoutSettings(column_depth=1))
     found = texts(doc)
     assert found.index("block-right-0") < found.index("block-left-1")
+
+
+def read_lines(
+    lines: list[TextLine], settings: LayoutSettings | None = None, figures: tuple[Box, ...] = ()
+) -> Reading:
+    """The lines (and figures, as pictures) put in reading order as a page of the made-up
+    document: text area from LEFT to RIGHT, body text in 10 point."""
+    elements = [Element(li.box or Box(0, 0, 0, 0), li) for li in lines]
+    elements += [Element(box, graphics=(Picture(f"p{k}", box),)) for k, box in enumerate(figures)]
+    return reading_order(elements, RIGHT - LEFT, 10.0, settings or LayoutSettings())
+
+
+def names(reading: Reading) -> list[str]:
+    """The text of each element read, a formula's lines joined by " | "."""
+    return [
+        e.line.text if e.line else " | ".join(li.text for li in e.lines) for e in reading.ordered
+    ]
+
+
+def page_lines(page: Content) -> list[TextLine]:
+    return list(page.pages[0].lines)
+
+
+def test_inner_columns_count_beside_the_page_columns() -> None:
+    """#866: the page has two columns; the left one is cut into two again, so three
+    columns are read side by side at its widest. `columns` stays the page's own count."""
+    page, _ = nested_columns_page()
+    reading = read_lines(page_lines(page))
+    assert (reading.columns, reading.nested) == (2, 3)
+    assert columns_per_page(page) == [2]
+    assert columns_per_page(page, nested=True) == [3]
+    flat = read_lines(page_lines(page), LayoutSettings(column_depth=1))
+    assert (flat.columns, flat.nested) == (2, 2)
+
+
+def two_levels_page() -> tuple[list[TextLine], list[str], list[str]]:
+    """A two-column page whose left column holds a block of two columns (level 2), the
+    left of which holds a block of two columns again (level 3), each block between running
+    text of its column; the lines stored row by row across the page. Returns the lines, the
+    left column's lines read with level 3 cut, and read with level 3 row by row (#872)."""
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    two = (lx1 - LEFT - GUTTER) / 2  # a level-2 column
+    three = (two - GUTTER) / 2  # a level-3 column
+    above = column("page-above-", LEFT, lx1, 100, 6)
+    top = 100 + 14 * 6
+    upper = column("two-left-above-", LEFT, LEFT + two, top, 5)
+    deep_left = column("three-l-", LEFT, LEFT + three, top + 14 * 5, 6)
+    deep_right = column("three-r-", LEFT + two - three, LEFT + two, top + 14 * 5, 6)
+    lower = column("two-left-below-", LEFT, LEFT + two, top + 14 * 11, 5)
+    two_right = column("two-right-", lx1 - two, lx1, top, 16)
+    below = column("page-below-", LEFT, lx1, top + 14 * 16, 6)
+    right = column("right-", rx0, RIGHT, 100, 28)
+    lines = sorted(
+        [*above, *upper, *deep_left, *deep_right, *lower, *two_right, *below, *right],
+        key=lambda li: (li.box.y0, li.box.x0) if li.box else (0, 0),
+    )
+    cut = [*above, *upper, *deep_left, *deep_right, *lower, *two_right, *below]
+    rows = [*above, *upper, *interleaved(deep_left, deep_right), *lower, *two_right, *below]
+    return lines, [li.text for li in cut], [li.text for li in rows]
+
+
+def test_the_depth_limit_counts_down_at_each_level() -> None:
+    """#872: under `column_depth` 2 the block inside the left column is read one column
+    after the other, and the block inside its left column, a level further, row by row;
+    under 3 that one is cut too."""
+    lines, cut, rows = two_levels_page()
+    right = [li.text for li in lines if li.text.startswith("right-")]
+    assert names(read_lines(lines, LayoutSettings(column_depth=2))) == [*rows, *right]
+    assert names(read_lines(lines, LayoutSettings(column_depth=3))) == [*cut, *right]
+
+
+def test_an_element_in_an_inner_column_takes_its_gutters_as_sides() -> None:
+    """#872: in the block inside the left column, a line of the block's left column has the
+    block's gutter on its right, and one of its right column has that gutter on its left and
+    the page's gutter on its right; the page's edge stays None."""
+    page, _ = nested_columns_page()
+    lines = page_lines(page)
+    reading = read_lines(lines)
+    lx1, rx0 = MIDDLE - GUTTER / 2, MIDDLE + GUTTER / 2
+    inner = (lx1 - LEFT - GUTTER) / 2
+    sides = {e.line.text: reading.sides[id(e)] for e in reading.ordered if e.line}
+    assert sides["block-left-3"] == (None, LEFT + inner)
+    assert sides["block-right-3"] == (lx1 - inner, lx1)
+    assert sides["above-0"] == (None, lx1)
+    assert sides["right-0"] == (rx0, None)
+
+
+def test_a_formula_across_an_inner_gutter_is_one_element() -> None:
+    """#872: a display formula in the block inside the left column runs across the block's
+    gutter to its number at the column's right edge: it is read as one element between the
+    block's rows above and below it, not as a line cutting the block and a number in the
+    block's right column."""
+    lx1 = MIDDLE - GUTTER / 2
+    inner = (lx1 - LEFT - GUTTER) / 2
+    above = column("above-", LEFT, lx1, 100, 6)
+    top = 100 + 14 * 6
+    block_left = column("block-left-", LEFT, LEFT + inner, top, 8)
+    block_right = column("block-right-", lx1 - inner, lx1, top, 8)
+    formula = [
+        line("x = a + b", LEFT + 30, top + 14 * 8, LEFT + 140),
+        line("(1)", lx1 - 14, top + 14 * 8, lx1),
+    ]
+    lower_left = column("lower-left-", LEFT, LEFT + inner, top + 14 * 9, 8)
+    lower_right = column("lower-right-", lx1 - inner, lx1, top + 14 * 9, 8)
+    below = column("below-", LEFT, lx1, top + 14 * 17, 6)
+    left = [*above, *interleaved(block_left, block_right), *formula]
+    left += [*interleaved(lower_left, lower_right), *below]
+    right = column("right-", MIDDLE + GUTTER / 2, RIGHT, 100, 30)
+    reading = read_lines([*left, *right])
+    expected = [li.text for li in [*above, *block_left, *block_right]]
+    expected += ["(1) | x = a + b"]
+    expected += [li.text for li in [*lower_left, *lower_right, *below, *right]]
+    assert names(reading) == expected
+
+
+def test_a_figure_in_an_inner_column_does_not_make_its_edge_ragged() -> None:
+    """#872: only lines judge whether a block's columns are running text: a figure in the
+    block's left column reaching out past its lines leaves it a column."""
+    page, expected = nested_columns_page()
+    lines = page_lines(page)
+    shifted = [
+        line(li.text, li.box.x0 + 10, li.box.y0, li.box.x1)
+        if li.text.startswith("block-left-") and li.box
+        else li
+        for li in lines
+    ]
+    gap = 100 + 14 * 9 + 10  # between two of the block's rows
+    reading = read_lines(shifted, figures=(Box(LEFT, gap + 0.5, LEFT + 60, gap + 3.5),))
+    found = [n for n in names(reading) if n]
+    assert found == expected
 
 
 def test_a_table_inside_a_column_is_still_read_row_by_row() -> None:
