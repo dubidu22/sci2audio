@@ -115,3 +115,39 @@ def test_a_flush_that_finds_no_text_keeps_a_continuation_only_if_told_to() -> No
     assert reader.continues is True
     reader.flush()
     assert reader.continues is False
+
+
+def page_reader(text: str) -> markup.PageReader:
+    reader = markup.PageReader(1, "c1.xhtml", markup.Anchors())
+    reader.read(text)
+    return reader
+
+
+def test_text_before_any_element_is_a_plain_first_line() -> None:
+    """Nothing came before it, so it continues no element: no `br` tag (#632)."""
+    (line,) = page_reader("Bare text").page().lines
+    assert [(run.text, run.tags) for run in line.runs] == [("Bare text", ())]
+
+
+def test_a_picture_before_any_text_comes_before_the_line() -> None:
+    reader = page_reader('<img src="a.png"/>Text')
+    assert reader.order == ["p1-i1", "p1-l1"]
+
+
+def test_the_first_line_is_counted_from_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markup, "MAX_LINE", 10)
+    assert page_reader("a" * 10).page().lines[0].text == "a" * 10
+    with pytest.raises(markup.TooMuchText):
+        page_reader("a" * 11)
+
+
+def test_as_many_open_elements_as_the_item_limit_are_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(markup, "MAX_ITEMS", 3)
+    page_reader("<span>" * 3)
+    with pytest.raises(markup.TooMuchText):
+        page_reader("<span>" * 4)
+
+
+def test_a_pre_inside_a_pre_does_not_end_the_outer_one_early() -> None:
+    reader = page_reader("<pre><pre>b</pre>x\ny</pre>")
+    assert [line.text for line in reader.page().lines] == ["b", "x", "y"]
