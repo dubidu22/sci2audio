@@ -1096,9 +1096,9 @@ def test_a_middle_column_as_short_as_the_crossings_a_gutter_allows_is_a_column()
     assert columns_per_page(found) == [3]
 
 
-@pytest.mark.parametrize("captioned", [True, False])
+@pytest.mark.parametrize(("captioned", "ended"), [(True, False), (False, False), (True, True)])
 def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
-    captioned: bool,
+    captioned: bool, ended: bool
 ) -> None:
     """#895: two columns with a gutter of 140 pt that holds a drawing (x 236 to 360), its
     axis labels and its caption. The white on each side of the figure is a gutter, so the
@@ -1109,8 +1109,9 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     labels (y 200), the lower one (y 210), then the caption. The left column's last line
     fills it, so its paragraph goes on in the right column, and the figure, which
     interrupts it, follows it, as any float does (#905): with a caption that names it, the
-    figure holds its labels."""
-    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
+    figure holds its labels. If the left column's last line ends short (`ended`), its
+    paragraph ends there, and the figure is read between the columns' paragraphs."""
+    left = [line(f"L{k}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228) for k in range(30)]
     right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
     # 116 pt wide together, more than a column's least width (114 pt): a column, were they
     # counted
@@ -1128,7 +1129,42 @@ def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
     assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [held]
     read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
     middle = ["fig", *upper, *lower, *[li.text for li in caption]]
-    assert read == [li.text for li in left + right] + middle
+    if ended:
+        assert [b.kind for b in doc.blocks] == [
+            BlockKind.PARAGRAPH,
+            BlockKind.FIGURE,
+            BlockKind.CAPTION,
+            BlockKind.PARAGRAPH,
+        ]
+        assert read == [li.text for li in left] + middle + [li.text for li in right]
+    else:
+        assert read == [li.text for li in left + right] + middle
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_running_text_under_a_figure_in_a_middle_column_stays_in_its_paragraph(
+    captioned: bool,
+) -> None:
+    """#905: a figure at the top of the middle column of three, with four full lines under
+    it (and its caption above them) is no figure in a gutter: the sentence runs on from the
+    left column through those lines into the right one, and they are read in that order."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    middle = [line(f"c1r{row}", x0, 80 + 14 * row, x0 + width) for row in range(23, 27)]
+    # a short caption, far enough from the drawing to count: the page has three columns
+    caption = [line("Figure 1: a thing", x0, 80 + 14 * 21, x0 + 90)] if captioned else []
+    lines = three_columns((27, 0, 27))
+    lines = lines[:27] + caption + middle + lines[27:]
+    bottom = 80 + 14 * (20 if captioned else 23) - 6
+    found = content(lines, drawings=(Drawing("fig", Box(x0, 80, x0 + width, bottom)),))
+    doc = build_document(found)
+    ids = {li.id: li.text for li in lines}
+    assert columns_per_page(found) == [3 if captioned else 2]
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    running = [li.text for li in lines if li not in caption]
+    assert [text for text in read if text in running] == running
+    (block,) = [b for b in doc.blocks if any(ids.get(p.item) == "c1r23" for p in b.parts)]
+    assert {"c0r26", "c2r0"} <= {ids.get(p.item) for p in block.parts}
 
 
 @pytest.mark.parametrize("captioned", [True, False])
@@ -1184,7 +1220,7 @@ def test_underlines_through_a_short_middle_column_leave_it_a_column() -> None:
     page, _, _ = found_873({2: 298.0, 3: 351.0, 4: 351.0, 5: 298.0})
     rules = tuple(
         Drawing(f"under{row}", Box(x0 + 10, 80 + 14 * row + 9, x0 + 60, 80 + 14 * row + 9.5))
-        for row in (1, 3)
+        for row in (2, 5)
     )
     found = content(list(page.pages[0].lines), drawings=rules)
     assert columns_per_page(found) == [3]

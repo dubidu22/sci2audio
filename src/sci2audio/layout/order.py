@@ -301,7 +301,8 @@ def _text_columns(
     between two others that holds a figure counts only if its lines, without its labels,
     are a column; a caption alone is not. A label is a line on the figure or within
     `float_gap` of it (a plot's ticks print just outside its frame) that does not fill the
-    column (`full_line`): running text set on a shaded box fills it (#916). Rules and marks
+    column (`full_line` of what it holds): running text set on a shaded box fills it
+    (#916). Rules and marks
     (`geometry.minor`, an underline) are no figure. The first and last columns always
     count: a figure filling one of them still stands in a column of the page."""
     columns = _columns(band, cuts)
@@ -318,7 +319,9 @@ def _text_columns(
         if not shown:
             count += 1
             continue
-        full = settings.full_line * (cuts[k][0] - cuts[k - 1][1])
+        # what the column holds spans it: its gutters may start inside its lines (#873)
+        span = max(e.box.x1 for e in column) - min(e.box.x0 for e in column)
+        full = settings.full_line * span
         lines = [
             e
             for e in column

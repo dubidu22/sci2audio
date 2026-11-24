@@ -22,8 +22,8 @@ furniture met while a paragraph is open wait until it closes, and so does text t
 interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Of what
 waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
 after it (#648). A figure in a wide gutter is read as a column of its own between two
-columns of text (#873): the rows read in that column right after it are its labels and
-caption, which interrupt a paragraph and never go on with one (#905).
+columns of text (#873): the rows read in that column right after it, if they are its labels
+and caption and no running text, interrupt a paragraph and never go on with one (#905).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -439,14 +439,16 @@ class Paragraphs:
         self.body, self.typed = judged.size, judged.typed
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
+        self.gutter: set[int] = set()  # (`continues` reads it while it is being found)
         self.gutter = self._gutter_figures(units)
 
     def _gutter_figures(self, units: list[Unit]) -> set[int]:
         """The rows of figures read in a column of their own between two columns of text,
         by id: the rows in one column read right after a figure, with the row read before
         the figure in a column to their left and the row read after them in a column to
-        their right, all on one page, and fewer than `column_items` of them running text (a
-        caption may be). More running text makes the column one of text (`order`)."""
+        their right, all on one page. They are fewer than `column_items`, so `order` counts
+        no column of text there, and they are the figure's labels, then perhaps its caption
+        (`_figure_rows`): running text there is never taken out of its paragraph."""
         found: set[int] = set()
         before: Unit | None = None  # the last unit read that is no figure
         for k, unit in enumerate(units):
@@ -471,10 +473,31 @@ class Paragraphs:
                 and before.page == first.page == after.page
                 and before.right <= first.left
                 and first.right <= after.left
-                and sum(self._runs_on(row) for row in run) < self.settings.column_items
+                and len(run) < self.settings.column_items
+                and self._figure_rows(before, run)
             ):
                 found |= {id(row) for row in run}
         return found
+
+    def _figure_rows(self, before: Row, run: list[Row]) -> bool:
+        """True if the rows are a figure's labels, then perhaps its caption, and nothing
+        else. A label does not fill its column and does not go on with the sentence of the
+        row read before the figure (`_inside`: the short last line of that paragraph would).
+        The caption is a row that opens one and the rows that go on with it."""
+        labels = 0
+        while (
+            labels < len(run)
+            and not self._runs_on(run[labels])
+            and not opens_caption(run[labels].pieces[0])
+            and not (labels == 0 and _inside(before, run[0]))
+        ):
+            labels += 1
+        caption = run[labels:]
+        if not caption:
+            return labels > 0
+        return opens_caption(caption[0].pieces[0]) and all(
+            self.continues(caption[:n], caption[n]) for n in range(1, len(caption))
+        )
 
     def blocks(self) -> list[Block]:
         for unit in self.units:
