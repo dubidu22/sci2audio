@@ -16,6 +16,11 @@ printed; the numbers themselves stay digits for the voice (D-176).
   on by "and", "or" or a comma ("CIs [1, 3] and [2, 4]", D-450).
 - S5 (D-181): "OR" before an operator read "odds ratio"; other statistic letters are left
   to the voice, which spells them.
+- S6 (#796): the arrows of logic, which the voices do not read, read as words between two
+  operands: "⇒" "implies", "⇐" "is implied by", "⇔" "if and only if"; so are their pieced
+  forms ("=⇒", "⇐=", "⇐=⇒", #590) and the ASCII "=>" and "<=>". An arrow without an operand
+  on its line before it, or without one after it (a list bullet, a figure label), is left as
+  printed; code blocks are never read here.
 """
 
 from __future__ import annotations
@@ -36,7 +41,12 @@ from sci2audio.textprep.notation import (
     to_edits,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.statistics_de import OPERATORS_DE, ci_runs_de, find_statistics_de
+from sci2audio.textprep.statistics_de import (
+    ARROWS_DE,
+    OPERATORS_DE,
+    ci_runs_de,
+    find_statistics_de,
+)
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -78,6 +88,20 @@ _OPERAND = re.compile(
 _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
+
+# S6 (#796): the double arrows of logic. Printed in pieces as PDFs give the long ones (#590),
+# or in ASCII, but not as part of a longer ASCII run ("==>", ">=>", "=>>"; the sign before
+# is checked in `_operators`, since the "=" of a pieced arrow before it, "⇐=<=>", is no part)
+ARROWS = {"⇒": "implies", "⇐": "is implied by", "⇔": "if and only if"}
+_DOUBLE_ARROW = r"⇐=*⇒|⇐=+|=+⇒|[⇒⇐⇔]|(?:<=>|=>)(?![<>=])"
+# an arrow or an operator; the arrow first, so "=⇒" is one arrow and not "="
+_SIGN = re.compile(f"(?P<arrow>{_DOUBLE_ARROW})|{_OPERATOR.pattern}")
+# what ends an operand before an arrow: not a sign this step reads, unless it was read (a sign
+# left as printed would be read on a second run, where the arrow is a word after it)
+_LEFT_OF_ARROW = re.compile(
+    r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape("".join(ACCENTS)) + "]"
+)
+_LINE_BREAKS = frozenset("\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029")
 _SPACE = re.compile(r"\s*")
 _NUMBER_START = re.compile(r"[−+-]?\.?\d")
 _TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?>")
@@ -108,9 +132,10 @@ _SQUARED_NAMES = {
 _PARTIAL = "partial "  # before "eta squared" only
 _CI_WORDS = ("confidence interval", "confidence intervals")
 _ODDS_RATIO_WORDS = "odds ratio"
-# the readings of S3 to S5, which the sentence cutter keeps whole (#482)
+# the readings of S3 to S6, which the sentence cutter keeps whole (#482)
 SYMBOL_READINGS = frozenset(
     {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], *_CI_WORDS, _ODDS_RATIO_WORDS}
+    | set(ARROWS.values())
 )
 _SQUARED = re.compile(
     r"(?<![\w′'])(?P<name>[Rrηωεχ])(?P<p1>p)?(?:(?P<sup>²)|(?P<two>2))(?P<p2>p)?(?![\w²])"
@@ -163,7 +188,10 @@ def find_statistics_in_german(text: str) -> list[Candidate]:
     """The German statistics edits (statistics_de.py, #130) for one block's text."""
     plain = fold(text)
     return pick(
-        [*find_statistics_de(text, plain), *_operators(text, plain, OPERATORS_DE, word_stop=True)]
+        [
+            *find_statistics_de(text, plain),
+            *_operators(text, plain, OPERATORS_DE, ARROWS_DE, word_stop=True),
+        ]
     )
 
 
@@ -293,17 +321,24 @@ def _odds_ratios(text: str, plain: str) -> list[Candidate]:
 
 
 def _operators(
-    text: str, plain: str, said: Mapping[str, str] = OPERATORS, *, word_stop: bool = False
+    text: str,
+    plain: str,
+    said: Mapping[str, str] = OPERATORS,
+    arrows: Mapping[str, str] = ARROWS,
+    *,
+    word_stop: bool = False,
 ) -> list[Candidate]:
-    """The comparison signs read as words. With `word_stop` (German), "=" needs nothing on
-    its left: after "Jh.=1" (#130), a footnote's "=1" (#212) or a removed link or citation
-    (#101) a second run sees a word, a full stop or the block start there."""
+    """The comparison signs and the arrows of logic (S6) read as words. With `word_stop`
+    (German), "=" needs nothing on its left: after "Jh.=1" (#130), a footnote's "=1" (#212)
+    or a removed link or citation (#101) a second run sees a word, a full stop or the block
+    start there."""
     found = []
     tags = [m.span() for m in _TAG.finditer(plain)]  # in text order, never overlapping
     tag_starts = [a for a, _ in tags]
     taken = 0  # where the last operator's span ended: two signs never share the space between
     read_end = -1  # where the last sign read as words ended: it is a word for the next sign
-    for match in _OPERATOR.finditer(plain):
+    arrow_end = -1  # where the last arrow ended, read or not
+    for match in _SIGN.finditer(plain):
         op = match.group()
         start, end = match.span()
         inside = bisect.bisect_right(tag_starts, start) - 1
@@ -311,32 +346,54 @@ def _operators(
             continue  # "<i>", "</sup>": markup left in the text, not a comparison
         before = plain[start - 1] if start and start != read_end else ""
         after = plain[end] if end < len(plain) else ""
+        left = _left_end(plain, start)
+        right_start = _SPACE.match(plain, end).end()  # type: ignore[union-attr]
+        if match["arrow"]:
+            ascii_run = op[0] in "<=" and op[-1] == ">" and start and start != arrow_end
+            arrow_end = end
+            if ascii_run and plain[start - 1] in "<>=":
+                continue  # "==>", ">=>": no arrow of logic
+            # a negated operand too: "A ⇒ ¬B"
+            if not (
+                _OPERAND.match(plain, right_start) or plain[right_start : right_start + 1] == "¬"
+            ):
+                continue
+            if not _operand_before_arrow(plain, left, start, read_end, word_stop):
+                continue  # a list bullet, an arrow at a line start: no sentence word
+            words = arrows[_one_arrow(op)]
+            span_start, span_end = _span(left, start, end, right_start, taken, word_stop)
+            taken, read_end = span_end, end
+            found.append(
+                Candidate(
+                    span_start,
+                    span_end,
+                    padded(text, span_start, span_end, words),
+                    f'"{text[start:end]}" read as "{words}"',
+                )
+            )
+            continue
+        if not _OPERAND.match(plain, right_start):
+            continue
         if op in "<>=" and (
             before in _ARROW or (after and after in "<>=") or _arrow_after(plain, end)
         ):
             continue
-        left = _left_end(plain, start)
-        right_start = _SPACE.match(plain, end).end()  # type: ignore[union-attr]
-        if not _OPERAND.match(plain, right_start):
-            continue
         # German (`word_stop`) reads "=" whatever comes before it: what comes before can be
         # a link, a citation or a sentence that another step removes, so a second run would
         # see "=" at the block start or after a full stop (#101); "Jh.=1" is read too (#130)
-        if op == "=" and not word_stop and not (left and _LEFT_OF_EQUALS.match(plain[left - 1])):
+        # a sign read just before is a word ("A ⇒ = 3" reads "A implies equals 3")
+        if (
+            op == "="
+            and not word_stop
+            and left != read_end
+            and not (left and _LEFT_OF_EQUALS.match(plain[left - 1]))
+        ):
             continue
         if op in "<>" and not (
             after.isspace() or after in _SIGNS + _UNIT_SIGNS or _starts_number(plain, end)
         ):
             continue  # "a<b" or "<i>": not a comparison anyone reads aloud
-        span_start, span_end = max(left, taken), right_start
-        if word_stop:
-            # the white space next to the sign stays where it is: the step that removes a
-            # link, a citation or a sentence beside it may take that space along, and the
-            # sign's reading must not be set aside for it (#101)
-            if left < start:
-                span_start = max(start, taken)
-            if right_start > end:
-                span_end = end
+        span_start, span_end = _span(left, start, end, right_start, taken, word_stop)
         taken, read_end = span_end, end
         words = said[op]
         found.append(
@@ -348,6 +405,43 @@ def _operators(
             )
         )
     return found
+
+
+def _span(
+    left: int, start: int, end: int, right_start: int, taken: int, word_stop: bool
+) -> tuple[int, int]:
+    """The span a sign's reading replaces: the sign and the white space around it. With
+    `word_stop` (German) the white space next to the sign stays where it is: the step that
+    removes a link, a citation or a sentence beside it may take that space along, and the
+    sign's reading must not be set aside for it (#101)."""
+    span_start, span_end = max(left, taken), right_start
+    if word_stop:
+        if left < start:
+            span_start = max(start, taken)
+        if right_start > end:
+            span_end = end
+    return span_start, span_end
+
+
+def _one_arrow(glyphs: str) -> str:
+    """The arrow a printed run stands for: "⇐=⇒" and "<=>" are "⇔", "=⇒" and "=>" "⇒"."""
+    if glyphs in ("⇔", "<=>") or (glyphs[0] == "⇐" and glyphs[-1] == "⇒"):
+        return "⇔"
+    return "⇒" if glyphs[-1] in "⇒>" else "⇐"
+
+
+def _operand_before_arrow(
+    plain: str, left: int, start: int, read_end: int, word_stop: bool
+) -> bool:
+    """True if an operand ends before the arrow at `start`, on the same line: a word, a
+    number, a closing bracket or a sign read as words. An arrow at a line start is a list
+    bullet, even if the line before ends in a word; but not after a sign read in English,
+    whose reading takes the line break along ("A ⇒\n=> B" is "A implies => B" then)."""
+    if left and left == read_end:
+        return word_stop is False or _LINE_BREAKS.isdisjoint(plain[left:start])
+    if not left or not _LINE_BREAKS.isdisjoint(plain[left:start]):
+        return False
+    return bool(_LEFT_OF_ARROW.match(plain, left - 1))
 
 
 def _left_end(plain: str, start: int) -> int:

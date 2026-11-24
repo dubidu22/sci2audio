@@ -76,6 +76,7 @@ _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
 _NOT_PLURAL = frozenset(
     {"is", "was", "has", "his", "its", "this", "thus", "as", "yes", "does", "goes", "whereas"}
     | {"versus", "plus", "minus", "less", "unless", "always", "perhaps", "towards", "besides"}
+    | {"implies"}  # "1234 ⇒ A" is "1234 implies A" after the statistics step (#796)
 )
 _PLURALS = frozenset({"people", "children", "men", "women", "mice", "data", "persons"})
 _MONTHS = {name.lower() for name in calendar.month_name[1:] + calendar.month_abbr[1:]}
