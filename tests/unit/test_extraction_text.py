@@ -1937,6 +1937,64 @@ def test_a_capitals_date_ending_an_entry_is_cut_from_a_numbered_line(entry: str)
 
 
 @pytest.mark.parametrize(
+    ("month", "after"),
+    [("JUNE", "2020, 12(3), 1-9."), ("DECEMBER 2025", "12(3), 1-9.")],
+    ids=["month-before-year", "date-before-volume"],
+)
+def test_a_capitals_month_in_an_entry_runs_on_into_its_year(month: str, after: str) -> None:
+    """ "Journal of Sound" / "JUNE" / "2020, 12(3), 1-9.": only a numbered line is cut
+    from a capitals date that ends an entry; a year or a volume stays in it, as on main
+    (#981)."""
+    entry = "Smith, J. A study of reading papers aloud on the train and the bus. Journal of"
+    assert tags_of(f"{entry}\nJournal of Sound\n{month}\n{after}\n") == tags_read("pbbb")
+
+
+_APA_FIRST = "Smith, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics"
+_APA_SECOND = "Brown, B. and Green, G. Another study of listening to papers. Journal of Sound"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        f"{_APA_FIRST}\nJune 2020\n{_APA_SECOND}\nJune 2020.\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound\n",
+        "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics\n"
+        "June 2020\n"
+        "White, Walt, and Kim Black. A Third Study of Papers. Journal of Speech\n"
+        "June 2020.\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound\n",
+        f"{_APA_FIRST}\nJune 2020\n"
+        "Brown, Bob. Another Study of Listening to Papers. Journal of Sound, 1-9,\n"
+        f"June 2020\n{_APA_SECOND}\n",
+        f"{_APA_FIRST}\nJune 2020\n"
+        "Brown, B. and Green, G. Another study of listening. Journal of Sound, 1-9,\n"
+        "June 2020\nB. Brown, Another study of listening to papers, Journal of Sound\n",
+    ],
+    ids=["stop-before-chicago", "chicago-list-stop", "chicago-comma", "comma-before-initials"],
+)
+def test_a_single_author_entry_in_a_list_ends_at_its_date(text: str) -> None:
+    """In a list of entries, a date after a stop or an entry ending in a comma ends its
+    entry before one Chicago or initials-first author too, and such an entry ends at its
+    own date: any entry shape counts on both sides of the date once the paragraph is a list
+    (#981)."""
+    assert tags_of(text) == tags_read("pbpbp")
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [_APA_FIRST, "[1] J. Smith and K. Jones, A study of reading papers aloud, Journal of Sound"],
+    ids=["apa", "numbered"],
+)
+def test_a_title_right_after_an_entry_reads_as_the_entry_s_last_line(entry: str) -> None:
+    """A known limit, pinned (#947, #981): a short title line right after an entry, with no
+    blank line, has the shape of the entry's wrapped last line ("... Journal of" / "Speech,
+    Language, and Hearing" / "June 2020"), so the date joins it. Before #947 it was cut
+    (``pbpp``)."""
+    text = f"{entry}\nReading Papers Aloud\nJune 2020\n{_BOARD}"
+    assert tags_of(text) == tags_read("pbbp")
+
+
+@pytest.mark.parametrize(
     ("text", "tags"),
     [
         # a title, its date and a sentence that opens like an entry (#981, lead's comment)
@@ -2110,14 +2168,14 @@ def test_the_author_list_checks_take_linear_time() -> None:
         "one-wrapped-vancouver-entry-and-prose",
     ],
 )
-def test_the_title_shapes_of_the_947_review_read_as_before_947(text: str, tags: str) -> None:
-    """The title shapes probed in the review of #947, each read as on main before #947: a
+def test_more_entry_shaped_titles_read_as_before_947(text: str, tags: str) -> None:
+    """More titles shaped like an entry, each read as on main before #947: a
     line shaped like an entry before its date and prose is a title, and so is one entry of
     a style that titles share before prose (#981)."""
     assert tags_of(text) == tags_read(tags)
 
 
-def test_a_chicago_shaped_title_in_a_bullet_item_keeps_its_date_apart() -> None:
+def test_the_date_after_a_chicago_shaped_title_in_a_bullet_item_joins_the_item() -> None:
     """ "- Guns, Germs, and Steel: ..." / "June 2020" / body: the date joins the item as on
     main before #947, and the body starts a block (#981)."""
     text = (

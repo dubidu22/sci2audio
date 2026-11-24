@@ -536,9 +536,11 @@ def _title(
         if reference and _reference(after):
             return True
         # after a short line ending an entry the date was cut before #947, so it is still
-        # cut from a number after it ("Journal of Sound" / "DECEMBER 2025" / "1. ...", #981)
+        # cut from a numbered line after it ("Journal of Sound" / "DECEMBER 2025" / "1. ...",
+        # #981); a year or volume after a month ("JUNE" / "2020, 12(3)") stays in the entry
         tail = (
             bool(reference)
+            and _NUMBERED.match(after.lstrip()) is not None
             and _short(before, longest)
             and before.rstrip(_CLOSERS)[-1:] not in _ENDS
         )
@@ -546,9 +548,12 @@ def _title(
             first.isdigit() and not (opens or tail) and _month_line(line)
         )
     # a date ends its entry before the next one, whatever the entry's last line ends in
-    # ("... pp. 1-9," / "June 2020" / "[2] ...", "June 2020." / "Brown, B. ...", #981)
-    if reference >= _PAIRED and _month_line(line) and _named(after):
-        return True
+    # ("... pp. 1-9," / "June 2020" / "[2] ...", "June 2020." / "Brown, B. ...", #981); in a
+    # list any entry shape counts on both sides, as one author has a title's shape alone
+    if reference and (listed or reference >= _PAIRED) and _month_line(line):
+        following = _reference(after)
+        if following >= _PAIRED or (listed and following):
+            return True
     if line.rstrip(_CLOSERS)[-1:] in _ENDS or (reference and _month_line(after) and entry()):
         return False
     if (
