@@ -963,6 +963,42 @@ def test_the_outline_adds_a_lettered_subsection_under_a_roman_section() -> None:
     ]
 
 
+def test_roman_numbers_inside_an_arabic_document_are_no_section_numbers() -> None:
+    """Two bold "I." and "II." lines in an Arabic section are a list, not the sections."""
+    page = Page().heading("1 Introduction").body(2)
+    page.heading("I. Accuracy matters", 10.0).body(2).heading("II. Speed matters", 10.0).body(2)
+    page.heading("2 Method").body(2).heading("3 Results").body(2)
+    assert headings(page.build()) == [
+        ("1 Introduction", "1"),
+        ("2 Method", "2"),
+        ("3 Results", "3"),
+    ]
+
+
+def test_the_outline_reads_no_letter_without_a_dot_or_arabic_number_in_a_roman_document() -> None:
+    page = Page().heading("I. Introduction").body(2).heading("II. Method").body(2)
+    plain(page, "A Note on Ethics").body(2)
+    plain(page, "1. Limits").body(2)
+    doc = page.build(OutlineEntry("A Note on Ethics", 1, 1), OutlineEntry("1. Limits", 1, 1))
+    assert headings(doc)[-2:] == [("A Note on Ethics", ""), ("1. Limits", "")]
+    assert [s.level for s in doc.sections] == [1, 1, 1, 1]
+
+
+def test_the_outline_reads_a_letter_i_as_a_subsection_and_the_next_roman_as_a_section() -> None:
+    """The outline path counts the Roman sections as the font rules do: "I." after "H." under
+    section I is the ninth subsection, "III." after section II is section III."""
+    page = Page().heading("I. Introduction").body(2)
+    for letter in "ABCDEFGH":
+        page.heading(f"{letter}. Part {letter}", 10.0).body(2)
+    plain(page, "I. Part I").body(2)
+    page.heading("II. Method").body(2)
+    plain(page, "III. Results").body(2)
+    doc = page.build(OutlineEntry("I. Part I", 1, 1), OutlineEntry("III. Results", 1, 1))
+    assert headings(doc)[9] == ("I. Part I", "I")
+    assert headings(doc)[-1] == ("III. Results", "III")
+    assert [s.level for s in walk(doc.sections)] == [1, *[2] * 9, 1, 1]
+
+
 def test_a_letter_in_a_document_with_arabic_numbers_stays_an_appendix_at_level_one() -> None:
     page = Page().heading("1 Introduction").body().heading("2 Method").body()
     page.heading("A Proofs").body().heading("B Data").body()
