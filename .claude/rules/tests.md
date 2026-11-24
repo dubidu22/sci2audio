@@ -4,9 +4,9 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 
 ## Basics
 
-- Fast tests (no marker) run on every PR on Linux, and on macOS and Windows when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Keep each fast test fast: one that needs more than a few seconds on its own belongs under `slow` or `benchmark`.
+- Fast tests (no marker) run on every PR on Linux, and on macOS and Windows when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Keep each fast test fast: one that needs more than a few seconds on its own belongs under `slow`.
 - Mark tests that need voices, models, audio or the full sample corpus with `@pytest.mark.slow`; speed measurements with `@pytest.mark.benchmark`. Both run nightly (`.github/workflows/nightly.yml`).
-- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium on every PR, with Firefox and WebKit as well (report-only) on a PR that changes a web path, and with all three nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
+- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium on every PR, with Firefox and WebKit as well (report-only) on a PR that changes `src/sci2audio/web/**`, `src/sci2audio/app/**` or `tests/browser/**`, and with all three nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
 - Exception: a test that encodes or decodes only a few seconds of generated audio with ffmpeg may stay in the fast suite, so every three-system run (`ci:full`, `main`, `release/*`) proves the bundled ffmpeg works on all three systems (#69).
 - Hypothesis profiles: `dev` (local default), `ci` (every PR, deterministic), `nightly` (many examples). Set with `HYPOTHESIS_PROFILE`.
 - Golden files (syrupy): accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
