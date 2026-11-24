@@ -24,7 +24,8 @@ file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as 
 Encoding Standard decodes it, which never fails and loses no byte, and the source then says the
 encoding was guessed (D-346). Empty, binary and too large files raise `ExtractionError` with a
 message a person can act on (D-347); a file of more printed lines than `MAX_LINES` is too large
-too, counted before the text is split (D-579).
+too, counted before the text is split (D-579), and so is one with a paragraph of more than
+`MAX_PARAGRAPH` characters between blank lines (#607).
 """
 
 from __future__ import annotations
@@ -44,6 +45,11 @@ MAX_TEXT = 64 * 1024 * 1024  # bytes of a text or Markdown file, as of one EPUB 
 # read and as much again in layout, so this bounds a file to about 210 MB, three times the
 # hard-wrapped lines of the longest books (Shakespeare's works: about 170,000)
 MAX_LINES = 500_000
+# characters of one paragraph, its line ends included (#607, D-777, as `markup.MAX_LINE` and
+# `markdown.MAX_BLOCK`): bytes and lines alone let one paragraph of 64 MB through, which took
+# 1 GB to read and went on to layout and the text steps whole. At the limit a paragraph of
+# one line peaks at 58 MB (tracemalloc), one of short lines at 19 MB.
+MAX_PARAGRAPH = 4_000_000
 
 # Byte order marks, longest first: a UTF-32 LE mark starts with the UTF-16 LE one. The names
 # are the WHATWG ones where it has them (it has no UTF-32).
@@ -70,6 +76,8 @@ _BINARY = (
     b"\x1f\x8b",  # gzip
 )
 _LINE_END = re.compile(r"\r\n|\r|\n")
+_LINE = re.compile(r"[^\r\n]*(?:\r\n?|\n)?")  # one printed line and its line end
+_BLANK = re.compile(r"[ \t\f]*(?:\r\n?|\n)?")  # a line `fold` empties: HTML's white space
 # Structure inside a paragraph (#466): list markers, and where a title line ends
 _BULLET = re.compile(r"[-*\u2022]\s+\S")
 _NUMBERED = re.compile(r"(\d{1,3})([.)])\s+\S")
@@ -139,6 +147,23 @@ def check_lines(text: str, name: str, limit: int, kind: str) -> None:
         )
 
 
+def longest_paragraph(text: str) -> int:
+    """The characters of the longest stretch of `text` between two blank lines, line ends
+    included. A blank line holds only the white space `fold` removes, so a no-break space
+    is text. A linear scan that copies no line."""
+    longest = paragraph = 0
+    for line in _LINE.finditer(text):
+        start, end = line.span()
+        if start == end:  # the empty match at the end of the text
+            break
+        if _BLANK.fullmatch(text, start, end):
+            paragraph = 0
+        else:
+            paragraph += end - start
+            longest = max(longest, paragraph)
+    return longest
+
+
 def source_of(data: bytes, name: str, kind: SourceFormat, decoded: Decoded) -> Source:
     """The `Source` of a text or Markdown file read as `decoded`."""
     return Source(
@@ -163,6 +188,11 @@ def read_text(data: bytes, name: str) -> Content:
     """Read plain-text bytes into `Content`; `name` is the bare file name the source keeps."""
     decoded = decode_text(data, name)
     check_lines(decoded.text, name, MAX_LINES, "text")
+    if longest_paragraph(decoded.text) > MAX_PARAGRAPH:
+        raise ExtractionError(
+            f"{name}: the file holds a paragraph longer than {MAX_PARAGRAPH:,} characters"
+            " (counted between blank lines)"
+        )
     lines: list[TextLine] = []
     paragraph: list[str] = []
     for printed in [*_LINE_END.split(decoded.text), ""]:
