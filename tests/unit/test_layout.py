@@ -1471,7 +1471,7 @@ def test_tick_labels_under_a_figure_in_a_wide_gutter_are_no_column(captioned: bo
     prints its x-axis ticks: they are the figure's, not a column of text."""
     left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
     right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
-    ticks = [line(f"tick{k}", 240 + 28 * k, 262, 252 + 28 * k) for k in range(4)]
+    ticks = [line(f"tick{k}", 238 + 20 * k, 262, 254 + 20 * k) for k in range(6)]
     caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
     found = content(
         left + right + ticks + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
