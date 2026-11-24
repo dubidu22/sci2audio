@@ -932,38 +932,51 @@ def test_the_offline_check_fails_where_the_network_answers(monkeypatch: pytest.M
     assert smoke.no_network() is True
 
 
-class LaunchServices:
-    """Stand-ins for `open`, `osascript` and `pgrep`: `open` writes `line` to the log, and
-    the app runs from `open` until `osascript` quits it."""
+STOPPED = "09:01 INFO stopped\n"
 
-    def __init__(self, log: Path, line: str | None) -> None:
+
+class LaunchServices:
+    """Stand-ins for `open`, `osascript`, `pgrep` and `pkill`: `open` writes `line` to the
+    log, and the app runs from `open` until `osascript` quits it, writing `stopped` as it
+    ends (#717), or until `pkill`."""
+
+    def __init__(self, log: Path, line: str | None, stopped: str | None = STOPPED) -> None:
         self.log = log
         self.line = line
+        self.stopped = stopped
         self.running = False
         self.commands: list[list[str]] = []
+
+    def write(self, text: str | None) -> None:
+        if text is not None:
+            with self.log.open("a", encoding="utf-8") as log:
+                log.write(text)
 
     def __call__(self, command: list[str], **kwargs: object) -> Ran:
         self.commands.append(command)
         if command[0] == "/usr/bin/open":
             self.running = True
-            if self.line is not None:
-                with self.log.open("a", encoding="utf-8") as log:
-                    log.write(self.line)
+            self.write(self.line)
         elif command[0] == "/usr/bin/osascript":
             self.running = False
+            self.write(self.stopped)
         elif command[0] == "/usr/bin/pgrep":
             return Ran(0 if self.running else 1)
+        elif command[0] == "/usr/bin/pkill":
+            self.running = False
         return Ran(0)
 
 
-def launch_setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, line: str | None) -> tuple:
+def launch_setup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, line: str | None, stopped: str | None = STOPPED
+) -> tuple:
     bundle = tmp_path / "sci2audio.app"
     (bundle / "Contents").mkdir(parents=True)
     info = {"CFBundleIdentifier": "io.github.dubidu22.sci2audio"}
     (bundle / "Contents" / "Info.plist").write_bytes(plistlib.dumps(info))
     log = tmp_path / "app.log"
     log.write_text("09:00 INFO running in a window on http://127.0.0.1:5\n", encoding="utf-8")
-    services = LaunchServices(log, line)
+    services = LaunchServices(log, line, stopped)
     monkeypatch.setattr(smoke.subprocess, "run", services)
     return bundle, log, services
 
@@ -1006,6 +1019,63 @@ def test_the_launch_check_fails_when_the_window_line_never_comes(
     monkeypatch.setattr(smoke.subprocess, "run", hangs)
     with pytest.raises(smoke.Failed, match="open -a did not return within 60 s"):
         smoke.smoke_launch(bundle, log, timeout=0.2, poll=0.05)
+
+
+@pytest.mark.parametrize(
+    "stopped",
+    [None, "09:01 INFO stopped\n09:01 ERROR after the stop\n", "09:01 INFO not stopped\n"],
+    ids=["no line, as before #717", "a line after it", "a line that only ends like it"],
+)
+def test_the_launch_check_fails_unless_the_log_ends_with_stopped_after_the_quit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stopped: str | None
+) -> None:
+    started = "09:00 INFO running in a window on http://127.0.0.1:6\n"
+    bundle, log, services = launch_setup(tmp_path, monkeypatch, started, stopped)
+    with pytest.raises(smoke.Failed, match="does not end with the line 'stopped'"):
+        smoke.smoke_launch(bundle, log, timeout=5, poll=0.05)
+    assert not services.running
+
+
+def test_the_stopped_line_of_an_earlier_start_does_not_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    started = "09:00 INFO running in a window on http://127.0.0.1:6\n"
+    bundle, log, _ = launch_setup(tmp_path, monkeypatch, started, None)
+    log.write_text("08:59 INFO stopped\n", encoding="utf-8")
+    with pytest.raises(smoke.Failed, match="does not end with the line 'stopped'"):
+        smoke.smoke_launch(bundle, log, timeout=5, poll=0.05)
+
+
+def test_the_stopped_line_is_the_logs_last_line() -> None:
+    assert smoke.ends_stopped(
+        "09:00 INFO running in a window\n2026-11-24 09:01:02,345 INFO stopped\n"
+    )
+    assert smoke.ends_stopped("09:01 INFO stopped")
+    assert not smoke.ends_stopped("")
+    assert not smoke.ends_stopped("09:01 INFO stopped\n09:01 INFO running in a window\n")
+    assert not smoke.ends_stopped("09:01 INFO not stopped\n")
+    assert not smoke.ends_stopped("09:01 ERROR stopped\n")
+
+
+def test_a_quit_event_that_hangs_fails_the_check_and_ends_the_app(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, services = launch_setup(tmp_path, monkeypatch, "INFO running in a window\n")
+    services.running = True
+    timeouts: list[object] = []
+
+    def hangs(command: list[str], **kwargs: object) -> Ran:
+        if command[0] == "/usr/bin/osascript":
+            timeouts.append(kwargs.get("timeout"))
+            raise smoke.subprocess.TimeoutExpired(command, 7)
+        return services(command, **kwargs)
+
+    monkeypatch.setattr(smoke.subprocess, "run", hangs)
+    problem = smoke.quit_app(bundle, "io.github.dubidu22.sci2audio", timeout=7, poll=0.05)
+    assert problem == "the quit Apple Event got no answer within 7 s"
+    assert timeouts == [7]  # never longer than the quit itself may take
+    assert services.commands[-1][0] == "/usr/bin/pkill"
+    assert not services.running
 
 
 def test_the_launch_check_starts_the_bundle_through_launch_services(
@@ -1101,8 +1171,17 @@ def test_the_uninstall_check_keeps_every_part() -> None:
 def test_the_macos_smoke_test_starts_the_bundle_through_launch_services() -> None:
     job = INSTALLERS[INSTALLERS.index("  smoke:") :]
     assert 'echo "bundle=$HOME/Applications/sci2audio.app" >> "$GITHUB_OUTPUT"' in job
-    step = job[job.index("The app starts from Finder, through Launch Services (macOS)") :]
+    step = job[job.index("The app starts from Finder and the Dock's quit logs") :]
     step = step[: step.index("      - name:")]
     assert "if: runner.os == 'macOS'" in step
     assert "BUNDLE: ${{ steps.installed.outputs.bundle }}" in step
     assert 'installer_smoke.py launch "$BUNDLE"' in step
+    # the app's first start is the one Finder makes, as after a person's install; the
+    # window self test after it starts the program by its path
+    assert job.index("installer_smoke.py launch") < job.index("installer_smoke.py window")
+
+
+def test_the_installers_workflow_keeps_its_lines_short() -> None:
+    for number, line in enumerate(INSTALLERS.splitlines(), 1):
+        if line.lstrip().startswith("#"):
+            assert len(line) <= 100, f"installers.yml:{number}"
