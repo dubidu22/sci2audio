@@ -40,7 +40,9 @@ The graphics no caption names:
   before it (D-90). The block's text stays as it was;
 - anything else is a FIGURE, with the other such graphics within `float_gap` of it. It
   takes no text: without a caption, a frame or background around running text can't be
-  told from a figure.
+  told from a figure. Only the labels `paragraphs` read into its block (a figure in a
+  gutter, #932) and its small labels (#55) are its text, and such a block is a figure
+  whatever its graphics' shape.
 """
 
 from __future__ import annotations
@@ -271,9 +273,10 @@ class _Walk:
         self.west: list[tuple[float, int, _Item]] = []  # passed by on the left, by -x1
         self.east: list[tuple[float, int, _Item]] = []  # passed by on the right, by x0
         self.order = itertools.count()
-        self.drawn: dict[int, list[_Item]] = {}  # the graphics of each figure block
+        # the graphics of each figure block, and the labels `paragraphs` read into it (#932)
+        self.drawn: dict[int, list[_Item]] = {}
         for i in others:
-            if i.line is None and state.blocks[i.block].kind is BlockKind.FIGURE:
+            if state.blocks[i.block].kind is BlockKind.FIGURE:
                 self.drawn.setdefault(i.block, []).append(i)
         small = [i for i in others if _small(i, state) and state.kind(i) in _TAKE]
         self.small = sorted(small, key=lambda i: i.box.y0)
@@ -305,7 +308,7 @@ class _Walk:
             self.left, self.right = min(self.left, taken.box.x0), max(self.right, taken.box.x1)
             if _small(taken, self.state) and all(i.line for i in self.found):
                 todo += self._row(taken)
-            if taken.line is None:  # the graphics drawn with it, whole
+            if self.state.kind(taken) is BlockKind.FIGURE:  # the figure drawn with it, whole
                 todo += self.drawn.pop(taken.block, [])
             while self.west and -self.west[0][0] > self.left:
                 todo.append(heapq.heappop(self.west)[2])
@@ -403,7 +406,7 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
     for k, group in groups.items():
         if k in plotted:
             continue
-        if _minor(group, state):
+        if _minor(group, state) and not _labelled(k, state):
             found[k] = "join"
         else:
             figures.append(group)
@@ -422,24 +425,33 @@ def _loose(items: list[_Item], state: _State, actions: dict[int, str]) -> dict[i
 
 
 def _labels(group: list[_Item], items: list[_Item], state: _State) -> list[_Item]:
-    """The text a figure no caption names takes: the lines wholly inside the box its graphics
-    span and set smaller than the body text (tick and axis labels, a legend), that a float
-    may take (#55). None if a single graphic holds them all: a background or a frame
-    around text, whose text stays running text however small (D-840); running text in the
-    body size is never taken."""
+    """The text a figure no caption names takes: the labels `paragraphs` read into its block
+    (#932), and the lines wholly inside the box its graphics span and set smaller than the
+    body text (tick and axis labels, a legend), that a float may take (#55). Of these, none
+    if a single graphic holds them all: a background or a frame around text, whose text
+    stays running text however small (D-840); running text in the body size is never
+    taken."""
     box = union([i.box for i in group])
+    blocks = {i.block for i in group}
+    lines = [i for i in items if i.line is not None and i.id not in state.taken]
+    read = [i for i in lines if i.block in blocks]
     found = [
         i
-        for i in items
-        if i.line is not None
-        and i.id not in state.taken
+        for i in lines
+        if i.block not in blocks
         and state.kind(i) in _TAKE
         and _small(i, state)
         and holds(box, i.box)
     ]
     if any(all(holds(g.box, i.box) for i in found) for g in group):
-        return []
-    return found
+        return read
+    return read + found
+
+
+def _labelled(k: int, state: _State) -> bool:
+    """True if the block holds text lines: a figure's labels that `paragraphs` read into
+    it (#932). Its graphics are a figure, whatever their shape or how often they repeat."""
+    return any(p.item in state.lines for p in state.blocks[k].parts)
 
 
 def _plots(groups: dict[int, list[_Item]], state: _State) -> list[list[int]]:
@@ -586,7 +598,7 @@ def _repeated(pages: list[list[_Item]], state: _State) -> dict[int, str]:
     boxes = {
         k: (group[0].page, union([i.box for i in group]))
         for k, group in groups.items()
-        if not _minor(group, state)
+        if not _minor(group, state) and not _labelled(k, state)
     }
     found = {}
     for k, (_, box) in boxes.items():
