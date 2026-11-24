@@ -2079,6 +2079,56 @@ expected = [
 ]
 
 [[case]]
+id = "links-no-two-join-words-around-a-removed-link"
+audit = 0
+issue = 628
+goal = "A join word right before a removed link goes with it when another join word follows the link, or follows a citation removed after the link, so no two join words are read side by side."
+blocks = [
+    { kind = "paragraph", text = "Then it and https://x.org/8 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then the data , and https://x.org/5 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then Müller, , and https://x.org/4 and more." },
+    { kind = "paragraph", text = "Then it and https://x.org/8 and more." },
+    { kind = "paragraph", text = "Then it or https://x.org/8 (Lee, 2019) and more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) and more." },
+]
+expected = [
+    "Then it and more.",
+    "Then the data , and more.",
+    "Then Müller, , and more.",
+    "Then it and more.",
+    "Then it and more.",
+    "Then it and more.",
+]
+
+[[case]]
+id = "links-a-word-glued-after-a-removed-bracket-stays-a-word"
+audit = 0
+issue = 629
+goal = "A word glued right after the closing bracket or quotation mark of a removed link or citation is read as its own word, with no stray bracket or quotation mark left."
+blocks = [
+    { kind = "paragraph", text = "Text (see https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text [see https://a.org]Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text (https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text [1](https://a.org)Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text <https://a.org>Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text \"https://a.org\"Smith and https://x.org here." },
+    { kind = "paragraph", text = "Text (Smith, 2019)Lee and https://x.org here." },
+    { kind = "paragraph", text = "Text (see https://a.org)Smith here." },
+    { kind = "paragraph", text = "Text “https://a.org”Smith here." },
+]
+expected = [
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Smith here.",
+    "Text Lee here.",
+    "Text Smith here.",
+    "Text Smith here.",
+]
+
+[[case]]
 id = "links-no-two-full-stops-after-an-abbreviation"
 audit = 0
 issue = 258
