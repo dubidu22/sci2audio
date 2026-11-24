@@ -349,6 +349,14 @@ class PositionSaves:
             if changed is not None:
                 write_position(work, document_id, stamp, changed)
 
+    def forget_unless(self, work: Path, document_id: str, stamp: str) -> None:
+        """Remove the position unless it is recorded for the audiobook `stamp` (none for
+        "") - the read and the removal in one turn (#839), so a save that lands between
+        them is written after the removal, not removed with it. Raises OSError."""
+        with self.lock:
+            if not stamp or recorded_position(work, document_id, stamp) is None:
+                remove_position(work)
+
 
 def remove_position(work: Path) -> None:
     """Forget the position (a new audiobook was made). Raises OSError."""
