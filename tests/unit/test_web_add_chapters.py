@@ -28,7 +28,7 @@ from web_helpers import (
 )
 
 from sci2audio.app.playable import read_record
-from sci2audio.web import player
+from sci2audio.web import player, tasks
 from sci2audio.web.player import POSITION
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -330,6 +330,45 @@ def test_a_position_saved_before_this_version_is_still_offered_and_kept(tmp_path
     chapter, at = resume_of(client.get(f"/documents/{doc}/listen").text)
     assert chapter == 2
     assert at == pytest.approx(data["chapters"][2]["start"] + 0.3, abs=0.01)
+
+
+def test_a_save_while_the_job_keeps_the_position_by_chapter_is_not_lost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#790: the audio job reads the kept position, then writes it again with its chapter's
+    index. A save by the player that lands between the read and the write is the newer
+    place and must survive: the read and the write take one turn with the player's saves."""
+    client, _config, doc, _gate = project(tmp_path, [0, 2])
+    data = player_data(client.get(f"/documents/{doc}/listen").text)
+    results = data["chapters"][1]
+    body = {"chapter": 1, "time": results["start"] + 0.3, "audiobook": data["audiobook"]}
+    assert client.post(f"/api/v1/documents/{doc}/position", json=body).status_code == 204
+    answers: list[int] = []
+    original = tasks.chapter_index
+
+    def save_in_between(work: Path, n: int) -> int | None:
+        # the job has read the position: the player saves a newer place now
+        monkeypatch.setattr(tasks, "chapter_index", original)
+        newer = {**body, "time": results["start"] + 0.4}
+        saver = threading.Thread(
+            target=lambda: answers.append(
+                client.post(f"/api/v1/documents/{doc}/position", json=newer).status_code
+            )
+        )
+        saver.start()
+        saver.join(timeout=1.0)  # a save that waits for the job's turn goes on after it
+        return original(work, n)
+
+    monkeypatch.setattr(tasks, "chapter_index", save_in_between)
+    assert audio(client, doc, [1], keep_settings=True)["state"] == "done"
+    deadline = time.monotonic() + 30
+    while not answers and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert answers == [204]
+    data = player_data(client.get(f"/documents/{doc}/listen").text)
+    chapter, at = resume_of(client.get(f"/documents/{doc}/listen").text)
+    assert chapter == 2  # Results, now after Methods
+    assert at == pytest.approx(data["chapters"][2]["start"] + 0.4, abs=0.01)  # the newer place
 
 
 def test_adding_to_a_finished_project_shows_the_growing_view_until_done(tmp_path: Path) -> None:

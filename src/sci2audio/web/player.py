@@ -31,7 +31,7 @@ import statistics
 import threading
 import time
 import unicodedata
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path, PurePath
@@ -77,10 +77,6 @@ POSITION = "position.json"  # where the person stopped listening (#153)
 POSITION_FORMAT = "sci2audio-web-position"
 POSITION_VERSION = 1
 POSITION_LIMIT = 4096  # bytes: a record is about 150; a larger file is not ours
-# `write_texts` writes a file under one temporary name, so two saves at once would rename
-# away each other's file (#763): saves take turns and the later one wins. A save is about
-# 150 bytes, so the wait is short.
-_POSITION_SAVE = threading.Lock()
 
 
 class PlayerError(Exception):
@@ -304,7 +300,8 @@ def _bounds(path: str, version: tuple[int, int, int]) -> Bounds:
 
 def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
     """Keep where the person stopped (atomically: a failed write leaves the old record).
-    Saves at once take turns, the later one wins (#763). Raises OSError."""
+    Every write has its own temporary name (#778), so saves at once both succeed and the
+    later rename wins; the server saves through `PositionSaves`. Raises OSError."""
     data: dict[str, Any] = {
         "format": POSITION_FORMAT,
         "version": POSITION_VERSION,
@@ -315,8 +312,42 @@ def write_position(work: Path, document_id: str, stamp: str, position: Position)
     }
     if position.index is not None and position.within is not None:
         data.update(index=position.index, within=position.within)
-    with _POSITION_SAVE:
-        write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+    write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+
+
+@dataclass
+class PositionSaves:
+    """The turns of one server run's writes of a listening position (#790): the player's
+    saves and the audio job's read-then-write of the kept position (`change`) hold one
+    lock, so a save that lands while the job rewrites the record is not overwritten by the
+    older place the job read. Each write has its own temporary name (#778), so the lock
+    guards only the read-then-write, not a rename. A save is about 150 bytes: the wait is
+    short."""
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def save(self, work: Path, document_id: str, stamp: str, position: Position) -> None:
+        """`write_position` in turn. Raises OSError."""
+        with self.lock:
+            write_position(work, document_id, stamp, position)
+
+    def change(
+        self,
+        work: Path,
+        document_id: str,
+        stamp: str,
+        change: Callable[[Position], Position | None],
+    ) -> None:
+        """Read the position recorded for this audiobook and write what `change` makes of
+        it, in one turn; nothing is written for no record or a `change` that gives None.
+        Raises OSError."""
+        with self.lock:
+            position = recorded_position(work, document_id, stamp)
+            if position is None:
+                return
+            changed = change(position)
+            if changed is not None:
+                write_position(work, document_id, stamp, changed)
 
 
 def remove_position(work: Path) -> None:
