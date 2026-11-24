@@ -1432,7 +1432,7 @@ def _captures_data(
     except (CapturesUnreadable, OSError):
         return {"captures": [], "captures_off": "unreadable", "captures_file": str(work / CAPTURES)}
     spans = [chunk.span for chunk in located.readalong.chunks]
-    firsts = sentence_starts(located.readalong)  # a sentence by its first piece (#520)
+    firsts = sentence_starts(located.readalong, made_from)  # a sentence by its first piece (#520)
     captures = found.captures if found else ()
     return {
         "captures": [

@@ -756,3 +756,150 @@ def test_a_long_line_in_capitals_after_a_sentence_is_not_cut_before() -> None:
         "and the second part starts on this line and runs on for a while.\n"
     )
     assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+# ---- #827: a line ending in an abbreviation does not end a sentence ----------------------
+
+
+@pytest.mark.parametrize(
+    "end",
+    ["e.g.", "i.e.", "etc.", "Calif.", "Jan.", "z. B.", "d. h.", "usw.", "(e.g.", "e.g.)"],
+)
+def test_a_line_ending_in_an_abbreviation_keeps_a_capitals_line_in_its_sentence(
+    end: str,
+) -> None:
+    """An abbreviation's full stop is not the end of a sentence: an acronym wrapped onto a
+    line of its own after it stays in the paragraph, as after a line that runs on (#827)."""
+    text = (
+        f"The tool reads many kinds of input, among them scanned pages and {end}\n"
+        "PDF\n"
+        "files and plain text, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_the_issue_example_after_e_g_stays_one_paragraph() -> None:
+    text = (
+        "The tool reads many kinds of input, such as text, markdown and scans, e.g.\n"
+        "PDF\n"
+        "files and plain text, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+@pytest.mark.parametrize("end", ["the end of the first part.", "the age of three.", "go."])
+def test_a_word_ending_like_an_abbreviation_still_ends_a_sentence(end: str) -> None:
+    """Only a listed abbreviation is looked through: an ordinary last word ("part.", "three.",
+    "go.") still ends the sentence before a capitals heading (#570)."""
+    text = (
+        f"The first part of the note ends here, and it ends at {end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_capitals_line_before_a_lower_case_line_does_not_end_its_paragraph() -> None:
+    """A short line in capitals before a line starting in lower case is a wrapped acronym,
+    not a title: the sentence runs on through it (#827)."""
+    text = (
+        "The first part of the note runs on here and names the agency of the\n"
+        "NASA JPL\n"
+        "and its partners, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+# ---- #812: a mixed-case heading between two prose lines ----------------------------------
+
+_INTRO = "The first part of the note ends here, at the end of the first part.\n"
+_BODY = "The next part starts on this line and runs on for a while here.\n"
+
+
+def test_two_mixed_case_headings_between_prose_lines_start_elements_of_their_own() -> None:
+    """A short capitalised line without a sentence end, between a line that ends a sentence
+    and a prose line, is a heading when another line of the document has the same shape."""
+    text = f"{_INTRO}Methods\n{_BODY}{_INTRO}Results and discussion\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p", "br"), ("p",), ("p",)]
+
+
+def test_mixed_case_headings_count_across_paragraphs() -> None:
+    text = f"{_INTRO}Methods\n{_BODY}\n{_INTRO}Ergebnisse\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p",), ("p",), ("p",), ("p",), ("p",)]
+
+
+def test_one_stray_mixed_case_line_between_prose_lines_stays_joined() -> None:
+    """One such line alone is not cut before: it may be a short wrapped line."""
+    text = f"{_INTRO}Methods\n{_BODY}"
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_mixed_case_heading_shape_needs_the_end_of_a_sentence_before_it() -> None:
+    """After a line that runs on, or a line ending in an abbreviation, the short line stays
+    in its sentence even when the document shows the heading shape elsewhere."""
+    runs_on = "The first part of the note runs on here and names the agency of the\n"
+    abbreviation = "The first part of the note runs on here and names, e.g.\n"
+    text = (
+        f"{_INTRO}Methods\n{_BODY}{_INTRO}Results\n{_BODY}"
+        f"{runs_on}Results\n{_BODY}{abbreviation}Results\n{_BODY}"
+    )
+    br = ("p", "br")
+    assert tags_of(text) == [
+        *[("p",), ("p",), ("p",), br, ("p",), ("p",)],
+        *[br, br, ("p",)],
+        *[br, br, ("p",)],
+    ]
+
+
+def test_short_last_lines_and_lines_that_run_on_stay_joined() -> None:
+    """A paragraph's short last line, a short line ending in punctuation and a short line
+    before a line in lower case stay joined, however often they occur (#812)."""
+    br = ("p", "br")
+    last = f"{_INTRO}Thank you\n"
+    assert tags_of(f"{last}\n{last}") == [("p",), br, ("p",), br]
+    punctuated = f"{_INTRO}Results of the study,\n{_BODY}"
+    assert tags_of(punctuated * 2) == [("p",), *[br] * 5]
+    lower = f"{_INTRO}Results of the\nnext part start on this line and run on for a while.\n"
+    assert tags_of(lower * 2) == [("p",), *[br] * 5]
+
+
+def test_a_short_line_a_hard_wrap_left_before_a_long_word_is_no_mixed_case_heading() -> None:
+    """A short line whose next line's first word would not have fit after it is a hard wrap,
+    not a heading, however often it occurs (#812)."""
+    word = "Rindfleischetikettierungsueberwachungsaufgabenuebertragungsgesetze"
+    text = f"{_INTRO}The new\n{word}.\n" * 2
+    br = ("p", "br")
+    assert tags_of(text) == [("p",), br, ("p",), br, br, ("p",)]
+
+
+# ---- #827: a capitals title before a lower-case first word still cuts --------------------
+
+
+@pytest.mark.parametrize(
+    "after", ["this paper presents a method", "mRNA vaccines are discussed", "pH values rose"]
+)
+def test_a_first_line_in_capitals_before_a_lower_case_line_is_a_title_line(after: str) -> None:
+    """A heading whose next line starts in lower case ("mRNA", "pH") still ends its element:
+    only a capitals line inside a running sentence runs on (#827)."""
+    text = f"ABSTRACT\n{after} and runs on for a long line here as prose does.\n"
+    assert tags_of(text) == [("p",), ("p",)]
+
+
+@pytest.mark.parametrize("heading", ["INTRODUCTION", "RESULTS"])
+def test_a_capitals_heading_after_a_sentence_before_a_lower_case_line_is_cut(
+    heading: str,
+) -> None:
+    text = (
+        "The samples were prepared as before and all of them were checked twice.\n"
+        f"{heading}\n"
+        "mRNA levels and pH values rose in every sample, and it runs on here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_short_line_in_capitals_without_a_colon_is_a_title_line() -> None:
+    """The no-colon variant of the "ABSTRACT:" pin above."""
+    assert tags_of("ABSTRACT\nthe text of the abstract runs on for a long line.\n") == [
+        ("p",),
+        ("p",),
+    ]

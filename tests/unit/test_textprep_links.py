@@ -455,3 +455,54 @@ def test_the_generated_sentences_mostly_hold_links() -> None:
 
     probe()
     assert sum(found) / len(found) > 0.6
+
+
+# ---- join words and glued words around a removed link (#628, #629) ------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # a join word before the link goes when another follows it (#628)
+        ("Then it and https://x.org/8 and more.", "Then it and more."),
+        ("Then it or https://x.org/8 and more.", "Then it and more."),
+        ("Then it, and https://x.org/8 and more.", "Then it, and more."),
+        ("We use it and https://x.org and the data.", "We use it and the data."),
+        # ... not where it starts the sentence, nor where only one join word stands
+        ("And https://x.org and more.", "And and more."),
+        ("It rains and https://x.org shows it.", "It rains and shows it."),
+        ("We use https://x.org and the data.", "We use and the data."),
+        # a word glued after the link's closing bracket is a word of its own (#629)
+        ("Text (see https://a.org)Smith here.", "Text Smith here."),
+        ("Text [see https://a.org]Smith here.", "Text Smith here."),
+        ("Text (https://a.org)Smith here.", "Text Smith here."),
+        ("Text <https://a.org>Smith here.", "Text Smith here."),
+        # ... and quotation marks that hold only the link go with it
+        ('Text "https://a.org"Smith here.', "Text Smith here."),
+        ("Text “https://a.org” here.", "Text here."),
+        ("Text „https://a.org“ here.", "Text here."),
+        # ... with lead words too; quotation marks apart from the link stay
+        ('Text "see https://a.org" here.', "Text here."),
+        ('The tool "X" https://a.org "Y" here.', 'The tool "X" "Y" here.'),
+        # a bracket glued after a later closing bracket still wins (#371)
+        ("Text (see https://example.org/a)b)(more) here.", "Text (more) here."),
+    ],
+)
+def test_join_words_and_glued_words_around_a_removed_link(text: str, spoken: str) -> None:
+    assert read(text) == spoken
+
+
+def test_the_reasons_name_the_join_word_and_the_quotation_marks() -> None:
+    (edit,) = edits("Then it and https://x.org/8 and more.")
+    assert edit.reason == (
+        'URL "https://x.org/8" is not read; "and" before it goes too, as another follows it (TP-07)'
+    )
+    (edit,) = edits('Text "https://a.org"Smith here.')
+    assert edit.reason == (
+        'URL "https://a.org" is not read; the quotation marks around it go too (TP-07)'
+    )
+
+
+def test_a_long_block_of_join_words_around_links_takes_linear_time() -> None:  # #628
+    found = assert_linear(edits, lambda n: "Then it and https://x.org and more. " * n, 3000)
+    assert len(found) == 3000
