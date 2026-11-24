@@ -286,8 +286,9 @@ def test_a_second_ctrl_c_stops_at_once(tmp_path: Path, source: Path) -> None:
     cli = Cli(tmp_path, voice=FakeVoice(fail_on=press_twice_then_take_long))
     result = cli("convert", source, "-o", tmp_path / "b", "-q")
     stopped = time.monotonic()
-    # clock-bound: counted from the second Ctrl-C, not from the start (reading the file takes
-    # seconds on a loaded machine); it did not wait for the sentence to end, which takes 10 s
+    # Counted from the second Ctrl-C, not from the start: reading the file takes seconds on a
+    # loaded machine.
+    # clock-bound: it did not wait for the sentence to end, which takes 10 s
     assert stopped - second_pressed[0] < 5
     assert result.code == 130
     assert result.err == (
