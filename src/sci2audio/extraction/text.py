@@ -153,15 +153,70 @@ _MONTH_LINE = re.compile(r"\W*([^\W\d_]+)(?:\s+(\d{1,4}))?\W*")
 # none. The particle group is bounded, so a match costs a few passes over the line at most.
 # A Chicago or Vancouver shape is also a title's ("Guns, Germs, and Steel", "The US, China
 # ..."): it is only `_WEAK` evidence of an entry, which context has to confirm (`_title`).
-_WEAK, _STRONG = 1, 2
+# So is an initials-first author ("J. Smith, ...", "1. J. Smith and K. Jones, ...", #981).
+# A Vancouver or Chicago line whose whole author list has its shape up to the stop that ends
+# it ("Smith J, Jones K.", "Smith, John, and Kate Jones.") is `_NAMED`: only such lines
+# confirm each other, so a title before a sentence that opens like a name ("Using AI, we
+# ...", "Today, Europe, China ...") keeps its date apart (#981). One Chicago author ("Smith,
+# John.") and one initials-first author stay `_WEAK`: "Yes, Sir." and "A. Lincoln, a Life"
+# have their shapes. Two or more initials-first authors before a capital are `_PAIRED`: such
+# a line confirms another across a date, but two in a row are no list, as an author line and
+# its affiliation look the same ("J. Smith and K. Jones, Department of Acoustics").
+_WEAK, _PAIRED, _NAMED, _STRONG = 1, 2, 3, 4
 _NUMBERED_REFERENCE = re.compile(r"\[\d{1,4}\]")
+# Particles before a surname; capitalised ones as a name's first word ("De Souza, M.", #981)
+# but not the German articles "Der", "Den", "Die", which start sentences.
+_PARTICLES = (
+    r"(?:(?:von|van|de|der|den|du|da|di|del|della|dos|la|le|ten|ter|zu|zum|zur"
+    r"|Von|Van|De|Du|Da|Di|Del|Della|Dos|La|Le|Ten|Ter)\s+){0,3}"
+)
 _REFERENCE = re.compile(
-    r"(?:\d{1,4}[.)]\s*)?"
-    r"(?:(?:von|van|de|der|den|du|da|di|del|della|dos|la|le|ten|ter|zu|zum|zur)\s+){0,3}"
+    rf"(?:\d{{1,4}}[.)]\s*)?{_PARTICLES}"
     r"([^\W\d_]+(?:[-'\u2019][^\W\d_]+)*)"  # the surname
     r"(?:,\s*([^\W\d_])\."  # APA: an initial
-    r"|,\s*([^\W\d_]+)(?:\s+([^\W\d_])\.)?,"  # Chicago: a given name and a middle initial
+    # Chicago: a given name and a middle initial, then the next author or the title (#981)
+    r"|,\s*([^\W\d_]+)(?:\s+([^\W\d_])\.,?|[,.])"
     r"|\s+([^\W\d_]{1,3})[,.])"  # Vancouver: initials
+)
+# The capitals of the Latin, Greek and Cyrillic scripts, for the author lists below: `re`
+# has no class for them.
+_UPPER = "[{}]".format(
+    re.escape("".join(c for c in map(chr, (*range(0x530), *range(0x1E00, 0x1F00))) if c.isupper()))
+)
+_INITIALS = rf"{_UPPER}\.(?:[\s-]*{_UPPER}\.)*"  # "J.", "J. A.", "J.-P."
+# "J. Smith, ...", "1. J. A. Smith and K. Jones, ..."; "Z. B." is the German abbreviation
+_INITIALS_FIRST = re.compile(
+    rf"(?:\d{{1,4}}[.)]\s*)?(?!Z\.\s*B\.){_INITIALS}\s+{_PARTICLES}{_UPPER}[^\W\d_]*"
+    r"(?:[-'\u2019][^\W\d_]+)*(?:,|\s+(?:and|und|&)\s)"
+)
+# a name in an author list: particles, then a word starting with a capital
+_NAME = rf"{_PARTICLES}{_UPPER}[^\W\d_]*(?:[-'\u2019][^\W\d_]+)*"
+_GIVEN = rf"{_UPPER}[^\W\d_]*(?:-{_UPPER}[^\W\d_]*)?(?:\s+{_UPPER}\.)?"
+_PERSON = rf"{_GIVEN}\s+{_NAME}"
+# Words that head a part of a text: "Part II." and "Appendix A." have the shape of one
+# Vancouver author with initials, and a title and its subtitle may both start with one.
+_PARTS = (
+    r"(?!(?:Part|Chapter|Section|Volume|Vol|Book|Appendix|Annex|Table|Figure|Fig|Plate|Phase"
+    r"|Stage|Step|Level|Type|Class|Group|Model|Case|Study|Experiment|Trial|Session|Round|Act"
+    r"|Scene|Lesson|Unit|Lecture|Episode|Season|Article|Item|Exhibit|Schedule|Teil|Kapitel"
+    r"|Abschnitt|Band|Buch|Anhang|Tabelle|Abbildung|Abb|Tafel|Stufe|Schritt|Gruppe|Klasse"
+    r"|Modell|Fall|Studie|Versuch|Sitzung|Runde|Akt|Szene|Lektion|Einheit|Vorlesung|Folge"
+    r"|Staffel|Artikel|Anlage)\b)"
+)
+# A whole author list ending as the style ends it (`_NAMED`)
+_NAMED_LIST = re.compile(
+    rf"(?:\d{{1,4}}[.)]\s*)?(?:"
+    # Vancouver: "Smith J.", "Smith J, Jones KA, et al."
+    rf"{_PARTS}{_NAME}\s+{_UPPER}{{1,3}}(?:,\s+{_NAME}\s+{_UPPER}{{1,3}})*(?:,\s+et\s+al)?\."
+    # Chicago, two or more authors: "Smith, John A., Kate Jones, and Bob Brown."
+    rf"|{_NAME},\s+{_GIVEN}(?:,\s+et\s+al\.|(?:,\s+{_PERSON})*,?\s+(?:and|und|&)\s+{_PERSON}\.)"
+    r")(?=\s|\Z)"
+)
+# initials first, two or more authors before a capital: "J. Smith and K. Jones, A study"
+_FIRST = rf"{_INITIALS}\s+{_NAME}"
+_PAIRED_LIST = re.compile(
+    rf"(?:\d{{1,4}}[.)]\s*)?{_FIRST}(?:(?:,\s+{_FIRST})+(?:,?\s+(?:and|und|&)\s+{_FIRST})?"
+    rf"|,?\s+(?:and|und|&)\s+{_FIRST}),\s+[\"\u201c\u201e]?{_UPPER}"
 )
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
@@ -372,9 +427,12 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
 def _listed(listed: bool, before: int, text: str) -> tuple[bool, int]:
     """Whether the paragraph is a list of entries once an element starts with `text`, and
     how surely `text` starts one (`_reference`): it is after an APA or numbered entry, or
-    after two elements in a row that start like entries (#947)."""
+    after an element that starts with a whole Chicago or Vancouver author list (`_NAMED`)
+    and one that starts like an entry (#947, #981). A title and its subtitle may both open
+    like a name ("The US, China ..." / "Part II. ..."), but not with a whole author list."""
     reference = _reference(text)
-    return listed or before == _STRONG or bool(before and reference), reference
+    named = before >= _NAMED and reference >= _WEAK
+    return listed or before == _STRONG or named, reference
 
 
 def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
@@ -444,9 +502,13 @@ def _title(
     the entry's last line before its date, no title ("tablets. Journal of Acoustics" / "June
     2020"), and a short line before the start of the next entry ends its entry, as before a
     capital ("June 2020" / "[2] ...", "June 2020" / "von Neumann, J. ...", #947). A block
-    that starts like an APA or numbered entry is one; one that starts like a Chicago or
-    Vancouver entry only in a `listed` paragraph or if the line `beyond` the date starts an
-    entry too: "Guns, Germs, and Steel" / "June 2020" / "The ..." is a title and its date.
+    that starts like an APA or numbered entry is one; one that starts like a Chicago,
+    Vancouver or initials-first entry only in a `listed` paragraph, or if it starts with a
+    whole author list and so does the line `beyond` the date: "Guns, Germs, and Steel" /
+    "June 2020" / "Using AI, we ..." is a title, its date and a sentence (#981). After a
+    date such a block ends before an entry whatever the line before the date ends in, and
+    after a date ending in a stop ("... pp. 1-9," / "June 2020" / "[2] ...", "June 2020." /
+    "Brown, B. ...", #981).
 
     A short line after a long line that does not end a sentence runs on into the next line
     if it is a date in that sentence (`_runs_on`): "... im" / "Oktober 2020" / "Die ..."
@@ -458,9 +520,9 @@ def _title(
     first = after.lstrip(_OPENERS)[:1]
 
     def entry() -> bool:  # matched only where needed: `beyond` costs its length
-        if reference != _WEAK:
-            return reference == _STRONG
-        return listed or (beyond is not None and _reference(beyond) > 0)
+        if reference == _STRONG or not reference:
+            return bool(reference)
+        return listed or (reference >= _PAIRED and _named(beyond))
 
     if not _short(line, longest):
         # the sentence test last: it runs a search, and few lines come before a date
@@ -473,7 +535,20 @@ def _title(
             return True
         if reference and _reference(after):
             return True
-        return not first.islower() and not (first.isdigit() and not opens and _month_line(line))
+        # after a short line ending an entry the date was cut before #947, so it is still
+        # cut from a number after it ("Journal of Sound" / "DECEMBER 2025" / "1. ...", #981)
+        tail = (
+            bool(reference)
+            and _short(before, longest)
+            and before.rstrip(_CLOSERS)[-1:] not in _ENDS
+        )
+        return not first.islower() and not (
+            first.isdigit() and not (opens or tail) and _month_line(line)
+        )
+    # a date ends its entry before the next one, whatever the entry's last line ends in
+    # ("... pp. 1-9," / "June 2020" / "[2] ...", "June 2020." / "Brown, B. ...", #981)
+    if reference >= _PAIRED and _month_line(line) and _named(after):
+        return True
     if line.rstrip(_CLOSERS)[-1:] in _ENDS or (reference and _month_line(after) and entry()):
         return False
     if (
@@ -490,7 +565,7 @@ def _title(
 def _dated(line: str, after: str, longest: int, beyond: str | None, *, listed: bool) -> bool:
     """True if `after` is the date line of a long title or author line `line` (#922): a
     short month line without punctuation at its end, after a line ending in a word that
-    leads into no date and that starts no reference entry (`_reference`, #930, #947). A
+    leads into no date and that starts no reference entry (`_reference`, #930, #947, #981). A
     month and a year before `beyond`, the line after it, starting with a capital; a month in
     capitals before a capital, or alone before a number ("JUNE" / "2020 marked ...", #930).
     A date ending in a stop ("... dated" / "June 2020." / "The ...") or before a lower-case
@@ -510,32 +585,48 @@ def _dated(line: str, after: str, longest: int, beyond: str | None, *, listed: b
         dated = dated and next_first.isupper()
     if not dated or not _titled(line):
         return False
-    # a Chicago or Vancouver shape is an entry only in a list or before another entry (#947)
+    # a Chicago or Vancouver shape is an entry only in a list, or as a whole author list
+    # before another one (#947, #981)
     reference = _reference(line)
-    return not reference or (
-        reference == _WEAK and not (listed or (beyond is not None and _reference(beyond)))
-    )
+    if reference == _STRONG or not reference:
+        return not reference
+    return not (listed or (reference >= _PAIRED and _named(beyond)))
 
 
 def _reference(text: str) -> int:
     """How surely `text`, past a bullet, starts a reference entry (`_REFERENCE`, #930,
     #947): `_STRONG` for "[1]" and an APA initial ("Smith, J."), `_WEAK` for a Chicago
-    given name ("Smith, John,") or Vancouver initials ("Smith JA,"), which titles share
-    ("Guns, Germs, and Steel", "The US, China ..."), else 0."""
+    given name ("Smith, John,"), Vancouver initials ("Smith JA,") or initials first ("J.
+    Smith,", #981), which titles share ("Guns, Germs, and Steel", "The US, China ..."),
+    `_NAMED` or `_PAIRED` for a whole author list of those styles (`_NAMED_LIST`,
+    `_PAIRED_LIST`), else 0."""
     text = text.lstrip()
     if _BULLET.match(text):
         text = text[1:].lstrip()
     if _NUMBERED_REFERENCE.match(text):
         return _STRONG
     found = _REFERENCE.match(text)
-    if found is None or not found[1][0].isupper():
-        return 0
-    _, initial, given, middle, initials = found.groups()
-    if initials is not None:
-        return _WEAK if initials.isupper() else 0
-    if initial is not None:
-        return _STRONG if initial.isupper() else 0
-    return _WEAK if given[0].isupper() and (middle is None or middle.isupper()) else 0
+    weak = False
+    if found is not None and found[1][0].isupper():
+        _, initial, given, middle, initials = found.groups()
+        if initial is not None:
+            if initial.isupper():
+                return _STRONG
+        elif initials is not None:
+            weak = initials.isupper()
+        else:
+            weak = given[0].isupper() and (middle is None or middle.isupper())
+    if weak:
+        return _NAMED if _NAMED_LIST.match(text) else _WEAK
+    if _INITIALS_FIRST.match(text):
+        return _PAIRED if _PAIRED_LIST.match(text) else _WEAK
+    return 0
+
+
+def _named(text: str | None) -> bool:
+    """True if `text` starts an APA or numbered entry or a whole author list (`_PAIRED`,
+    `_NAMED`)."""
+    return text is not None and _reference(text) >= _PAIRED
 
 
 def _runs_on(before: str, line: str) -> bool:
