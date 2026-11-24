@@ -16,7 +16,7 @@ from playwright.sync_api import Page, Route, expect
 from test_focus import colours, nobody_focused, order
 from test_player import listen_to, make_audiobook, paused
 
-from conftest import Live, check_axe, tab_key
+from conftest import Live, axe_problems, check_axe, tab_key
 
 # counts the tones the page plays (#397): the page makes them itself, nothing is fetched
 COUNT_TONES = """
@@ -818,6 +818,82 @@ def test_at_1440_and_1280_px_the_keys_and_flags_fit_and_below_the_panel_overlays
     page.set_viewport_size({"width": 1280, "height": 720})
 
 
+CAPTURE_WORDS = {
+    "en": {
+        "box": "Your note on this sentence",
+        "saved": "Note saved: page 1.",
+        "keys": ("Note", "Quote", "Mark"),
+        "remove": "Remove",
+    },
+    "de": {
+        "box": "Ihre Notiz zu diesem Satz",
+        "saved": "Notiz gespeichert: Seite 1.",
+        "keys": ("Notiz", "Zitat", "Marke"),
+        "remove": "Entfernen",
+    },
+}
+
+
+@pytest.mark.parametrize(("language", "scheme"), [("en", "dark"), ("de", "light"), ("de", "dark")])
+def test_at_1440_and_1280_px_the_capture_ui_fits_in_dark_and_german_with_axe(
+    signed_in: Page, live: Live, language: str, scheme: str
+) -> None:
+    """#912: the dock's keys, the flags, the ticks and the note box at 1440 and 1280 px in
+    dark and in German (light English: the test above), each with axe in that scheme."""
+    page = signed_in
+    words = CAPTURE_WORDS[language]
+    make_audiobook(page, live)
+    page.set_extra_http_headers({"Accept-Language": language})
+    page.emulate_media(color_scheme=scheme)
+    page.reload()
+    page.wait_for_load_state("load")
+    expect(page.locator("html")).to_have_attribute("lang", language)
+    problems: list[str] = []
+    for width in (1440, 1280):
+        where = f"listen, {language} {scheme} {width}"
+        page.set_viewport_size({"width": width, "height": 900})
+        page.evaluate(
+            "() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))"
+        )
+        for kind, word in zip(("note", "quote", "mark"), words["keys"], strict=True):
+            key = page.locator(f"#capture-{kind}")
+            expect(key).to_be_visible()
+            expect(key).to_have_accessible_name(re.compile(word))
+        sentence = at_sentence(page, 1)
+        page.keyboard.press("q")
+        page.keyboard.press("m")
+        page.keyboard.press("n")
+        box = page.get_by_role("textbox", name=words["box"])
+        expect(box).to_be_focused()
+        box.fill("Fits.")
+        problems += axe_problems(page, f"{where}, the note box")
+        page.keyboard.press("Control+Enter")
+        expect(said(page)).to_have_text(words["saved"])
+        assert [f["kind"] for f in flags_at(page, sentence)] == ["note", "quote", "mark"], where
+        assert page.evaluate("() => document.documentElement.scrollWidth <= innerWidth"), where
+        panel = page.locator("#context").bounding_box()
+        for flag in page.locator(f'#capture-flags [data-for="{sentence}"]').all():
+            flag_box = flag.bounding_box()
+            assert flag_box is not None
+            assert panel is None or flag_box["x"] + flag_box["width"] <= panel["x"], where
+        for kind in ("note", "quote", "mark"):
+            tick = page.locator(f"#capture-ticks rect.f-{kind}")
+            expect(tick).to_have_count(1)
+            tick_box = tick.bounding_box()
+            assert tick_box is not None, (where, kind)
+            assert tick_box["width"] > 0, (where, kind)
+        problems += axe_problems(page, f"{where}, flags and ticks")
+        for key in "qm":  # clear the sentence for the next width
+            page.keyboard.press(key)
+        page.locator("#tab-captures").click()
+        rows(page).first.get_by_role("button", name=words["remove"]).click()
+        expect(rows(page)).to_have_count(0)
+    assert problems == []
+    page.emulate_media(color_scheme="light")
+    page.set_extra_http_headers({})
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
 def test_the_panels_keyboard_order_over_the_page(signed_in: Page, live: Live) -> None:
     page = signed_in
     make_audiobook(page, live)
@@ -883,6 +959,54 @@ def test_a_broken_captures_file_is_named_and_left_alone(signed_in: Page, live: L
     page.keyboard.press("m")
     expect(page.locator("#message")).to_contain_text("can't be read")
     assert path.read_text(encoding="utf-8") == "{broken"
+
+
+def test_the_v13_markers_show_on_the_listen_page_as_captures_after_the_carry_over(
+    signed_in: Page, live: Live
+) -> None:
+    """#911 (#475): a document with only the v1.3 markers.json opens with each marker as a
+    capture on its sentence: one without a note a mark, one with a note a note, each with
+    its anchor's sentence; markers.json stays as it was."""
+    from test_captures_page import captured
+
+    from sci2audio.web.markers import Anchor, Marker, markers_text
+
+    page = signed_in
+    made = captured(page, live)
+    path = made["file"]
+    work = path.parent
+    stored = {c["type"]: c for c in json.loads(path.read_text(encoding="utf-8"))["captures"]}
+
+    def marker(capture: dict[str, Any], note: str) -> Marker:
+        a = capture["anchor"]
+        anchor = Anchor(a["block"], a["start"], a["end"], a["text"])
+        return Marker(capture["id"], capture["created"], capture["changed"], anchor, note)
+
+    plain, noted = marker(stored["mark"], ""), marker(stored["quote"], "From v1.3.")
+    raw = markers_text(made["document"], [plain, noted]).encode("utf-8")
+    path.unlink()  # as v1.3 left the folder: markers.json, no captures.json
+    (work / "markers.json").write_bytes(raw)
+    page.reload()
+    page.locator("#tab-captures").click()
+    expect(tab(page)).to_have_text("Captures (2)")
+    expect(page.locator("#captures-broken")).to_have_count(0)
+    mark = page.locator(f'#capture-list li[data-capture="{plain.id}"]')
+    note = page.locator(f'#capture-list li[data-capture="{noted.id}"]')
+    expect(mark).to_have_attribute("data-kind", "mark")
+    expect(note).to_have_attribute("data-kind", "note")
+    expect(mark.locator(".cp-text")).to_have_text(plain.anchor.text)
+    expect(note.locator(".cp-text")).to_have_text(noted.anchor.text)
+    expect(note.locator(".cp-note")).to_have_text("From v1.3.")
+    for row in (mark, note):
+        expect(row.locator(".cp-at")).to_be_visible()  # found on its sentence
+    # on the text: the mark's sentence and the note's carry their flags
+    expect(page.locator(f'#capture-flags [data-for="{made["elements"]["mark"]}"]')).to_have_count(1)
+    expect(page.locator(f'#capture-flags [data-for="{made["elements"]["quote"]}"]')).to_have_count(
+        1
+    )
+    assert json.loads(path.read_text(encoding="utf-8"))["migrated_from"] == "markers.json"
+    assert (work / "markers.json").read_bytes() == raw
+    check_axe(page, "listen, the v1.3 markers carried over")
 
 
 def test_markers_whose_carry_over_cannot_be_written_say_so_on_n_q_and_m(
