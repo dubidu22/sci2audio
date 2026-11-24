@@ -21,7 +21,10 @@ the next column starts with a line in the same style that is not indented. Figur
 furniture met while a paragraph is open wait until it closes, and so does text that
 interrupts it (`Paragraphs`): a paragraph is never cut by a footnote or a float. Of what
 waited, the marks drawn in the paragraph's own lines (a fraction bar) come out first, right
-after it (#648).
+after it (#648). A figure in a wide gutter is read as a column of its own between two
+columns of text (#873): the rows read in that column right after it, if they are its labels
+and caption and no running text, and the row before the figure ends a sentence, interrupt
+a paragraph and never go on with one (#905).
 A listing starts a block of its own (#599): a line set wholly in a typewriter font, after a
 line of the paragraph that is not, with another such line right under it on the line
 pitch, ends the paragraph, so code printed right under a full line is not read as prose.
@@ -437,6 +440,68 @@ class Paragraphs:
         self.body, self.typed = judged.size, judged.typed
         self.earlier = {id(b): a for a, b in itertools.pairwise(rows)}  # the row read before
         self.later = {id(a): b for a, b in itertools.pairwise(rows)}  # the row read after
+        self.gutter: set[int] = set()  # (`continues` reads it while it is being found)
+        self.gutter = self._gutter_figures(units)
+
+    def _gutter_figures(self, units: list[Unit]) -> set[int]:
+        """The rows of figures read in a column of their own between two columns of text,
+        by id: the rows in one column read right after a figure, with the row read before
+        the figure in a column to their left and the row read after them in a column to
+        their right, all on one page. They are fewer than `column_items`, so `order` counts
+        no column of text there, and they are the figure's labels, then perhaps its caption
+        (`_figure_rows`): running text there is never taken out of its paragraph."""
+        found: set[int] = set()
+        before: Unit | None = None  # the last unit read that is no figure
+        for k, unit in enumerate(units):
+            first = units[k + 1] if k + 1 < len(units) else None
+            if not _figure(unit):
+                before = unit
+                continue
+            if not isinstance(first, Row):
+                continue
+            column = (first.page, first.left, first.right)
+            end = k + 1  # each row is in one run at most: the scan stays linear
+            while end < len(units):
+                later = units[end]
+                if not isinstance(later, Row) or (later.page, later.left, later.right) != column:
+                    break
+                end += 1
+            run = [u for u in units[k + 1 : end] if isinstance(u, Row)]
+            after = units[end] if end < len(units) else None
+            if (
+                isinstance(before, Row)
+                and isinstance(after, Row)
+                and before.page == first.page == after.page
+                and before.right <= first.left
+                and first.right <= after.left
+                and len(run) < self.settings.column_items
+                and self._figure_rows(before, run)
+            ):
+                found |= {id(row) for row in run}
+        return found
+
+    def _figure_rows(self, before: Row, run: list[Row]) -> bool:
+        """True if the rows are a figure's labels, then perhaps its caption, and nothing
+        else. A label does not fill its column. None of them is the figure's unless the row
+        read before the figure ends a sentence (`_sentence_end`): ragged lines that go on
+        with a sentence start in any case and after any last character (a German noun, a
+        name, "im Jahr 2023"), and reading them after the figure would reorder the text. The
+        caption is a row that opens one and the rows that go on with it."""
+        if not _sentence_end(before):
+            return False
+        labels = 0
+        while (
+            labels < len(run)
+            and not self._runs_on(run[labels])
+            and not opens_caption(run[labels].pieces[0])
+        ):
+            labels += 1
+        caption = run[labels:]
+        if not caption:
+            return labels > 0
+        return opens_caption(caption[0].pieces[0]) and all(
+            self.continues(caption[:n], caption[n]) for n in range(1, len(caption))
+        )
 
     def blocks(self) -> list[Block]:
         for unit in self.units:
@@ -568,8 +633,9 @@ class Paragraphs:
 
     def _interrupts(self, row: Row, paragraph: Row) -> bool:
         """True if the row may stand inside the paragraph's text: smaller letters, or a row
-        no bigger that is not running text (a table cell, a formula)."""
-        if self._smaller(row, paragraph):
+        no bigger that is not running text (a table cell, a formula), or a row of a figure in
+        a wide gutter."""
+        if self._smaller(row, paragraph) or id(row) in self.gutter:
             return True
         bigger = row.size > (1 + self.settings.size_change) * paragraph.size
         return not bigger and not self._runs_on(row)
@@ -601,6 +667,8 @@ class Paragraphs:
         """True if the next row goes on with the paragraph whose rows these are; `spacing`:
         also check the white between them if the next row stands right under the last."""
         last = rows[-1]
+        if (id(last) in self.gutter) != (id(next_row) in self.gutter):
+            return False  # (a figure's labels and caption are not running text, #905)
         size = max(last.size, next_row.size)
         if abs(last.size - next_row.size) > self.settings.size_change * size:
             return False
@@ -764,6 +832,12 @@ def _split_word(row: Row, next_row: Row) -> bool:
     return end[-2:-1].isalpha() and end.endswith("-") and start[:1].islower()
 
 
+def _sentence_end(row: Row) -> bool:
+    """True if the row ends a sentence: in ".", "!", "?" or ":", or in closing quotes or
+    brackets right after one."""
+    return row.text.rstrip().rstrip("\"'\u201d\u2019)]").endswith((".", "!", "?", ":"))
+
+
 def _inside(row: Row, next_row: Row) -> bool:
     """True if the row ends inside a sentence, in a letter, a comma, a semicolon, an open
     bracket or a slash (a link broken at a line's end), and the next row goes on with it in
@@ -822,6 +896,11 @@ def _pitch(rows: list[Row], settings: LayoutSettings) -> float:
         if a.size and _below(a, b, settings) and abs(a.size - b.size) < settings.same_size * a.size
     ]
     return median(found) if found else 0.0
+
+
+def _figure(unit: Unit) -> bool:
+    """True for a figure in the reading order (not a mark drawn in a line)."""
+    return isinstance(unit, Held) and not unit.inline and unit.block.kind is BlockKind.FIGURE
 
 
 def _paragraph(rows: list[Row], settings: LayoutSettings) -> Block:
