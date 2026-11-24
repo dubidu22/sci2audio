@@ -939,7 +939,9 @@ def test_a_german_ordinal_before_a_line_that_goes_on_stays_one_paragraph() -> No
 
 
 def test_a_number_before_a_stop_runs_on_into_a_lower_case_line() -> None:
-    """ "approximately 3." / "files and ...": a lower-case next line goes on (#848)."""
+    """ "approximately 3." / "files and ...": a lower-case next line goes on. The title rule
+    cuts only before a line starting with a capital or a date (`_title`), so the number's
+    stop is not judged for this line (#848, #900)."""
     text = f"{_NUMBER}files and plain text, and it runs on for a while here as prose does.\n"
     assert tags_of(text) == [("p",), ("p", "br")]
 
@@ -1559,5 +1561,162 @@ def test_a_long_reference_or_title_line_before_a_date_is_read_in_linear_time() -
 
     def sized(size: int) -> str:
         return f"Smith{'a' * size}\nJUNE\n{_MARKED}"
+
+    assert_linear(lambda text: read(text.encode()), sized, 160_000)
+
+
+# ---- #947: dates in reference lists of every style; #908: a month line after a colon ------
+
+# Two entries of each style, each long enough to be wrapped before its date (#947)
+_STYLES = {
+    "vancouver": (
+        "Smith J, Jones K. A study of reading papers aloud. Journal of Acoustics",
+        "Brown B, Green G. Another study of listening to papers. Journal of Sound",
+    ),
+    "vancouver-initials": (
+        "Smith JA, Jones KB. A study of reading papers aloud. Journal of Acoustics",
+        "Brown BC, Green G. Another study of listening to papers. Journal of Sound",
+    ),
+    "chicago": (
+        "Smith, John, and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics",
+        "Brown, Bob, and Gail Green. Another Study of Listening to Papers. Journal of Sound",
+    ),
+    "chicago-middle": (
+        "Smith, John A., and Kate Jones. A Study of Reading Papers Aloud. Journal of Acoustics",
+        "Brown, Bob C., and Gail Green. Another Study of Listening. Journal of Sound",
+    ),
+    "apa": (
+        "Smith, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics",
+        "Brown, B. and Green, G. Another study of listening to papers. Journal of Sound",
+    ),
+    "numbered": (
+        "[1] J. Smith and K. Jones, A study of reading papers aloud, Journal of Acoustics",
+        "[2] B. Brown and G. Green, Another study of listening to papers, Journal of Sound",
+    ),
+    "von": (
+        "von Neumann, J. and Jones, K. A study of reading papers aloud. Journal of Acoustics",
+        "von Braun, B. and Green, G. Another study of listening to papers. Journal of Sound",
+    ),
+    "van-der": (
+        "van der Berg, A. and Jones, K. A study of reading papers aloud. Journal of Acoustics",
+        "van den Bosch, B. and Green, G. Another study of listening. Journal of Sound",
+    ),
+    "de": (
+        "de Souza, M. and Jones, K. A study of reading papers aloud. Journal of Acoustics",
+        "de la Cruz, B. and Green, G. Another study of listening. Journal of Sound",
+    ),
+    "german": (
+        "Mustermann, M. und Musterfrau, E. Vorlesen von Aufsätzen. Zeitschrift für Akustik",
+        "Beispiel, B. und Muster, M. Hören von Fachtexten unterwegs. Zeitschrift für Klang",
+    ),
+}
+
+
+@pytest.mark.parametrize("style", list(_STYLES))
+def test_a_date_in_a_reference_entry_of_any_style_joins_its_entry(style: str) -> None:
+    """Vancouver ("Smith J,"), Chicago ("Smith, John,"), APA ("Smith, J."), numbered ("[1]")
+    and surnames with a particle ("von Neumann, J.", "van der Berg, A.", "de Souza, M."): an
+    entry wrapped before its date is no title, the date stays in its entry, and the next
+    entry starts a block (#947)."""
+    first, second = _STYLES[style]
+    month = "Oktober 2020" if style == "german" else "June 2020"
+    assert tags_of(f"{first}\n{month}\n{second}\n") == tags_read("pbp")
+    listed = f"{first}\n{month}\n{second}\n{month}\n{first}\n"
+    assert tags_of(listed) == tags_read("pbpbp")
+
+
+@pytest.mark.parametrize("style", ["apa", "numbered", "vancouver", "chicago", "von"])
+def test_a_short_wrapped_reference_line_before_its_date_stays_in_its_entry(style: str) -> None:
+    """ "... on phones and tablets in the" / "train. Journal of Acoustics" / "June 2020": the
+    short last line of an entry is no title before its date; both stay in the entry (#947)."""
+    first, second = _STYLES[style]
+    authors = first.split(" A s")[0].split(" A S")[0]
+    text = (
+        f"{authors} A study of reading scientific papers aloud on phones and tablets in the\n"
+        "train. Journal of Acoustics\n"
+        "June 2020\n"
+        f"{second}\n"
+    )
+    assert tags_of(text) == tags_read("pbbp")
+
+
+@pytest.mark.parametrize("abbreviation", ["z. B.", "d. h.", "u. a.", "z.B."])
+def test_a_german_abbreviation_after_a_comma_starts_no_reference(abbreviation: str) -> None:
+    """ "Beispiele, z. B. das ..." is no "Smith, J." entry: an initial is a capital. The
+    line is a title before its date, cut before and after as #922 asks (#947)."""
+    text = (
+        f"Beispiele, {abbreviation} das Vorlesen von Fachtexten auf Telefonen und Tablets\n"
+        "Oktober 2020\n"
+        "Der Vorstand las ihn zweimal und schickte ihn mit vielen Notizen zurück, wie immer.\n"
+    )
+    assert tags_of(text) == tags_read("ppp")
+
+
+def test_washington_dc_reads_as_a_reference_entry() -> None:
+    """A known limit, pinned (#947): "Washington, D.C." has the shape of an author with two
+    initials ("Washington, D. C."), so the line is read as a reference entry and its date
+    joins it. Nothing in the line tells the city from the author."""
+    text = (
+        "Washington, D.C. Annual Report of the Society of Acoustics and Speech\n"
+        "June 2020\n"
+        "The board read it twice and then sent it back with many notes, as usual here.\n"
+    )
+    assert tags_of(text) == tags_read("pbp")
+
+
+def test_a_title_wrapped_in_a_bullet_item_keeps_its_date_apart() -> None:
+    """ "- A Study ... Phones and" / "  Tablets ..." / "June 2020" / body: a list item heads
+    its block as a paragraph's first line does, so the date after its wrapped title is cut
+    before and after, as before #946 (#947)."""
+    text = (
+        "- A Study of Reading Scientific Papers Aloud on Phones and\n"
+        "  Tablets in the Train, the Bus, the Car and on Foot at Home\n"
+        "June 2020\n"
+        "The board read it twice and then sent it back with many notes, as usual here.\n"
+    )
+    item = ("ul", "li")
+    assert tags_of(text) == [item, (*item, "br"), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize(
+    ("line", "month", "after"),
+    [
+        (
+            "Die Termine der Sitzungen des Vorstands im kommenden Jahr waren die folgenden:",
+            "Oktober 2020",
+            "Die Sitzung fand im grossen Saal statt und dauerte bis spät in die Nacht.",
+        ),
+        (
+            "Die Termine der Sitzungen des Vorstands im kommenden Jahr waren die folgenden:",
+            "Oktober",
+            "Die Sitzung fand im grossen Saal statt und dauerte bis spät in die Nacht.",
+        ),
+        (
+            "The dates of the meetings of the board in the coming year were these:",
+            "June 2020",
+            "The board read it twice and then sent it back with many notes, as usual here.",
+        ),
+    ],
+    ids=["oktober-2020", "oktober", "june-2020"],
+)
+def test_a_month_line_after_a_colon_keeps_its_cut_after_it(
+    line: str, month: str, after: str
+) -> None:
+    """ "... die folgenden:" / "Oktober 2020" / "Die ...": after a colon a month line is a
+    list item or a heading, not the rest of a running sentence, so the line after it starts
+    a block (#908)."""
+    assert tags_of(f"{line}\n{month}\n{after}\n") == tags_read("pbp")
+
+
+def test_the_reference_checks_take_linear_time() -> None:
+    """Particles, a long surname, a long initial and a long bracket number, each on a line
+    before or after a date: the reference checks take time linear in the lines (#947)."""
+
+    def sized(size: int) -> str:
+        name = "von " * (size // 8) + "Smith" + "a" * (size // 2)
+        return (
+            f"{name}\nJune 2020\n{name}, J{'a' * size}\nJune 2020\n[{'1' * size}\n"
+            f"Smith {'A' * size}\nJune 2020\nSmith, J{'a' * size} J.,\nJune\n"
+        )
 
     assert_linear(lambda text: read(text.encode()), sized, 160_000)
