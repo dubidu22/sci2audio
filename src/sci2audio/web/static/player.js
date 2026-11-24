@@ -1518,6 +1518,20 @@ function readAlong() {
       document.getElementById("resume-continue").click();
     }
   }
+
+  // "Listen from here" on the Captures page (#398) comes as #capture-<id>: the page opens at
+  // that capture's sentence, paused as ever (D-300); one this audiobook does not read moves
+  // nothing
+  const asked = /^#capture-([0-9a-f]{16})$/.exec(location.hash);
+  if (asked) {
+    history.replaceState(null, "", location.pathname + location.search);
+    const wanted = captures.find((capture) => capture.id === asked[1] && capture.state === "found");
+    if (wanted && chunks[wanted.chunk]) {
+      resume?.remove();
+      playFrom(wanted.chunk, false);
+      play.focus();
+    }
+  }
 }
 
 // ---- the context panel (#393): Changes, Chapters and Captures (#397) --------------------------

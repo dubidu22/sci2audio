@@ -23,7 +23,7 @@ from pathlib import Path, PurePath
 from typing import Annotated, Any
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
@@ -100,6 +100,8 @@ from sci2audio.web.player import (
     candidate_folders,
     chapter_data,
     chapter_index,
+    current_audiobook,
+    load_document,
     player_for,
     read_position,
     recorded_folder,
@@ -145,6 +147,7 @@ def failure(s: Strings, error: Mapping[str, Any] | None) -> dict[str, str] | Non
 # the rail item each page marks as the current one (#387); other pages mark none
 NAV_ITEMS = {
     "index.html": "library",
+    "captures.html": "captures",
     "voice.html": "voices",
     "settings.html": "settings",
     "privacy.html": "privacy",
@@ -1449,6 +1452,129 @@ def _captures_data(
         "captures_off": "",
         "captures_file": "",
     }
+
+
+# --- the Captures page (#398, ADR-008) ---------------------------------------------------
+
+CAPTURE_KINDS = ("note", "quote", "mark")  # the dock's order (ADR-008 2.2 B)
+
+
+@router.get("/captures", response_class=HTMLResponse)
+def captures_page(
+    request: Request,
+    state: State,
+    wanted: Annotated[str, Query(alias="type")] = "",
+    from_: Annotated[str, Query(alias="from")] = "",
+) -> HTMLResponse:
+    """Every document's captures as ruled rows, by document (the library's order) and in
+    reading order within it, each placed in the document's audiobook as it is now (ADR-008
+    2.1 item 3): never one left out, and no file is written but the carry-over of v1.3
+    markers every read of captures makes (#475). `type` and `from` filter the rows; a GET
+    form that works without the script, which filters in place (as the library's search)."""
+    s = strings_of(request)
+    groups = []
+    keys = [document.id for document in state.store.all()]
+    keys += [job.id for job in state.config.outside]
+    for key in keys:
+        group = _capture_group(state, s, key)
+        if group is not None:
+            groups.append(group)
+    kind = wanted if wanted in CAPTURE_KINDS else "all"
+    chosen = from_ if any(group["id"] == from_ for group in groups) else ""
+    counts = dict.fromkeys(("all", *CAPTURE_KINDS), 0)
+    for group in groups:
+        mine = not chosen or group["id"] == chosen
+        visible = 0
+        for row in group["rows"]:
+            row["hidden"] = not mine or kind not in ("all", row["type"])
+            visible += not row["hidden"]
+            if mine:
+                counts["all"] += 1
+                counts[row["type"]] += 1
+        # a file it can't read is named in its group, with nothing to filter
+        group["hidden"] = not mine or not (visible or (group["off"] and kind == "all"))
+    total = sum(len(group["rows"]) for group in groups)
+    return _page(
+        request,
+        state,
+        s,
+        "captures.html",
+        groups=groups,
+        kinds=CAPTURE_KINDS,
+        kind=kind,
+        chosen=chosen,
+        counts=counts,
+        any_shown=any(not group["hidden"] for group in groups),
+        summary=s(
+            "captures.summary",
+            count=s("captures.count", n=total),
+            documents=s("captures.documents", n=sum(1 for group in groups if group["rows"])),
+        ),
+    )
+
+
+def _capture_group(state: ServerState, s: Strings, key: str) -> dict[str, Any] | None:
+    """One document's captures for the Captures page, or None if it has none. Each row is
+    placed in the audiobook the document has now; with none, every row says so."""
+    found = state.listening(key)
+    if found is None:
+        return None
+    about = None if found.outside else read_about(found.work)
+    group: dict[str, Any] = {
+        "id": key,
+        "title": about.title if about else found.name,
+        "authors": ", ".join(about.authors) if about else "",
+        "language": "",
+        "off": "",
+        "file": "",
+        "rows": [],
+    }
+    try:
+        file = state.captures.read(found.work, found.document)
+    except MarkersWaiting:
+        return group | {"off": "markers", "file": str(found.work / MARKERS)}
+    except (CapturesUnreadable, OSError):
+        return group | {"off": "unreadable", "file": str(found.work / CAPTURES)}
+    if file is None or not file.captures:
+        return None
+    try:
+        located = current_audiobook(found.work, found.document, found.folders).located
+        document = load_document(found.work)
+        chunks = located.readalong.chunks
+        firsts = sentence_starts(located.readalong, document)
+        placed = locate(file.captures, lambda c: c.anchor, document, [c.span for c in chunks])
+        group["language"] = document.language
+    except (PlayerError, OSError):  # no audiobook now: nowhere to place them
+        chunks, firsts = (), []
+        placed = [(capture, None, "no-audiobook") for capture in file.captures]
+    rows = []
+    for capture, chunk, where in placed:
+        first = None if chunk is None else firsts[chunk]
+        row = {
+            "id": capture.id,
+            "type": capture.type.value,
+            "sentence": capture.anchor.text,
+            "text": capture.text,
+            "state": where,
+            "first": first,
+            "at": "",
+            "href": "",
+        }
+        if first is not None:
+            times = chunks[first]  # the sentence's start (#480)
+            row["at"] = s("capture.at", n=times.chapter + 1, time=clock(times.start))
+            row["href"] = f"/documents/{key}/listen#capture-{capture.id}"
+        rows.append(row)
+    # on one sentence in the dock's order, as the Listen page lists them; the rest as placed
+    rows.sort(
+        key=lambda row: (
+            (0, row["first"], CAPTURE_KINDS.index(row["type"]))
+            if row["first"] is not None
+            else (1, 0, 0)
+        )
+    )
+    group["rows"] = rows
+    return group
 
 
 def _listen_changes(view: PlayerView, s: Strings) -> list[dict[str, Any]]:

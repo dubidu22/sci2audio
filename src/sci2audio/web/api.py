@@ -583,6 +583,23 @@ def _book(state: ServerState, document_id: str) -> _Book:
     listening = state.listening(document_id)
     if listening is None:
         raise ApiError(404, "not-found", f"no document {document_id}")
+    return _book_of(listening)
+
+
+def _book_or_none(state: ServerState, document_id: str) -> tuple[Listening, _Book | None]:
+    """The document, and its audiobook if it has one now (#398): a capture can be removed
+    and put back also when its audiobook is gone, so the Captures page never lists one it
+    can't remove."""
+    listening = state.listening(document_id)
+    if listening is None:
+        raise ApiError(404, "not-found", f"no document {document_id}")
+    try:
+        return listening, _book_of(listening)
+    except ApiError:
+        return listening, None
+
+
+def _book_of(listening: Listening) -> _Book:
     try:
         located = current_audiobook(listening.work, listening.document, listening.folders).located
         document = load_document(listening.work)
@@ -761,8 +778,8 @@ def _capture_on(
     )
 
 
-def _capture_out(book: _Book, capture: Capture) -> models.CaptureOut:
-    chunk, state = _capture_chunk(book, capture)
+def _capture_out(book: _Book | None, capture: Capture) -> models.CaptureOut:
+    chunk, state = (None, "no-audiobook") if book is None else _capture_chunk(book, capture)
     return models.CaptureOut(
         id=capture.id,
         type=capture.type.value,
@@ -863,9 +880,9 @@ def write_capture_note(
 )
 def remove_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> models.CaptureOut:
     """It leaves the file at once; this server keeps it for 10 minutes (the last 20 of the
-    document) so the page's Undo can put it back (ADR-008 2.1 item 6)."""
-    book = _book(state, document_id)
-    listening = book.listening
+    document) so the page's Undo can put it back (ADR-008 2.1 item 6). A document without
+    an audiobook now answers it with state `no-audiobook`."""
+    listening, book = _book_or_none(state, document_id)
     capture = _capturing(
         lambda: state.captures.remove(listening.work, listening.document, capture_id)
     )
@@ -882,12 +899,13 @@ def restore_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> 
     """The capture comes back unchanged, from what this server kept: 410 once it no longer
     holds it (10 minutes, a restart, 20 later removals), 409 if its sentence has a capture of
     its type again."""
-    book = _book(state, document_id)
-    listening = book.listening
+    listening, book = _book_or_none(state, document_id)
 
     def clash(capture: Capture, captures: list[Capture]) -> bool:
         if any(c.anchor == capture.anchor and c.type is capture.type for c in captures):
             return True
+        if book is None:  # no audiobook to find its sentence in: the same anchor only
+            return False
         chunk, _ = _capture_chunk(book, capture)
         return _capture_on(book, chunk, capture.type, captures) is not None
 

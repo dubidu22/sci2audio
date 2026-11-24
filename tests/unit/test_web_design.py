@@ -461,6 +461,7 @@ def rail_of(page: str) -> str:
         ("/voice", "/voice"),
         ("/settings", "/settings"),
         ("/privacy", "/privacy"),
+        ("/captures", "/captures"),  # the Captures page (#398)
         ("/jobs/nothing", None),
         ("/documents/0123456789abcdef", None),
     ],
@@ -470,7 +471,8 @@ def test_the_rail_marks_the_current_page(tmp_path: Path, path: str, current: str
     for item in ('href="/"', 'href="/#open-file"', 'href="/voice"', 'href="/settings"'):
         assert item in rail
     assert 'href="/privacy"' in rail
-    assert "/captures" not in rail  # waits for the study layer (#397)
+    # the Captures page (#398), right after the Library, as the design's rail
+    assert rail.index('href="/captures"') < rail.index('href="/#open-file"')
     # the shortcuts sheet's item (#394): a button, drawn disabled until app.js wires it
     assert re.search(r'<button type="button" id="keys-open" aria-haspopup="dialog" disabled>', rail)
     assert "<span>Keyboard shortcuts</span>" in rail
