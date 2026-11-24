@@ -177,3 +177,32 @@ def test_convert_with_script_without_keeping_covers_the_chosen_chapters_only(
     script = (out / "book.script.txt").read_text(encoding="utf-8")
     assert "# 1. Alpha (not spoken)" in script
     assert "# 2. Beta (not spoken)" not in script
+
+
+def test_convert_keep_settings_with_script_still_warns_of_a_chapter_the_book_lacks(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#784: the script keeps the chosen numbers the document lacks, so the report
+    still warns of them."""
+    out = tmp_path / "out"
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "2,9", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [1, 8]
+    assert any("chapter 9 was chosen" in warning for warning in report["warnings"])
+
+
+def test_convert_keep_settings_with_script_keeps_the_chosen_order(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    result = cli(
+        "convert", source, "-o", out, "-q", "--chapters", "3,1", "--keep-settings", "--with-script"
+    )
+    assert result.code == 0, result.err
+    report = json.loads((out / "book.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["chapters"] == [2, 0]
+    script = (out / "book.script.txt").read_text(encoding="utf-8")
+    assert script.index("# 3. Gamma") < script.index("# 1. Alpha")

@@ -818,10 +818,13 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
             script_settings = settings
             if keeps:
                 # the audio holds the chapters made before and this run's, in book order:
-                # the script covers what the audio holds (#784)
+                # the script covers what the audio holds (#784); the chosen numbers the
+                # document lacks stay, so the report still warns of them
+                held = tuple(c.chapter.index for c in job.result.chapters if c.selected)
+                known = {c.chapter.index for c in job.result.chapters}
+                lacking = tuple(i for i in settings.chapters if i not in known)
                 script_settings = replace(
-                    _kept_settings(work, settings),
-                    chapters=tuple(c.chapter.index for c in job.result.chapters if c.selected),
+                    _kept_settings(work, settings), chapters=(*held, *lacking)
                 )
             script = env.job_runner(script_settings).run_script(
                 source,
