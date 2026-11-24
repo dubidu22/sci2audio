@@ -251,6 +251,32 @@ def test_a_closed_pipe_is_read_as_the_child_having_ended(exitcode: int, reason: 
     assert stopped == isolate.Stopped(reason, "starting")
 
 
+class ClosedPipeAtCancel(ClosedPipe):
+    """A closed pipe whose child ended as the read was cancelled: `cancel` is set while the
+    parent looks at the pipe, after its own look at `cancel`."""
+
+    def __init__(self, cancel: threading.Event) -> None:
+        self.cancel = cancel
+
+    def poll(self, timeout: float | None = None) -> bool:
+        self.cancel.set()
+        return super().poll(timeout)
+
+
+@pytest.mark.parametrize(
+    ("exitcode", "reason"),
+    [(isolate.MEMORY_EXIT, "memory"), (isolate.TIME_EXIT, "time"), (1, "cancelled")],
+)
+def test_a_watch_exit_keeps_its_reason_while_the_read_is_cancelled(
+    exitcode: int, reason: str
+) -> None:
+    """Only a child that ended for no reason of its own counts as cancelled (#367): the
+    memory and time watches still name the limit the child hit."""
+    cancel = threading.Event()
+    stopped = isolate._wait(EndedChild(exitcode), ClosedPipeAtCancel(cancel), 60, None, cancel)  # type: ignore[arg-type]
+    assert stopped == isolate.Stopped(reason, "starting")
+
+
 def test_a_child_within_the_limit_gives_its_result() -> None:
     result = isolate.run(
         operator.add, (2, 3), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)

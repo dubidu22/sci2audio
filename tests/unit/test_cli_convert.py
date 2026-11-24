@@ -549,3 +549,45 @@ def test_convert_writes_the_same_files_as_before_chapters_became_playable_early(
         else:
             files[path.name] = path.read_text(encoding="utf-8")
     assert {"files": files, "audio.json": record} == snapshot
+
+
+@pytest.mark.every_pdf_read
+def test_ctrl_c_that_ends_the_reader_while_it_starts_reads_as_cancelled(
+    tmp_path: Path, source: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ctrl-C ends the reader child during its start (as on Windows, which cannot hold the
+    signal back) and reaches the program a moment later: the job was cancelled, not a file
+    that cannot be read (#367)."""
+    import reader_targets
+
+    from sci2audio.extraction import isolate, pdf
+
+    folder = tmp_path / "target"
+    folder.mkdir()
+    monkeypatch.setattr(pdf, "_read_file", reader_targets.ends_while_starting(folder))
+    monkeypatch.setattr(isolate, "_CANCEL_GRACE_SECONDS", 30.0)  # a busy machine is slow
+
+    pressed = threading.Event()
+
+    def press_ctrl_c_once_ended() -> None:
+        deadline = time.monotonic() + 60
+        while not (folder / "ended").exists() and time.monotonic() < deadline:
+            time.sleep(0.005)
+        _thread.interrupt_main()
+        pressed.set()
+
+    threading.Thread(target=press_ctrl_c_once_ended, daemon=True).start()
+    try:
+        result = Cli(tmp_path)("convert", source, "-o", tmp_path / "b", "-q")
+        pressed.wait(70)
+    except KeyboardInterrupt:  # before #367: the read had ended as unreadable
+        pytest.fail("the read ended before the Ctrl-C reached the program")
+    finally:
+        reader_targets.forget_ends_while_starting(folder)
+    assert (folder / "ended").exists()
+    assert result.code == 130, result.err
+    assert result.err.endswith(
+        "sci2audio: the job was cancelled while the file was read; "
+        "run the same command again to continue\n"
+    )
+    assert "cannot be read" not in result.err
