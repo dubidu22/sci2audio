@@ -82,6 +82,7 @@ def test_a_cut_sounds_like_a_comma_and_every_word_is_heard(language: str, tmp_pa
             tmp_path / "work",
             voice=kokoro_voice(models_dir()),
             max_chars=len(sentence) // 2 + 20,
+            output_settings=OutputSettings(m4b=True),
         )
     data = read_readalong(job.written.readalong)
     joins = [n for n, chunk in enumerate(data.chunks) if chunk.joins]
