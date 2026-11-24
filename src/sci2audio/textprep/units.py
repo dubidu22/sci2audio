@@ -58,7 +58,8 @@ from sci2audio.textprep.footnotes import (
 )
 from sci2audio.textprep.notation import FILE_NUMBER_DE, edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.statistics_de import OPERATORS_DE
+from sci2audio.textprep.statistics import ARROWS
+from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
@@ -135,11 +136,16 @@ _LETTER_X = re.compile(
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
-_OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
+# around "2x", it is a variable; so it is beside a logic arrow ("3x ⇒ A", #843)
+_OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265\u21d2\u21d0\u21d4"
 # the statistics step's English readings of those signs, which count as the signs around "2x"
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
 # "less than 2x slower" (D-605). Longest first.
 _SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
+# the statistics step's readings of the logic arrows "⇒", "⇐", "⇔" (#796) count as the arrows
+# do, so "3x=>A", read "3x implies A", keeps "3x" on a second run (#843)
+_SAID_ARROWS_EN = tuple(ARROWS.values())
+_SAID_ARROWS_DE = tuple(ARROWS_DE.values())
 # ... and a bare "less than" / "greater than" counts after a one-letter variable or a closing
 # bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646). Not after "a", "A", "I"
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
@@ -364,9 +370,19 @@ def _compiled(language: str) -> _Table | None:
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
     german = language.split("-", 1)[0].lower() == "de"
     said = re.compile(
-        "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
+        "|".join(
+            map(
+                re.escape,
+                sorted({*OPERATORS_DE.values(), *_SAID_ARROWS_DE}, key=len, reverse=True),
+            )
+        )
         if german
-        else "|".join(map(re.escape, _SAID_OPERATORS_EN))
+        else "|".join(
+            map(
+                re.escape,
+                sorted({*_SAID_OPERATORS_EN, *_SAID_ARROWS_EN}, key=len, reverse=True),
+            )
+        )
     )
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     per_words = _PER_WORDS.get(language.split("-", 1)[0].lower(), ())
