@@ -703,6 +703,8 @@ def _table(rows: list[list[str]]) -> tuple[list[TextLine], list[list[TextLine]]]
         [["-", "3 ms"], ["-", "5 ms"], ["-", "8 ms"]],
         [["-", "0.5 (0.1)"], ["-", "0.7 (0.2)"], ["-", "0.9 (0.1)"]],
         [["\u2013", "1.5 \u00b1 0.2"], ["\u2013", "2.5 \u00b1 0.1"], ["\u2013", "3.0 \u00b1 0.4"]],
+        # currents: "A" is the ampere, not the article "a" (#1002)
+        [["-", "0.5 A"], ["-", "1.5 A"], ["-", "2.0 A"]],
     ],
 )
 def test_a_table_column_of_dashes_beside_words_stays_cells(rows: list[list[str]]) -> None:
