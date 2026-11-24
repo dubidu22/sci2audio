@@ -24,14 +24,14 @@ from web_helpers import (
     FakeClock,
     events,
     make_config,
+    markers_text,
     offline,  # noqa: F401 - fixture
     pdf_bytes,
     program,
 )
 
-from sci2audio.app.captures import CAPTURES
+from sci2audio.app.captures import CAPTURES, MARKERS
 from sci2audio.web import create_app
-from sci2audio.web.markers import MARKERS, markers_text
 from sci2audio.web.player import AUDIO_RECORD, DOCUMENT_RECORD
 
 pytestmark = pytest.mark.usefixtures("offline")

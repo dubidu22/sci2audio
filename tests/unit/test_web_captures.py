@@ -14,7 +14,7 @@ import pytest
 from web_helpers import FakeClock
 
 from sci2audio.app import captures as app_captures
-from sci2audio.app.captures import CAPTURES, read_captures
+from sci2audio.app.captures import CAPTURES, MARKERS, read_captures
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
 from sci2audio.core.captures import MAX_CAPTURES, TEXT_LIMIT
 from sci2audio.web import captures as module
@@ -31,7 +31,6 @@ from sci2audio.web.captures import (
     UndoExpired,
     load,
 )
-from sci2audio.web.markers import MARKERS
 
 DOC = "0123456789abcdef"
 MARK, NOTE, QUOTE = CaptureType.MARK, CaptureType.NOTE, CaptureType.QUOTE

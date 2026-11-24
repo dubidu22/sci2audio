@@ -29,7 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from sci2audio import __version__
 from sci2audio.app import find_chapters, load_settings, shown_original
-from sci2audio.app.captures import CAPTURES
+from sci2audio.app.captures import CAPTURES, MARKERS
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.updates import RELEASES_URL, Outcome, release_page
 from sci2audio.app.voice import primary_language
@@ -90,7 +90,7 @@ from sci2audio.web.library import (
     when,
     write_opened,
 )
-from sci2audio.web.markers import MARKERS, count_captures, locate
+from sci2audio.web.markers import count_captures, locate
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     ChapterStates,
