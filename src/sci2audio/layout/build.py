@@ -210,7 +210,7 @@ class _Layout:
         for group in split_cells(rows, edges):
             if group[0].line is None:
                 units += [
-                    Held(_block(e, furniture, settings), page.number, self._inline(e, lines))
+                    Held(_block(e, furniture, settings), page.number, self._inline(e, lines), e.box)
                     for e in group
                 ]
             else:

@@ -41,3 +41,11 @@
 {% macro icon(name, size="") -%}
 <svg class="i{% if size %} {{ size }}{% endif %}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"></use></svg>
 {%- endmacro %}
+{#- A document's captures as a flag strip (#418, DESIGN.md "Flags"): each type its flag with
+    its icon and its count, never colour alone. The strip is hidden from screen readers; the
+    words beside it say the same. -#}
+{% macro flagstrip(captures) -%}
+<span class="flagstrip" aria-hidden="true">
+  {%- for kind, n in captures.kinds %}<span class="fs"><span class="flag f-{{ kind }}">{{ icon(kind, 's') }}</span><span class="num">{{ n }}</span></span>{% endfor -%}
+</span> <span class="visually-hidden">{{ captures.said }}</span>
+{%- endmacro %}

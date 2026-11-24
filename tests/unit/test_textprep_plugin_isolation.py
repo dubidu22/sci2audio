@@ -10,6 +10,7 @@ runs outside the time limit and outside any `try`, so it could hang or stop the 
 
 import gc
 import json
+import threading
 import time
 import traceback
 from importlib.metadata import EntryPoint
@@ -21,7 +22,7 @@ import pytest
 from sci2audio.app import JobRunner, JobSettings
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
-from sci2audio.textprep import StepContext, StepError, run_steps
+from sci2audio.textprep import StepContext, StepError, plugins, run_steps
 from sci2audio.textprep.api import PLUGIN_GROUP
 from sci2audio.textprep.plugins import installed_steps
 
@@ -129,17 +130,22 @@ def test_the_tracer_records_the_worker_threads(calls) -> None:
 # ---- the cases #693 names ---------------------------------------------------------------
 
 
-def run_with(attribute: str, timeout: float = 5.0):
+def steps_of(attribute: str, **timeouts: float):
     step_id = getattr(broken, attribute).id
     entry = EntryPoint(step_id, f"broken_text_plugins:{attribute}", PLUGIN_GROUP)
-    steps = installed_steps(entry_points=[entry], timeout=timeout)
+    steps = installed_steps(entry_points=[entry], **timeouts)
     assert steps.problems == ()
-    return run_steps(paper(), EN, steps)
+    return steps
+
+
+def run_with(attribute: str, timeout: float = 5.0):
+    return run_steps(paper(), EN, steps_of(attribute, timeout=timeout))
 
 
 def test_a_planted_object_whose_comparison_blocks_is_given_up(hang) -> None:
-    started = time.monotonic()
-    run = run_with("BlockingEqStep", timeout=0.2)
+    steps = steps_of("BlockingEqStep", timeout=0.2)
+    started = time.monotonic()  # loading has its own limit, and a full collection after it
+    run = run_steps(paper(), EN, steps)
     # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
     assert time.monotonic() - started < 3
     [problem] = run.problems
@@ -155,22 +161,181 @@ def test_an_offset_whose_index_raises_is_read_as_a_plain_int() -> None:
     assert "Smith" not in "".join(piece.text for piece in run.script())
 
 
-@pytest.mark.quarantined(
-    issue=804,
-    reason="no __del__ recorded by the final gc.collect() when many suites run at once",
-)
+class _Held:
+    """A cycle whose finalizer keeps its collection running until it is released."""
+
+    def __init__(self, inside: threading.Event, release: threading.Event) -> None:
+        self.inside, self.release, self.me = inside, release, self
+
+    def __del__(self) -> None:
+        self.inside.set()
+        self.release.wait(10)  # a bound only, so a broken test cannot hang the suite
+
+
+@pytest.fixture
+def collector_busy(monkeypatch):
+    """Another thread inside `gc.collect()`, as in the #804 repro: there CPython's
+    `gc.collect()` returns at once without collecting. `busy(until_worker_tried=True)`
+    releases it once a guard worker's `gc.collect()` has returned, so that call frees
+    nothing on every run; without, it stays inside until the test ends. Automatic
+    collection is off meanwhile, so no other thread collects by chance."""
+    collect = gc.collect
+    tried = threading.Event()
+    release = threading.Event()
+    threads: list[threading.Thread] = []
+
+    def collect_and_tell(*args):
+        freed = collect(*args)
+        if threading.current_thread().name.startswith("text step "):
+            tried.set()
+        return freed
+
+    def busy(until_worker_tried: bool) -> None:
+        inside = threading.Event()
+
+        def hold() -> None:
+            _Held(inside, release)
+            collect()
+
+        threads.append(threading.Thread(target=hold, name="busy collector", daemon=True))
+        if until_worker_tried:
+            threads.append(
+                threading.Thread(target=lambda: tried.wait(10) and release.set(), daemon=True)
+            )
+        for thread in threads:
+            thread.start()
+        assert inside.wait(10)
+
+    was_enabled = gc.isenabled()
+    gc.disable()
+    monkeypatch.setattr(gc, "collect", collect_and_tell)
+    try:
+        yield busy
+    finally:
+        release.set()
+        for thread in threads:
+            thread.join(10)
+        if was_enabled:
+            gc.enable()
+
+
+@pytest.mark.parametrize("busy", [False, True], ids=["alone", "another-thread-collecting"])
 @pytest.mark.parametrize("attribute", ["CyclicPlantStep", "CyclicErrorStep"])
-def test_an_object_in_a_reference_cycle_is_freed_in_the_worker(attribute: str, calls) -> None:
-    run = run_with(attribute)
-    gc.collect()  # what the worker left for the collector would die here, in this thread
-    assert [p.step for p in run.problems] == [getattr(broken, attribute).id]
+def test_an_object_in_a_reference_cycle_is_freed_in_the_worker(
+    attribute: str, busy: bool, calls, collector_busy
+) -> None:
+    steps = steps_of(attribute, timeout=5.0)
+    if busy:
+        collector_busy(until_worker_tried=True)
+    run = run_steps(paper(), EN, steps)
+    # freed before the run returned, with no collection of this thread's
     assert "__del__" in [dunder for dunder, _ in calls]
+    gc.collect()  # what the worker still left for the collector would die here, in this thread
+    assert outside_the_guard(calls) == []
+    assert [p.step for p in run.problems] == [getattr(broken, attribute).id]
+
+
+def test_a_worker_that_cannot_collect_gives_up_with_a_clear_problem(
+    calls, collector_busy, monkeypatch
+) -> None:
+    steps = steps_of("ZetaStep", timeout=5.0)
+    monkeypatch.setattr(plugins, "PLUGIN_COLLECT_TIMEOUT", 0.2)
+    collector_busy(until_worker_tried=False)
+    started = time.monotonic()
+    run = run_steps(paper(), EN, steps)
+    # clock-bound: the other thread never leaves its collection; 3 s is 15 times the bound
+    assert time.monotonic() - started < 3
+    [problem] = run.problems
+    assert problem.step == "zeta"
+    assert "not freed within 0.2 s" in problem.message
+
+
+def test_a_young_collection_in_the_worker_is_not_taken_for_its_full_one(calls, monkeypatch) -> None:
+    """A collection that is due runs in whichever thread checks for one, the worker
+    included, and is often a young one: it can free a fresh canary in the worker while an
+    older cycle of the plugin stays. Here the worker's first two `gc.collect()` calls meet
+    another thread's young collection, so they return at once; before the second, a young
+    collection runs in the worker, standing for the one CPython would run there."""
+    steps = steps_of("AgedCycleStep", timeout=5.0)
+    collect = gc.collect
+    tries: list[None] = []
+
+    def while_another_thread_collects() -> int:
+        inside, release = threading.Event(), threading.Event()
+
+        def hold() -> None:
+            _Held(inside, release)
+            collect(0)
+
+        other = threading.Thread(target=hold, name="young collector", daemon=True)
+        other.start()
+        assert inside.wait(10)
+        freed = collect()
+        release.set()
+        other.join(10)
+        return freed
+
+    def guard_collect(*args):
+        if args or not threading.current_thread().name.startswith("text step "):
+            return collect(*args)  # the plugin's own young collection, and everyone else's
+        tries.append(None)
+        if len(tries) == 2:
+            collect(0)
+        return while_another_thread_collects() if len(tries) <= 2 else collect()
+
+    was_enabled = gc.isenabled()
+    gc.disable()
+    monkeypatch.setattr(gc, "collect", guard_collect)
+    try:
+        run = run_steps(paper(), EN, steps)
+        # freed before the run returned, with no collection of this thread's
+        assert "__del__" in [dunder for dunder, _ in calls]
+    finally:
+        monkeypatch.undo()
+        if was_enabled:
+            gc.enable()
+    gc.collect()  # what the worker still left for the collector would die here, in this thread
+    assert outside_the_guard(calls) == []
+    assert run.problems == ()
+
+
+def test_the_job_thread_sleeps_from_before_the_call_starts(calls) -> None:
+    """Awake while the call blocks, the job's thread would itself run the collection the
+    call's allocations made due, and with it the finalizer of the cycle the call dropped."""
+    steps = steps_of("BlocksAfterGarbageStep", timeout=5.0)
+    run = run_steps(paper(), EN, steps)
+    assert "__del__" in [dunder for dunder, _ in calls]
+    assert outside_the_guard(calls) == []
+    assert run.problems == ()
+
+
+def test_a_finalizer_that_hangs_in_the_collection_after_the_call_is_given_up(
+    calls, hang, monkeypatch
+) -> None:
+    steps = steps_of("HangingFinalizerStep", timeout=5.0)
+    others = steps_of("CyclicPlantStep", timeout=5.0)
+    monkeypatch.setattr(plugins, "PLUGIN_COLLECT_TIMEOUT", 0.2)
+    monkeypatch.setattr(plugins, "_hung_collection", None)
+    started = time.monotonic()
+    run = run_steps(paper(), EN, steps)
+    # clock-bound: the planted finalizer never ends; 3 s is 15 times the bound
+    assert time.monotonic() - started < 3
+    [problem] = run.problems
+    assert problem.step == "hanging-finalizer"
+    assert "not freed within 0.2 s after its call: the collection after it" in problem.message
+    # the collector stays held by that finalizer, and so nothing is freed anywhere: a later
+    # plugin neither waits for it nor takes the blame
+    later = run_steps(paper(), EN, others)
+    [problem] = later.problems
+    assert problem.step == "cyclic-plant"
+    assert "changed the document" in problem.message
     assert outside_the_guard(calls) == []
 
 
 def test_a_plugin_error_whose_str_blocks_is_given_up(hang) -> None:
-    started = time.monotonic()
-    run = run_with("SlowMessageStep", timeout=0.2)
+    steps = steps_of("SlowMessageStep", timeout=0.2)
+    started = time.monotonic()  # loading has its own limit, and a full collection after it
+    run = run_steps(paper(), EN, steps)
     # clock-bound: the planted hang never ends; 3 s is 15 times the 0.2 s limit
     assert time.monotonic() - started < 3
     [problem] = run.problems

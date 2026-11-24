@@ -4,6 +4,7 @@ Pages are 600 x 800 points with body text in 10 point on a 14 point line pitch, 
 between x 70 and x 526 or two columns with a 16 point gutter, as in `test_layout`.
 """
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 from test_layout import GUTTER, LEFT, MIDDLE, RIGHT, content, line
@@ -26,7 +27,15 @@ from sci2audio.core import (
 from sci2audio.layout import build_document
 from sci2audio.layout.geometry import Bars, union
 from sci2audio.layout.order import Element
-from sci2audio.layout.paragraphs import Held, Row, _denominator, _over, rows_of
+from sci2audio.layout.paragraphs import (
+    Held,
+    Row,
+    _denominator,
+    _ends,
+    _over,
+    _sentence_end,
+    rows_of,
+)
 from sci2audio.layout.paragraphs import paragraphs as make_paragraphs
 from sci2audio.layout.settings import LayoutSettings
 
@@ -1327,3 +1336,46 @@ def test_a_heading_or_a_new_paragraph_after_the_page_break_does_not_join_it() ->
     indented = line("e0 starts a new paragraph", LEFT + 15, 100, COLUMN_END)
     doc, (first, running, opening, fractions, rest, right) = _across_a_page(indented)
     assert paragraphs(doc) == [first, running, "\n".join([opening, fractions, rest]), right]
+
+
+# Sentence ends for a figure between two columns (#945, #958)
+
+
+@pytest.mark.parametrize(
+    "end", ["so endet es.\u201c", "so endet es.\u00bb", "so endet es.\u00ab", "it ends.\u201d"]
+)
+def test_a_full_stop_before_a_closing_quote_or_guillemet_ends_a_sentence(end: str) -> None:
+    """#958: German closing quotes and guillemets after a full stop end a sentence, for the
+    figure in a gutter (`_sentence_end`) as for a paragraph that might go on (`_ends`)."""
+    row = _row(end, LEFT, 100, LEFT_END, LEFT_COLUMN, 1)
+    assert _sentence_end(row)
+    assert _ends(row)
+
+
+@pytest.mark.parametrize(
+    "end",
+    [
+        "Werte wie z. B.",
+        "Werte wie z.B.",
+        "Werte, d. h.",
+        "Werte u. a.",
+        "Werte in Abb.",
+        "am 3.",
+        "Smith et al.",
+        "values, e.g.",
+        "values, i.e.",
+        "values in Fig.",
+        "Werte (vgl. Abb.",
+    ],
+)
+def test_an_abbreviation_ends_no_sentence_before_a_figure_in_a_gutter(end: str) -> None:
+    """#945: a line ending in a common abbreviation or a number with a full stop does not end
+    a sentence for the figure in a gutter; words ending one still do."""
+    assert not _sentence_end(_row(end, LEFT, 100, LEFT_END, LEFT_COLUMN, 1))
+
+
+@pytest.mark.parametrize(
+    "end", ["it ends.", "es endet.\u201c", "values (Fig. 3).", "in 2023 a.", "Ende!"]
+)
+def test_a_word_before_a_full_stop_ends_a_sentence_before_a_figure_in_a_gutter(end: str) -> None:
+    assert _sentence_end(_row(end, LEFT, 100, LEFT_END, LEFT_COLUMN, 1))

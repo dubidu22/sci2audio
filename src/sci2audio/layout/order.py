@@ -397,7 +397,9 @@ def gutters(elements: list[Element], width: float, size: float, settings: Layout
     neighbours. That strip still splits the band in two, which would read the short column
     row by row with the one on its left; so where a column stands inside a strip, the
     white on each side of it is looked at first and the whole strip only if neither splits
-    (#873)."""
+    (#873). A figure with a few lines under it, too few to be a column, stands in a strip
+    the same way: if the white on each side of it splits the band, it is read as a column of
+    its own between its neighbours (#938)."""
     if not elements:
         return []
     left = min(e.box.x0 for e in elements)
@@ -416,11 +418,33 @@ def gutters(elements: list[Element], width: float, size: float, settings: Layout
         rest = [e for e in elements if e.box.x0 >= end]
         return _is_column(column, width, settings) and _is_column(rest, width, settings)
 
+    def framed(strip: tuple[float, float], inside: list[Element]) -> Cuts:
+        """The white on each side of a figure standing in the strip with a few lines under
+        it, if each of the two splits the band: the figure's column is read between its
+        neighbours, as a short column is (#938). Else nothing."""
+        if not _figure_column(inside, width, size, settings):
+            return []
+        whites = _white(strip, elements)
+        if len(whites) < 2 or whites[0][0] < opened:
+            return []
+        first, last = whites[0], whites[-1]
+        if first[1] > min(e.box.x0 for e in inside) or last[0] < max(e.box.x1 for e in inside):
+            return []
+        rest = [e for e in elements if e.box.x0 >= last[1]]
+        wide = last[1] - last[0] >= settings.gutter * size and last[1] < right
+        return (
+            [first, last] if splits(*first) and wide and _is_column(rest, width, settings) else []
+        )
+
     for strip in _strips(elements, left, right, crossings):
         start, end = strip
         inside = [e for e in elements if e.box.x0 >= start and e.box.x1 <= end]
         if _is_column(inside, width, settings):  # a short column in the strip (#873)
             candidates = [*_white(strip, elements), strip]
+        elif beside := framed(strip, inside):
+            found += beside
+            opened, after = beside[1][1], beside[1][0]
+            continue
         else:
             candidates = [strip] if splits(*strip) else _white(strip, elements)
         for start, end in candidates:
@@ -464,6 +488,21 @@ def _white(strip: tuple[float, float], elements: list[Element]) -> Cuts:
             found.append((at, x0))
         at = max(at, x1)
     return found
+
+
+def _figure_column(
+    side: list[Element], width: float, size: float, settings: LayoutSettings
+) -> bool:
+    """True if the elements are a figure (more than a rule or a mark) and the lines with it,
+    spread as wide as a column."""
+    mark, thin = settings.mark_height * size, settings.line_width * size
+    shown = [
+        e for e in side if e.graphics and not minor([boxed(g) for g in e.graphics], mark, thin)
+    ]
+    if not shown or len(shown) + sum(e.line is not None for e in side) < len(side):
+        return False
+    broad = max(e.box.x1 for e in side) - min(e.box.x0 for e in side)
+    return broad >= settings.column_width * width
 
 
 def _is_column(side: list[Element], width: float, settings: LayoutSettings) -> bool:

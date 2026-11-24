@@ -179,6 +179,7 @@ def used_keys() -> set[str]:
     found |= {f"voice.letter_pace_{pace}" for pace in LETTER_PACES}  # pages names each pace
     found |= {f"library.state_{key}" for key in pages.CHIPS}  # a chip's word (#389)
     found |= {f"library.when_{kind}" for kind in ("today", "yesterday")}  # library.when
+    found |= {f"library.{kind}s" for kind in pages.CAPTURE_KINDS}  # a flag strip's words (#418)
     for path in (Path(pages.__file__), Path(i18n.__file__), Path(window.__file__)):
         source = path.read_text(encoding="utf-8")
         found |= set(re.findall(r"""\b(?:t|s|self\.t)\(\s*f?["']([a-z_.-]+[a-z])["']""", source))
