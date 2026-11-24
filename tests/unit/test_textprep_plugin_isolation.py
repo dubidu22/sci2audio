@@ -250,18 +250,76 @@ def test_a_worker_that_cannot_collect_gives_up_with_a_clear_problem(
     assert "not freed within 0.2 s" in problem.message
 
 
+def test_a_young_collection_in_the_worker_is_not_taken_for_its_full_one(calls, monkeypatch) -> None:
+    """A collection that is due runs in whichever thread checks for one, the worker
+    included, and is often a young one: it can free a fresh canary in the worker while an
+    older cycle of the plugin stays. Here the worker's first two `gc.collect()` calls meet
+    another thread's young collection, so they return at once; before the second, a young
+    collection runs in the worker, standing for the one CPython would run there."""
+    steps = steps_of("AgedCycleStep", timeout=5.0)
+    collect = gc.collect
+    tries: list[None] = []
+
+    def while_another_thread_collects() -> int:
+        inside, release = threading.Event(), threading.Event()
+
+        def hold() -> None:
+            _Held(inside, release)
+            collect(0)
+
+        other = threading.Thread(target=hold, name="young collector", daemon=True)
+        other.start()
+        assert inside.wait(10)
+        freed = collect()
+        release.set()
+        other.join(10)
+        return freed
+
+    def guard_collect(*args):
+        if args or not threading.current_thread().name.startswith("text step "):
+            return collect(*args)  # the plugin's own young collection, and everyone else's
+        tries.append(None)
+        if len(tries) == 2:
+            collect(0)
+        return while_another_thread_collects() if len(tries) <= 2 else collect()
+
+    was_enabled = gc.isenabled()
+    gc.disable()
+    monkeypatch.setattr(gc, "collect", guard_collect)
+    try:
+        run = run_steps(paper(), EN, steps)
+        # freed before the run returned, with no collection of this thread's
+        assert "__del__" in [dunder for dunder, _ in calls]
+    finally:
+        monkeypatch.undo()
+        if was_enabled:
+            gc.enable()
+    gc.collect()  # what the worker still left for the collector would die here, in this thread
+    assert outside_the_guard(calls) == []
+    assert run.problems == ()
+
+
 def test_a_finalizer_that_hangs_in_the_collection_after_the_call_is_given_up(
-    hang, monkeypatch
+    calls, hang, monkeypatch
 ) -> None:
     steps = steps_of("HangingFinalizerStep", timeout=5.0)
+    others = steps_of("CyclicPlantStep", timeout=5.0)
     monkeypatch.setattr(plugins, "PLUGIN_COLLECT_TIMEOUT", 0.2)
+    monkeypatch.setattr(plugins, "_hung_collection", None)
     started = time.monotonic()
     run = run_steps(paper(), EN, steps)
     # clock-bound: the planted finalizer never ends; 3 s is 15 times the bound
     assert time.monotonic() - started < 3
     [problem] = run.problems
     assert problem.step == "hanging-finalizer"
-    assert "not freed within 0.2 s" in problem.message
+    assert "not freed within 0.2 s after its call: the collection after it" in problem.message
+    # the collector stays held by that finalizer, and so nothing is freed anywhere: a later
+    # plugin neither waits for it nor takes the blame
+    later = run_steps(paper(), EN, others)
+    [problem] = later.problems
+    assert problem.step == "cyclic-plant"
+    assert "changed the document" in problem.message
+    assert outside_the_guard(calls) == []
 
 
 def test_a_plugin_error_whose_str_blocks_is_given_up(hang) -> None:

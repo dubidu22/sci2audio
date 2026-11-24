@@ -235,6 +235,12 @@ class _Failure:
     raised: bool = False  # the plugin's find raised an Exception; `message` is its text
 
 
+# The guard worker whose collection after a call did not end, and its state. While it stays
+# inside that collection the collector frees nothing in any thread, the job's included, so
+# later calls do not wait for it. One per process, as the collector is (#804).
+_hung_collection: tuple[threading.Thread, dict[str, Any]] | None = None
+
+
 def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Failure:
     """`call()` in a daemon thread: its result, which must hold only built-in values, or a
     _Failure; _TimedOut if the call is still running after `timeout` seconds. What the call
@@ -244,16 +250,14 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
     program from ending.
 
     After the call the thread makes sure the garbage the call left in cycles is freed, and
-    this thread waits for that up to `PLUGIN_COLLECT_TIMEOUT` seconds more: the limit is
-    for the plugin's code, and a full collection of a large program takes its own time.
+    this thread sleeps until then, up to `PLUGIN_COLLECT_TIMEOUT` seconds more: the limit
+    is for the plugin's code, and a full collection of a large program takes its own time.
     If it is not sure by then, the result is a _Failure."""
-    result: dict[str, Any] = {}
-    called = threading.Event()
+    global _hung_collection
+    result: dict[str, Any] = {"collecting": False}
+    called, collected, settled = threading.Event(), threading.Event(), threading.Event()
+    late: list[str] = []
     limit = PLUGIN_COLLECT_TIMEOUT
-    not_freed = _Failure(
-        f"its objects were not freed within {limit:g} s after its call: the garbage "
-        f"collector stayed busy"
-    )
 
     def work() -> None:
         try:
@@ -265,61 +269,92 @@ def _in_worker[T](call: Callable[[], T], timeout: float, name: str) -> T | _Fail
         called.set()
         # what the call left in reference cycles is freed only by the collector, which would
         # otherwise run its finalizers in whatever thread triggers it next: the job's
-        if not _cycles_freed(limit):
-            result["value"] = not_freed
+        result["freed"] = _cycles_freed(limit, result)
+        collected.set()
+
+    def watch() -> None:
+        # the job's thread sleeps until the cycles are freed or a limit has passed: awake, it
+        # could run a collection that is due, and with it the plugin's finalizers
+        if not called.wait(timeout):
+            late.append("call")
+        elif "interrupted" not in result and not collected.wait(limit):
+            late.append("collection")
+        settled.set()
 
     worker = threading.Thread(target=work, name=name, daemon=True)
     worker.start()
-    if not called.wait(timeout):
+    threading.Thread(target=watch, name=f"{name} (limits)", daemon=True).start()
+    if not settled.wait(timeout + limit + 1.0):  # the watch itself was held up
+        late.append("call" if not called.is_set() else "collection")
+    if late[:1] == ["call"]:
         raise _TimedOut(worker)
     if "interrupted" in result:
         raise KeyboardInterrupt
-    # bounded here too: one collection can outlast the worker's own bound, and a plugin's
-    # finalizer that runs in it may hang
-    worker.join(limit)
-    if worker.is_alive():
-        return not_freed
+    if late and result["collecting"]:  # inside its own collection: a finalizer of it hangs
+        _hung_collection = (worker, result)
+        return _Failure(
+            f"its objects were not freed within {limit:g} s after its call: the collection "
+            f"after it did not end"
+        )
+    if late or not result["freed"]:
+        return _Failure(
+            f"its objects were not freed within {limit:g} s after its call: another thread "
+            f"kept the garbage collector busy"
+        )
     return result["value"]
+
+
+def _cycles_freed(limit: float, state: dict[str, Any]) -> bool:
+    """True once every reference cycle that existed when this was called is freed, False if
+    that cannot be made sure within `limit` seconds. `state["collecting"]` is True while
+    this thread is inside `gc.collect()`.
+
+    While another thread is inside a collection, `gc.collect()` returns 0 at once and frees
+    nothing (#804), so only a call that found something was a collection of this thread's
+    own, and that is a full one, started after the call; a garbage canary makes sure there
+    is something to find. That the canary is gone proves nothing: a collection that is due
+    runs in whichever thread checks for one, this one included, and is often a young one
+    that leaves older cycles. Two more full collections ended anywhere prove it too: the
+    second started after the first ended, so after this was called. While a guard worker
+    hangs inside its collection nothing is freed anywhere, so this does not wait for it.
+    """
+    full_before = _full_collections()
+    deadline = time.monotonic() + limit
+    canary = _canary()
+    while True:
+        if canary() is None:
+            canary = _canary()
+        state["collecting"] = True
+        found = gc.collect()
+        state["collecting"] = False
+        if found or _full_collections() >= full_before + 2:
+            return True
+        if _collector_held_by_a_hung_worker():
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.001)  # lets the thread that is collecting finish
+
+
+def _full_collections() -> int:
+    """How many full collections have ended; CPython counts one as it ends."""
+    return gc.get_stats()[2]["collections"]
+
+
+def _collector_held_by_a_hung_worker() -> bool:
+    hung = _hung_collection
+    return hung is not None and hung[0].is_alive() and hung[1]["collecting"]
 
 
 class _Canary:
     me: object
 
 
-def _cycles_freed(limit: float) -> bool:
-    """True once every reference cycle that existed when this was called is freed, False if
-    that cannot be made sure within `limit` seconds.
-
-    While another thread is inside a collection, `gc.collect()` returns at once and frees
-    nothing (#804), so one call proves nothing. A canary cycle that dies in this thread's
-    own collection proves that a full collection started after the call and has finished.
-    One that dies elsewhere does not: that may have been a young-generation pass, which
-    leaves older cycles. Two more full collections finished anywhere prove it too: the
-    second started after the first ended, so after this was called.
-    """
-    me = threading.get_ident()
-    full_before = gc.get_stats()[2]["collections"]
-    deadline = time.monotonic() + limit
-    freed_in: list[int] = []
-    alive = _canary(freed_in)
-    while True:
-        gc.collect()
-        if freed_in == [me] or gc.get_stats()[2]["collections"] >= full_before + 2:
-            return True
-        if time.monotonic() >= deadline:
-            return False
-        if alive() is None:  # freed in another thread's collection
-            freed_in = []
-            alive = _canary(freed_in)
-        time.sleep(0.001)  # lets the thread that is collecting finish
-
-
-def _canary(freed_in: list[int]) -> weakref.ref[_Canary]:
-    """A weakref to a new cycle of no use; its callback adds the thread that freed it to
-    `freed_in`. The caller keeps the weakref, or the callback never runs."""
+def _canary() -> weakref.ref[_Canary]:
+    """A weakref to a new cycle of no use, left for the collector."""
     canary = _Canary()
     canary.me = canary
-    return weakref.ref(canary, lambda _: freed_in.append(threading.get_ident()))
+    return weakref.ref(canary)
 
 
 def _distribution(point: EntryPoint) -> tuple[str, str]:

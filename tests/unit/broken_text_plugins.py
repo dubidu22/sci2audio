@@ -1,5 +1,6 @@
 """Text-step plugins that break the rules, for the loader and the guard (#216)."""
 
+import gc
 import sys
 import threading
 from typing import ClassVar
@@ -466,4 +467,17 @@ class HangingFinalizerStep(_Plugin):
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
         _HangingFinalizer()
+        return []
+
+
+class AgedCycleStep(_Plugin):
+    """Leaves a cycle that lived through a young collection, so only a full one frees it."""
+
+    id = "aged-cycle"
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        aged = traced(object)()
+        aged.me = aged
+        gc.collect(0)  # still held here: it moves on to an older generation
+        del aged
         return []
