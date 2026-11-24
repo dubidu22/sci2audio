@@ -1044,3 +1044,47 @@ def test_a_month_line_after_a_title_line_keeps_its_cut(lines: list[str], tags: s
     (#893). ``p`` is a new paragraph, ``b`` a line joined to the one before."""
     expected = [("p",) if t == "p" else ("p", "br") for t in tags]
     assert tags_of("\n".join(lines) + "\n") == expected
+
+
+# ---- #903: an English month line inside a running sentence -------------------------------
+
+_PUBLISHED = "The first version of the reading tool was published, as planned, in\n"
+_THE = "The second part starts on this line and runs on for a while here.\n"
+_ENGLISH_MONTHS = (
+    *("January", "February", "March", "April", "May", "June", "July", "August"),
+    *("September", "October", "November", "December"),
+)
+
+
+@pytest.mark.parametrize("month", _ENGLISH_MONTHS)
+def test_an_english_month_line_inside_a_running_sentence_stays_in_its_paragraph(
+    month: str,
+) -> None:
+    """ "... published in" / "June 2020" / "The ...": every English month behaves alike, the
+    ones spelled as in German (April) and the English-only ones (June) (#903)."""
+    for line in (month, f"{month} 2020"):
+        text = f"{_PUBLISHED}{line}\n{_THE}"
+        assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")], line
+
+
+# ---- #922: a date line after a long title line ---------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("title", "date", "body"),
+    [
+        ("Jahresbericht der Deutschen Gesellschaft für Akustik", "Oktober 2020", _DIE),
+        ("JAHRESBERICHT DER GESELLSCHAFT FÜR AKUSTIK UND SPRACHE", "Oktober 2020", _DIE),
+        ("Max Mustermann und Erika Musterfrau, Institut für Akustik Berlin", "Mai 2021", _DIE),
+        ("A Study of Reading Scientific Papers Aloud on Phones", "April 2020", _THE),
+    ],
+    ids=["jahresbericht", "capitals", "authors", "english"],
+)
+def test_a_date_line_after_a_long_title_line_is_a_block_of_its_own(
+    title: str, date: str, body: str
+) -> None:
+    """A title or author line longer than `TITLE_SHARE` of the longest line, ending in a
+    word that is no preposition, article or ordinal, before a date: title, date and body
+    are three blocks (#922)."""
+    assert len(title) > 0.6 * len(body.strip())
+    assert tags_of(f"{title}\n{date}\n{body}") == [("p",), ("p",), ("p",)]
