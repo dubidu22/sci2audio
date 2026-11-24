@@ -2993,3 +2993,153 @@ expected = [
     "Fragen Sie die Autorin nach den Daten.",
     "Führe curl https://example.org/a aus.",
 ]
+
+# ---- #652 nothing to speak: a lone dash ------------------------------------------------------
+
+[[case]]
+id = "de-dash-list-middle-dash-on-its-own-line"
+audit = 0
+issue = 652
+goal = "Three dash-led questions, the middle dash on a line of its own: three utterances, each led by its own dash, none only '-', nothing after a question mark (#652)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?\n-\nWelche Hürden treten auf und wie lassen sie sich abbauen?\n- Mit wem lässt sich der Ort gemeinsam gestalten?" }]
+expected = ["- Welche Räume stehen offen und wie lassen sie sich nutzen? - Welche Hürden treten auf und wie lassen sie sich abbauen? - Mit wem lässt sich der Ort gemeinsam gestalten?"]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "- Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "- Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+[[case]]
+id = "de-dash-list-split-into-blocks-by-layout"
+audit = 0
+issue = 652
+goal = "The same list as layout split it in the reported handout: a block of only '-', and the next item's dash at the end of the block before. No utterance is only '-', and none ends in a dash after its question mark (#652)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?" },
+    { kind = "paragraph", text = "-" },
+    { kind = "paragraph", text = "Welche Hürden treten auf und wie lassen sie sich abbauen?\n-" },
+    { kind = "paragraph", text = "Mit wem lässt sich der Ort gemeinsam gestalten?" },
+]
+expected = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "-",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen? -",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+# ---- #628, #629 the join words and the glued word around a removed link or citation ----------
+# Moved in from tests/unit/test_textprep_links_citations_de.py, which keeps them (#836).
+
+[[case]]
+id = "de-links-citations-no-two-join-words-side-by-side"
+audit = 0
+issue = 628
+goal = "A link and a citation removed after a join word leave no second join word beside it: 'und https://… (Müller, 2019) und' reads 'und'; the join word before a bare citation or a differing one ('oder') is read once as well (#628, #836)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Dann es und https://x.org/8 (Müller, 2019) und mehr." },
+    { kind = "paragraph", text = "Dann die Daten, und https://x.org/5 (Müller, 2019) und mehr." },
+    { kind = "paragraph", text = "Dann es oder https://x.org/8 und mehr." },
+    { kind = "paragraph", text = "Dann es und (Müller, 2019) und mehr." },
+]
+expected = [
+    "Dann es und mehr.",
+    "Dann die Daten und mehr.",
+    "Dann es und mehr.",
+    "Dann es und mehr.",
+]
+
+[[case]]
+id = "de-links-citations-no-word-glued-on-after-a-removal"
+audit = 0
+issue = 629
+goal = "A word glued to the closing mark of a removed link or citation ('(siehe https://a.org)Müller', '<https://a.org>Müller', '„https://a.org“Müller', '(Müller, 2019)Lee') stays a word of its own after the removal (#629, #836)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Text (siehe https://a.org)Müller hier." },
+    { kind = "paragraph", text = "Text <https://a.org>Müller hier." },
+    { kind = "paragraph", text = "Text „https://a.org“Müller hier." },
+    { kind = "paragraph", text = "Text (Müller, 2019)Lee und https://x.org hier." },
+]
+expected = [
+    "Text Müller hier.",
+    "Text Müller hier.",
+    "Text Müller hier.",
+    "Text Lee hier.",
+]
+
+# ---- #796 implication arrows read as words ---------------------------------------------------
+# The arrows' German words are 'daraus folgt', 'folgt aus' and 'genau dann, wenn' (#842).
+
+[[case]]
+id = "de-implication-arrows-between-operands"
+audit = 0
+issue = 796
+goal = "Between two operands '⇒' is read 'daraus folgt', '⇐' 'folgt aus' and '⇔' 'genau dann, wenn'; the ASCII forms '=>' and '<=>' likewise, and a four-digit number before the arrow stays a plain number (#796, #842)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wenn A ⇒ B, dann B ⇐ A und A ⇔ A." },
+    { kind = "paragraph", text = "Also p => q und p <=> q." },
+    { kind = "paragraph", text = "Für 1234 ⇒ A gilt B." },
+]
+expected = [
+    "Wenn A daraus folgt B, dann B folgt aus A und A genau dann, wenn A.",
+    "Also p daraus folgt q und p genau dann, wenn q.",
+    "Für 1234 daraus folgt A gilt B.",
+]
+
+[[case]]
+id = "de-implication-arrows-pieced-from-an-equals-sign"
+audit = 0
+issue = 590
+goal = "A long double arrow printed as two glyphs ('=⇒', '⇐=', '⇐=⇒'), also glued to its letters, is one arrow and is read as its words, never 'gleich', which flips the meaning (#590, #796, #842)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also gilt A =⇒ B und C⇐=D." },
+    { kind = "paragraph", text = "Dann gilt P ⇐=⇒ Q und X=⇒Y." },
+]
+expected = [
+    "Also gilt A daraus folgt B und C folgt aus D.",
+    "Dann gilt P genau dann, wenn Q und X daraus folgt Y.",
+]
+
+[[case]]
+id = "de-implication-arrow-standing-alone"
+audit = 0
+issue = 796
+goal = "An arrow that stands alone, as a list bullet or as a figure label, is no sentence word and is left as printed (#796, #842)."
+language = "de"
+blocks = [
+    { kind = "list_item", text = "⇒ schnelleres Training" },
+    { kind = "caption", text = "Abbildung 2: ⇔" },
+]
+expected = [
+    "⇒ schnelleres Training",
+    "Abbildung 2: ⇔",
+]
+
+# ---- #844 a four-digit number before a sign --------------------------------------------------
+
+[[case]]
+id = "de-four-digit-number-before-a-sign"
+audit = 0
+issue = 844
+goal = "A four-digit number before '=' or '×' is read as the number it is ('1234 gleich A', '1234 mal'), not as a count with a thousands separator; a year-like '2019 = A' reads the same way (#844, #863)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wir setzen 1234 = A." },
+    { kind = "paragraph", text = "Es wuchs 1234× im Jahr." },
+    { kind = "paragraph", text = "Wir setzen 2019 = A." },
+]
+expected = [
+    "Wir setzen 1234 gleich A.",
+    "Es wuchs 1234 mal im Jahr.",
+    "Wir setzen 2019 gleich A.",
+]
