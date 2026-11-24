@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
 from playwright.sync_api import Page, expect
 from test_focus import nobody_focused
 from test_player import highlighted, listen_to, paused
@@ -86,6 +87,9 @@ def middle(data: dict[str, Any], n: int) -> float:
     return float((start + end) / 2)
 
 
+@pytest.mark.quarantined(
+    issue=935, reason="failed twice in WebKit without a code cause (#772)", browser="webkit"
+)
 def test_the_mark_and_the_bar_stay_on_the_sentence_through_its_pieces(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:

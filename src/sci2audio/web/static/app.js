@@ -380,6 +380,182 @@ function librarySearch() {
   });
 }
 
+// ---- the Captures page (#398, ADR-008) ------------------------------------------------------
+// Filters the rows in place by type and document; the form itself still works (GET /captures).
+// Remove takes a capture out of its file at once and its row out of the page; the toast's
+// Undo puts it back (D-723 ruling 1): no struck-through row, no Restore. The changes go to
+// the server one at a time, in the order asked, as on the Listen page (#397), so an Undo
+// never runs before the removal it undoes has come back.
+function capturesPage() {
+  const root = document.getElementById("captures");
+  const form = document.getElementById("capture-filters");
+  if (!root || !form) return;
+  const from = document.getElementById("capture-from");
+  const show = document.getElementById("capture-show");
+  const kinds = [...form.querySelectorAll("button[data-kind]")];
+  const groups = [...root.querySelectorAll(".capture-group")];
+  const none = document.getElementById("captures-none");
+  const summary = document.getElementById("captures-summary");
+  const heading = document.getElementById("captures-title");
+  const toast = document.getElementById("capture-toast");
+  const toastFlag = document.getElementById("capture-toast-flag");
+  const toastSaid = document.getElementById("capture-said");
+  const undoButton = document.getElementById("capture-undo");
+  const TOAST_FOR = 60000; // ms the toast's Undo stays, as on the Listen page
+  let kind = kinds.find((button) => button.getAttribute("aria-pressed") === "true")?.dataset.kind || "all";
+  let queue = Promise.resolve();
+  let undo = null; // what the toast's Undo does
+  let back = null; // where the focus goes when the toast it is in goes away
+  let toastTimer = 0;
+
+  const rowsOf = (group) => [...group.querySelectorAll(".capture-row")];
+  const kept = (row) => row.dataset.gone === undefined;
+
+  function filter() {
+    const chosen = from.value;
+    const counts = { all: 0, note: 0, quote: 0, mark: 0 };
+    let total = 0;
+    let documents = 0;
+    let anyShown = false;
+    for (const group of groups) {
+      const mine = !chosen || group.dataset.document === chosen;
+      const rows = rowsOf(group).filter(kept);
+      let visible = 0;
+      for (const row of rowsOf(group)) {
+        row.hidden = !kept(row) || !mine || (kind !== "all" && row.dataset.kind !== kind);
+        if (!row.hidden) visible += 1;
+      }
+      if (mine) {
+        for (const row of rows) {
+          counts.all += 1;
+          counts[row.dataset.kind] += 1;
+        }
+      }
+      total += rows.length;
+      if (rows.length) documents += 1;
+      group.querySelector("[data-group-count]").textContent = tr("captures.count", { n: rows.length });
+      group.hidden = !mine || !(visible || (group.dataset.off && kind === "all"));
+      if (!group.hidden) anyShown = true;
+    }
+    for (const button of kinds) {
+      button.setAttribute("aria-pressed", String(button.dataset.kind === kind));
+      button.querySelector("[data-count]").textContent = counts[button.dataset.kind];
+    }
+    none.hidden = anyShown;
+    summary.textContent = tr("captures.summary", {
+      count: tr("captures.count", { n: total }),
+      documents: tr("captures.documents", { n: documents }),
+    });
+    show.value = kind;
+    const url = new URL(location.href);
+    for (const [name, value] of [["type", kind === "all" ? "" : kind], ["from", chosen]]) {
+      if (value) url.searchParams.set(name, value);
+      else url.searchParams.delete(name);
+    }
+    history.replaceState(history.state, "", url);
+  }
+
+  for (const button of kinds) {
+    button.addEventListener("click", (event) => {
+      event.preventDefault(); // in place: the page, its focus and its toast stay
+      kind = button.dataset.kind;
+      filter();
+    });
+  }
+  from.addEventListener("change", filter);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    filter();
+  });
+  show.hidden = true; // the choice applies as it is made
+
+  function flagOf(type) {
+    const icon = root.querySelector(`.capture-row[data-kind="${type}"] .flag svg`);
+    return icon ? [icon.cloneNode(true)] : [];
+  }
+
+  function tell(said, type, then = null) {
+    clearTimeout(toastTimer);
+    toastSaid.textContent = said;
+    toastFlag.hidden = !type;
+    toastFlag.className = type ? `flag f-${type}` : "flag";
+    toastFlag.replaceChildren(...(type ? flagOf(type) : []));
+    undo = then;
+    undoButton.hidden = !then;
+    toast.hidden = false;
+    say(said); // the status line, for screen readers
+    toastTimer = setTimeout(hideToast, TOAST_FOR);
+  }
+
+  function hideToast() {
+    clearTimeout(toastTimer);
+    const inside = toast.contains(document.activeElement);
+    toast.hidden = true;
+    toastSaid.textContent = ""; // a hidden toast says nothing a later check could read
+    undo = null;
+    if (inside) (back && back.isConnected && !back.closest("[hidden]") ? back : heading).focus();
+  }
+
+  undoButton.addEventListener("click", () => {
+    const then = undo;
+    hideToast();
+    if (then) queue = queue.then(then);
+  });
+
+  const urlOf = (row) =>
+    `/api/v1/documents/${encodeURIComponent(row.dataset.document)}/captures/${row.dataset.capture}`;
+
+  async function call(url, method) {
+    try {
+      return await send(url, { method });
+    } catch (error) {
+      hideToast();
+      say(explain(error), true);
+      return null;
+    }
+  }
+
+  // the first action of the row shown after this one, or before it: where the focus goes
+  function neighbour(row) {
+    const shown = [...root.querySelectorAll(".capture-row")].filter((r) => !r.hidden && !r.closest("[hidden]"));
+    const at = shown.indexOf(row);
+    const next = shown[at + 1] || shown[at - 1];
+    return next ? next.querySelector("a, button") : null;
+  }
+
+  async function remove(row) {
+    if (!kept(row)) return;
+    const gone = await call(urlOf(row), "DELETE");
+    if (!gone) return;
+    const focused = row.contains(document.activeElement);
+    back = neighbour(row);
+    row.dataset.gone = "";
+    filter();
+    tell(tr(`capture.removed_${gone.type}`), gone.type, () => restore(row));
+    // the button pressed went with its row: the focus goes to the Undo beside the words
+    if (focused) undoButton.focus();
+  }
+
+  async function restore(row) {
+    const capture = await call(`${urlOf(row)}/restore`, "POST");
+    if (!capture) return;
+    delete row.dataset.gone;
+    filter();
+    tell(tr("capture.restored"), capture.type);
+    if (!row.hidden) row.querySelector("button[data-remove]").focus();
+  }
+
+  root.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-remove]");
+    if (!button) return;
+    const row = button.closest(".capture-row");
+    hideToast(); // the toast's Undo was for the change before this one
+    queue = queue.then(() => remove(row));
+  });
+  // drawn disabled: a click before this script ran would be lost (#350)
+  for (const button of root.querySelectorAll("button[data-remove]")) button.disabled = false;
+}
+
 // ---- removing a document (#120, D-359 to D-362, #470) ---------------------------------------
 
 function removal() {
@@ -1425,6 +1601,7 @@ document.addEventListener("DOMContentLoaded", () => {
   STRINGS = data ? JSON.parse(data.textContent) : {};
   startPage();
   librarySearch();
+  capturesPage();
   removal();
   bookBoxes();
   generateButtons();

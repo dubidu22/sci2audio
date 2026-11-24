@@ -17,7 +17,9 @@ D-340 to D-344). Layout reads each page in that order:
   ``contents``, a whole-line page
   break marker is ``page-number`` (D-411); a note (``doc-endnote``, ``epub:footnote``, ... or
   an ``li`` inside a notes list) is a FOOTNOTE, one block per note (D-414: it stays where the
-  file puts it); table lines are one TABLE per run of them, a ``caption`` inside cut out as
+  file puts it, whole, even where it holds a ``pre`` with ``code``, whose runs lose the
+  ``pre`` so the text steps read them as printed, #890); table lines are one TABLE per run
+  of them, a ``caption`` inside cut out as
   a CAPTION before it (D-412); SVG text is a FIGURE; then the innermost of ``h1``-``h6``
   (HEADING), ``figcaption`` (CAPTION), maths (FORMULA) and ``li`` (LIST_ITEM, D-415),
   except that maths inside a heading leaves it a heading. A ``pre`` holding ``code`` (every
@@ -102,6 +104,9 @@ _HOLD_PICTURES = frozenset({BlockKind.TABLE, BlockKind.FOOTNOTE, BlockKind.FIGUR
 _BEFORE, _AFTER = -1, 1  # where a caption looks first for what it describes
 # a plain-text bullet `lists` does not read, followed by the item's text (#571)
 _TEXT_BULLET = re.compile(r"[-*](?=[^\S\n]+\S)")
+# plain text takes up to three digits as a list number (`extraction.text._NUMBERED`), where a
+# PDF list's marker is one or two: `lists` keeps its own reading of PDF text
+_LONG_NUMBER = re.compile(r"\d{3}[.)](?=[^\S\n]+\S)")
 
 
 def positioned(content: Content) -> bool:
@@ -124,7 +129,7 @@ def build_tagged(content: Content, settings: LayoutSettings) -> Document:
     blocks, sections = _Sections(blocks, units, content, settings).build()
     language, source, guess = choose_language(content, settings)
     return Document(
-        content=content,
+        content=_note_code_inline(content, units),
         language=language,
         blocks=tuple(blocks),
         sections=sections,
@@ -132,6 +137,42 @@ def build_tagged(content: Content, settings: LayoutSettings) -> Document:
         language_source=source,
         language_guess=guess,
     )
+
+
+def _note_code_inline(content: Content, units: list[_Unit]) -> Content:
+    """The content with the code of each note read as inline code (#890). A note stays one
+    FOOTNOTE block, as its mark's link and its place need; a ``pre`` holding ``code`` inside
+    it has no block of its own for the code notice, so its runs lose the ``pre`` that keeps
+    them from being inline code, and the text steps read them as printed (#854). Only tags
+    change."""
+    notes = {
+        item.id
+        for unit in units
+        if unit.kind is BlockKind.FOOTNOTE
+        for item in unit.items
+        if isinstance(item, TextLine)
+    }
+    if not notes:
+        return content
+    return replace(
+        content,
+        pages=tuple(
+            replace(page, lines=tuple(_without_pre(line, notes) for line in page.lines))
+            for page in content.pages
+        ),
+    )
+
+
+def _without_pre(line: TextLine, notes: set[str]) -> TextLine:
+    if line.id not in notes:
+        return line
+    runs = tuple(
+        replace(run, tags=tuple(tag for tag in run.tags if tag != "pre"))
+        if _is_code([tag for tag in run.tags if _is_name(tag)])
+        else run
+        for run in line.runs
+    )
+    return replace(line, runs=runs)
 
 
 # ---- elements --------------------------------------------------------------------------
@@ -223,7 +264,7 @@ def _classified(line: TextLine, page: int) -> _Unit:
             unit.kind, unit.key = BlockKind.TABLE, ("table",)
     elif "svg" in names:
         unit.kind, unit.key = BlockKind.FIGURE, ("svg",)
-    elif "pre" in names and "code" in names[names.index("pre") :]:
+    elif _is_code(names):
         unit.kind = BlockKind.CODE  # D-544
     else:
         headed = any(tag in _RANKS for tag in context)
@@ -243,6 +284,10 @@ def _classified(line: TextLine, page: int) -> _Unit:
                 continue
             break
     return unit
+
+
+def _is_code(names: list[str]) -> bool:
+    return "pre" in names and "code" in names[names.index("pre") :]
 
 
 def _context(line: TextLine) -> tuple[str, ...]:
@@ -311,8 +356,8 @@ def _block(unit: _Unit, lines: dict[str, TextLine]) -> Block:
 
 def _list_marker(text: str) -> str:
     """The marker a list item's text opens with, as PDF list items carry it (#571), or ""."""
-    bullet = _TEXT_BULLET.match(text)
-    return bullet.group(0) if bullet else printed_marker(text)
+    found = _TEXT_BULLET.match(text) or _LONG_NUMBER.match(text)
+    return found.group(0) if found else printed_marker(text)
 
 
 def _formula_number(lines: list[TextLine]) -> str:

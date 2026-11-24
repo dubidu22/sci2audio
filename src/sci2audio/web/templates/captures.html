@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{#- Captures (#398, ADR-008, DESIGN.md "Captures as marginalia"): every document's marks, notes
+    and quotes as ruled rows with a hanging flag, by document and type. The filters are a GET
+    form that works without the script; app.js filters in place and takes a row out at once
+    on Remove, with Undo in the toast (D-723 ruling 1): no struck-through row, no Restore. -#}
+{% block title %}{{ t('captures.title') }} · {{ t('common.app') }}{% endblock %}
+{% block main %}
+<div id="captures">
+<header class="view-head">
+  <h1 id="captures-title" tabindex="-1">{{ t('captures.title') }}</h1>
+  <p class="sub" id="captures-summary">{{ summary }}</p>
+</header>
+{% if groups %}
+<form class="cap-filters" id="capture-filters" action="/captures" method="get">
+  <div class="cap-kinds" role="group" aria-label="{{ t('captures.kinds') }}">
+    {%- for k in ('all',) + kinds %}
+    <button type="submit" name="type" value="{{ k }}" data-kind="{{ k }}" aria-pressed="{{ 'true' if k == kind else 'false' }}">
+      {%- if k != 'all' %}<span class="flag f-{{ k }}" aria-hidden="true">{{ icon(k, 's') }}</span>{% endif -%}
+      <span>{{ t('captures.all') if k == 'all' else t('capture.' ~ k) }}</span> <span class="num" data-count="{{ k }}">{{ counts[k] }}</span>
+    </button>
+    {%- endfor %}
+  </div>
+  <span class="cap-from">
+    <label for="capture-from">{{ t('captures.from') }}</label>
+    <select id="capture-from" name="from">
+      <option value="">{{ t('captures.all_documents') }}</option>
+      {%- for group in groups %}
+      <option value="{{ group.id }}"{% if group.id == chosen %} selected{% endif %}>{{ group.title }}</option>
+      {%- endfor %}
+    </select>
+    <button type="submit" class="sm" id="capture-show" name="type" value="{{ kind }}">{{ t('captures.show') }}</button>
+  </span>
+</form>
+{% endif %}
+<p id="message" class="message" role="status" tabindex="-1"></p>
+{% if not groups %}
+<p class="hint" id="captures-empty">{{ t('captures.empty') }}</p>
+{% else %}
+<p class="hint" id="captures-none"{% if any_shown %} hidden{% endif %}>{{ t('captures.none') }}</p>
+{% endif %}
+{% for group in groups %}
+<section class="capture-group" id="group-{{ group.id }}" data-document="{{ group.id }}"{% if group.off %} data-off="{{ group.off }}"{% endif %} aria-labelledby="group-{{ group.id }}-title"{% if group.hidden %} hidden{% endif %}>
+  <h2 id="group-{{ group.id }}-title">{{ group.title }}</h2>
+  <p class="gm">{% if group.authors %}{{ group.authors }} · {% endif %}<span data-group-count>{{ t('captures.count', n=group.rows | length) }}</span></p>
+  {% if group.off %}<p class="note">{{ t('captures.' ~ group.off, file=group.file) }}</p>{% endif %}
+  {% if group.rows %}
+  <ol class="capture-list" aria-labelledby="group-{{ group.id }}-title">
+    {%- for row in group.rows %}
+    <li class="capture-row" id="capture-{{ row.id }}" data-capture="{{ row.id }}" data-kind="{{ row.type }}" data-document="{{ group.id }}"{% if row.hidden %} hidden{% endif %}>
+      <span class="flag f-{{ row.type }}" aria-hidden="true">{{ icon(row.type, 's') }}</span>
+      <p class="cp-kind">{{ t('capture.kind_' ~ row.type) }}</p>
+      {%- if row.state == 'found' %}
+      <p class="cp-at">{{ row.at }}</p>
+      {%- else %}
+      <p class="cp-state">{{ t('captures.no_audiobook') if row.state == 'no-audiobook' else t('capture.' ~ row.state | replace('-', '_')) }}</p>
+      {%- endif %}
+      <blockquote class="cp-text"{% if group.language %} lang="{{ group.language }}"{% endif %}>“{{ row.sentence }}”</blockquote>
+      {%- if row.text %}
+      <p class="cp-note">{{ row.text }}</p>
+      {%- endif %}
+      <p class="cp-actions">
+        {%- if row.href %}<a class="btn sm quiet" href="{{ row.href }}">{{ icon('play', 's') }}<span>{{ t('captures.listen') }}</span></a>{% endif -%}
+        <button type="button" class="sm quiet" data-remove="{{ row.id }}" disabled>{{ icon('x', 's') }}<span>{{ t('capture.remove') }}</span></button>
+      </p>
+    </li>
+    {%- endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endfor %}
+{#- the toast after a removal: its type's flag, the words, and Undo, as on the Listen page -#}
+<p class="capture-toast page-toast" id="capture-toast" hidden><span class="flag" id="capture-toast-flag" aria-hidden="true" hidden></span><span id="capture-said"></span> <button type="button" class="sm" id="capture-undo">{{ icon('undo', 's') }}<span>{{ t('capture.undo') }}</span></button></p>
+</div>
+{% endblock %}

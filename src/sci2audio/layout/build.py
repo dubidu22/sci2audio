@@ -30,6 +30,7 @@ from sci2audio.layout.furniture import (
 from sci2audio.layout.geometry import body_size, boxed, holds, page_bars, text_area, union
 from sci2audio.layout.graphics import find_graphics, link_captions
 from sci2audio.layout.headings import find_headings
+from sci2audio.layout.inline_code import tag_inline_code
 from sci2audio.layout.language import choose_language
 from sci2audio.layout.lists import find_lists
 from sci2audio.layout.order import Element, Reading, by_rows, figures, reading_order
@@ -85,7 +86,7 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     language, source, guess = choose_language(content, settings)
     labels = tuple(layout.label(page) for page in content.pages)
     return Document(
-        content=content,
+        content=tag_inline_code(blocks, content, layout.body),  # typewriter words in prose (#879)
         language=language,
         blocks=tuple(blocks),
         sections=sections,

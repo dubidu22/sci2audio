@@ -26,7 +26,7 @@ import math
 from dataclasses import dataclass
 
 from sci2audio.core import Box, Drawing, Picture, TextLine
-from sci2audio.layout.geometry import boxed, line_size, same_row, union
+from sci2audio.layout.geometry import boxed, line_size, minor, same_row, union
 from sci2audio.layout.maths import math_letters, number_alone
 from sci2audio.layout.settings import LayoutSettings
 
@@ -191,7 +191,7 @@ def reading_order(
         reading.ordered += _read_band(band, cuts, size, settings, reading.sides, depth)
         mine = counted(band)
         if _text(mine) >= settings.column_text * total and _filled(mine, cuts, settings):
-            reading.columns = max(reading.columns, _text_columns(mine, cuts, width, settings))
+            reading.columns = max(reading.columns, _text_columns(mine, cuts, width, size, settings))
         if after:
             reading.ordered.append(after)
     return reading
@@ -291,28 +291,53 @@ def _text(elements: list[Element]) -> int:
     return sum(len(e.line.text) for e in elements if e.line)
 
 
-def _text_columns(band: list[Element], cuts: Cuts, width: float, settings: LayoutSettings) -> int:
+def _text_columns(
+    band: list[Element], cuts: Cuts, width: float, size: float, settings: LayoutSettings
+) -> int:
     """How many columns of text the band's gutters make.
 
     A figure in a wide gutter leaves white on each side of it, so it is read as a column of
     its own between its neighbours (#873), but it is no column of text (#895). A column
-    between two others that holds a figure counts only if its lines, without those that lie
-    on the figure (its labels), are a column; a caption alone is not. The first and last
-    columns always count: a figure filling one of them still stands in a column of the
-    page."""
+    between two others that holds a figure counts only if its lines, without its labels,
+    are a column; a caption alone is not. A label is a line on the figure or within
+    `float_gap` of it (a plot's ticks print just outside its frame) that does not fill the
+    column (`full_line` of what it holds): running text set on a shaded box fills it
+    (#916). Rules and marks
+    (`geometry.minor`, an underline) are no figure. The first and last columns always
+    count: a figure filling one of them still stands in a column of the page."""
     columns = _columns(band, cuts)
+    reach = settings.float_gap * size
+    mark, thin = settings.mark_height * size, settings.line_width * size
     count = 0
     for k, column in enumerate(columns):
         inner = 0 < k < len(columns) - 1
-        shown = [e.box for e in column if e.graphics] if inner else []
-        lines = [e for e in column if e.line and not any(_on(e.box, box) for box in shown)]
-        count += not shown or _is_column(lines, width, settings)
+        shown = [
+            _grown(e.box, reach)
+            for e in column
+            if inner and e.graphics and not minor([boxed(g) for g in e.graphics], mark, thin)
+        ]
+        if not shown:
+            count += 1
+            continue
+        # what the column holds spans it: its gutters may start inside its lines (#873)
+        span = max(e.box.x1 for e in column) - min(e.box.x0 for e in column)
+        full = settings.full_line * span
+        lines = [
+            e
+            for e in column
+            if e.line and (e.box.x1 - e.box.x0 >= full or not any(_on(e.box, box) for box in shown))
+        ]
+        count += _is_column(lines, width, settings)
     return count
 
 
 def _on(box: Box, figure: Box) -> bool:
     """True if the box overlaps the figure's box."""
     return box.x0 < figure.x1 and figure.x0 < box.x1 and box.y0 < figure.y1 and figure.y0 < box.y1
+
+
+def _grown(box: Box, by: float) -> Box:
+    return Box(box.x0 - by, box.y0 - by, box.x1 + by, box.y1 + by)
 
 
 def _filled(band: list[Element], cuts: Cuts, settings: LayoutSettings) -> bool:
