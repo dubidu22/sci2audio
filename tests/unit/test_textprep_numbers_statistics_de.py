@@ -583,6 +583,8 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @example(make_document([(BlockKind.PARAGRAPH, "Siehe Kapitel I. Dann Teil II.")], "de"))  # #976
 @example(make_document([(BlockKind.HEADING, "Kapitel I. Einleitung")], "de"))  # #976
 @example(make_document([(BlockKind.PARAGRAPH, "A \u21d0==> 3x und B")], "de"))  # #984
+@example(make_document([(BlockKind.PARAGRAPH, "Kapitel I. und II.")], "de"))  # #996
+@example(make_document([(BlockKind.HEADING, "Teile I., II. und III.")], "de"))  # #996
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
