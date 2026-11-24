@@ -402,6 +402,7 @@ class CaptureOut(BaseModel):
     chunk: int | None = Field(
         description="the first chunk of its sentence in this audiobook, or null"
     )
-    state: Literal["found", "not-read", "not-found"] = Field(
-        description="found; in text this audiobook does not read; or not found in it"
+    state: Literal["found", "not-read", "not-found", "no-audiobook"] = Field(
+        description="found; in text this audiobook does not read; not found in it; or the "
+        "document has no audiobook now (a removal or an Undo from the Captures page, #398)"
     )

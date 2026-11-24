@@ -422,6 +422,28 @@ def locate[T](
     return [entry[2] for entry in found] + unread + lost
 
 
+def same_sentence(anchor: Anchored, others: Sequence[Anchored], document: Document | None) -> bool:
+    """Whether one of `others` stands on the sentence `anchor` stands on, with no audiobook
+    to place them in (#934): sentences never overlap, so two anchors that overlap in one
+    block are one sentence, whatever their offsets. Each is found in `document` first, as
+    its text may have moved; one not found there is no sentence of it. Without a document,
+    their own places count."""
+    finder = None if document is None else _Finder(document)
+
+    def where(item: Anchored) -> tuple[int, int, int] | None:
+        return (item.block, item.start, item.end) if finder is None else finder.find(item)
+
+    here = where(anchor)
+    if here is None:
+        return False
+    block, start, end = here
+    for other in others:
+        there = where(other)
+        if there is not None and there[0] == block and min(end, there[2]) > max(start, there[1]):
+            return True
+    return False
+
+
 def place(markers: Sequence[Marker], document: Document, spans: Sequence[Span]) -> list[Placed]:
     """Each marker where this audiobook reads it, in reading order (`locate`)."""
     return [

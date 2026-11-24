@@ -317,6 +317,136 @@ def test_a_second_windows_note_on_the_sentence_keeps_the_text_typed_here(
     expect(tab(page)).to_have_text("Captures (0)")  # nothing said it was saved
 
 
+def test_a_new_note_saved_twice_at_once_is_sent_and_saved_once(signed_in: Page, live: Live) -> None:
+    """A double click on Save and two quick Ctrl+Enter send one request each (#921)."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    posts: list[str] = []
+    page.on(
+        "request",
+        lambda request: (
+            posts.append(request.url)
+            if request.method == "POST" and request.url.endswith("/captures")
+            else None
+        ),
+    )
+    at_sentence(page)
+    page.keyboard.press("n")
+    page.locator("#capture-composer textarea").fill("Once.")
+    page.get_by_role("button", name="Save and continue").dblclick()
+    told(page, "Note saved.")
+    expect(page.locator("#capture-undo")).to_be_visible()
+    expect(tab(page)).to_have_text("Captures (1)")
+    nobody_focused(page)
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("n")
+    page.locator("#capture-composer textarea").fill("Twice pressed.")
+    page.keyboard.press("Control+Enter")
+    page.keyboard.press("Control+Enter")
+    told(page, "Note saved.")
+    expect(page.locator("#capture-undo")).to_be_visible()
+    expect(tab(page)).to_have_text("Captures (2)")
+    page.wait_for_timeout(300)  # a second answer would have come by now
+    told(page, "Note saved.")
+    assert len(posts) == 2, posts
+    path = Path(live.config.work_root) / document / "captures.json"
+    notes = [c["text"] for c in json.loads(path.read_text(encoding="utf-8"))["captures"]]
+    assert sorted(notes) == ["Once.", "Twice pressed."]
+
+
+def test_the_undo_of_a_saved_note_keeps_the_text_typed_in_its_open_box(
+    signed_in: Page, live: Live
+) -> None:
+    """The toast's Undo goes back to the note's open box when text is typed there; with
+    nothing typed it removes the note, closes the box and the voice goes on (#921)."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    path = Path(live.config.work_root) / document / "captures.json"
+    at_sentence(page)
+    nobody_focused(page)
+    page.keyboard.press(" ")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.keyboard.press("n")
+    page.locator("#capture-composer textarea").fill("First.")
+    page.keyboard.press("Control+Enter")
+    told(page, "Note saved.")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    rows(page).first.get_by_role("button", name="Edit note").click()
+    box = rows(page).first.locator("textarea")
+    box.fill("First, and more typed.")
+    assert paused(page)
+    page.locator("#capture-undo").click()
+    expect(box).to_be_focused()
+    expect(box).to_have_value("First, and more typed.")
+    expect(page.locator("#message")).to_have_text(
+        "Your note is still open. Save it or cancel it first."
+    )
+    assert paused(page)  # the box is still open
+    expect(tab(page)).to_have_text("Captures (1)")
+    assert len(json.loads(path.read_text(encoding="utf-8"))["captures"]) == 1
+    page.keyboard.press("Escape")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    # nothing typed: the Undo removes the note and its box, and the voice goes on
+    nobody_focused(page)
+    page.keyboard.press(" ")
+    page.wait_for_function("() => document.getElementById('audio').paused")
+    page.keyboard.press("ArrowRight")  # off the first note's sentence
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press(" ")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    page.keyboard.press("n")
+    second = page.locator("#capture-composer textarea")
+    expect(second).to_be_focused()
+    second.fill("Second.")
+    page.keyboard.press("Control+Enter")
+    told(page, "Note saved.")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+    rows(page).filter(has_text="Second.").get_by_role("button", name="Edit note").click()
+    expect(page.locator("#capture-list textarea")).to_have_value("Second.")
+    assert paused(page)
+    page.locator("#capture-undo").click()
+    told(page, "Note removed.")
+    expect(page.locator("#capture-list textarea")).to_have_count(0)
+    expect(tab(page)).to_have_text("Captures (1)")
+    page.wait_for_function("() => !document.getElementById('audio').paused")
+
+
+def test_a_capture_put_back_with_no_audiobook_is_labelled_so_and_listed_last(
+    signed_in: Page, live: Live
+) -> None:
+    """The audiobook went away behind the page: Remove and Undo still work, and the capture
+    put back says so with its own word and icon, after the ones placed (#934)."""
+    page = signed_in
+    document = make_audiobook(page, live)
+    at_sentence(page)
+    page.keyboard.press("q")
+    told(page, "Quote captured.")
+    nobody_focused(page)
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("m")
+    told(page, "Marked.")
+    page.locator("#tab-captures").click()
+    expect(rows(page)).to_have_count(2)
+    (Path(live.config.work_root) / document / "audio.json").unlink()
+    quote = rows(page).filter(has_text="Quote to cite")
+    quote.get_by_role("button", name="Remove").click()
+    told(page, "Quote removed.")
+    page.locator("#capture-undo").click()
+    told(page, "Put back.")
+    expect(rows(page)).to_have_count(2)
+    last = rows(page).nth(1)
+    expect(last.locator(".cp-kind")).to_have_text("Quote to cite")
+    expect(last.locator(".cp-state")).to_have_text(
+        "This document has no audiobook now. The sentence and what you wrote are kept."
+    )
+    expect(last.locator(".cp-state svg")).to_have_count(1)
+    expect(last).not_to_contain_text("Not found")
+    expect(last.get_by_role("button", name="Play from here")).to_have_count(0)
+    expect(rows(page).nth(0).locator(".cp-kind")).to_have_text("Mark")
+
+
 def test_play_from_here_and_a_capture_not_found_is_listed_without_it(
     signed_in: Page, live: Live
 ) -> None:

@@ -1096,33 +1096,218 @@ def test_a_middle_column_as_short_as_the_crossings_a_gutter_allows_is_a_column()
     assert columns_per_page(found) == [3]
 
 
-@pytest.mark.parametrize("captioned", [True, False])
+@pytest.mark.parametrize(("captioned", "ended"), [(True, False), (False, False), (True, True)])
 def test_a_figure_in_a_wide_gutter_is_read_between_the_columns_but_is_no_column(
-    captioned: bool,
+    captioned: bool, ended: bool
 ) -> None:
     """#895: two columns with a gutter of 140 pt that holds a drawing (x 236 to 360), its
     axis labels and its caption. The white on each side of the figure is a gutter, so the
     figure is read after the left column and before the right one, but the page still has
     two columns of text: the labels lie on the drawing, and a caption is no column.
 
-    The figure's column is read row by row: the upper row of labels (y 200) before the
-    drawing, the lower one (y 210) after it, then the caption."""
-    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
-    right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
-    labels = [line(f"lab{k}", 240 + 20 * k, 200 + 10 * (k % 2), 252 + 20 * k) for k in range(6)]
+    The figure's column is read row by row: the drawing (from y 190), the upper row of
+    labels (y 200), the lower one (y 210), then the caption. The left column's paragraph
+    ends in a sentence, whether its last line fills the column or ends short (`ended`), so
+    the figure is read between the columns' paragraphs (#905): with a caption that names
+    it, the figure holds its labels."""
+    stop = {29: "."}  # each column ends its paragraph with a sentence
+    left = [
+        line(f"L{k}{stop.get(k, '')}", 70, 80 + 14 * k, 150 if ended and k == 29 else 228)
+        for k in range(30)
+    ]
+    right = [line(f"R{k}{stop.get(k, '')}", 368, 80 + 14 * k, 526) for k in range(30)]
+    # 116 pt wide together, more than a column's least width (114 pt): a column, were they
+    # counted
+    labels = [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
     caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
     found = content(
         left + right + labels + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
     )
     doc = build_document(found)
     assert columns_per_page(found) == [2]
-    figures = [b for b in doc.blocks if b.kind is BlockKind.FIGURE]
-    assert [[p.item for p in b.parts] for b in figures] == [["fig"]]
     ids = {li.id: li.text for li in [*left, *right, *labels, *caption]}
-    read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
     upper, lower = [li.text for li in labels[::2]], [li.text for li in labels[1::2]]
-    middle = [*upper, "fig", *lower, *[li.text for li in caption]]
+    figures = [b for b in doc.blocks if b.kind is BlockKind.FIGURE]
+    held = ["fig", *upper, *lower] if captioned else ["fig"]
+    assert [[ids.get(p.item, p.item) for p in b.parts] for b in figures] == [held]
+    read = [ids.get(p.item, p.item) for b in doc.blocks for p in b.parts]
+    middle = ["fig", *upper, *lower, *[li.text for li in caption]]
+    if captioned:
+        assert [b.kind for b in doc.blocks] == [
+            BlockKind.PARAGRAPH,
+            BlockKind.FIGURE,
+            BlockKind.CAPTION,
+            BlockKind.PARAGRAPH,
+        ]
     assert read == [li.text for li in left] + middle + [li.text for li in right]
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_running_text_under_a_figure_in_a_middle_column_stays_in_its_paragraph(
+    captioned: bool,
+) -> None:
+    """#905: a figure at the top of the middle column of three, with four full lines under
+    it (and its caption above them) is no figure in a gutter: the sentence runs on from the
+    left column through those lines into the right one, and they are read in that order."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    middle = [line(f"c1r{row}", x0, 80 + 14 * row, x0 + width) for row in range(23, 27)]
+    # a short caption, far enough from the drawing to count: the page has three columns
+    caption = [line("Figure 1: a thing", x0, 80 + 14 * 21, x0 + 90)] if captioned else []
+    lines = three_columns((27, 0, 27))
+    lines = lines[:27] + caption + middle + lines[27:]
+    bottom = 80 + 14 * (20 if captioned else 23) - 6
+    found = content(lines, drawings=(Drawing("fig", Box(x0, 80, x0 + width, bottom)),))
+    doc = build_document(found)
+    ids = {li.id: li.text for li in lines}
+    assert columns_per_page(found) == [3 if captioned else 2]
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    running = [li.text for li in lines if li not in caption]
+    assert [text for text in read if text in running] == running
+    (block,) = [b for b in doc.blocks if any(ids.get(p.item) == "c1r23" for p in b.parts)]
+    assert {"c0r26", "c2r0"} <= {ids.get(p.item) for p in block.parts}
+
+
+@pytest.mark.parametrize(
+    ("end", "starts"),
+    [
+        ("Werte in der", ("Messung und", "und so weiter")),
+        ("values of the", ("measurement and", "and so on")),
+        ("Werte im Jahr 2023", ("Messung und", "und so weiter")),
+        ("values (Smith 2020)", ("Measurement and", "and so on")),
+    ],
+)
+def test_ragged_lines_that_go_on_with_a_sentence_under_a_middle_figure_stay_in_order(
+    end: str, starts: tuple[str, str]
+) -> None:
+    """#905: the left column of three ends inside a sentence, a figure fills the top of the
+    middle column, and four ragged lines under it go on with that sentence, whether their
+    first word is a German noun in capitals or a lower-case word, and whether the sentence
+    breaks after a word, a number or a closing bracket. They are running text, not the
+    figure's labels: they are read before the right column."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    first, right_start = starts
+    lines = three_columns((27, 0, 27))
+    left, right = lines[:27], lines[27:]
+    left[-1] = line(end, LEFT, 80 + 14 * 26, LEFT + width)
+    right[0] = line(f"{right_start} weiter", x0 + width + GUTTER, 80, RIGHT)
+    middle = [
+        line(
+            f"{first} m{k}" if k == 0 else f"m{k} geht", x0, 80 + 14 * (23 + k), x0 + share * width
+        )
+        for k, share in enumerate((0.86, 0.93, 0.80, 0.90))
+    ]
+    found = content(
+        left + middle + right, drawings=(Drawing("fig", Box(x0, 80, x0 + width, 80 + 14 * 22)),)
+    )
+    doc = build_document(found)
+    ids = {li.id: li.text for li in left + middle + right}
+    read = [ids[p.item] for b in doc.blocks for p in b.parts if p.item in ids]
+    assert read == [li.text for li in left + middle + right]
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_a_figure_in_a_wide_gutter_keeps_its_labels_and_caption_apart_from_the_columns(
+    captioned: bool,
+) -> None:
+    """#905: on the #895 page the figure's labels are in no paragraph of the left or right
+    column, and the caption block holds the caption's line alone."""
+    stop = {29: "."}  # each column ends its paragraph with a sentence
+    left = [line(f"L{k}{stop.get(k, '')}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}{stop.get(k, '')}", 368, 80 + 14 * k, 526) for k in range(30)]
+    labels = [line(f"lab{k}", 238 + 20 * k, 200 + 10 * (k % 2), 254 + 20 * k) for k in range(6)]
+    caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
+    found = content(
+        left + right + labels + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
+    )
+    doc = build_document(found)
+    text = {li.id for li in left + right}
+    for block in doc.blocks:
+        items = {p.item for p in block.parts}
+        assert not (items & text and items - text), block
+    captions = [b for b in doc.blocks if b.kind is BlockKind.CAPTION]
+    assert [[p.item for p in b.parts] for b in captions] == [[li.id for li in caption]][
+        : len(caption)
+    ]
+
+
+def three_columns(rows: tuple[int, int, int]) -> list[TextLine]:
+    """Three columns of full lines, `rows` lines in each, from y 80 down."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    return [
+        line(f"c{col}r{row}", x0, 80 + 14 * row, x0 + width)
+        for col, count in enumerate(rows)
+        for x0 in [LEFT + col * (width + GUTTER)]
+        for row in range(count)
+    ]
+
+
+def test_a_middle_column_on_a_shaded_box_is_a_column() -> None:
+    """#916: 27 full lines set on a shaded box (wider than the lines by 3 pt, as such a box
+    is drawn) are running text, not a figure's labels: the page has three columns."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    shade = Drawing("shade", Box(x0 - 3, 76, x0 + width + 3, 80 + 14 * 27))
+    found = content(three_columns((27, 27, 27)), drawings=(shade,))
+    assert columns_per_page(found) == [3]
+
+
+def test_underlines_through_a_short_middle_column_leave_it_a_column() -> None:
+    """#916: the #873 short middle column (6 lines) with a thin rule under two of its lines
+    (underlined words) is still a column: rules are no figure."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    page, _, _ = found_873({2: 298.0, 3: 351.0, 4: 351.0, 5: 298.0})
+    rules = tuple(
+        Drawing(f"under{row}", Box(x0 + 10, 80 + 14 * row + 9, x0 + 60, 80 + 14 * row + 9.5))
+        for row in (2, 5)
+    )
+    found = content(list(page.pages[0].lines), drawings=rules)
+    assert columns_per_page(found) == [3]
+
+
+@pytest.mark.parametrize("captioned", [True, False])
+def test_tick_labels_under_a_figure_in_a_wide_gutter_are_no_column(captioned: bool) -> None:
+    """#916: the #895 page with its six labels just under the drawing's box, where a plot
+    prints its x-axis ticks: they are the figure's, not a column of text."""
+    left = [line(f"L{k}", 70, 80 + 14 * k, 228) for k in range(30)]
+    right = [line(f"R{k}", 368, 80 + 14 * k, 526) for k in range(30)]
+    ticks = [line(f"tick{k}", 238 + 20 * k, 262, 254 + 20 * k) for k in range(6)]
+    caption = [line("Figure 1: a thing", 240, 280, 356)] if captioned else []
+    found = content(
+        left + right + ticks + caption, drawings=(Drawing("fig", Box(236, 190, 360, 260)),)
+    )
+    assert columns_per_page(found) == [2]
+
+
+@pytest.mark.parametrize("side", ["first", "last"])
+def test_a_figure_filling_most_of_an_outer_column_leaves_it_a_column(side: str) -> None:
+    """#916: the first and last columns always count, however little text a figure leaves
+    in them: three lines above a drawing with its labels still stand in a column of a
+    two-column page."""
+    x0, x1 = (LEFT, MIDDLE - GUTTER / 2) if side == "first" else (MIDDLE + GUTTER / 2, RIGHT)
+    other = (MIDDLE + GUTTER / 2, RIGHT) if side == "first" else (LEFT, MIDDLE - GUTTER / 2)
+    full = [line(f"F{k}", *other[:1], 80 + 14 * k, other[1]) for k in range(30)]
+    text = [line(f"T{k}", x0, 80 + 14 * k, x1) for k in range(3)]
+    labels = [line(f"lab{k}", x0 + 10 + 24 * k, 300, x0 + 20 + 24 * k) for k in range(6)]
+    drawing = Drawing("fig", Box(x0, 140, x1, 480))
+    found = content(full + text + labels, drawings=(drawing,))
+    assert columns_per_page(found) == [2]
+
+
+@pytest.mark.parametrize(("lines", "columns"), [(5, 3), (4, 2)])
+def test_a_middle_column_that_is_mostly_a_figure_counts_with_five_lines_off_it(
+    lines: int, columns: int
+) -> None:
+    """#916: a column between two others that holds a figure is a column if at least
+    `column_items` (5) lines stand off the figure, and not with fewer."""
+    width = (RIGHT - LEFT - 2 * GUTTER) / 3
+    x0 = LEFT + width + GUTTER
+    labels = [line(f"lab{k}", x0 + 10 + 22 * k, 300, x0 + 20 + 22 * k) for k in range(6)]
+    drawing = Drawing("fig", Box(x0, 80 + 14 * lines + 20, x0 + width, 440))
+    found = content(three_columns((27, lines, 27)) + labels, drawings=(drawing,))
+    assert columns_per_page(found) == [columns]
 
 
 @given(column_pages())
