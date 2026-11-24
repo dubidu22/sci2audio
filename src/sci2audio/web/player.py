@@ -31,7 +31,7 @@ import statistics
 import threading
 import time
 import unicodedata
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path, PurePath
@@ -69,14 +69,14 @@ RECORD_VERSION = 1
 AUDIO_RECORD = "audio.json"  # the audio job's records (D-165)
 DOCUMENT_RECORD = "document.json"
 TIME_TOLERANCE = 0.0015  # seconds: both files round to 1 ms
+# seconds a browser can play past a chapter's end: one that keeps the padding of the file's
+# last frame (Chromium on our MP3s, #779) plays up to a frame longer than the read-along
+# says. An MP3 frame is at most 1152 samples, an AAC frame 1024: 48 ms at 24 kHz.
+OVERRUN = 0.1
 POSITION = "position.json"  # where the person stopped listening (#153)
 POSITION_FORMAT = "sci2audio-web-position"
 POSITION_VERSION = 1
 POSITION_LIMIT = 4096  # bytes: a record is about 150; a larger file is not ours
-# `write_texts` writes a file under one temporary name, so two saves at once would rename
-# away each other's file (#763): saves take turns and the later one wins. A save is about
-# 150 bytes, so the wait is short.
-_POSITION_SAVE = threading.Lock()
 
 
 class PlayerError(Exception):
@@ -241,6 +241,22 @@ class Bounds:
             return start <= position.time < starts[position.chapter + 1]
         return start <= position.time <= self.duration + TIME_TOLERANCE
 
+    def settled(self, position: Position) -> Position:
+        """The position a player keeps at the end of a chapter's file, moved onto the
+        book (#779): a time up to OVERRUN past the last chapter's end is the book's end,
+        one past any other chapter's end the start of the next chapter. Any other position
+        is returned as it is."""
+        starts = self.starts
+        chapter, time = position.chapter, position.time
+        if not 0 <= chapter < len(starts) or not math.isfinite(time):
+            return position
+        if chapter + 1 == len(starts):
+            if self.duration < time <= self.duration + OVERRUN:
+                return Position(chapter, self.duration)
+        elif starts[chapter + 1] <= time <= starts[chapter + 1] + OVERRUN:
+            return Position(chapter + 1, starts[chapter + 1])
+        return position
+
     def continues(self, position: Position) -> bool:
         """True if the position fits and something is left to continue: it is after the
         first sentence ended and before the last one ended."""
@@ -248,11 +264,6 @@ class Bounds:
             return False
         first, last = self.spoken
         return first <= position.time < last
-
-
-def fits(readalong: ReadAlong, position: Position) -> bool:
-    """True if the position is a time of this audiobook inside the chapter it names."""
-    return Bounds.of(readalong).fits(position)
 
 
 def audiobook_bounds(readalong: Path) -> Bounds:
@@ -289,7 +300,8 @@ def _bounds(path: str, version: tuple[int, int, int]) -> Bounds:
 
 def write_position(work: Path, document_id: str, stamp: str, position: Position) -> None:
     """Keep where the person stopped (atomically: a failed write leaves the old record).
-    Saves at once take turns, the later one wins (#763). Raises OSError."""
+    Every write has its own temporary name (#778), so saves at once both succeed and the
+    later rename wins; the server saves through `PositionSaves`. Raises OSError."""
     data: dict[str, Any] = {
         "format": POSITION_FORMAT,
         "version": POSITION_VERSION,
@@ -300,8 +312,42 @@ def write_position(work: Path, document_id: str, stamp: str, position: Position)
     }
     if position.index is not None and position.within is not None:
         data.update(index=position.index, within=position.within)
-    with _POSITION_SAVE:
-        write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+    write_texts({work / POSITION: json.dumps(data) + "\n"}, overwrite=True)
+
+
+@dataclass
+class PositionSaves:
+    """The turns of one server run's writes of a listening position (#790): the player's
+    saves and the audio job's read-then-write of the kept position (`change`) hold one
+    lock, so a save that lands while the job rewrites the record is not overwritten by the
+    older place the job read. Each write has its own temporary name (#778), so the lock
+    guards only the read-then-write, not a rename. A save is about 150 bytes: the wait is
+    short."""
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def save(self, work: Path, document_id: str, stamp: str, position: Position) -> None:
+        """`write_position` in turn. Raises OSError."""
+        with self.lock:
+            write_position(work, document_id, stamp, position)
+
+    def change(
+        self,
+        work: Path,
+        document_id: str,
+        stamp: str,
+        change: Callable[[Position], Position | None],
+    ) -> None:
+        """Read the position recorded for this audiobook and write what `change` makes of
+        it, in one turn; nothing is written for no record or a `change` that gives None.
+        Raises OSError."""
+        with self.lock:
+            position = recorded_position(work, document_id, stamp)
+            if position is None:
+                return
+            changed = change(position)
+            if changed is not None:
+                write_position(work, document_id, stamp, changed)
 
 
 def remove_position(work: Path) -> None:
@@ -970,6 +1016,7 @@ def build_view(
     pages = _page_starts(document, moved.keys())
     catalog = Catalog(document) if figures else None
     code_lines = _code_lines(document)
+    code_pages = _code_pages(document, code_lines)
 
     element_of: list[str] = [""] * len(readalong.chunks)
     firsts = sentence_starts(readalong)
@@ -1003,7 +1050,7 @@ def build_view(
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
                 if view.code:
-                    view.code = indented(document.blocks[shown_here], code_lines)
+                    view.code = indented(document.blocks[shown_here], code_lines, code_pages)
                 if catalog is not None and view.notice and not view.code:
                     view.figures = tuple(catalog.images(shown_here, view.notice))
                 blocks.append(view)
@@ -1325,13 +1372,32 @@ def _code_lines(document: Document) -> dict[str, tuple[int, TextLine]]:
     }
 
 
-def indented(block: Block, lines: dict[str, tuple[int, TextLine]]) -> str:
+def _code_pages(
+    document: Document, lines: dict[str, tuple[int, TextLine]]
+) -> dict[int, Sequence[TextLine]]:
+    """The text lines of each page that holds a line of a CODE block (#612)."""
+    wanted = {page for page, _ in lines.values()}
+    return {page.number: page.lines for page in document.content.pages if page.number in wanted}
+
+
+def indented(
+    block: Block,
+    lines: dict[str, tuple[int, TextLine]],
+    pages: dict[int, Sequence[TextLine]] | None = None,
+) -> str:
     """A code block's text as the player shows it, each printed line indented as on its
     page (#282): a PDF line holds no leading white space, so a line starting further right
-    than the block's leftmost line on that page gets one space for each character width it
-    stands in, the width measured on the block's own lines (a typewriter font's letters are
-    all one width), at most `MAX_INDENT`. The block's text stays as printed; only the view
-    gains the spaces. A block without line boxes (EPUB, Markdown, text) keeps its text."""
+    than the block's left edge gets one space for each character width it stands in, the
+    width measured on the block's own lines (a typewriter font's letters are all one
+    width), at most `MAX_INDENT`. The block's text stays as printed; only the view gains
+    the spaces. A block without line boxes (EPUB, Markdown, text) keeps its text.
+
+    The left edge is the block's leftmost line on its first page. On a later page (a
+    listing over a page break, #283) it is that line shifted by how much further right the
+    later page's text column starts (odd and even pages have other margins), so a part made
+    only of indented lines keeps its indent (#612); never right of the part's own leftmost
+    line. Where `pages` (each page's lines) gives no column edge, the part's leftmost line
+    on its page is the edge."""
     found = [(p.start, *lines[p.item]) for p in block.parts if p.item in lines]
     widths = [_box_width(line) / len(line.text) for _, _, line in found if line.text]
     width = statistics.median(widths) if widths else 0.0
@@ -1341,6 +1407,14 @@ def indented(block: Block, lines: dict[str, tuple[int, TextLine]]) -> str:
     for _, page, line in found:
         x0 = line.box.x0 if line.box else 0.0
         left[page] = min(left.get(page, x0), x0)
+    if pages and len(left) > 1:
+        own = {p.item for p in block.parts}
+        first = found[0][1]
+        start = _column_edge(pages.get(first, ()), left[first], own)
+        for page in left:
+            edge = _column_edge(pages.get(page, ()), left[page], own)
+            if page != first and start is not None and edge is not None:
+                left[page] = min(left[page], left[first] + edge - start)
     starts = [0, *(k + 1 for k, char in enumerate(block.text) if char == "\n")]
     indent: dict[int, int] = {}
     for start, page, line in found:
@@ -1349,6 +1423,22 @@ def indented(block: Block, lines: dict[str, tuple[int, TextLine]]) -> str:
     rows = block.text.split("\n")
     shown = [" " * indent.get(start, 0) + row for start, row in zip(starts, rows, strict=True)]
     return "\n".join(shown).strip("\n")
+
+
+def _column_edge(lines: Iterable[TextLine], left: float, own: Collection[str]) -> float | None:
+    """The left edge of the text column a code part stands in, its leftmost line `left`
+    points from the page's edge (#612): where most of the page's other lines that reach
+    across `left` start (a column's lines start at its edge; indented first lines are
+    fewer), the leftmost of equally many. None where no other line reaches across it."""
+    starts: dict[int, int] = {}
+    for line in lines:
+        box = line.box
+        if box is not None and line.id not in own and box.x0 <= left + 0.5 and box.x1 > left:
+            starts[round(box.x0)] = starts.get(round(box.x0), 0) + 1
+    if not starts:
+        return None
+    most = max(starts.values())
+    return float(min(x for x, count in starts.items() if count == most))
 
 
 def _box_width(line: TextLine) -> float:
