@@ -96,13 +96,18 @@ def build_document(content: Content, settings: LayoutSettings | None = None) -> 
     )
 
 
-def columns_per_page(content: Content, settings: LayoutSettings | None = None) -> list[int]:
+def columns_per_page(
+    content: Content, settings: LayoutSettings | None = None, *, nested: bool = False
+) -> list[int]:
     """How many columns of text each page is set in (a sidebar doesn't count).
 
     A page whose text all stands in one half of a two-column document, as on a last page
     that ends in the left column, follows the document's columns. Text inside a figure that
     a caption names (a diagram's labels) is read with the page but not counted: the page is
     read again, once captions and figures are known (#238).
+
+    With `nested`, a page column cut again into columns inside it (#32) counts as the
+    columns found in it, as `Reading.nested` gives them (#866).
     """
     settings = settings or LayoutSettings()
     doc = build_document(content, settings)
@@ -113,13 +118,16 @@ def columns_per_page(content: Content, settings: LayoutSettings | None = None) -
         part.item for block in named if block.kind is BlockKind.FIGURE for part in block.parts
     )
     layout = _Layout(content, settings)
-    found = [layout.read(page, uncounted)[0].columns for page in content.pages]
-    if 2 not in found:
-        return found
-    return [
-        2 if count == 1 and layout.in_one_half(page) else count
-        for count, page in zip(found, content.pages, strict=True)
-    ]
+    readings = [layout.read(page, uncounted)[0] for page in content.pages]
+    found = [reading.columns for reading in readings]
+    if 2 in found:
+        found = [
+            2 if count == 1 and layout.in_one_half(page) else count
+            for count, page in zip(found, content.pages, strict=True)
+        ]
+    if nested:
+        return [max(count, r.nested) for count, r in zip(found, readings, strict=True)]
+    return found
 
 
 def _in_page_order(blocks: list[Block], content: Content) -> list[Block]:
