@@ -17,7 +17,8 @@ D-340 to D-344). Layout reads each page in that order:
   ``contents``, a whole-line page
   break marker is ``page-number`` (D-411); a note (``doc-endnote``, ``epub:footnote``, ... or
   an ``li`` inside a notes list) is a FOOTNOTE, one block per note (D-414: it stays where the
-  file puts it); table lines are one TABLE per run of them, a ``caption`` inside cut out as
+  file puts it), except that a ``pre`` holding ``code`` inside a note is CODE and cuts the
+  note in two (#890); table lines are one TABLE per run of them, a ``caption`` inside cut out as
   a CAPTION before it (D-412); SVG text is a FIGURE; then the innermost of ``h1``-``h6``
   (HEADING), ``figcaption`` (CAPTION), maths (FORMULA) and ``li`` (LIST_ITEM, D-415),
   except that maths inside a heading leaves it a heading. A ``pre`` holding ``code`` (every
@@ -102,6 +103,9 @@ _HOLD_PICTURES = frozenset({BlockKind.TABLE, BlockKind.FOOTNOTE, BlockKind.FIGUR
 _BEFORE, _AFTER = -1, 1  # where a caption looks first for what it describes
 # a plain-text bullet `lists` does not read, followed by the item's text (#571)
 _TEXT_BULLET = re.compile(r"[-*](?=[^\S\n]+\S)")
+# plain text takes up to three digits as a list number (`extraction.text._NUMBERED`), where a
+# PDF list's marker is one or two: `lists` keeps its own reading of PDF text
+_LONG_NUMBER = re.compile(r"\d{3}[.)](?=[^\S\n]+\S)")
 
 
 def positioned(content: Content) -> bool:
@@ -213,6 +217,8 @@ def _classified(line: TextLine, page: int) -> _Unit:
         unit.kind, unit.role, unit.key = BlockKind.FURNITURE, FurnitureRole.CONTENTS, ("nav",)
     elif tags & _PAGE_BREAK:
         unit.kind, unit.role = BlockKind.FURNITURE, FurnitureRole.PAGE_NUMBER
+    elif _is_code(names) and not {"table", "svg"} & set(names):
+        unit.kind = BlockKind.CODE  # D-544; a note's code is code too (#890)
     elif (note := _note_key(context)) is not None:
         unit.kind, unit.key = BlockKind.FOOTNOTE, note
     elif "table" in names:
@@ -223,8 +229,6 @@ def _classified(line: TextLine, page: int) -> _Unit:
             unit.kind, unit.key = BlockKind.TABLE, ("table",)
     elif "svg" in names:
         unit.kind, unit.key = BlockKind.FIGURE, ("svg",)
-    elif "pre" in names and "code" in names[names.index("pre") :]:
-        unit.kind = BlockKind.CODE  # D-544
     else:
         headed = any(tag in _RANKS for tag in context)
         for tag in reversed(context):
@@ -243,6 +247,10 @@ def _classified(line: TextLine, page: int) -> _Unit:
                 continue
             break
     return unit
+
+
+def _is_code(names: list[str]) -> bool:
+    return "pre" in names and "code" in names[names.index("pre") :]
 
 
 def _context(line: TextLine) -> tuple[str, ...]:
@@ -311,8 +319,8 @@ def _block(unit: _Unit, lines: dict[str, TextLine]) -> Block:
 
 def _list_marker(text: str) -> str:
     """The marker a list item's text opens with, as PDF list items carry it (#571), or ""."""
-    bullet = _TEXT_BULLET.match(text)
-    return bullet.group(0) if bullet else printed_marker(text)
+    found = _TEXT_BULLET.match(text) or _LONG_NUMBER.match(text)
+    return found.group(0) if found else printed_marker(text)
 
 
 def _formula_number(lines: list[TextLine]) -> str:

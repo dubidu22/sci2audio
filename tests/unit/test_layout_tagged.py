@@ -25,6 +25,7 @@ from sci2audio.core import (
 from sci2audio.extraction.text import read_text
 from sci2audio.layout import LayoutSettings, build_document
 from sci2audio.layout.tagged import positioned
+from sci2audio.textprep import BUILT_IN_STEPS, StepContext, run_steps, spoken_text
 
 P = ("p",)
 NOTES = ("section", "role:doc-endnotes", "ol")
@@ -161,6 +162,50 @@ def test_code_is_a_code_block_and_quotes_are_paragraphs_keeping_their_lines() ->
         ("paragraph", "Call f() twice."),
     ]
     assert doc.blocks[0].is_placeholder
+
+
+def test_a_code_block_inside_a_note_is_code_not_footnote_text() -> None:
+    """#890: a `pre` holding `code` is CODE wherever it stands, a note included; the note's
+    own text stays a FOOTNOTE."""
+    fn = ("aside", "epub:footnote")
+    doc = build_document(
+        content(
+            [
+                line("Body text.", "p"),
+                line("See the rule:", *fn, "p"),
+                line("x => 2**3", *fn, "pre", "code"),
+                line("    y", *fn, "pre", "code", "br"),
+            ]
+        )
+    )
+    assert kinds(doc) == [
+        ("paragraph", "Body text."),
+        ("footnote", "See the rule:"),
+        ("code", "x => 2**3\n    y"),
+    ]
+    assert doc.blocks[2].is_placeholder
+
+
+def test_the_text_steps_leave_the_code_block_of_an_epub_footnote_as_printed() -> None:
+    """#890 with #854: the block was a FOOTNOTE, so the steps read its arrow and its power
+    as words; the prose of the note is still read as words."""
+    fn = ("aside", "epub:footnote")
+    doc = build_document(
+        content(
+            [
+                line("Body text.", "p"),
+                line("The rule A => B holds:", *fn, "p"),
+                line("x => 2**3", *fn, "pre", "code"),
+            ]
+        )
+    )
+    run = run_steps(doc, StepContext("en"), BUILT_IN_STEPS, strict=True)
+    assert not run.problems
+    spoken = spoken_text(run.script())
+    assert "A implies B" in spoken
+    assert "A code block is skipped." in spoken
+    assert "power of" not in spoken
+    assert "x implies" not in spoken
 
 
 def test_a_listing_figcaption_names_its_code_block() -> None:
@@ -346,6 +391,8 @@ def test_list_items_whose_numbering_is_not_text_carry_no_label() -> None:
         ("\u2022 first point", "\u2022"),
         ("1. first point", "1."),
         ("12) first point", "12)"),
+        ("100. first point", "100."),
+        ("101) first point", "101)"),
         ("(a) first point", "(a)"),
         ("(iv) first point", "(iv)"),
         ("b) first point", "b)"),
@@ -357,6 +404,19 @@ def test_a_list_item_that_prints_its_marker_carries_it_as_label(text: str, label
     doc = build_document(content([line(text, "ul", "li"), line("next", "ul", "li", "br")]))
     assert [(b.kind, b.text, b.label) for b in doc.blocks] == [
         (BlockKind.LIST_ITEM, f"{text}\nnext", label)
+    ]
+
+
+def test_a_plain_text_list_numbered_past_99_labels_every_item() -> None:
+    """#917: plain text takes a number of up to three digits as a list marker (extraction's
+    `_NUMBERED`), so the label reader does too: one shape for every item of the list."""
+    doc = build_document(read_text(b"99. a\n100. b\n101. c\n\n100) d\n101) e\n", "n.txt"))
+    assert [(b.kind.value, b.label, b.text) for b in doc.blocks] == [
+        ("list_item", "99.", "99. a"),
+        ("list_item", "100.", "100. b"),
+        ("list_item", "101.", "101. c"),
+        ("list_item", "100)", "100) d"),
+        ("list_item", "101)", "101) e"),
     ]
 
 
