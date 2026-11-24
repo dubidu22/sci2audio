@@ -42,7 +42,7 @@ from sci2audio.app.settings import LETTER_PACES
 from sci2audio.textprep import BUILT_IN_STEPS as BUILT_IN
 from sci2audio.textprep import Category
 from sci2audio.voices import PACKS, VOICES, download_plan
-from sci2audio.web import i18n, library, pages, player, server, window
+from sci2audio.web import exports, i18n, library, pages, player, server, window
 from sci2audio.web.api import REDIRECTS, plan_hosts
 from sci2audio.web.config import HOST
 from sci2audio.web.i18n import (
@@ -79,6 +79,8 @@ SAME_IN_GERMAN = {
     "voice.letter_pace_normal",  # "Normal" (#295)
     "listen.speed_value",  # the number and the times sign, the number in the page language (#152)
     "library.minutes",  # "min" (#389)
+    "export.ris",  # "Zotero", the program the file is for (#399)
+    "export.md",  # "Obsidian"
 }
 
 
@@ -180,7 +182,8 @@ def used_keys() -> set[str]:
     found |= {f"library.state_{key}" for key in pages.CHIPS}  # a chip's word (#389)
     found |= {f"library.when_{kind}" for kind in ("today", "yesterday")}  # library.when
     found |= {f"library.{kind}s" for kind in pages.CAPTURE_KINDS}  # a flag strip's words (#418)
-    for path in (Path(pages.__file__), Path(i18n.__file__), Path(window.__file__)):
+    for module in (pages, i18n, window, exports):
+        path = Path(str(module.__file__))
         source = path.read_text(encoding="utf-8")
         found |= set(re.findall(r"""\b(?:t|s|self\.t)\(\s*f?["']([a-z_.-]+[a-z])["']""", source))
     found |= {key for key in EN if key.startswith("phase.")}

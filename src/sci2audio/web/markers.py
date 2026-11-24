@@ -387,6 +387,12 @@ class _Finder:
         return block, raws[0], raws[-1] + 1
 
 
+def finder(document: Document) -> Callable[[Anchored], tuple[int, int, int] | None]:
+    """Where an anchor's sentence is in `document` now, as (block, start, end), or None:
+    found as `locate` finds it, so an export (#399) orders captures as the pages place them."""
+    return _Finder(document).find
+
+
 def locate[T](
     items: Sequence[T], anchor: Callable[[T], Anchored], document: Document, spans: Sequence[Span]
 ) -> list[tuple[T, int | None, State]]:

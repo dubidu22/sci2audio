@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -52,13 +52,20 @@ class ApiError(Exception):
     """An error answer: status, kind for programs, message for people."""
 
     def __init__(
-        self, status: int, kind: str, message: str, chapters: Sequence[str] | None = None
+        self,
+        status: int,
+        kind: str,
+        message: str,
+        chapters: Sequence[str] | None = None,
+        fields: Mapping[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.status = status
         self.kind = kind
         self.message = message
         self.chapters = None if chapters is None else list(chapters)
+        # what the page needs to ask about it, e.g. the file an export would replace (#399)
+        self.fields = dict(fields or {})
 
 
 @dataclass(frozen=True)

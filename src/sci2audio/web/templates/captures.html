@@ -34,6 +34,8 @@
 </form>
 {% endif %}
 <p id="message" class="message" role="status" tabindex="-1"></p>
+<div class="capview">
+<div class="cap-main">
 {% if not groups %}
 <p class="hint" id="captures-empty">{{ t('captures.empty') }}</p>
 {% else %}
@@ -69,6 +71,36 @@
   {% endif %}
 </section>
 {% endfor %}
+</div>
+{% if groups %}
+{#- the files (#399, ADR-008 2.1 item 7, D-850): the design's export column, as files a
+    person places, never a connection to a program. Each takes the captures the filters
+    show, into the folder typed beside it; a file there is replaced only after the person
+    says yes to the question that comes up in its place. The buttons are drawn disabled
+    until app.js is in (#350). -#}
+<aside class="export" id="capture-export" aria-labelledby="export-title">
+  <h2 id="export-title">{{ t('export.title') }}</h2>
+  <p class="hint">{{ t('export.hint') }}</p>
+  <p class="export-count" id="export-count" data-n="{{ export_count }}">{{ t('export.count', n=export_count) }}</p>
+  <p class="hint" id="export-folder-hint">{{ t('export.folder_hint') }}</p>
+  {%- for target in export_targets %}
+  <section class="target" id="export-{{ target.id }}" data-format="{{ target.id }}" aria-labelledby="export-{{ target.id }}-name">
+    <h3 id="export-{{ target.id }}-name">{{ icon(target.icon) }}<span>{{ target.name }}</span></h3>
+    <p class="target-text">{{ target.text }}</p>
+    <label for="export-folder-{{ target.id }}" id="export-folder-{{ target.id }}-label">{{ t('export.folder') }}</label>
+    <input id="export-folder-{{ target.id }}" value="{{ export_folder }}" aria-labelledby="export-folder-{{ target.id }}-label export-{{ target.id }}-name" aria-describedby="export-folder-hint" spellcheck="false" autocomplete="off">
+    <p class="buttons"><button type="button" id="export-save-{{ target.id }}" data-export="{{ target.id }}" disabled>{{ icon('download', 's') }}<span>{{ target.save }}</span></button></p>
+    <p class="export-state" id="export-state-{{ target.id }}" data-state="never" role="status">{{ icon('info', 's') }}<span>{{ t('export.never') }}</span></p>
+    <div class="callout warn export-ask" id="export-ask-{{ target.id }}" hidden>{{ icon('alert', 'l') }}<div>
+      <p class="ask-title" id="export-ask-{{ target.id }}-title" tabindex="-1"></p>
+      <p>{{ t('export.exists_hint') }}</p>
+      <p class="buttons"><button type="button" class="primary" data-replace="{{ target.id }}">{{ icon('check', 's') }}<span>{{ t('export.replace') }}</span></button> <button type="button" data-keep="{{ target.id }}">{{ icon('x', 's') }}<span>{{ t('export.keep') }}</span></button></p>
+    </div></div>
+  </section>
+  {%- endfor %}
+</aside>
+{% endif %}
+</div>
 {#- the toast after a removal: its type's flag, the words, and Undo, as on the Listen page -#}
 <p class="capture-toast page-toast" id="capture-toast" hidden><span class="flag" id="capture-toast-flag" aria-hidden="true" hidden></span><span id="capture-said"></span> <button type="button" class="sm" id="capture-undo">{{ icon('undo', 's') }}<span>{{ t('capture.undo') }}</span></button></p>
 </div>

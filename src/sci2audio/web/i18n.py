@@ -71,6 +71,7 @@ SCRIPT_KEYS = (
     "player.",
     "capture.",  # the captures on the Listen page (#397)
     "captures.",  # the Captures page, filtered in place (#398)
+    "export.",  # its files, saved from the page (#399)
     "remove.removing",
     "remove.done",
     "remove.stays",  # and remove.stays_folder, remove.stays_earlier

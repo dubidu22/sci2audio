@@ -403,6 +403,7 @@ function capturesPage() {
   const undoButton = document.getElementById("capture-undo");
   const TOAST_FOR = 60000; // ms the toast's Undo stays, as on the Listen page
   let kind = kinds.find((button) => button.getAttribute("aria-pressed") === "true")?.dataset.kind || "all";
+  const files = captureExport(() => ({ type: kind, document: from.value }));
   let queue = Promise.resolve();
   let undo = null; // what the toast's Undo does
   let back = null; // where the focus goes when the toast it is in goes away
@@ -442,6 +443,7 @@ function capturesPage() {
       button.querySelector("[data-count]").textContent = counts[button.dataset.kind];
     }
     none.hidden = anyShown;
+    files.shown(counts[kind]);
     summary.textContent = tr("captures.summary", {
       count: tr("captures.count", { n: total }),
       documents: tr("captures.documents", { n: documents }),
@@ -554,6 +556,143 @@ function capturesPage() {
   });
   // drawn disabled: a click before this script ran would be lost (#350)
   for (const button of root.querySelectorAll("button[data-remove]")) button.disabled = false;
+}
+
+// ---- the Captures page's files (#399, ADR-008 2.1 item 7) -------------------------------------
+// Each target saves what the filters show (`current`) into the folder typed beside it. A file
+// of that name already there is never replaced on the first press: the server refuses it,
+// and the target asks in its place; only "Replace it" sends the same request with
+// `overwrite`. "Keep it" and Escape leave the file and say so. Every state line has an icon
+// and a word, and is a status line for screen readers.
+function captureExport(current) {
+  const aside = document.getElementById("capture-export");
+  const none = { shown() {} };
+  if (!aside) return none;
+  const count = document.getElementById("export-count");
+  const targets = [...aside.querySelectorAll(".target")];
+  let shownNow = Number(count.dataset.n);
+  // taken from an icon on the page: the script names no address, not even a namespace's
+  const svgSpace = aside.querySelector("svg").namespaceURI;
+
+  function icon(name) {
+    const svg = document.createElementNS(svgSpace, "svg");
+    svg.setAttribute("class", "i s");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const use = document.createElementNS(svgSpace, "use");
+    use.setAttribute("href", `#i-${name}`);
+    svg.append(use);
+    return svg;
+  }
+
+  for (const target of targets) {
+    const format = target.dataset.format;
+    const field = document.getElementById(`export-folder-${format}`);
+    const button = document.getElementById(`export-save-${format}`);
+    const state = document.getElementById(`export-state-${format}`);
+    const ask = document.getElementById(`export-ask-${format}`);
+    const askTitle = document.getElementById(`export-ask-${format}-title`);
+    const replace = ask.querySelector("button[data-replace]");
+    const keep = ask.querySelector("button[data-keep]");
+    let asked = null; // the file the question is about
+    let busy = false;
+
+    function tell(kind, name, said) {
+      state.dataset.state = kind;
+      const words = document.createElement("span");
+      if (typeof said === "string") {
+        words.textContent = said;
+      } else {
+        words.textContent = said.text;
+        if (said.details) {
+          const details = document.createElement("span");
+          details.lang = "en";
+          details.textContent = said.details;
+          words.append(` ${tr("common.details")} `, details);
+        }
+      }
+      state.replaceChildren(icon(name), words);
+    }
+
+    function close() {
+      ask.hidden = true;
+      askTitle.textContent = "";
+      asked = null;
+    }
+
+    async function save(overwrite) {
+      // one request at a time; the button stays enabled, so the focus stays on it
+      if (busy) return;
+      busy = true;
+      close();
+      const before = { kind: state.dataset.state, children: [...state.childNodes] };
+      tell("saving", "download", tr("export.saving"));
+      const wanted = current();
+      const body = {
+        format,
+        folder: field.value,
+        type: wanted.type,
+        document: wanted.document,
+        overwrite,
+      };
+      try {
+        const saved = await send("/api/v1/captures/export", json("POST", body));
+        tell("saved", "check", tr("export.saved", { file: saved.file, folder: saved.folder }));
+      } catch (error) {
+        if (error.kind === "export-exists" && error.data && error.data.file) {
+          asked = error.data.file;
+          state.dataset.state = before.kind; // nothing changed yet: the question says why
+          state.replaceChildren(...before.children);
+          askTitle.textContent = tr("export.exists", { file: asked });
+          ask.hidden = false;
+          askTitle.focus();
+        } else {
+          const said = explain(error);
+          const text = typeof said === "string" ? said : said.text;
+          tell("failed", "alert", {
+            text: `${tr("export.failed")} ${text}`,
+            details: typeof said === "string" ? "" : said.details,
+          });
+        }
+      } finally {
+        busy = false;
+      }
+    }
+
+    function kept() {
+      const file = asked;
+      close();
+      tell("kept", "info", tr("export.kept", { file }));
+      button.focus();
+    }
+
+    button.addEventListener("click", () => save(false));
+    replace.addEventListener("click", () => {
+      button.focus(); // the question goes away with the button pressed in it
+      save(true);
+    });
+    keep.addEventListener("click", kept);
+    ask.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      kept();
+    });
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || button.disabled) return;
+      event.preventDefault();
+      save(false);
+    });
+    button.disabled = shownNow === 0; // drawn disabled: a click before this ran would be lost (#350)
+  }
+
+  return {
+    // what the filters show now: the count line, and no button that would save nothing
+    shown(n) {
+      shownNow = n;
+      count.textContent = tr("export.count", { n });
+      for (const button of aside.querySelectorAll("button[data-export]")) button.disabled = n === 0;
+    },
+  };
 }
 
 // ---- removing a document (#120, D-359 to D-362, #470) ---------------------------------------
