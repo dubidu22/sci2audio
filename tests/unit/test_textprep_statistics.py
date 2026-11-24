@@ -97,7 +97,8 @@ def test_statistics_read_as_words(printed: str, said: str) -> None:
 @pytest.mark.parametrize(
     "printed",
     [
-        "X -> Y and a <- b and a => b and a == b and a <= b and a != b",
+        # "=>" between two operands is read "implies" since #796; "==>" is no arrow of it
+        "X -> Y and a <- b and a ==> b and a == b and a <= b and a != b",
         "<i>x</i> and <sup>2</sup>",
         "a<b",  # no space, a letter after: not read as a comparison
         "= 5",  # nothing before "="
@@ -186,8 +187,19 @@ def test_english_and_german() -> None:
         (lambda n: "95% CI [" * n, 12_000),
         (lambda n: "<i>" * n, 30_000),
         (lambda n: "x" + " " * n + "= 3", 100_000),
+        (lambda n: "A ⇒ =⇒ <=> " * n, 9_000),  # #796
+        (lambda n: "x" + " " * n + "⇒ y", 100_000),  # far from its operand
     ],
-    ids=["results", "maths", "equals-chain", "ci-chain", "tags", "long-space"],
+    ids=[
+        "results",
+        "maths",
+        "equals-chain",
+        "ci-chain",
+        "tags",
+        "long-space",
+        "arrows",
+        "arrow-far",
+    ],
 )
 def test_long_and_pathological_blocks_take_linear_time(
     sized: Callable[[int], str], size: int

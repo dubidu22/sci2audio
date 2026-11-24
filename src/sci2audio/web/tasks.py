@@ -76,8 +76,6 @@ from sci2audio.web.player import (
     chapter_index,
     current_audiobook,
     load_document,
-    recorded_position,
-    remove_position,
     write_record,
 )
 from sci2audio.web.project import ProjectError, audiobook_folder, record_files
@@ -246,7 +244,7 @@ def audio_work(
         try:
             # a new audiobook starts at the start (#153); a position kept while this one
             # was growing is in it, and stays (#724)
-            _forget_other_position(document, written.readalong.parent)
+            _forget_other_position(document, written.readalong.parent, positions)
         except OSError as error:  # its stamp no longer fits: the page ignores it anyway
             logger.warning("could not forget the listening position: %s", error)
         files = [
@@ -404,15 +402,16 @@ def _keep_position_by_chapter(
     positions.change(document.folder, document.id, located.stamp, by_chapter)
 
 
-def _forget_other_position(document: StoredDocument, folder: Path) -> None:
-    """Remove the listening position unless it is in the audiobook now in `folder`.
-    Raises OSError."""
+def _forget_other_position(
+    document: StoredDocument, folder: Path, positions: PositionSaves
+) -> None:
+    """Remove the listening position unless it is in the audiobook now in `folder`, in one
+    turn with the player's saves (#839). Raises OSError."""
     try:
         stamp = current_audiobook(document.folder, document.id, [folder]).located.stamp
     except PlayerError:
         stamp = ""
-    if not stamp or recorded_position(document.folder, document.id, stamp) is None:
-        remove_position(document.folder)
+    positions.forget_unless(document.folder, document.id, stamp)
 
 
 def voices_work(models_dir: Path, fetch: Fetch | None) -> Callable[[JobRecord], Sequence[Path]]:

@@ -22,6 +22,7 @@ from sci2audio.textprep import (
     Category,
     CitationStep,
     Stage,
+    Status,
     StepContext,
     citations,
     run_steps,
@@ -1166,3 +1167,52 @@ def test_a_key_removed_names_itself_in_the_reason() -> None:
     )
     edit = next(e for e in STEP.find(document, EN) if e.span.block == 0)
     assert edit.reason == 'citation key "[MH17]" is not read (TP-03)'
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # a removal between two join words takes the one before along (#628)
+        ("Then it and (Lee, 2019) and more.", "Then it and more."),
+        ("Then it or (Lee, 2019) and more.", "Then it and more."),
+        ("And (Lee, 2019) and more.", "And and more."),  # it starts the sentence
+        ("Then it and (Lee, 2019) more.", "Then it and more."),  # one join word only
+        # a word glued after a removed bracket is a word of its own (#629)
+        ("Text (Smith, 2019)Lee here.", "Text Lee here."),
+        ("It holds [3]x here.", "It holds x here."),
+        ("Text(Smith, 2019)Lee here.", "TextLee here."),  # no space to keep
+    ],
+)
+def test_join_words_and_glued_words_around_a_removed_citation(text: str, spoken: str) -> None:
+    assert read(text) == spoken
+
+
+def test_the_reason_names_the_join_word_that_goes_with_a_citation() -> None:
+    text = "Then it and (Lee, 2019) and more."
+    (edit,) = edits(text)
+    assert text[edit.span.start : edit.span.end] == " and (Lee, 2019)"
+    assert edit.reason == 'citation "(Lee, 2019)" is not read; "and" before it goes too (TP-03)'
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        (
+            "Then it and https://x.org/8 (Lee, 2019) and more.",
+            "Then it and https://x.org/8 and more.",
+        ),
+        (
+            "Then it or https://x.org/8 (Lee, 2019) and more.",
+            "Then it or https://x.org/8 and more.",
+        ),
+    ],
+)
+def test_with_links_switched_off_no_join_word_goes_past_a_link_that_is_read(
+    text: str, spoken: str
+) -> None:
+    # the link is read, so the join word before it does not stand beside the one after the
+    # citation; the citation's removal leaves it (#628)
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    run = run_steps(document, EN, switched_off={Category.LINKS}, strict=True)
+    assert render(run) == [spoken]
+    assert all("before it goes too" not in edit.reason for edit in run.edits(Status.ACCEPTED))

@@ -235,9 +235,9 @@ def test_no_two_full_stops_after_an_abbreviation(language: str, printed: str, sa
         ("de", "Es gilt [1], [2] oder [3] hier.", "Es gilt, oder Quelle 3 hier."),
         # what is no item: a page, a bracket glued to a word, a number glued after, maths
         ("en", "It holds [12, p. 3], [4] and [5] here.", "It holds, references 4 and 5 here."),
-        # a letter glued after the list stays glued, as after one bracket ("[3]x"); on main
-        # the pair read "3x" on run 1 and "3 times" on run 2
-        ("en", "It holds [1], [2] and [3]x here.", "It holdsx here."),
+        # a letter glued after the list is read as its own word, as after one bracket ("[3]x",
+        # #629); before #326 the pair read "3x" on run 1 and "3 times" on run 2
+        ("en", "It holds [1], [2] and [3]x here.", "It holds x here."),
         ("en", "x \u2208 [0, 1], [2] and [3] here.", "x \u2208 [0, 1], references 2 and 3 here."),
         (
             "en",

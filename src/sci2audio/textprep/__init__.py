@@ -53,7 +53,7 @@ from sci2audio.textprep.runner import (
     run_steps,
     whole_block,
 )
-from sci2audio.textprep.spoken import PAUSE_MARK, spoken_text
+from sci2audio.textprep.spoken import PAUSE_MARK, spoken_text, unspoken
 from sci2audio.textprep.statistics import StatisticsStep
 from sci2audio.textprep.steps import (
     ANY_LANGUAGE,
@@ -131,6 +131,7 @@ __all__ = [
     "run_steps",
     "spoken_text",
     "step_problems",
+    "unspoken",
     "whole_block",
     "wording_for",
 ]
