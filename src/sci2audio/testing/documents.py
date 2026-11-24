@@ -199,6 +199,8 @@ def _kept_code(
         if not piece.pause and piece.text == block.text[span.start : span.end]:
             for start, end in code:
                 first, last = max(start, span.start), min(end, span.end)
+                if first >= last:
+                    continue  # this code lies in another piece
                 position = at + first - span.start
                 for line in piece.text[first - span.start : last - span.start].split("\n"):
                     if line:

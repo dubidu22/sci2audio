@@ -229,6 +229,38 @@ def test_a_second_run_keeps_inline_code_as_printed() -> None:
     assert spoken_text(first.script()) == "Set n = 2^3 for 10 kilometres."
 
 
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        (
+            "en",
+            "Use `n = 2^3` for 10 km and `p < 0.05`.\nThen `x => 1` at 5 kg.",
+            "Use n = 2^3 for 10 kilometres and p < 0.05. Then x => 1 at 5 kilograms.",
+        ),
+        (
+            "de",
+            "Nimm `n = 2^3` für 10 km und `p < 0.05`. Dann `x => 1` bei 5 kg.",
+            "Nimm n = 2^3 für 10 Kilometer und p < 0.05. Dann x => 1 bei 5 Kilogramm.",
+        ),
+    ],
+)
+def test_code_in_several_pieces_reads_the_same_on_a_second_run(
+    language: str, printed: str, said: str
+) -> None:
+    document = markdown(printed, language)
+    context = StepContext(language)
+    first = run_steps(document, context, strict=True)
+    rebuilt = rebuilt_from_script(document, first.script())
+    assert [rebuilt.blocks[0].text[a:b] for a, b in inline_code(rebuilt)[0]] == [
+        "n = 2^3",
+        "p < 0.05",
+        "x => 1",
+    ]
+    second = run_steps(rebuilt, context, strict=True)
+    assert spoken_text(first.script()) == said
+    assert spoken_text(second.script()) == said
+
+
 def test_inline_code_spans_are_the_code_runs_in_block_text() -> None:
     document = markdown("Use `x => 1` and `y`.\n\n```\nz\n```", "en")
     assert {
