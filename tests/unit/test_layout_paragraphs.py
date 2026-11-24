@@ -1304,6 +1304,20 @@ def test_a_paragraph_runs_on_across_a_page_into_two_inline_fractions() -> None:
     assert [b.text for b in doc.blocks if b.kind is BlockKind.FURNITURE] == ["1", "2"]
 
 
+def test_two_fraction_bars_side_by_side_stand_where_their_printed_line_ends() -> None:
+    """#819, liu p4: no single piece of the line holds the two bars, only its pieces
+    together. They are read at that printed line, right after its last piece where its text
+    ends, as a mark inside one piece is (D-332), not at the paragraph's end."""
+    doc, (_, running, fractions, _, _) = _across_a_page()
+    (block,) = [b for b in doc.blocks if any(p.item == "p4-bar0" for p in b.parts)]
+    end = len(running) + 1 + len(fractions)
+    assert block.text[:end].endswith(LIU_P4_LINE)
+    items = [p.item for p in block.parts]
+    at = items.index("p4-bar0")
+    assert items[at - 1 : at + 2] == ["p4-den2", "p4-bar0", "p4-bar1"]
+    assert [p.start for p in block.parts[at : at + 3]] == [end, end, end + 1]  # the next line
+
+
 def test_a_heading_or_a_new_paragraph_after_the_page_break_does_not_join_it() -> None:
     """A bold heading, or an indented first line, at the next page's top starts a block of
     its own; the line with the fractions goes on with the new paragraph, not the old one."""

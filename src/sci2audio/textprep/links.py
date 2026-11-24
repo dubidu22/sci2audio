@@ -382,6 +382,7 @@ _PATH_LIKE = re.compile(r"[/._\-=?#&%~\d]")  # a next-line word with one of thes
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _OPENERS = {opener: closer for closer, opener in _PAIRS.items()}
+_QUOTES = {'"': '"', "“": "”", "„": "“"}  # an opening quotation mark and its closing one
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
@@ -479,6 +480,9 @@ class LinkStep(TextStep):
                 if bare and not join:
                     start, join = _join_before(text, start, end, claimed, words)
                     repair += join
+                if bare and not join:
+                    start, join = _join_between(text, start, end, claimed, words)
+                    repair += join
                 following = runs[position][0].start if position < len(runs) else len(text)
                 stop = _stop_after_abbreviation(text, start, end, following, words, language)
                 if stop:
@@ -486,13 +490,15 @@ class LinkStep(TextStep):
                     # printed "Smith et al. Then" does on any run (#258)
                     end = stop
                     repair += "; its full stop goes too, so no two full stops are read"
+                glued = text[end : end + 1]
                 if (
                     text[start].isspace()
-                    and text[end - 1] in ")]"
-                    and text[end : end + 1] in ("(", "[")
+                    and text[end - 1] in ')]>"”“'
+                    and (glued in ("(", "[") or glued.isalnum())
                 ):
                     # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
-                    # after the link's keeps the space before (#371)
+                    # after the link's keeps the space before (#371); so does a word glued
+                    # after it, "Text <https://a.org>Smith" reads "Text Smith" (#629)
                     start += 1
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
@@ -653,8 +659,12 @@ def _join_before(
     joins = [w for w in words.joins if w.isalpha()]  # "and", "or", "und", "oder"
     listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
     window = max(claimed, start - _LOOK_BACK)
+    # the name may be glued after a bracket the citations step removes: "Text (Smith,
+    # 2019)Lee and https://x.org here" reads "Text Lee here" (#629)
     left = re.search(
-        rf"(?<!\S)([^\W\d_][\w’'-]*)(\s*,)?\s+({listed})\Z", text[window:start], re.IGNORECASE
+        rf"(?<![^\s)\]])([^\W\d_][\w’'-]*)(\s*,)?\s+({listed})\Z",
+        text[window:start],
+        re.IGNORECASE,
     )
     if not left or not left.group(1)[0].isupper():
         return start, ""
@@ -662,6 +672,27 @@ def _join_before(
         return start, ""  # "And https://x.org shows it", "Smith and https://x.org": no list
     cut = window + left.end(1)
     return cut, f'; "{text[cut:start].strip()}" before it goes too'
+
+
+def _join_between(
+    text: str, start: int, end: int, claimed: int, words: LinkWords
+) -> tuple[int, str]:
+    """A join word right before a link goes too when another one follows the link: "Then it
+    and https://x.org and more" reads "Then it and more", not "Then it and and more" (#628).
+    Only for a link removed alone, and not where the join word starts the sentence: "And
+    https://x.org and more" keeps it. A citation between the link and the second join word
+    is the citations step's: it takes the first join word along once the link is gone."""
+    joins = [w for w in words.joins if w.rstrip(".").isalpha()]  # "and", "bzw."
+    listed = "|".join(re.escape(w) for w in sorted(joins, key=len, reverse=True))
+    if not re.compile(rf"\s+(?:{listed})(?![\w.])", re.IGNORECASE).match(text, end):
+        return start, ""
+    window = max(claimed, start - _LOOK_BACK)
+    left = re.search(rf"\s+({listed})\s*\Z", text[window:start], re.IGNORECASE)
+    if not left or not text[window : window + left.start()].strip():
+        return start, ""
+    if _starts_sentence(text, window + left.start(1), -1, words.abbreviations):
+        return start, ""
+    return window + left.start(), f'; "{left.group(1)}" before it goes too, as another follows it'
 
 
 def _tidied(text: str, edits: list[Edit]) -> list[Edit]:
@@ -763,22 +794,28 @@ def _continues(before: str, word: str, sentence_words: frozenset[str]) -> bool:
 
 def _closed_before(text: str, start: int, end: int) -> int:
     """`end`, or the first closing bracket that closes a bracket opened before the address
-    when another bracket is glued after it: "(see https://example.org)(Smith, 2019)" ends
-    before ")(" (#326)."""
+    when another bracket or a word is glued after it: "(see https://example.org)(Smith,
+    2019)" ends before ")(" (#326), "(see https://a.org)Smith" before ")Smith" (#629). A
+    bracket glued after a later one wins over a word glued after an earlier one:
+    "(see https://example.org/a)b)(more)" ends before ")(" (#371)."""
     depth = dict.fromkeys(_PAIRS, 0)
+    word_at = -1  # the first closing bracket with a word glued after it
     for position in range(start, end):
         char = text[position]
         if char in _OPENERS:
             depth[_OPENERS[char]] += 1
         elif char in _PAIRS:
+            glued = text[position + 1 : position + 2]
             if (
                 depth[char] == 0
-                and text[position + 1 : position + 2] in ("(", "[")
+                and (glued in ("(", "[") or (glued.isalnum() and word_at < 0))
                 and _open_before(text, start, _PAIRS[char])
             ):
-                return position
+                if glued in ("(", "["):
+                    return position
+                word_at = position
             depth[char] = max(0, depth[char] - 1)
-    return end
+    return word_at if word_at >= 0 else end
 
 
 def _open_before(text: str, start: int, opener: str) -> bool:
@@ -883,6 +920,11 @@ def _repair(
                     f'; the brackets around it and "{word.group(1)}" before them go too',
                 )
             return claimed + opened.start(), stop, "; the brackets around it go too"
+    # ... and quotation marks that hold only the run and lead words, set close to them:
+    # '"https://a.org"Smith' reads "Smith", not '""Smith' (#629)
+    quoted = re.search(rf"(?<![\w\"“”„])([\"“„])(?:{introduced}\s+)?\Z", before, re.IGNORECASE)
+    if quoted and text[end : end + 1] == _QUOTES[quoted.group(1)]:
+        return claimed + quoted.start(), end + 1, "; the quotation marks around it go too"
     # 2. a label before it, maybe with a pointer: "Code: https://...", "Code: see https://..."
     labels = "|".join(re.escape(label) for label in sorted(words.labels, key=len, reverse=True))
     pointers = "|".join(re.escape(word) for word in sorted(words.pointers, key=len, reverse=True))

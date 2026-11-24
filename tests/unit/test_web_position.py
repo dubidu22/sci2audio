@@ -141,6 +141,61 @@ def test_a_change_writes_only_what_it_makes_of_a_record(tmp_path: Path) -> None:
     assert not saves.lock.locked()
 
 
+class Waiting:
+    """A stand-in for the lock of `PositionSaves` that says when a taker has to wait."""
+
+    def __init__(self, blocked: threading.Event) -> None:
+        self.inner = threading.Lock()
+        self.blocked = blocked
+
+    def __enter__(self) -> None:
+        if not self.inner.acquire(blocking=False):
+            self.blocked.set()  # somebody holds it: this one waits
+            self.inner.acquire()
+
+    def __exit__(self, *_exc: object) -> None:
+        self.inner.release()
+
+
+def test_a_save_between_the_read_and_the_removal_of_a_forgotten_position_survives(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#839: the job that forgets the position of another audiobook reads the record and
+    removes it in one turn of `PositionSaves`; a player save that arrives in between
+    waits for it and is written after, so it is not removed with the old record. The
+    save is started when the removal is about to happen and the removal goes on once the
+    save waits on the lock or is done: no clock decides it."""
+    from sci2audio.web import tasks
+    from sci2audio.web.documents import StoredDocument
+
+    client, config = server(tmp_path)
+    doc = make(client)["doc"]["id"]
+    stamp = stamp_of(client, doc)
+    work = work_of(config, doc)
+    (found,) = tmp_path.rglob("*.readalong.json")
+    document = StoredDocument(doc, work, Path("paper.pdf"))
+    write_position(work, doc, "ffffffffffffffff", Position(0, 0.5))  # of another audiobook
+    settled = threading.Event()  # the save waits on the lock, or has been written
+    saves = player.PositionSaves()
+    saves.lock = Waiting(settled)  # type: ignore[assignment]
+    saver = threading.Thread(
+        target=lambda: (saves.save(work, doc, stamp, Position(0, 1.5)), settled.set())
+    )
+    unlink = Path.unlink
+
+    def removing(self: Path, missing_ok: bool = False) -> None:
+        if self.name == player.POSITION and not saver.is_alive() and not settled.is_set():
+            saver.start()
+            assert settled.wait(timeout=60)  # only a hang fails here, not the outcome
+        unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", removing)
+    tasks._forget_other_position(document, found.parent, saves)
+    saver.join(timeout=60)
+    assert not saver.is_alive()
+    assert player.recorded_position(work, doc, stamp) == Position(0, 1.5)
+
+
 def test_no_record_and_a_folder_in_its_place_are_ignored(tmp_path: Path) -> None:
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
     (tmp_path / player.POSITION).mkdir()

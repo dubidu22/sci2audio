@@ -1,0 +1,101 @@
+# serializer version: 1
+# name: test_the_carried_file_golden_file[carried over]
+  '''
+  {
+   "format": "sci2audio-captures",
+   "version": 1,
+   "document": "0123456789abcdef",
+   "migrated_from": "markers.json",
+   "captures": [
+    {
+     "id": "00000000000000a1",
+     "type": "mark",
+     "created": "2026-09-02T08:15:00Z",
+     "changed": "2026-09-02T08:15:00Z",
+     "anchor": {
+      "block": 1,
+      "start": 0,
+      "end": 44,
+      "text": "Sleep loss lowered recall by 12 % (p < .01)."
+     },
+     "text": ""
+    },
+    {
+     "id": "00000000000000b2",
+     "type": "note",
+     "created": "2026-09-02T08:15:00Z",
+     "changed": "2026-09-03T21:40:12Z",
+     "anchor": {
+      "block": 4,
+      "start": 10,
+      "end": 32,
+      "text": "Naps were not counted."
+     },
+     "text": "Were naps left out on purpose? α ≤ 0.05"
+    },
+    {
+     "id": "00000000000000c3",
+     "type": "mark",
+     "created": "2026-09-03T21:40:12Z",
+     "changed": "2026-09-03T21:40:12Z",
+     "anchor": {
+      "block": 0,
+      "start": 3,
+      "end": 9,
+      "text": "µ = 3 "
+     },
+     "text": ""
+    }
+   ]
+  }
+  
+  '''
+# ---
+# name: test_the_carried_file_golden_file[v1 markers]
+  '''
+  {
+   "format": "sci2audio-web-markers",
+   "version": 1,
+   "document": "0123456789abcdef",
+   "markers": [
+    {
+     "id": "00000000000000a1",
+     "created": "2026-09-02T08:15:00Z",
+     "changed": "2026-09-02T08:15:00Z",
+     "anchor": {
+      "block": 1,
+      "start": 0,
+      "end": 44,
+      "text": "Sleep loss lowered recall by 12 % (p < .01)."
+     },
+     "note": ""
+    },
+    {
+     "id": "00000000000000b2",
+     "created": "2026-09-02T08:15:00Z",
+     "changed": "2026-09-03T21:40:12Z",
+     "anchor": {
+      "block": 4,
+      "start": 10,
+      "end": 32,
+      "text": "Naps were not counted."
+     },
+     "note": "Were naps left out on purpose? α ≤ 0.05"
+    },
+    {
+     "id": "00000000000000c3",
+     "created": "2026-09-03T21:40:12Z",
+     "changed": "2026-09-03T21:40:12Z",
+     "anchor": {
+      "block": 0,
+      "start": 3,
+      "end": 9,
+      "text": "µ = 3 "
+     },
+     "note": ""
+    }
+   ]
+  }
+  
+  '''
+# ---

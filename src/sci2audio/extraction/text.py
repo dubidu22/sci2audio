@@ -86,6 +86,27 @@ _NUMBERED = re.compile(r"(\d{1,3})([.)])\s+\S")
 TITLE_SHARE = 0.6  # a title line is at most this share of its paragraph's longest line
 _ENDS = ".!?:;,\u2026-\u2010\u2011\u2013\u2014/"  # a line ending in one of these runs on
 _STOPS = (".", "!", "?", "\u2026")  # a line ending in one of these ends a sentence (#570)
+# Common English and German abbreviations: a line ending in one does not end a sentence
+# (#827). The textprep list cannot be imported here (layer rules); a space inside an entry
+# may be left out ("z.B.", "e. g.").
+_ABBREVIATIONS = (
+    *("e. g.", "i. e.", "etc.", "cf.", "vs.", "viz.", "approx.", "et al.", "ca.", "resp."),
+    *("Fig.", "Figs.", "Eq.", "Eqs.", "Ref.", "Refs.", "Sec.", "Ch.", "Vol.", "pp."),
+    *("Dr.", "Mr.", "Mrs.", "Ms.", "Prof.", "Jr.", "Sr.", "St."),
+    *("Jan.", "Feb.", "Mar.", "Apr.", "Jun.", "Jul.", "Aug.", "Sep.", "Sept."),
+    *("Oct.", "Okt.", "Nov.", "Dec.", "Dez."),
+    *("Ala.", "Ariz.", "Ark.", "Calif.", "Colo.", "Conn.", "Del.", "Fla.", "Ga.", "Ill."),
+    *("Ind.", "Kan.", "Ky.", "La.", "Md.", "Mass.", "Mich.", "Minn.", "Miss.", "Mo."),
+    *("Mont.", "Neb.", "Nev.", "Okla.", "Ore.", "Pa.", "Tenn.", "Tex.", "Va.", "Vt."),
+    *("Wash.", "Wis.", "Wyo."),
+    *("z. B.", "d. h.", "u. a.", "o. ä.", "u. Ä.", "usw.", "bzw.", "vgl.", "evtl.", "ggf."),
+    *("sog.", "inkl.", "bzgl.", "Abb.", "Tab.", "Nr.", "Hrsg.", "Jh.", "Mio.", "Mrd."),
+)
+_ABBREVIATION = re.compile(
+    r"(?<![^\W\d_])(?:"  # not inside a word
+    + "|".join(re.escape(a).replace(r"\ ", r"\s*") for a in _ABBREVIATIONS)
+    + r")\Z"
+)
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -196,23 +217,35 @@ def read_text(data: bytes, name: str) -> Content:
             f"{name}: the file holds a paragraph longer than {MAX_PARAGRAPH:,} characters"
             " (counted between blank lines)"
         )
+    paragraphs: list[list[str]] = [[]]
+    for printed in _LINE_END.split(decoded.text):
+        if text := fold(printed):
+            paragraphs[-1].append(text)
+        elif paragraphs[-1]:
+            paragraphs.append([])
     lines: list[TextLine] = []
-    paragraph: list[str] = []
-    for printed in [*_LINE_END.split(decoded.text), ""]:
-        text = fold(printed)
-        if text:
-            paragraph.append(text)
-            continue
-        for text, tags in zip(paragraph, paragraph_tags(paragraph), strict=True):
-            lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=tags),)))
-        paragraph = []
+    for paragraph, tags in zip(paragraphs, document_tags(paragraphs), strict=True):
+        for text, line_tags in zip(paragraph, tags, strict=True):
+            lines.append(TextLine(f"p1-l{len(lines) + 1}", (TextRun(text, tags=line_tags),)))
     if not lines:
         raise ExtractionError(f"{name}: the file holds no text")
     page = Page(1, lines=tuple(lines), order=tuple(line.id for line in lines))
     return Content(source=source_of(data, name, SourceFormat.TEXT, decoded), pages=(page,))
 
 
-def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
+def document_tags(paragraphs: list[list[str]]) -> list[list[tuple[str, ...]]]:
+    """The tags of each line of each plain-text paragraph (`_paragraph_tags`), and a cut before
+    each mixed-case heading between two prose lines (`_mixed_heading`, #812) when the document
+    holds at least two of them: one stray short line is a wrapped line, not a heading."""
+    tagged = [_paragraph_tags(paragraph) for paragraph in paragraphs]
+    if sum(len(found) for _, found in tagged) >= 2:
+        for tags, found in tagged:
+            for k in found:
+                tags[k] = ("p",)
+    return [tags for tags, _ in tagged]
+
+
+def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[int]]:
     """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
     for a line after a title line (`_title`) and for a heading between two prose lines
     (`_heading`, after prose only: a list keeps its items), ``ul, li`` or ``ol, li`` for a
@@ -225,11 +258,15 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     - meist unterwegs - und") stays inside its sentence (#561).
 
     Lines are short against the paragraph's longest line that holds a space: a lone long
-    token (a URL, a DOI) on a line of its own does not make the filled lines short (M2)."""
+    token (a URL, a DOI) on a line of its own does not make the filled lines short (M2).
+
+    Also returns the lines in prose that have the shape of a mixed-case heading
+    (`_mixed_heading`); `document_tags` decides whether they are cut before."""
     items = _items(paragraph)
     widths = [len(text) for text in paragraph if " " in text]
     longest = max(widths) if widths else max(map(len, paragraph), default=0)
     out: list[tuple[str, ...]] = []
+    found: list[int] = []
     element: tuple[str, ...] = ("p",)  # the element the next wrapped line continues
     for k, text in enumerate(paragraph):
         anchored = k == 0 or element[0] != "p" or paragraph[k - 1].rstrip().endswith(":")
@@ -238,14 +275,16 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
             out.append(element)
         elif (
             k
-            and not _title(paragraph[k - 1], text, longest)
+            and not _title(paragraph[k - 1], text, longest, paragraph[k - 2] if k > 1 else None)
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
             out.append((*element, "br"))
+            if element[0] == "p" and _mixed_heading(paragraph, k, longest):
+                found.append(k)
         else:
             element = ("p",)
             out.append(element)
-    return out
+    return out, found
 
 
 def _items(paragraph: list[str]) -> dict[int, tuple[str, ...]]:
@@ -272,15 +311,19 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int) -> bool:
+def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
-    has no lower-case letter ("LISTENING TO PAPERS") or ends without punctuation, hyphen or
-    dash before a line starting with a capital ("A pilot note" / "Written for ...")."""
+    has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
+    hyphen or dash before a line starting with a capital ("A pilot note" / "Written for ...").
+    A line in capitals inside a running sentence is an acronym wrapped onto a line of its own,
+    not a title (#827): it is not the paragraph's first line (`before` is None), the line
+    `before` it does not end a sentence, and `after` starts in lower case ("... scans, e.g." /
+    "PDF" / "files and ..."). A heading before "mRNA ..." or "this paper ..." still cuts."""
     if not _short(line, longest):
         return False
     if _capitals(line):
-        return True
+        return before is None or _ends_sentence(before) or not after.lstrip(_OPENERS)[:1].islower()
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     return after.lstrip(_OPENERS)[:1].isupper()
@@ -291,9 +334,35 @@ def _heading(paragraph: list[str], k: int, longest: int) -> bool:
     capitals (`_title`'s first kind, "RESULTS") after a line that ends a sentence, and not
     the paragraph's last line. A short last line in capitals ends the prose it follows (a
     licence in capitals), and one after a line that runs on stays in its sentence."""
-    if not 0 < k < len(paragraph) - 1 or not paragraph[k - 1].rstrip(_CLOSERS).endswith(_STOPS):
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1]):
         return False
     return _short(paragraph[k], longest) and _capitals(paragraph[k])
+
+
+def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
+    """True if line `k` has the shape of a mixed-case heading between two prose lines (#812):
+    after a line that ends a sentence, not the paragraph's last line, starting with a capital
+    and a title line before the next line by `_title`'s second kind (short, no punctuation at
+    its end, the next line starting with a capital): "Results" / "The data show ...". The
+    next line's first word must also fit after it within the paragraph's longest line: a line
+    a hard wrap left short because that word did not fit (a long name, a URL) is no heading."""
+    if not 0 < k < len(paragraph) - 1 or not _ends_sentence(paragraph[k - 1]):
+        return False
+    line, after = paragraph[k], paragraph[k + 1]
+    return (
+        line.lstrip(_OPENERS)[:1].isupper()
+        and not _capitals(line)
+        and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
+        and _title(line, after, longest, paragraph[k - 1])
+    )
+
+
+def _ends_sentence(line: str) -> bool:
+    """True if `line` ends a sentence: in a stop (`_STOPS`), looking through closing quotes
+    and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827)."""
+    line = line.rstrip(_CLOSERS)
+    # every abbreviation and the character before it fit in the line's last 16 characters
+    return line.endswith(_STOPS) and not _ABBREVIATION.search(line[-16:])
 
 
 def _short(line: str, longest: int) -> bool:
