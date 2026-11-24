@@ -16,7 +16,7 @@ paths:
 
 You are working on a file that makes a PR **critical**. For this PR:
 
-- Label it `critical` and say in the PR body what could break.
+- Label it `risk:high` and say in the PR body what could break.
 - Post a plan on the issue before any code.
 - Review may take up to 3 rounds. Must-fix findings after the last round stop the PR for the owner.
 - The lead may merge after a passing review and green CI, unless the PR changes `.claude/**`, `CLAUDE.md`: the owner merges those.

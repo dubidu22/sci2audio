@@ -4,9 +4,9 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 
 ## Basics
 
-- Fast tests (no marker) run on every PR on Linux, and on macOS and Windows when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580); keep the whole fast suite under about 2 minutes.
+- Fast tests (no marker) run on every PR on Linux, and on macOS and Windows when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Keep each fast test fast: one that needs more than a few seconds on its own belongs under `slow` or `benchmark`.
 - Mark tests that need voices, models, audio or the full sample corpus with `@pytest.mark.slow`; speed measurements with `@pytest.mark.benchmark`. Both run nightly (`.github/workflows/nightly.yml`).
-- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium on every PR, and with Chromium, Firefox and WebKit nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
+- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium on every PR, with Firefox and WebKit as well (report-only) on a PR that changes a web path, and with all three nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
 - Exception: a test that encodes or decodes only a few seconds of generated audio with ffmpeg may stay in the fast suite, so every three-system run (`ci:full`, `main`, `release/*`) proves the bundled ffmpeg works on all three systems (#69).
 - Hypothesis profiles: `dev` (local default), `ci` (every PR, deterministic), `nightly` (many examples). Set with `HYPOTHESIS_PROFILE`.
 - Golden files (syrupy): accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
@@ -16,7 +16,7 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 ## Moving code in and changing text rules
 
 - Moving code in: first copy its existing tests, then add a characterisation golden file that pins today's output on a sample from `tests/corpus/`. The move is done when that output is identical, or the PR explains every difference.
-- Text rules: add the input and the expected spoken script to the English regression cases before changing a rule; the PR shows the before/after diff.
+- Text rules: add the input and the expected spoken script to the regression cases of each language the rule touches (`tests/regression/english.toml`, `german.toml`) before changing a rule; the PR shows the before/after diff.
 
 ## First of its kind: the PR that adds the code also adds its test pipeline
 

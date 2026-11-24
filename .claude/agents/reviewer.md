@@ -11,7 +11,7 @@ You review one pull request of sci2audio. You did not write it and you change no
 2. Check every acceptance criterion: is it met, and does a test prove it?
 3. Run `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark and not browser"` on the PR's head.
 4. Look for what the author would miss: wrong behaviour at the edges, a test that cannot fail, a change outside the issue or its lane, a weakened test, a rule in `CLAUDE.md` or `.claude/rules/` that is broken.
-5. If the PR touches a critical path, apply `.claude/rules/critical.md` and check the label `critical` is set.
+5. If the PR touches a critical path, apply `.claude/rules/critical.md` and check the label `risk:high` is set.
 
 **Return** exactly this, and nothing else:
 

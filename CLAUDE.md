@@ -29,7 +29,7 @@ Keep a later web version possible: no global state (each job gets its settings a
 
 ## Critical and `risk:high` (full plan and review process)
 
-A PR is **critical** if it changes a layer contract (the `lint-imports` layers, the voice plugin contract, the text-step interface), the core dataclasses (`sci2audio.core`) or a golden file (corpus truth files, snapshots, English regression cases), whatever its label says (D-69). Label it `risk:high`.
+A PR is **critical** if it changes a layer contract (the `lint-imports` layers, the voice plugin contract, the text-step interface), the core dataclasses (`sci2audio.core`) or a golden file (corpus truth files, snapshots, the English and German regression cases), whatever its label says (D-69). Label it `risk:high`.
 
 Also `risk:high`, and so critical: licences and third-party content; anything that deletes or overwrites user files; any network call; packaging, release and CI workflows; safety mechanisms.
 
@@ -68,7 +68,7 @@ uv run deptry src              # unused or missing dependencies
 4. **Before opening a PR** run `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark and not browser"`.
 5. **Tests first.** A failing test before a bug fix. Never weaken or delete a test to get green; if a test is wrong, say why in the PR.
 6. **Plan first for critical work.** The worker posts a short plan on the issue before any code; other work starts at once.
-7. **Critical** is any PR that touches `.github/**`, `.claude/**`, `CLAUDE.md`, `src/sci2audio/core/**`, `pyproject.toml`, `uv.lock`, `tests/corpus/**`, `tests/unit/__snapshots__/**`, `tests/regression/**`, `THIRD_PARTY_LICENSES.md`. It gets the label `critical` and the rules in `.claude/rules/critical.md`.
+7. **Critical** is any PR that touches `.github/**`, `.claude/**`, `CLAUDE.md`, `src/sci2audio/core/**`, `pyproject.toml`, `uv.lock`, `tests/corpus/**`, `tests/unit/__snapshots__/**`, `tests/regression/**`, `THIRD_PARTY_LICENSES.md`. It gets the label `risk:high` and the rules in `.claude/rules/critical.md`.
 8. **Review.** Every PR is reviewed by the reviewer: at most 2 round(s), 3 for a critical PR. One round is one review and one fix commit. Must-fix findings left after the last round stop the PR for the owner; everything else becomes an issue.
 9. **Merge.** The lead squash-merges every PR that passed review with green CI, critical ones included, except a PR that changes `.claude/**`, `CLAUDE.md`: those rules are the owner's to merge, and a hook stops a merge call on them. The owner decides scope.
 10. **Decisions** that outlast a PR are appended to `docs/decisions.md` in that PR, one dated line each.
