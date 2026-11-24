@@ -10,7 +10,7 @@ from test_keyboard import press_on, tab_to
 from conftest import Live, check_axe, saving
 from sci2audio.app import JobSettings, load_settings, save_settings
 from sci2audio.textprep import Category
-from sci2audio.web.i18n import ANNOUNCE_COOKIE, KEYS_COOKIE, THEME_COOKIE
+from sci2audio.web.i18n import ANNOUNCE_COOKIE, COOKIE, KEYS_COOKIE, THEME_COOKIE
 
 
 def cookie(page: Page, name: str) -> dict[str, object] | None:
@@ -160,3 +160,48 @@ def test_settings_in_german(signed_in: Page, live: Live) -> None:
     expect(page.get_by_role("switch", name="Tastenkürzel")).to_be_checked()
     expect(page.get_by_role("link", name="Bibliothek, 0 Dokumente", exact=True)).to_be_visible()
     check_axe(page, "de: settings")
+
+
+# each button of the Appearance and Language groups: its label, and how much of it shows
+# inside its group, which clips what stands outside it
+SEGMENTED = """() => [...document.querySelectorAll('form [role=group]')]
+    .filter((group) => ['appearance', 'languages'].includes(group.closest('form').id))
+    .flatMap((group) => {
+        const g = group.getBoundingClientRect();
+        return [...group.querySelectorAll('button')].map((b) => {
+            const r = b.getBoundingClientRect();
+            return {
+                label: b.innerText.trim(),
+                shown: Math.min(r.bottom, g.bottom) - Math.max(r.top, g.top),
+                cut: b.scrollWidth > b.clientWidth,
+            };
+        });
+    })"""
+
+
+def test_the_segmented_buttons_keep_their_size_in_every_scheme_and_language(
+    signed_in: Page, live: Live
+) -> None:
+    """#929: the making card's progress segments once shared the class `.seg` with the
+    segmented control and squashed its groups to 6 px bars. Each button shows whole, at its
+    designed height of at least 34 px, with its label."""
+    page = signed_in
+    labels = {
+        "en": ["As the system", "Light", "Dark", "English", "Deutsch"],
+        "de": ["Wie das System", "Hell", "Dunkel", "English", "Deutsch"],
+    }
+    for language, wanted in labels.items():
+        page.context.add_cookies([{"name": COOKIE, "value": language, "url": live.url}])
+        for theme in ("light", "dark"):
+            page.context.add_cookies([{"name": THEME_COOKIE, "value": theme, "url": live.url}])
+            for width, height in ((1440, 900), (1280, 800)):
+                where = f"{language}, {theme}, at {width}"
+                page.set_viewport_size({"width": width, "height": height})
+                page.goto(live.url + "/settings")
+                expect(page.locator("html")).to_have_attribute("data-theme", theme)
+                buttons = page.evaluate(SEGMENTED)
+                assert [b["label"] for b in buttons] == wanted, where
+                for button in buttons:
+                    assert button["shown"] >= 34, (where, button)
+                    assert not button["cut"], (where, button)
+            check_axe(page, f"settings, {language}, {theme}")

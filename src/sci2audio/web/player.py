@@ -1030,6 +1030,8 @@ def build_view(
 
     element_of: list[str] = [""] * len(readalong.chunks)
     firsts = sentence_starts(readalong, document)
+    silent = _silent(document, readalong)
+    leaders = _leaders(readalong, silent)
     views: list[ChapterView] = []
     used: set[int] = set()
     for index, times in enumerate(readalong.chapters):
@@ -1056,6 +1058,7 @@ def build_view(
                     joined.get(shown_here, frozenset()),
                     marks.get(shown_here, ()),
                     firsts,
+                    leaders,
                 )
                 view.heading = levels.get(shown_here, 0) if shown_here == number else 0
                 view.page = pages.get(shown_here, "")
@@ -1084,7 +1087,7 @@ def build_view(
                 times.start,
             )
         )
-    _place_silent(readalong, element_of, _silent(document, readalong))
+    _place_silent(readalong, element_of, silent)
     chunks = [(c.start, c.end, c.chapter, element_of[n]) for n, c in enumerate(readalong.chunks)]
     heard_blocks = {n for c in chapters if c.index in used for n in range(c.start, c.end)}
     return PlayerView(
@@ -1466,6 +1469,7 @@ def _block_view(
     joined: frozenset[int] = frozenset(),
     marks: Sequence[tuple[int, int, str, str]] = (),
     firsts: Sequence[int] = (),
+    leaders: frozenset[int] = frozenset(),
 ) -> BlockView:
     block = document.blocks[number]
     view = BlockView(number, str(block.kind))
@@ -1488,20 +1492,24 @@ def _block_view(
     # spans with nothing to say before it (#652): with no sentence in the block, they never
     # make the block the read element; `_place_silent` gives them a neighbour's
     quiet: list[int] = []
+    leading: list[int] = []  # markers that open the next sentence (`_leaders`, #869)
     for n in sorted(chunk_numbers, key=lambda n: (readalong.chunks[n].span.start, n)):
         span = readalong.chunks[n].span
         silent = not block.is_placeholder and unspoken(text[span.start : span.end])
         if span.start == span.end or span.start < position or silent:
             # an empty span (or one that would overlap, or say nothing, #652) belongs to the
-            # sentence before it, or, before the first one, to the first one
-            if last_element is None:
+            # sentence before it, or, before the first one, to the first one; a marker
+            # belongs to the sentence it opens (#869)
+            if n in leaders:
+                leading.append(n)
+            elif last_element is None:
                 (quiet if silent and span.start < span.end else waiting).append(n)
             else:
                 element_of[n] = last_element
             continue
-        if n < len(firsts) and firsts[n] != n and last_element is not None:
-            # a piece of a cut sentence (#480): the sentence's element runs on to its end,
-            # with the text between the pieces
+        if n < len(firsts) and firsts[n] != n and n - 1 not in leaders and last_element is not None:
+            # a piece of a cut sentence (#480), not a sentence a marker leads (#869): the
+            # sentence's element runs on to its end, with the text between the pieces
             first, start, index = sentence
             del view.pieces[index:]
             element_of[n] = last_element
@@ -1512,9 +1520,9 @@ def _block_view(
             view.pieces.append(_piece(text, position, span.start, joined, marks))
         last_element = f"s{n}"
         element_of[n] = last_element
-        for early in (*waiting, *quiet):
+        for early in (*waiting, *quiet, *leading):
             element_of[early] = last_element
-        waiting, quiet = [], []
+        waiting, quiet, leading = [], [], []
         sentence = (n, span.start, len(view.pieces))
         view.pieces.append(_piece(text, span.start, span.end, joined, marks, last_element, n))
         position = span.end
@@ -1538,10 +1546,13 @@ def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
     can't make the page, the markers and the player group the chunks differently.
 
     A chunk whose span says nothing (`_silent`: a lone "-" of an audiobook made before #652)
-    is a piece of the sentence before it in its chapter; a run of them that opens a chapter
-    leads the sentence after it. So Previous and Next never stop on one."""
+    leads the sentence after it in its block when it opens it (`_leaders`, #869), as the
+    page draws it; any other is a piece of the sentence before it in its chapter; a run of
+    them that opens a chapter leads the sentence after it. So Previous and Next never stop
+    inside a sentence the page shows as one."""
     chunks = readalong.chunks
     silent = _silent(document, readalong)
+    leaders = _leaders(readalong, silent)
     kept_before: dict[int, int | None] = {}  # a drawn chunk -> the drawn chunk before it
     by_block: dict[int, list[int]] = {}
     for n, chunk in enumerate(chunks):
@@ -1560,8 +1571,10 @@ def sentence_starts(readalong: ReadAlong, document: Document) -> list[int]:
     for n, chunk in enumerate(chunks):
         follows = chunk.joins and n > 0 and n in kept_before and kept_before[n] == n - 1
         same_chapter = n > 0 and chunks[n - 1].chapter == chunk.chapter
-        if same_chapter and (n in silent or leading):
-            follows = True  # says nothing, or ends the silent run that opens the chapter
+        if same_chapter and (leading or n - 1 in leaders or (n in silent and n not in leaders)):
+            # ends the silent run that opens the chapter, is led by the marker before it,
+            # or says nothing and leads nothing
+            follows = True
         leading = n in silent and (leading or not same_chapter)
         starts.append(starts[n - 1] if follows else n)
     return starts
@@ -1583,6 +1596,42 @@ def _silent(document: Document, readalong: ReadAlong) -> frozenset[int]:
                 and unspoken(block.text[span.start : span.end])
             ):
                 out.add(n)
+    return frozenset(out)
+
+
+def _leaders(readalong: ReadAlong, silent: frozenset[int]) -> frozenset[int]:
+    """The silent chunks that lead the sentence after them (#869), as the cutter has put a
+    list marker with the item it opens since #855: the next chunk is in the same block and
+    chapter, the page draws it right after this one there (empty and overlapping spans
+    are not drawn), and it has something to say or leads in turn. `_block_view` and
+    `sentence_starts` both follow this one rule, so the highlight and Previous, Next and
+    the markers never put such a chunk in different sentences."""
+    chunks = readalong.chunks
+    by_block: dict[int, list[int]] = {}
+    for n, chunk in enumerate(chunks):
+        by_block.setdefault(chunk.span.block, []).append(n)
+    after: dict[int, int] = {}  # a chunk drawn or silent -> the next such in its block
+    for numbers in by_block.values():
+        position = 0
+        last: int | None = None
+        for n in sorted(numbers, key=lambda n: (chunks[n].span.start, n)):
+            span = chunks[n].span
+            if span.start == span.end or span.start < position:
+                continue
+            if last is not None:
+                after[last] = n
+            last = n
+            if n not in silent:
+                position = span.end
+    out: set[int] = set()
+    for n in sorted(silent, reverse=True):
+        follower = n + 1
+        if (
+            after.get(n) == follower
+            and chunks[follower].chapter == chunks[n].chapter
+            and (follower not in silent or follower in out)
+        ):
+            out.add(n)
     return frozenset(out)
 
 

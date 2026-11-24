@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+import pytest
 from pdf_maker import glyph_number_pdf, joined_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
@@ -20,7 +21,7 @@ from sci2audio.web.i18n import COOKIE
 
 SIZES = {1440: 900, 1280: 800, 320: 640}
 # the switches are left out: DESIGN.md gives a switched-on switch quote blue in dark
-PARTS = ".tabs a, .tabs .tab-off, #making button, #making .btn, #job-bar, .seg"
+PARTS = ".tabs a, .tabs .tab-off, #making button, #making .btn, #job-bar, .job-seg"
 
 
 @contextmanager
@@ -34,7 +35,7 @@ def speaking(page: Page, live: Live) -> Iterator[str]:
         page.get_by_role("button", name="Make the audiobook").click()
         page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
         assert hold.reached.wait(30)
-        expect(page.locator("#job-segments .seg.now")).to_have_count(1)
+        expect(page.locator("#job-segments .job-seg.now")).to_have_count(1)
         yield page.url.removeprefix(live.url).split("#")[0]
     finally:
         hold.gate.set()
@@ -71,11 +72,24 @@ def test_no_highlighter_on_the_tabs_the_bar_or_the_segments(signed_in: Page, liv
         for scheme in ("light", "dark"):
             page.emulate_media(color_scheme=scheme)
             page.goto(live.url + path)
-            expect(page.locator("#job-segments .seg")).to_have_count(2)
+            expect(page.locator("#job-segments .job-seg")).to_have_count(2)
             assert page.evaluate(HIGHLIGHTED, PARTS) == [], scheme
+            # the segments are 6 px bars without a border sharing the row (#929: they no
+            # longer share a class with the segmented control)
+            looks = page.locator("#job-segments").evaluate(
+                """(row) => ({
+                    row: row.getBoundingClientRect().width,
+                    segs: [...row.children].map((s) => {
+                        const r = s.getBoundingClientRect();
+                        return [r.width, r.height, getComputedStyle(s).borderTopWidth];
+                    }),
+                })"""
+            )
+            assert [s[1:] for s in looks["segs"]] == [[6, "0px"], [6, "0px"]], scheme
+            assert sum(s[0] for s in looks["segs"]) + 3 == pytest.approx(looks["row"], abs=1)
         page.emulate_media(color_scheme="light")
         # the check sees one: a segment painted reading yellow
-        page.locator(".seg").first.evaluate(
+        page.locator(".job-seg").first.evaluate(
             "s => s.style.setProperty('background-color', 'var(--hl-read)')"
         )
         assert page.evaluate(HIGHLIGHTED, PARTS) != []
@@ -88,7 +102,7 @@ def test_the_bar_and_the_segments_do_not_move_under_reduced_motion(
     with speaking(page, live) as path:
         page.emulate_media(reduced_motion="reduce")
         page.goto(live.url + path)
-        expect(page.locator("#job-segments .seg")).to_have_count(2)
+        expect(page.locator("#job-segments .job-seg")).to_have_count(2)
         durations = page.evaluate(
             """() => [...document.querySelectorAll('*')].map((el) => getComputedStyle(el))
                 .flatMap((s) => [s.transitionDuration, s.animationDuration])"""
