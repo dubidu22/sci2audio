@@ -341,7 +341,14 @@ def _bands(elements: list[Element], edges: Edges) -> list[tuple[list[Element], E
 
 
 def gutters(elements: list[Element], width: float, size: float, settings: LayoutSettings) -> Cuts:
-    """The white strips between columns in one band, left to right."""
+    """The white strips between columns in one band, left to right.
+
+    A strip may be crossed by a tenth of the band's items (`gutter_crossings`), so a short
+    column, one with no more lines than that, can stand wholly inside the strip between its
+    neighbours. That strip still splits the band in two, which would read the short column
+    row by row with the one on its left; so where a column stands inside a strip, the
+    white on each side of it is looked at first and the whole strip only if neither splits
+    (#873)."""
     if not elements:
         return []
     left = min(e.box.x0 for e in elements)
@@ -361,7 +368,12 @@ def gutters(elements: list[Element], width: float, size: float, settings: Layout
         return _is_column(column, width, settings) and _is_column(rest, width, settings)
 
     for strip in _strips(elements, left, right, crossings):
-        candidates = [strip] if splits(*strip) else _white(strip, elements)
+        start, end = strip
+        inside = [e for e in elements if e.box.x0 >= start and e.box.x1 <= end]
+        if _is_column(inside, width, settings):  # a short column in the strip (#873)
+            candidates = [*_white(strip, elements), strip]
+        else:
+            candidates = [strip] if splits(*strip) else _white(strip, elements)
         for start, end in candidates:
             if start >= opened and splits(start, end):
                 found.append((start, end))
