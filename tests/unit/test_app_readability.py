@@ -287,6 +287,8 @@ def test_a_picture_beyond_the_page_counts_only_on_it() -> None:
     """A small picture whose box runs far off the page covers only the part on it."""
     off = boxed_page(2, Box(500, 700, 5000, 5000))
     assert picture_pages(pdf(page(1, 300), off)) == ()
+    before = boxed_page(2, Box(-5000, -5000, 100, 100))  # starts left of and above it
+    assert picture_pages(pdf(page(1, 300), before)) == ()
 
 
 def test_a_picture_without_a_box_or_a_page_without_a_size_still_counts_as_a_scan() -> None:
@@ -316,6 +318,14 @@ def test_many_small_pictures_are_measured_by_their_sum() -> None:
         if y < 60
     ]
     assert picture_pages(pdf(page(1, 300), boxed_page(2, *filled))) == (2,)
+
+
+def test_above_the_measured_pictures_overlaps_count_as_often_as_they_are_laid() -> None:
+    """401 copies of one picture covering 1 % of the page sum to 401 %: named, although
+    worked out with their overlap they would cover 1 %."""
+    same = Box(0, 0, 61.2, 79.2)
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, *[same] * 401))) == (2,)
+    assert picture_pages(pdf(page(1, 300), boxed_page(2, *[same] * 400))) == ()
 
 
 def test_the_picture_warning_names_the_pages() -> None:
