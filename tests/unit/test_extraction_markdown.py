@@ -174,6 +174,11 @@ def test_alt_text_is_the_text_only(markdown: str, alt: str) -> None:
     assert picture.alt == alt
 
 
+def test_a_link_to_the_file_itself_goes_to_its_one_page() -> None:
+    (line,) = read("See [this file](notes.md) again.\n").pages[0].lines
+    assert [run.tags[-1] for run in line.runs if "a" in run.tags] == ["link:p1"]
+
+
 def test_links_inside_the_file_resolve_and_others_keep_their_address() -> None:
     content = read(
         '<p id="top">Top</p>\n\n[up](#top) [web](https://example.org/a?b=1) <https://x.org>'
@@ -243,6 +248,11 @@ def test_notes_have_the_roles_an_epub_uses_and_marks_link_to_them() -> None:
         ),
     ]
     assert "↩" not in "".join(texts(content))  # no back-link arrow: it is not in the file
+
+
+def test_the_notes_close_with_lower_case_tags() -> None:
+    html = markdown_module._parser().render("Text.[^a]\n\n[^a]: First.\n")
+    assert html.endswith("</p>\n</li>\n</ol>\n</section>\n")
 
 
 def test_a_mark_without_a_note_stays_text() -> None:
@@ -420,6 +430,7 @@ def test_only_other_fields_of_a_list_entry_are_skipped() -> None:
         "_under: skipped",
         "Affiliation: skipped",
         "affil : skipped",
+        "affiliation: Dept: Lab",
         "Name: Cased Name",
     ]
     authors = ("Single", "Dr. A: B", "1x: kept", "Cased Name")
@@ -436,7 +447,7 @@ def test_only_other_fields_of_a_list_entry_are_skipped() -> None:
         ('""', ""),
         ("'a'", "a"),
         ('"a b"', "a b"),
-        ("xyx", "xyx"),
+        ("XyX", "XyX"),
         ("'a\"", "'a\""),
         ("[a]", "a"),
         ("[a", "[a"),
@@ -452,6 +463,12 @@ def test_a_flow_list_holds_every_value_and_skips_the_empty_ones() -> None:
     assert front("author: [a]") == Metadata(authors=("a",))
     assert front("author: [a, , 'b']") == Metadata(authors=("a", "b"))
     assert front("author: []") == Metadata()
+
+
+def test_front_matter_may_start_with_a_blank_or_indented_line() -> None:
+    assert front("\ntitle: T") == Metadata(title="T")
+    assert front("  \ntitle: T") == Metadata(title="T")
+    assert front("  indented: x\ntitle: T") == Metadata(title="T")
 
 
 def test_the_author_and_authors_keys_are_both_read_author_first() -> None:

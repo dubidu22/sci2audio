@@ -970,6 +970,25 @@ def test_a_self_closed_nav_inside_the_toc_does_not_keep_it_open() -> None:
     assert nav_entries_of(toc(inner) + PAGE_LIST) == [("A", 1, "c1.xhtml")]
 
 
+def test_a_label_reads_its_character_references_and_inline_elements_whole() -> None:
+    """A label may hold other elements, and the entity or numeric references of a title
+    are the characters they stand for (#632)."""
+    document = toc(
+        '<li><a href="c1.xhtml">Fish &amp; Chips &#233; <b>and</b> <i>more</i> still</a></li>'
+        "<li><span>Part <em>One</em></span></li>"
+    )
+    assert nav_entries_of(document) == [
+        ("Fish & Chips é and more still", 1, "c1.xhtml"),
+        ("Part One", 1, None),
+    ]
+
+
+def test_only_the_first_toc_nav_is_read() -> None:
+    second = '<nav epub:type="toc"><ol><li><a href="c1.xhtml">Again</a></li></ol></nav>'
+    document = toc('<li><a href="c1.xhtml">First</a></li>') + second
+    assert nav_entries_of(document) == [("First", 1, "c1.xhtml")]
+
+
 def test_unordered_lists_count_as_depth_too() -> None:
     document = toc(
         '<li><a href="c1.xhtml">A</a><ul><li><a href="c1.xhtml">B</a><ul>'
