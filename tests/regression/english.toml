@@ -3301,3 +3301,39 @@ expected = [
     "Values rise, for example ⇒ the data show it.",
     "It is new, that is ⇒ we measure it.",
 ]
+
+[[case]]
+id = "an-abbreviation-before-a-sign"
+audit = 0
+issue = 972
+goal = "A sign or an arrow right after an abbreviation read as words ('e.g.=1', 'approx.⇒1') is read on the first run, as a second run reads it after the words (#972)."
+blocks = [
+    { kind = "paragraph", text = "e.g.=1" },
+    { kind = "paragraph", text = "approx.⇒1" },
+    { kind = "paragraph", text = "i.e.=2" },
+    { kind = "paragraph", text = "cf.⇒A" },
+    { kind = "paragraph", text = "Some cases, e.g. = 1 and i.e. ⇒ 2, were left out." },
+]
+expected = [
+    "for example equals 1",
+    "approximately implies 1",
+    "that is equals 2",
+    "compare implies A",
+    "Some cases, for example equals 1 and that is implies 2, were left out.",
+]
+
+[[case]]
+id = "an-arrow-in-pieces-and-a-sign-before-nx"
+audit = 0
+issue = 984
+goal = "In 'A ⇐==> 3x' the statistics step reads '⇐==' as the arrow and '>' as a sign. A '>' right after an arrow's words is prose in English, so '3x' reads '3 times' on both runs (#984)."
+blocks = [
+    { kind = "paragraph", text = "So A ⇐==> 3x and B." },
+    { kind = "paragraph", text = "So A ⇐=> 3x and B." },
+    { kind = "paragraph", text = "So A ⇐=<=> 3x and B." },
+]
+expected = [
+    "So A is implied by greater than 3 times and B.",
+    "So A is implied by greater than 3 times and B.",
+    "So A is implied by if and only if 3 times and B.",
+]
