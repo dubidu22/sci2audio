@@ -141,7 +141,11 @@ _BEFORE_SIGN = ["", "A", "y", "I", "a", "B", "(a)", "f(x)", "e.g.", "z. B.", "2 
 # "=" glued before a spaced minus ("A=\u2212 3") is a statistics difference of its own, with or
 # without "Nx", so "=" and "\u2212" come here spaced apart
 _SIGNS_BEFORE_NX = ["<", ">", "\u2212", "-", "=", "\u2264", "\u00b1", "<<", "<=", "->", "\u21d2",
-                    "\u21d0==>", "= \u2212", "\u21d2 \u2212"]  # fmt: skip
+                    "\u21d0==>", "= \u2212", "\u21d2 \u2212",
+                    # printed words: the reading of "\u2212" and of "\u00b1" (#997)
+                    "minus", "minus\n", "Minus", "plus or minus", "Plus or minus",
+                    "PLUS OR minus", "plus or  minus", "plus or\nminus", "plus\nor minus",
+                    "plus or\u00a0minus", "plus/minus", "plus / minus", "plus-minus"]  # fmt: skip
 _AFTER_NX = ["", ".", " and B.", " faster.", " here", ", and", " + 1", " \u21d2 B"]
 
 

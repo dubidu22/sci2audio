@@ -158,9 +158,12 @@ _COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:less|greater) t
 _JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
 # the numbers step's English reading of a minus sign before a number: it counts as the sign
 # before "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the
-# times sign and "times" do (#253). Not "plus or minus", the reading of "±", which is no such
-# sign: "± 3x" is "plus or minus 3 times"
-_MINUS_SAID_EN = re.compile(r"(?<![\w-])(?<!plus or )minus *\Z")
+# times sign and "times" do (#253); white space between them is joined to one space by then
+_MINUS_SAID_EN = re.compile(r"(?<![\w-])minus\s*\Z")
+# ... but not after "plus or" or "plus/", in any case and with any white space: "plus or minus"
+# is the reading of "±", which is no such sign ("± 3x" is "plus or minus 3 times"), and a
+# second run sees its white space joined ("plus or\nminus" is "plus or minus" then)
+_PLUS_OR_BEFORE_EN = re.compile(r"plus(?:\s+or\s+|\s*/\s*)\Z", re.IGNORECASE)
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
@@ -841,7 +844,7 @@ def _in_algebra(
         return True
     if compared is not None and compared.search(text, max(0, start - 24), start):
         return True  # "y less than 2x" (#358, D-646)
-    if english and _MINUS_SAID_EN.search(text, max(0, start - 16), start):
+    if english and _minus_said_before(text, start):
         return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
@@ -867,6 +870,15 @@ def _in_algebra(
         after != ""
         and after in _OPERATORS + "("
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
+    )
+
+
+def _minus_said_before(text: str, start: int) -> bool:
+    """True if "minus" stands right before the number at `start` as the reading of a minus
+    sign, not as the end of "plus or minus" ("±")."""
+    minus = _MINUS_SAID_EN.search(text, max(0, start - 24), start)
+    return minus is not None and not _PLUS_OR_BEFORE_EN.search(
+        text, max(0, minus.start() - 24), minus.start()
     )
 
 

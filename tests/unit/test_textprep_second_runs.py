@@ -147,6 +147,18 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("A ± 3x", "en", "A plus or minus 3 times"),  # "±" is no operator: as before
         ("A plus or minus 3x", "en", "A plus or minus 3 times"),
         ("It was minus 3x here.", "en", "It was minus 3x here."),  # printed: as its sign
+        ("It was minus\n3x here.", "en", "It was minus 3x here."),
+        # ... but "plus or minus" ("±") in any case and with any white space is no sign
+        ("A plus or  minus 3x", "en", "A plus or minus 3 times"),
+        ("A plus or\nminus 3x", "en", "A plus or minus 3 times"),
+        ("A plus or minus 3x", "en", "A plus or minus 3 times"),
+        ("A plus\tor minus 3x", "en", "A plus or minus 3 times"),
+        ("Plus or minus 3x.", "en", "Plus or minus 3 times."),
+        ("A PLUS OR minus 3x", "en", "A PLUS OR minus 3 times"),
+        ("A plus/minus 3x", "en", "A plus/minus 3 times"),
+        ("A plus / minus 3x", "en", "A plus / minus 3 times"),
+        ("A plus-minus 3x", "en", "A plus-minus 3 times"),
+        ("Minus 3x is the spread.", "en", "Minus 3 times is the spread."),  # no sign's reading
         ("A − 3x", "de", "A − 3x"),
         ("A = − 3x", "de", "A gleich − 3x"),
         ("A ⇒ − 3x", "de", "A daraus folgt − 3x"),
