@@ -406,16 +406,19 @@ def test_a_later_page_part_of_only_indented_lines_keeps_its_indent() -> None:
         "    " + SEABORN[1],
         "    " + SEABORN[2],
     ]
+    assert block.text == "\n".join(SEABORN[:3])  # the text, and so the script, as printed
 
 
 def test_a_later_page_part_is_never_measured_right_of_its_own_leftmost_line() -> None:
     """#612: where the column edges would put the reference right of the part's leftmost
-    line, that line is the reference: no line is drawn left of the block's edge."""
+    line, that line is the reference: no line is drawn left of the block's edge. Page 1's
+    code stands 10 points right of its column (72), page 2's flush with its column (90),
+    so the shifted reference (100) lies right of page 2's leftmost code line (90)."""
     block = Block(BlockKind.CODE, "f(\nx\ny", (Part("a", 0), Part("b", 3), Part("c", 5)))
     code = {
-        "a": (1, _line("a", "f(", 72.0)),
-        "b": (2, _line("b", "x", 72.0 + 2 * CHAR)),
-        "c": (2, _line("c", "y", 72.0)),
+        "a": (1, _line("a", "f(", 82.0)),
+        "b": (2, _line("b", "x", 90.0 + 2 * CHAR)),
+        "c": (2, _line("c", "y", 90.0)),
     }
     pages = {1: [*_body(1, 72.0), code["a"][1]], 2: [code["b"][1], code["c"][1], *_body(2, 90.0)]}
     assert indented(block, code, pages).split("\n") == ["f(", "  x", "y"]

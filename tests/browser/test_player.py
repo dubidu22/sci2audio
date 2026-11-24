@@ -445,9 +445,11 @@ def test_a_listing_part_after_a_page_break_keeps_its_indent(
         ],
     )
     listen_to(page, live, tmp_path / "broken.pdf", pdf)
+    notice = page.locator(".notice")
+    expect(notice.locator("p")).to_have_text("Spoken notice: A code block is skipped.")
     shown = "\n".join(" " * indent + line for line, indent in first + second)
     # exact: `to_have_text` folds white space
-    expect(page.locator(".notice pre.code")).to_have_js_property("textContent", shown)
+    expect(notice.locator("pre.code")).to_have_js_property("textContent", shown)
 
 
 def test_a_listing_taller_than_the_window_keeps_its_spoken_notice_in_view(
