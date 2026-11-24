@@ -40,6 +40,14 @@ def test_the_word_lists_are_in_the_wheel() -> None:
     } <= shipped()
 
 
+def test_the_letter_drawings_are_in_the_wheel_and_no_font_file_is() -> None:
+    # letter recognition reads its reference drawings as package data; the fonts they were
+    # drawn from never ship (#618, D-789)
+    files = shipped()
+    assert "sci2audio/extraction/data/letter-shapes.json.gz" in files
+    assert not [name for name in files if name.endswith((".ttf", ".otf"))]
+
+
 def test_the_fonts_and_their_licences_are_in_the_wheel() -> None:
     # the interface's bundled fonts ship with their OFL texts (#385, D-670; OFL condition 2)
     fonts = PACKAGE / "web" / "static" / "fonts"

@@ -19,7 +19,7 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 | [kokoro](https://github.com/hexgrad/kokoro) | Apache-2.0 | The Kokoro speech model's inference code (voices, D-48, D-52) |
 | [misaki](https://github.com/hexgrad/misaki) (with its `en` extra, through kokoro) | Apache-2.0 | English letters-to-sounds for Kokoro (D-54) |
 | [torch](https://pytorch.org) | BSD-3-Clause, with bundled parts under Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD-2-Clause, BSL-1.0, ISC, MIT, Zlib (wheel metadata); the Linux wheels also bundle libgomp (GPL-3.0-or-later WITH GCC-exception-3.1) | Runs the speech model (D-48). CI and our lock use the CPU-only build on Linux |
-| [numpy](https://numpy.org) | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Audio samples |
+| [numpy](https://numpy.org) | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Audio samples; drawing and comparing glyph shapes (#618) |
 | [requests](https://github.com/psf/requests) | Apache-2.0 | The user-started voice download (D-47) |
 | [spaCy](https://spacy.io) | MIT | Loads the English model misaki uses for word classes (D-53) |
 | [transformers](https://github.com/huggingface/transformers), [huggingface_hub](https://github.com/huggingface/huggingface_hub), tokenizers, safetensors, hf-xet | Apache-2.0 | Pulled in by kokoro. huggingface_hub is never used to download: `HF_HUB_OFFLINE=1` is always set (VA-04) |
@@ -102,6 +102,20 @@ The design prototype in `docs/design/prototype/fonts/` (moved from `dubidu22/sci
 
 Release checksums as published on npm: `@fontsource/atkinson-hyperlegible@5.3.0` integrity `sha512-Sp8Ve8+rQmENY2Lv02VH7sLpntzTTvnncnJMTbRE7DX6TLxGraN4ykZfzaUWIoCFmaomwkvNiqmlPkrKBuDoSA==`; `@fontsource-variable/literata@5.3.0` integrity `sha512-1Jw7xvOcoGyB83lxB2nG4bfNbqtX2/TTbdh9sHAOmU064SvmSdulDtA5RBu5JYWf64fdaKX7xU+z3GO1T2bCHA==`. Fontsource packages the Google Fonts builds of [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) (Braille Institute) and [Literata](https://github.com/googlefonts/literata); the font version is the one in each file's name table. The icons of the interface are drawn in this repository (`templates/_icons.html`, from the design repository's prototype) and are not third-party.
 
+## Drawings of letters (generated from fonts; no font file ships, #618, D-789)
+
+`src/sci2audio/extraction/data/letter-shapes.json.gz` holds, for each style below, the advance widths of 216 letters and their drawings on a 24 × 30 grid, made by `scripts/letter_shapes.py shapes` with sci2audio's own glyph reader. Letter recognition compares the glyphs of PDF fonts that carry no letters (#442) with them. The file holds drawings and widths, not the fonts: no outline, hinting or font program is copied, and no font file is part of sci2audio. Each release is downloaded only when a person runs the script, and checked against the SHA-256 below before it is opened. Each licence was confirmed in the release itself: the `name` table of every font file (name IDs 0, 13 and 14) and, for Carlito, the `LICENSE` file it ships.
+
+| Family (twin of) | Styles | Release | Licence | Copyright |
+|---|---|---|---|---|
+| Tinos 1.31 (Times New Roman) | Regular, Bold, Italic, BoldItalic | ChromeOS `croscorefonts-1.31.0.tar.bz2`, SHA-256 `672c3487883ec1ef83d9254240d4327b014212abc823d06d15816095867315e1`, from the [ChromeOS mirror](https://commondatastorage.googleapis.com/chromeos-localmirror/distfiles/croscorefonts-1.31.0.tar.bz2) | Apache-2.0 | © 2010-2014 Google Inc. |
+| Arimo 1.31 (Arial) | Regular, Bold, Italic, BoldItalic | the same `croscorefonts-1.31.0.tar.bz2` | Apache-2.0 | © 2010-2014 Google Inc. |
+| Cousine 1.21 (Courier New) | Regular, Bold, Italic, BoldItalic | the same `croscorefonts-1.31.0.tar.bz2` | Apache-2.0 | © 2010 Google Inc. |
+| Caladea 1.002 (Cambria) | Regular, Bold, Italic, BoldItalic | ChromeOS `crosextrafonts-20130214.tar.gz`, SHA-256 `c48d1c2fd613c9c06c959c34da7b8388059e2408d2bb19845dc3ed35f76e4d09`, from the [ChromeOS mirror](https://commondatastorage.googleapis.com/chromeos-localmirror/distfiles/crosextrafonts-20130214.tar.gz) | Apache-2.0 | © 2012 Huerta Tipográfica |
+| Carlito 1.103 (Calibri) | Regular, Bold, Italic, BoldItalic | ChromeOS `crosextrafonts-carlito-20130920.tar.gz`, SHA-256 `4bd12b6cbc321c1cf16da76e2c585c925ce956a08067ae6f6c64eff6ccfdaf5a`, from the [ChromeOS mirror](https://commondatastorage.googleapis.com/chromeos-localmirror/distfiles/crosextrafonts-carlito-20130920.tar.gz) | OFL-1.1 (Reserved Font Name "Carlito") | © 2010-2013 tyPoland Łukasz Dziedzic |
+
+Carlito is under the SIL Open Font License 1.1: its drawings are output made from the font, not the font or a modified version of it, so the OFL's conditions for the font itself (shipping the licence beside it, the Reserved Font Name) do not apply to the data file (D-789); the row above names the font and its licence all the same.
+
 ## Models and voices (downloaded on first use, never bundled)
 
 Fetched only when the user starts the voice download (`sci2audio.voices.download_voice_files`), pinned by revision and sha256; the licences are shown before the download (VA-03).
@@ -125,6 +139,8 @@ Fetched only when the user starts the voice download (`sci2audio.voices.download
 | Whisper `small` for CTranslate2, revision `536b0662742c02347bc0e980a01041f333bce120` | [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small), MIT | Same; downloaded by the nightly workflow only |
 | [OWASP ZAP](https://github.com/zaproxy/zaproxy) 2.17.0, Docker image `ghcr.io/zaproxy/zaproxy` pinned by digest in `scripts/zap_scan.py` | Apache-2.0 (the image also holds a Java runtime and other programs under their own licences; it is pulled and run, never redistributed) | The baseline scan of the local server (#12, AQ-03, D-364 to D-372). Pulled by the ZAP workflow, or by a developer who runs the script; never by sci2audio or its tests |
 | [hatchling](https://github.com/pypa/hatch) with pathspec, tomlkit, trove-classifiers (dependency group `dev`; also the build backend) | MIT (pathspec: MPL-2.0; tomlkit: MIT; trove-classifiers: Apache-2.0) | Test that the wheel ships the package data files (#68) |
+| Subsets of [Tinos](https://commondatastorage.googleapis.com/chromeos-localmirror/distfiles/croscorefonts-1.31.0.tar.bz2) 1.31 and Arimo 1.31 Regular (`tests/fixtures/fonts/tinos-regular-subset.ttf`, `arimo-regular-subset.ttf`, printable ASCII and German's letters and marks, made by `scripts/letter_shapes.py fixtures`; the copyright and licence name records kept in each file) | Apache-2.0, © 2010-2014 Google Inc. | The PDFs whose fonts have no Unicode source that letter recognition is tested on (#618) |
+| [fontTools](https://github.com/fonttools/fonttools) 4.55.3, run by hand with `uv run --with fonttools==4.55.3` (not a dependency) | MIT | Makes those subsets (`scripts/letter_shapes.py fixtures`) |
 
 ## External programs (installed by the user)
 

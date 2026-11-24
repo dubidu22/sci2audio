@@ -27,6 +27,18 @@ Windows-1252, nesting past the limit, CommonMark's pathological inputs) are buil
 tests (#74, D-347, D-348). The two real samples are the own corpus files
 `tests/corpus/markdown/sci2audio-sample-note.md` and `tests/corpus/text/sci2audio-sample-plain.txt`.
 
+## Fonts for letter recognition (#618)
+
+`fonts/tinos-regular-subset.ttf` and `fonts/arimo-regular-subset.ttf` are subsets of Tinos 1.31
+and Arimo 1.31 Regular (ChromeOS `croscorefonts-1.31.0`, Apache-2.0, © 2010-2014 Google Inc.;
+the copyright and licence records are kept in each file's `name` table): printable ASCII with
+the space, and German's letters and marks, no hinting. `scripts/letter_shapes.py fixtures`
+made them with fontTools 4.55.3 from the release pinned in the script. The tests take them
+apart and set text in them as a PDF whose fonts have no Unicode source holds it
+(`pdf_maker.twin_pdf`: glyph order shuffled or the usual TrueType order, cmap and post
+stripped, hmtx cut short, Identity-H, no ToUnicode). They are only test data: no font file
+ships with sci2audio (`THIRD_PARTY_LICENSES.md`).
+
 ## Kokoro's symbol table
 
 `kokoro-vocab.json` is the `vocab` table of Kokoro-82M's `config.json` (revision

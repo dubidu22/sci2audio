@@ -10,11 +10,12 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import io
-import itertools
+import random
 import re
 import struct
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import Path
 
 import pypdfium2 as pdfium
 import pypdfium2.raw as raw
@@ -619,71 +620,116 @@ def truetype_program(glyphs: int, *, cmap: bool = False, post: bool = False) -> 
     .notdef and the space, empty), with the tables a reader needs (head, hhea, maxp, hmtx,
     loca, glyf) and, if asked, a cmap (Unicode to glyph, an empty map) and a post table
     (version 3, no glyph names): either one is a Unicode source of its own (#442)."""
+    rectangle = simple_glyph([[(50, 0), (450, 0), (450, 600), (50, 600)]])
+    outlines = [b"" if glyph in (0, 3) else rectangle for glyph in range(glyphs)]
+    return font_program(outlines, [500] * glyphs, cmap=cmap, post=post)
+
+
+Point = tuple[int, int] | tuple[int, int, bool]  # x, y in font units; on the curve unless False
+
+
+def simple_glyph(contours: list[list[Point]]) -> bytes:
+    """A simple TrueType glyph of the contours, every coordinate a 16-bit delta, no hinting
+    instructions (#618)."""
+    points = [(p[0], p[1], p[2] if len(p) == 3 else True) for c in contours for p in c]
+    ends, total = [], 0
+    for contour in contours:
+        total += len(contour)
+        ends.append(total - 1)
+    xs = [p[0] for p in points] or [0]
+    ys = [p[1] for p in points] or [0]
+    data = struct.pack(">hhhhh", len(contours), min(xs), min(ys), max(xs), max(ys))
+    data += struct.pack(f">{len(ends)}H", *ends) + struct.pack(">H", 0)
+    data += bytes(1 if on else 0 for _, _, on in points)
+    for axis in (0, 1):
+        last = 0
+        for point in points:
+            data += struct.pack(">h", point[axis] - last)
+            last = point[axis]
+    return data
+
+
+Component = tuple[int, int, int] | tuple[int, int, int, tuple[float, float, float, float]]
+
+
+def composite_glyph(components: list[Component]) -> bytes:
+    """A composite glyph: each component is (glyph, dx, dy) or (glyph, dx, dy, (a, b, c, d)),
+    the offsets as 16-bit words, the matrix as four 2.14 numbers (#618)."""
+    data = struct.pack(">hhhhh", -1, 0, 0, 0, 0)
+    for k, component in enumerate(components):
+        glyph, dx, dy = component[:3]
+        flags = 0x0001 | 0x0002 | (0x0020 if k < len(components) - 1 else 0)
+        matrix = b""
+        if len(component) == 4:
+            flags |= 0x0080
+            matrix = struct.pack(">4h", *(round(v * 16384) for v in component[3]))
+        data += struct.pack(">HHhh", flags, glyph, dx, dy) + matrix
+    return data
+
+
+def font_program(
+    outlines: list[bytes],
+    advances: list[int],
+    *,
+    units: int = 1000,
+    metrics: int | None = None,
+    hmtx: bytes | None = None,
+    short_loca: bool = False,
+    cmap: bool = False,
+    post: bool = False,
+    tables: dict[bytes, bytes] | None = None,
+) -> bytes:
+    """A TrueType program of the glyph `outlines` (bytes of `simple_glyph` or
+    `composite_glyph`, empty for no ink) and their advances. `metrics` is hhea's
+    numberOfHMetrics (all glyphs unless given: fewer leaves the later glyphs only a left
+    side bearing); `hmtx` replaces the table's bytes as written (to cut it short); `tables`
+    adds or replaces tables (#618)."""
+    count = len(outlines)
+    metrics = count if metrics is None else metrics
     glyf, loca = b"", []
-    for glyph in range(glyphs):
+    for outline in outlines:
         loca.append(len(glyf))
-        if glyph in (0, 3):
-            continue
-        xs, ys = (50, 450, 450, 50), (0, 0, 600, 600)
-        glyf += struct.pack(">hhhhhHH", 1, 50, 0, 450, 600, 3, 0) + bytes([1] * 4)
-        glyf += struct.pack(">4h", xs[0], *(b - a for a, b in itertools.pairwise(xs)))
-        glyf += struct.pack(">4h", ys[0], *(b - a for a, b in itertools.pairwise(ys)))
+        glyf += outline + b"\0" * (-len(outline) % 4)
     loca.append(len(glyf))
-    tables = {
-        b"head": struct.pack(
-            ">IIIIHHqqhhhhHHhhh",
-            0x10000,
-            0,
-            0,
-            0x5F0F3CF5,
-            0,
-            1000,
-            0,
-            0,
-            0,
-            -200,
-            1000,
-            800,
-            0,
-            3,
-            2,
-            1,
-            0,
+    if hmtx is None:
+        hmtx = b"".join(struct.pack(">Hh", advances[g], 0) for g in range(min(metrics, count)))
+        hmtx += b"".join(struct.pack(">h", 0) for _ in range(metrics, count))
+    head = struct.pack(
+        ">IIIIHHqqhhhhHHhhh",
+        0x10000, 0, 0, 0x5F0F3CF5, 0, units, 0, 0, 0, -200, 1000, 800, 0, 3, 2,
+        1 if not short_loca else 0, 0,
+    )  # fmt: skip
+    hhea = struct.pack(
+        ">IhhhHhhhhhhhhhhhH", 0x10000, 800, -200, 0, 1000, 0, 0, 1000, 1, 0, 0, 0, 0, 0, 0, 0,
+        metrics,
+    )  # fmt: skip
+    found = {
+        b"head": head,
+        b"hhea": hhea,
+        b"maxp": struct.pack(">IH13H", 0x10000, count, 4, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+        b"hmtx": hmtx,
+        b"loca": (
+            struct.pack(f">{len(loca)}H", *(o // 2 for o in loca))
+            if short_loca
+            else struct.pack(f">{len(loca)}I", *loca)
         ),
-        b"hhea": struct.pack(
-            ">IhhhHhhhhhhhhhhhH",
-            0x10000,
-            800,
-            -200,
-            0,
-            1000,
-            0,
-            0,
-            1000,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            glyphs,
-        ),
-        b"maxp": struct.pack(">IH13H", 0x10000, glyphs, 4, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0),
-        b"hmtx": struct.pack(f">{2 * glyphs}h", *(500, 50) * glyphs),
-        b"loca": struct.pack(f">{len(loca)}I", *loca),
         b"glyf": glyf,
     }
     if cmap:  # format 4 with only the closing segment: maps nothing, but is there
-        tables[b"cmap"] = (
+        found[b"cmap"] = (
             struct.pack(">HHHHI", 0, 1, 3, 1, 12)
             + struct.pack(">8H", 4, 24, 0, 2, 2, 0, 0, 0xFFFF)
             + struct.pack(">4H", 0, 0xFFFF, 1, 0)
         )
     if post:
-        tables[b"post"] = struct.pack(">IIhhIIIII", 0x30000, 0, 0, 0, 0, 0, 0, 0, 0)
-    header = struct.pack(">IHHHH", 0x10000, len(tables), 0, 0, 0)
+        found[b"post"] = struct.pack(">IIhhIIIII", 0x30000, 0, 0, 0, 0, 0, 0, 0, 0)
+    found.update(tables or {})
+    return sfnt(found)
+
+
+def sfnt(tables: dict[bytes, bytes], version: bytes = b"\x00\x01\x00\x00") -> bytes:
+    """A font program holding `tables` in tag order, each padded to four bytes."""
+    header = version + struct.pack(">HHHH", len(tables), 0, 0, 0)
     offset, directory, body = 12 + 16 * len(tables), b"", b""
     for tag in sorted(tables):
         data = tables[tag]
@@ -704,3 +750,202 @@ def joined_pdf(*parts: bytes) -> bytes:
     joined.save(buffer)
     joined.close()
     return buffer.getvalue()
+
+
+# ---- twins of Office fonts with no Unicode source (#618) ------------------------------------
+
+FONTS = Path(__file__).resolve().parents[1] / "fixtures" / "fonts"
+TWINS = {"times": "tinos-regular-subset.ttf", "arial": "arimo-regular-subset.ttf"}
+# Where the standard Macintosh glyph order (the first 258 glyphs of the usual TrueType
+# fonts, Times New Roman's among them) puts these characters: printable ASCII at its code
+# point minus 29, so digits and , . - / : ( ) land on control codes, and ü and ß past 127.
+MAC_ORDER = {chr(c): c - 29 for c in range(0x20, 0x7F)} | {
+    "Ä": 98, "Ö": 103, "Ü": 104, "ä": 108, "ö": 124, "ü": 129,
+    "ß": 137,
+}  # fmt: skip
+
+
+@dataclass(frozen=True)
+class Twin:
+    """A subset font program taken apart: its glyphs' bytes, advances and letters."""
+
+    units: int
+    glyphs: list[bytes]
+    advances: list[int]
+    letters: dict[str, int]  # character to glyph
+
+    @staticmethod
+    def load(name: str) -> Twin:
+        program = (FONTS / TWINS[name]).read_bytes()
+        (count,) = struct.unpack_from(">H", program, 4)
+        tables = {}
+        for k in range(count):
+            tag, _, offset, length = struct.unpack_from(">4sIII", program, 12 + 16 * k)
+            tables[tag] = program[offset : offset + length]
+        units = struct.unpack_from(">H", tables[b"head"], 18)[0]
+        wide = struct.unpack_from(">h", tables[b"head"], 50)[0] == 1
+        glyphs = struct.unpack_from(">H", tables[b"maxp"], 4)[0]
+        loca = struct.unpack_from(f">{glyphs + 1}{'I' if wide else 'H'}", tables[b"loca"])
+        loca = loca if wide else tuple(2 * o for o in loca)
+        data = [tables[b"glyf"][loca[g] : loca[g + 1]] for g in range(glyphs)]
+        metrics = struct.unpack_from(">H", tables[b"hhea"], 34)[0]
+        advances = [
+            struct.unpack_from(">H", tables[b"hmtx"], 4 * min(g, metrics - 1))[0]
+            for g in range(glyphs)
+        ]
+        return Twin(units, data, advances, _cmap(tables[b"cmap"]))
+
+    def program(self, order: list[int], *, metrics: int | None = None) -> bytes:
+        """The font with its glyphs in `order` (new glyph k is old glyph order[k]), composite
+        components renumbered to match, without cmap and post; `metrics` cuts hmtx."""
+        new = {old: k for k, old in enumerate(order)}
+        outlines = [_renumbered(self.glyphs[old], new) for old in order]
+        advances = [self.advances[old] for old in order]
+        return font_program(outlines, advances, units=self.units, metrics=metrics)
+
+
+def _cmap(table: bytes) -> dict[str, int]:
+    """Character to glyph from a cmap's Windows Unicode format 4 subtable."""
+    (subtables,) = struct.unpack_from(">H", table, 2)
+    for k in range(subtables):
+        platform, encoding, offset = struct.unpack_from(">HHI", table, 4 + 8 * k)
+        if (platform, encoding) != (3, 1):
+            continue
+        segments = struct.unpack_from(">H", table, offset + 6)[0] // 2
+        ends = struct.unpack_from(f">{segments}H", table, offset + 14)
+        starts = struct.unpack_from(f">{segments}H", table, offset + 16 + 2 * segments)
+        deltas = struct.unpack_from(f">{segments}h", table, offset + 16 + 4 * segments)
+        at = offset + 16 + 6 * segments
+        ranges = struct.unpack_from(f">{segments}H", table, at)
+        found = {}
+        for s in range(segments):
+            for code in range(starts[s], min(ends[s], 0xFFFE) + 1):
+                if ranges[s]:
+                    where = at + 2 * s + ranges[s] + 2 * (code - starts[s])
+                    glyph = struct.unpack_from(">H", table, where)[0]
+                    glyph = (glyph + deltas[s]) & 0xFFFF if glyph else 0
+                else:
+                    glyph = (code + deltas[s]) & 0xFFFF
+                if glyph:
+                    found[chr(code)] = glyph
+        return found
+    raise ValueError("no Windows Unicode cmap")
+
+
+def _renumbered(glyph: bytes, new: dict[int, int]) -> bytes:
+    """A glyph with its components' glyph numbers changed by `new` (a simple glyph as it
+    is)."""
+    if len(glyph) < 10 or struct.unpack_from(">h", glyph)[0] >= 0:
+        return glyph
+    data, at = bytearray(glyph), 10
+    while True:
+        flags, old = struct.unpack_from(">HH", data, at)
+        struct.pack_into(">H", data, at + 2, new[old])
+        at += 4 + (4 if flags & 0x0001 else 2)
+        at += 2 if flags & 0x0008 else 4 if flags & 0x0040 else 8 if flags & 0x0080 else 0
+        if not flags & 0x0020:
+            return bytes(data)
+
+
+def twin_pdf(
+    lines: list[str],
+    twin: str = "times",
+    *,
+    order: str = "shuffled",
+    seed: int = 618,
+    metrics: str = "truncated",
+    same: tuple[str, str] | None = None,
+    cid_map: bool = False,
+    damage: tuple[tuple[int, int], ...] = (),
+    rectangles: tuple[str, ...] = (),
+) -> bytes:
+    """One page whose `lines` are set as Acrobat Distiller writes a subset of an Office
+    font after a PDF organiser dropped its maps (#442, #618): a CID font, Identity-H, each
+    code its glyph number, no ToUnicode, the program without cmap and post, /W from the true
+    advances. The font is an Apache-2.0 subset of Tinos ("times") or Arimo ("arial") from
+    `tests/fixtures/fonts/`.
+
+    `order`: "shuffled" (seeded), or "mac", the usual TrueType order. `metrics`:
+    "truncated" gives only the first half of the glyphs an advance of their own in hmtx,
+    "full" all. `same=("c", "e")` draws the second letter's glyph as the first's.
+    `cid_map` writes the codes through a /CIDToGIDMap stream, so they are not glyph
+    numbers. `damage` sets bytes of the program: (where, value), where taken modulo its
+    length. `rectangles` adds lines in
+    the rectangle font of `glyph_number_pdf` (no letter shapes), shifted by 29."""
+    font = Twin.load(twin)
+    others = list(range(1, len(font.glyphs)))
+    if order == "shuffled":
+        random.Random(seed).shuffle(others)  # noqa: S311 (a test order, no secret)
+        new_order = [0, *others]
+    else:
+        wanted = {MAC_ORDER[c]: g for c, g in font.letters.items() if c in MAC_ORDER}
+        rest = iter(g for g in others if g not in wanted.values())
+        new_order = [0] + [wanted.get(k) or next(rest, 0) for k in range(1, 258)]
+        new_order += list(rest)
+        while not new_order[-1]:
+            new_order.pop()
+    if same is not None:
+        glyphs = list(font.glyphs)
+        glyphs[font.letters[same[1]]] = glyphs[font.letters[same[0]]]
+        font = replace(font, glyphs=glyphs)
+    count = len(new_order)
+    program = font.program(new_order, metrics=count // 2 if metrics == "truncated" else None)
+    if damage:
+        changed = bytearray(program)
+        for where, value in damage:
+            changed[where % len(changed)] = value
+        program = bytes(changed)
+    code_of = {old: k for k, old in enumerate(new_order) if old}
+    widths = [round(1000 * font.advances[old] / font.units) for old in new_order]
+    # the code of glyph k: itself, or with `cid_map` a fixed shift the map undoes
+    cid = [(k + 7) % count if cid_map and k else k for k in range(count)]
+    content = b""
+    for k, line in enumerate(lines):
+        hexed = "".join(f"{cid[code_of[font.letters[c]]]:04X}" for c in line).encode()
+        content += b"BT /F1 10 Tf 72 %d Td <%s> Tj ET\n" % (720 - 20 * k, hexed)
+    for k, line in enumerate(rectangles, len(lines)):
+        hexed = "".join(f"{ord(c) - 29:04X}" for c in line).encode()
+        content += b"BT /F3 10 Tf 72 %d Td <%s> Tj ET\n" % (720 - 20 * k, hexed)
+    cid_widths, glyph_of = [0] * count, [0] * count
+    for glyph in range(count):
+        cid_widths[cid[glyph]] = widths[glyph]
+        glyph_of[cid[glyph]] = glyph
+    gid_map = b"/Identity"
+    objects = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: _PAGE % (b"[0 0 612 792]", b"<< /Font << /F1 6 0 R /F3 11 0 R >> >>", b""),
+        4: stream(content),
+        6: b"<< /Type /Font /Subtype /Type0 /BaseFont /ABCDEF+TimesNewRoman"
+        b" /Encoding /Identity-H /DescendantFonts [7 0 R] >>",
+        8: b"<< /Type /FontDescriptor /FontName /ABCDEF+TimesNewRoman /Flags 6"
+        b" /FontBBox [-600 -300 2000 1000] /ItalicAngle 0 /Ascent 891 /Descent -216"
+        b" /CapHeight 662 /StemV 80 /FontFile2 9 0 R >>",
+        9: stream(program, b"/Length1 %d" % len(program)),
+    }
+    if cid_map:
+        objects[10] = stream(b"".join(struct.pack(">H", g) for g in glyph_of))
+        gid_map = b"10 0 R"
+    objects[7] = (
+        b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /ABCDEF+TimesNewRoman"
+        b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+        b" /FontDescriptor 8 0 R /CIDToGIDMap %s /W [0 [%s]] >>"
+        % (gid_map, " ".join(map(str, cid_widths)).encode())
+    )
+    shapes = truetype_program(128)
+    objects[11] = (
+        b"<< /Type /Font /Subtype /Type0 /BaseFont /GHIJKL+Rectangles /Encoding /Identity-H"
+        b" /DescendantFonts [12 0 R] >>"
+    )
+    objects[12] = (
+        b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /GHIJKL+Rectangles"
+        b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+        b" /FontDescriptor 13 0 R /CIDToGIDMap /Identity /DW 500 >>"
+    )
+    objects[13] = (
+        b"<< /Type /FontDescriptor /FontName /GHIJKL+Rectangles /Flags 6"
+        b" /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200"
+        b" /CapHeight 700 /StemV 80 /FontFile2 14 0 R >>"
+    )
+    objects[14] = stream(shapes, b"/Length1 %d" % len(shapes))
+    return raw_pdf(objects)
