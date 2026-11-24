@@ -26,7 +26,8 @@ from web_helpers import ORIGIN, app_and_config, browser, paper_bytes, pdf_bytes,
 from web_helpers import offline as offline
 
 from sci2audio.app import files
-from sci2audio.core import SourceFormat
+from sci2audio.app.captures import CAPTURES, write_captures
+from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType, SourceFormat
 from sci2audio.testing.documents import make_document
 from sci2audio.web import library, pages, player
 from sci2audio.web.documents import StoredDocument
@@ -47,6 +48,8 @@ from sci2audio.web.library import (
     write_about,
     write_opened,
 )
+from sci2audio.web.markers import MARKERS, Marker, markers_text
+from sci2audio.web.markers import Anchor as MarkerAnchor
 from sci2audio.web.player import POSITION, Position, audiobook_stamp, write_position
 
 pytestmark = pytest.mark.usefixtures("offline")
@@ -924,3 +927,169 @@ def test_without_documents_there_is_no_search(server: tuple[FastAPI, Any]) -> No
     page = client_of(server).get("/", params={"q": "x"}).text
     assert 'id="search"' not in page
     assert 'id="no-match"' not in page
+
+
+# ---- captures on the library and the shelf (#418) ------------------------------------------
+
+
+def capture_file(work: Path, document: str, kinds: str) -> None:
+    """A `captures.json` with one capture per letter of `kinds` (n note, q quote, m mark)."""
+    names = {"n": CaptureType.NOTE, "q": CaptureType.QUOTE, "m": CaptureType.MARK}
+    captures = tuple(
+        Capture(
+            f"{at:016x}",
+            names[letter],
+            "2026-11-20T19:04:00Z",
+            "2026-11-20T19:04:00Z",
+            Anchor(at, 0, 5, "Words."),
+            "Ask Sam." if letter == "n" else "",
+        )
+        for at, letter in enumerate(kinds)
+    )
+    work.mkdir(parents=True, exist_ok=True)
+    write_captures(work, CaptureFile(document, captures))
+
+
+def captures_cell(page: str, key: str) -> str:
+    return row_of(page, key).split('<td class="captures">')[1].split("</td>")[0]
+
+
+def shelf_item(rail: str, start: str) -> str:
+    return rail.split(start)[1].split("</a>")[0]
+
+
+def flags(html_text: str) -> list[tuple[str, str, str]]:
+    """Each flag of a strip: its type, its icon and the count beside it."""
+    return re.findall(
+        r'class="flag f-(\w+)".*?<use href="#i-(\w+)".*?class="num">(\d+)<', html_text, re.S
+    )
+
+
+def test_the_captures_column_counts_each_type_with_its_icon(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    bare = upload(client, pdf_bytes("Other."), "bare.pdf")["id"]
+    capture_file(config.work_root / doc, doc, "nqmmnm")
+    page = client.get("/").text
+    heads = re.findall(r'<th scope="col"[^>]*>([^<]+)</th>', page)
+    assert heads == ["Document", "State", "Listened", "Captures", "Opened"]
+    cell = captures_cell(page, doc)
+    assert '<span class="flagstrip" aria-hidden="true">' in cell
+    # the dock's order, each type a flag with its icon and its count: never colour alone
+    assert flags(cell) == [("note", "note", "2"), ("quote", "quote", "1"), ("mark", "mark", "3")]
+    assert '<span class="visually-hidden">2 notes, 1 quote, 3 marks</span>' in cell
+    empty = captures_cell(page, bare)
+    assert '<span aria-hidden="true">—</span>' in empty
+    assert '<span class="visually-hidden">no captures yet</span>' in empty
+    assert "flagstrip" not in empty
+
+
+def test_a_type_without_captures_is_left_out(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    capture_file(config.work_root / doc, doc, "q")
+    cell = captures_cell(client.get("/").text, doc)
+    assert flags(cell) == [("quote", "quote", "1")]
+    assert '<span class="visually-hidden">1 quote</span>' in cell
+
+
+def test_a_file_that_holds_no_capture_any_more_reads_as_none(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    capture_file(config.work_root / doc, doc, "")
+    cell = captures_cell(client.get("/").text, doc)
+    assert '<span class="visually-hidden">no captures yet</span>' in cell
+
+
+def test_the_library_reads_v13_markers_without_carrying_them_over(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """Counted as the carry-over will map them (a marker with a note a note, one without a
+    mark), and nothing is written: no `captures.json`, `markers.json` as it was."""
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    work = config.work_root / doc
+    markers = [
+        Marker("0" * 15 + "1", "t", "t", MarkerAnchor(0, 0, 5, "Words."), "A note."),
+        Marker("0" * 15 + "2", "t", "t", MarkerAnchor(1, 0, 5, "Other."), ""),
+        Marker("0" * 15 + "3", "t", "t", MarkerAnchor(2, 0, 5, "Third."), ""),
+    ]
+    (work / MARKERS).write_text(markers_text(doc, markers), encoding="utf-8")
+    opened_at(config, doc, 1_700_000_000)
+    before = sorted((p.name, p.stat().st_mtime_ns) for p in work.iterdir())
+    page = client.get("/").text
+    assert '<span class="visually-hidden">1 note, 2 marks</span>' in captures_cell(page, doc)
+    assert "1 note, 2 marks" in rail_of(page)
+    assert not (work / CAPTURES).exists()
+    assert sorted((p.name, p.stat().st_mtime_ns) for p in work.iterdir()) == before
+
+
+@pytest.mark.parametrize("file", [CAPTURES, MARKERS])
+def test_a_captures_file_that_cannot_be_read_is_said_and_left(
+    server: tuple[FastAPI, Any], file: str
+) -> None:
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    path = config.work_root / doc / file
+    path.write_text("{not json", encoding="utf-8")
+    opened_at(config, doc, 1_700_000_000)
+    page = client.get("/").text
+    cell = captures_cell(page, doc)
+    assert "Can\N{RIGHT SINGLE QUOTATION MARK}t be read" in cell
+    assert "flagstrip" not in cell
+    assert path.read_text(encoding="utf-8") == "{not json"
+    assert file == CAPTURES or not (config.work_root / doc / CAPTURES).exists()
+    assert "flagstrip" not in rail_of(page)
+
+
+def test_a_shelf_item_has_the_flag_strip_and_its_counts_in_the_links_name(
+    server: tuple[FastAPI, Any],
+) -> None:
+    client = client_of(server)
+    _app, config = server
+    one = upload(client, pdf_bytes("One."), "one.pdf")["id"]
+    two = upload(client, pdf_bytes("Two."), "two.pdf")["id"]
+    capture_file(config.work_root / one, one, "nqm")
+    opened_at(config, one, 1_700_000_000)
+    opened_at(config, two, 1_700_000_100)
+    rail = rail_of(client.get("/").text)
+    item = shelf_item(rail, f'<a href="/documents/{one}" class="recent"')
+    assert '<span class="flagstrip" aria-hidden="true">' in item
+    assert flags(item) == [("note", "note", "1"), ("quote", "quote", "1"), ("mark", "mark", "1")]
+    assert '<span class="visually-hidden">1 note, 1 quote, 1 mark</span>' in item
+    bare = shelf_item(rail, f'<a href="/documents/{two}" class="recent"')
+    assert "flagstrip" not in bare  # nothing to show: no strip, no words
+    assert "visually-hidden" not in bare
+
+
+def test_continue_listening_has_the_flag_strip_too(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    one = upload(client, pdf_bytes("One."), "one.pdf")["id"]
+    stamp = audiobook(config.work_root / one, config.output_folder, one, duration=600.0)
+    write_position(config.work_root / one, one, stamp, Position(0, 192.0))
+    capture_file(config.work_root / one, one, "mm")
+    rail = rail_of(client.get("/").text)
+    item = shelf_item(rail, 'id="shelf-continue"')
+    assert flags(item) == [("mark", "mark", "2")]
+    assert '<span class="visually-hidden">2 marks</span>' in item
+
+
+def test_captures_in_german(server: tuple[FastAPI, Any]) -> None:
+    client = client_of(server)
+    _app, config = server
+    doc = upload(client, pdf_bytes(), "paper.pdf")["id"]
+    bare = upload(client, pdf_bytes("Other."), "bare.pdf")["id"]
+    capture_file(config.work_root / doc, doc, "nnqm")
+    client.cookies.set("sci2audio-language", "de")
+    page = client.get("/").text
+    assert '<th scope="col">Fundstücke</th>' in page
+    cell = captures_cell(page, doc)
+    assert '<span class="visually-hidden">2 Notizen, 1 Zitat, 1 Marke</span>' in cell
+    assert "noch keine Fundstücke" in captures_cell(page, bare)
+    assert "Nicht lesbar" not in cell
