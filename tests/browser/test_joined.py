@@ -14,7 +14,6 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-import pytest
 from playwright.sync_api import Page, expect
 from test_focus import nobody_focused
 from test_player import chunk_id, highlighted, listen_to, paused
@@ -94,9 +93,20 @@ def middle(data: dict[str, Any], n: int) -> float:
     return float((start + end) / 2)
 
 
-@pytest.mark.quarantined(
-    issue=935, reason="failed twice in WebKit without a code cause (#772)", browser="webkit"
-)
+def first_step(page: Page, data: dict[str, Any]) -> None:
+    """Press Next on a page that has not played yet: it loads the file, paused, and its own
+    seek waits for the file, so a seek of the test's before that one would be lost."""
+    page.locator("#next-sentence").click()
+    page.wait_for_function(
+        """(start) => {
+            const audio = document.getElementById('audio');
+            return audio.readyState >= 1 && !audio.seeking
+                && Math.abs(audio.currentTime - start) < 0.05;
+        }""",
+        arg=data["chunks"][0][0],
+    )
+
+
 def test_the_mark_and_the_bar_stay_on_the_sentence_through_its_pieces(
     signed_in: Page, live: Live, tmp_path: Path
 ) -> None:
@@ -105,7 +115,7 @@ def test_the_mark_and_the_bar_stay_on_the_sentence_through_its_pieces(
     element = data["element"]
     words = page.locator(f"#{element}").inner_text()
     assert " ".join(words.split()) == LONG  # one element holds the whole sentence
-    page.locator("#next-sentence").click()  # loads the file, paused
+    first_step(page, data)
     for n in data["pieces"]:
         at(page, data, middle(data, n))
         assert highlighted(page) == element, n
@@ -306,16 +316,7 @@ def test_a_bullet_of_an_older_book_steps_with_the_item_it_leads(
     item, intro = chunk_id(page, "Item one."), chunk_id(page, "Intro.")
     assert [c[3] for c in data["chunks"][n : n + 2]] == [item, item]
     assert data["sentences"][n : n + 2] == [n, n]
-    page.locator("#next-sentence").click()  # loads the file, paused
-    # the step's own seek waits for the file: a seek of the test's before it would be lost
-    page.wait_for_function(
-        """(start) => {
-            const audio = document.getElementById('audio');
-            return audio.readyState >= 1 && !audio.seeking
-                && Math.abs(audio.currentTime - start) < 0.05;
-        }""",
-        arg=data["chunks"][0][0],
-    )
+    first_step(page, data)
     at(page, data, middle(data, n))  # in the bullet
     assert highlighted(page) == item
     page.locator("#previous-sentence").click()

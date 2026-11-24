@@ -100,6 +100,81 @@ def test_the_segments_mark_the_chapters_done_and_now() -> None:
     assert pages._segments(3, 4) == ["done", "done", "done"]
 
 
+# --- the running card: the whole job and the chapter being spoken (#1054) ----------------
+
+NBSP = "\u00a0"
+
+
+def speaking(**changes: Any) -> dict[str, Any]:
+    """The progress of a 4-chapter job in its second chapter: 4 of its 10 chunks done."""
+    progress = {
+        "phase": "speaking",
+        "chapter": 1,
+        "chapters": 4,
+        "chapter_number": 2,
+        "chapter_done": False,
+        "chapter_chunks_done": 4,
+        "chapter_chunks_total": 10,
+        "chunks_done": 2013,
+        "chunks_total": 6707,
+        "seconds_left": 1560.0,
+        "playable": [0],
+    }
+    return {**progress, **changes}
+
+
+def test_the_running_card_shows_the_whole_job_and_the_chapter_being_spoken() -> None:
+    lines = pages._running_lines(strings("en"), speaking())
+    assert lines["head"] == "Speaking chapter 2 of 4"
+    assert lines["left"] == f"30{NBSP}% · about 26 minutes left"
+    assert lines["percent"] == 30
+    assert lines["chapter_line"] == f"Chapter 2 of 4: 40{NBSP}%"
+    assert lines["segments"] == ["done", "now", "", ""]
+    assert lines["chapter_part"] == 40
+    german = pages._running_lines(strings("de"), speaking())
+    assert german["head"] == "Kapitel 2 von 4 wird gesprochen"
+    assert german["chapter_line"] == f"Kapitel 2 von 4: 40{NBSP}%"
+
+
+def test_the_running_card_says_a_chapter_is_saved_until_it_is_playable() -> None:
+    """Colin's case (#1054): the last sentence of chapter 1 is spoken and its MP3 is being
+    written, which takes minutes for a long chapter. Until it is playable the card says so,
+    and does not yet claim chapter 2 is being spoken with nothing to listen to."""
+    last = speaking(
+        chapter=0,
+        chapter_number=1,
+        chapter_done=True,
+        chapter_chunks_done=2013,
+        chapter_chunks_total=2013,
+        playable=[],
+    )
+    saving = pages._running_lines(strings("en"), last)
+    assert saving["head"] == "Saving chapter 1 of 4"
+    assert saving["chapter_line"] == f"Chapter 1 of 4: 100{NBSP}%"
+    assert saving["segments"] == ["now", "", "", ""]
+    assert saving["chapter_part"] == 100
+    assert pages._running_lines(strings("de"), last)["head"] == "Kapitel 1 von 4 wird gespeichert"
+    # its files are in place: the next chapter begins, at nothing of it spoken
+    ready = pages._running_lines(strings("en"), {**last, "ready": 0, "playable": [0]})
+    assert ready["head"] == "Speaking chapter 2 of 4"
+    assert ready["chapter_line"] == f"Chapter 2 of 4: 0{NBSP}%"
+    assert ready["segments"] == ["done", "now", "", ""]
+    assert ready["chapter_part"] == 0
+
+
+def test_the_running_card_before_the_first_sentence_and_while_writing_the_book() -> None:
+    before = pages._running_lines(strings("en"), {"phase": "loading-voice", "chapters": 4})
+    assert before["chapter_line"] == ""
+    assert before["segments"] == ["", "", "", ""]
+    # the last chapter is written: every chapter is done, no chapter line
+    written = speaking(
+        chapter=3, chapter_number=4, chapter_done=True, playable=[0, 1, 2, 3], ready=3
+    )
+    lines = pages._running_lines(strings("en"), written)
+    assert lines["chapter_line"] == ""
+    assert lines["segments"] == ["done", "done", "done", "done"]
+
+
 # --- the paper header and the side column -------------------------------------------------
 
 
@@ -339,6 +414,74 @@ def test_the_running_card_while_the_files_are_written(
         assert 'class="job-seg now"' not in running
     finally:
         gate.set()
+    assert wait(client, job)["state"] == "done"
+
+
+def held_first_chapter(monkeypatch: pytest.MonkeyPatch, gate: threading.Event) -> threading.Event:
+    """Writing the first chapter's files waits for `gate`, as a long chapter's MP3 takes
+    minutes (#1054); the event returned is set once the job waits there."""
+    write = audio._Chapters.done
+    reached = threading.Event()
+
+    def writing(chapters: Any, *args: Any, **kwargs: Any) -> Any:
+        if not chapters.added:
+            reached.set()
+            assert gate.wait(30)
+        return write(chapters, *args, **kwargs)
+
+    monkeypatch.setattr(audio._Chapters, "done", writing)
+    return reached
+
+
+def tab(page: str) -> str:
+    head = page.split('<header class="paper-head">')[1].split("</header>")[0]
+    found = re.search(r'<(a|span)[^>]*id="tab-listen".*?</\1>', head, re.S)
+    assert found, head
+    return found.group(0)
+
+
+def test_the_job_page_while_the_first_chapter_is_saved_and_once_it_is_playable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Colin's path (#1054): the job page `/jobs/<id>` while chapter 1's files are written
+    says so, offers nothing to listen to yet and keeps "No audio yet"; once chapter 1 is
+    playable and chapter 2 is spoken, it offers Start listening and the Listen tab is a link,
+    and the chapter line names chapter 2. The job page and Prepare draw the same."""
+    gate = threading.Event()
+    reached = held_first_chapter(monkeypatch, gate)
+    held = Held(after=3)  # chapter 1's title and sentence, chapter 2's title
+    _app, client = server(tmp_path, FakeVoice(fail_on=held))
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    try:
+        assert reached.wait(30)
+        for path in (f"/jobs/{job}", f"/documents/{doc['id']}"):
+            page = client.get(path).text
+            saving = card(page)
+            assert '<strong id="job-chapter">Saving chapter 1 of 2</strong>' in saving, path
+            assert re.search(r'id="job-chapter-progress"[^>]*>Chapter 1 of 2: 100\s%<', saving)
+            assert 'id="start-listening-box" hidden>' in saving
+            assert tab(page).startswith('<span class="tab-off" id="tab-listen">')
+            assert "Listen · No audio yet" in tab(page)
+        gate.set()
+        assert held.reached.wait(30)
+        listen = f'href="/documents/{doc["id"]}/listen"'
+        for path in (f"/jobs/{job}", f"/documents/{doc['id']}"):
+            page = client.get(path).text
+            spoken = card(page)
+            assert '<strong id="job-chapter">Speaking chapter 2 of 2</strong>' in spoken, path
+            assert re.search(r'id="job-chapter-progress"[^>]*>Chapter 2 of 2: \d+\s%<', spoken)
+            assert 'id="start-listening-box">' in spoken
+            assert tab(page) == (
+                f'<a {listen} id="tab-listen"><svg class="i s" aria-hidden="true" '
+                'focusable="false"><use href="#i-speaker"></use></svg><span>Listen</span></a>'
+            )
+            # the segments: chapter 1 full, chapter 2 filled as far as it is spoken
+            assert re.search(r'<progress class="job-seg done" max="100" value="100">', spoken)
+            assert re.search(r'<progress class="job-seg now" max="100" value="\d+">', spoken)
+    finally:
+        gate.set()
+        held.gate.set()
     assert wait(client, job)["state"] == "done"
 
 
