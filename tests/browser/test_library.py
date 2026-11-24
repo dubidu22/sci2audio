@@ -1,7 +1,8 @@
 """The library and the rail's shelf in the browser (#389, D-664): a full table read by axe in
 both schemes and in German at the design's widths, the paste box by keyboard, the table
 scrolling in its own region at 320 px, and "Continue listening" opening the player at the
-saved time without playing (#153, D-300)."""
+saved time without playing (#153, D-300). The Captures column and the shelf's flag strips
+(#418): by keyboard, axe, German, the highlighter rule, 320 px and the design's widths."""
 
 from __future__ import annotations
 
@@ -9,17 +10,21 @@ import io
 import json
 import re
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 from urllib.parse import urlencode
 
 from playwright.sync_api import Page, expect
 from test_keyboard import press_on
 from test_player import chunk_id, make_audiobook, paused
 from test_remove import opened
-from test_shell import WIDTHS, scrolls_sideways
+from test_shell import CONTROLS, HIGHLIGHTED, WIDTHS, scrolls_sideways
 from web_helpers import pdf_bytes
 
-from conftest import Live, check_axe
-from sci2audio.web.library import About, write_about
+from conftest import Live, check_axe, tab_key
+from sci2audio.app.captures import write_captures
+from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
+from sci2audio.web.library import About, write_about, write_opened
 
 
 def full_library(live: Live) -> None:
@@ -319,3 +324,125 @@ def test_without_the_script_the_hint_does_not_promise_dropping(signed_in: Page, 
     expect(page.locator("#file-hint")).to_be_visible()
     expect(page.locator("#drop-hint")).to_be_hidden()
     page.unroute(f"{live.url}/static/app.js")
+
+
+# ---- captures on the library and the shelf (#418) ------------------------------------------
+
+
+def with_captures(live: Live) -> tuple[str, str]:
+    """Two documents, opened, one with two notes, a quote and a mark; the other with none."""
+    captured = opened(live, "captured.pdf", "Captured.")
+    bare = opened(live, "bare.pdf", "Bare.")
+    kinds = (CaptureType.NOTE, CaptureType.NOTE, CaptureType.QUOTE, CaptureType.MARK)
+    captures = tuple(
+        Capture(
+            f"{at:016x}",
+            kind,
+            "2026-11-20T19:04:00Z",
+            "2026-11-20T19:04:00Z",
+            Anchor(at, 0, 5, "Words."),
+            "Ask Sam." if kind is CaptureType.NOTE else "",
+        )
+        for at, kind in enumerate(kinds)
+    )
+    work = Path(live.config.work_root)
+    write_captures(work / captured, CaptureFile(captured, captures))
+    write_opened(work / bare, datetime(2026, 11, 20, 9, 0, tzinfo=UTC))
+    write_opened(work / captured, datetime.now(UTC))
+    return captured, bare
+
+
+def test_the_captures_column_and_the_shelfs_flag_strip(signed_in: Page, live: Live) -> None:
+    """Between Listened and Opened, each type as a flag with its icon and its count; "—"
+    with words for a screen reader where there are none; the shelf item's strip is hidden
+    from it, its counts are in the link's name, and the keyboard reaches it."""
+    page = signed_in
+    captured, bare = with_captures(live)
+    page.goto(live.url + "/")
+    heads = [" ".join(h.split()) for h in page.locator("#documents thead th").all_inner_texts()]
+    assert heads == ["Document", "State", "Listened", "Captures", "Opened"]
+    cell = page.locator(f"#row-{captured} td.captures")
+    expect(cell.locator(".flagstrip")).to_have_attribute("aria-hidden", "true")
+    expect(cell.locator(".flagstrip .fs")).to_have_text(["2", "1", "1"])
+    expect(cell.locator(".flagstrip .flag svg")).to_have_count(3)
+    expect(cell.locator(".visually-hidden")).to_have_text("2 notes, 1 quote, 1 mark")
+    expect(page.locator(f"#row-{bare} td.captures")).to_have_text("—no captures yet")
+    item = page.get_by_role("link", name=re.compile(r"captured\.pdf.*2 notes, 1 quote, 1 mark"))
+    expect(item).to_be_visible()
+    expect(item.locator(".flagstrip")).to_have_attribute("aria-hidden", "true")
+    expect(page.locator(f'.shelf a[href="/documents/{bare}"] .flagstrip')).to_have_count(0)
+    for _ in range(40):  # the shelf item is reached by keyboard
+        page.keyboard.press(tab_key(page))
+        if item.evaluate("a => a === document.activeElement"):
+            break
+    else:
+        raise AssertionError("the shelf item is never focused")
+    page.keyboard.press("Enter")
+    page.wait_for_url(f"**/documents/{captured}")
+
+
+def test_captures_pass_axe_in_both_schemes_and_in_german(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    captured, _bare = with_captures(live)
+    page.goto(live.url + "/")
+    expect(page.locator(".flagstrip").first).to_be_visible()
+    check_axe(page, "library with captures")
+    page.goto(f"{live.url}/language?language=de&back=/")
+    expect(page.get_by_role("columnheader", name="Fundstücke")).to_be_visible()
+    hidden = page.locator(f"#row-{captured} td.captures .visually-hidden")
+    expect(hidden).to_have_text("2 Notizen, 1 Zitat, 1 Marke")
+    check_axe(page, "de: library with captures")
+    page.goto(f"{live.url}/language?language=en&back=/")
+
+
+def test_the_highlighters_stand_on_the_flags_only(signed_in: Page, live: Live) -> None:
+    """No control, chip or shelf link takes a highlighter colour (DESIGN.md, the Highlighter
+    rule), and in the strips only the flags do, never their counts."""
+    page = signed_in
+    with_captures(live)
+    page.goto(live.url + "/")
+    expect(page.locator(".flagstrip .flag")).to_have_count(6)  # three in the row, three shelved
+    for scheme in ("light", "dark"):
+        page.emulate_media(color_scheme=scheme)
+        assert page.evaluate(HIGHLIGHTED, CONTROLS) == [], scheme
+        assert page.evaluate(HIGHLIGHTED, ".flagstrip, .flagstrip .fs, .flagstrip .num") == []
+        flagged = page.evaluate(HIGHLIGHTED, ".flagstrip .flag")
+        filled = [where for where in flagged if where.endswith(" backgroundColor")]
+        assert len(filled) == 6, (scheme, flagged)  # every flag in its type's colour
+        assert not [where for where in flagged if where.endswith(" color")], flagged
+    page.emulate_media(color_scheme="light")
+
+
+def test_with_captures_the_table_still_scrolls_in_its_own_region_at_320_px(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    with_captures(live)
+    page.set_viewport_size({"width": 320, "height": 640})
+    page.goto(live.url + "/")
+    expect(page.locator("#documents tbody tr")).to_have_count(2)
+    assert not scrolls_sideways(page)
+    region = page.locator("#library")
+    assert region.evaluate("r => r.scrollWidth > r.clientWidth")  # the table itself scrolls
+    check_axe(page, "library with captures at 320 px")
+    page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def test_with_captures_at_the_designs_widths_nothing_scrolls_sideways(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    captured, _bare = with_captures(live)
+    page.goto(live.url + "/")
+    for width, height in WIDTHS.items():
+        page.set_viewport_size({"width": width, "height": height})
+        expect(page.locator(f"#row-{captured} .flagstrip")).to_be_visible()
+        assert not scrolls_sideways(page), width
+        region = page.locator("#library")
+        assert region.evaluate("r => r.scrollWidth <= r.clientWidth"), width  # all in view
+        strip = page.locator(".shelf .flagstrip").first.bounding_box()
+        rail = page.locator(".rail").bounding_box()
+        assert strip is not None
+        assert rail is not None
+        assert strip["x"] + strip["width"] <= rail["x"] + rail["width"], width
+    page.set_viewport_size({"width": 1280, "height": 720})

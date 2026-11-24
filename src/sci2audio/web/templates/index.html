@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_remove.html" import remove_box with context %}
 {% from "_download.html" import book_box with context %}
-{% from "_icons.html" import icon %}
+{% from "_icons.html" import icon, flagstrip %}
 {#- The library (#389, DESIGN.md "Library"): the opener, then every document in one table. -#}
 {% block title %}{{ t('library.title') }} · {{ t('common.app') }}{% endblock %}
 {% block main %}
@@ -65,6 +65,7 @@
       <th scope="col">{{ t('library.col_document') }}</th>
       <th scope="col">{{ t('library.col_state') }}</th>
       <th scope="col">{{ t('library.col_listened') }}</th>
+      <th scope="col">{{ t('library.col_captures') }}</th>
       <th scope="col" class="when">{{ t('library.col_opened') }}</th>
     </tr>
   </thead>
@@ -89,6 +90,13 @@
         {% else %}
         <small><span aria-hidden="true">—</span><span class="visually-hidden">{{ t('library.no_audio') }}</span></small>
         {% endif %}
+      </td>
+      {#- the captures by type (#418), read as the removal box reads them: nothing is written -#}
+      <td class="captures">
+        {%- if row.captures.unread %}<small>{{ t('library.captures_unread') }}</small>
+        {%- elif row.captures.kinds %}{{ flagstrip(row.captures) }}
+        {%- else %}<small><span aria-hidden="true">—</span><span class="visually-hidden">{{ t('library.no_captures') }}</span></small>
+        {%- endif -%}
       </td>
       <td class="when">{{ row.opened }}</td>
     </tr>

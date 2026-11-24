@@ -424,6 +424,17 @@ button.play svg { fill: currentColor; stroke: none; }
 .cap-kinds .flag { width: 16px; height: 14px; }
 .cap-kinds .flag svg { width: 10px; height: 10px; }
 .cap-kinds .num, .capture-group .gm { font-variant-numeric: tabular-nums; }
+/* a document's flag strip on the library's rows and the shelf's items (#418): each type a
+   small flag with its icon and its count beside it, in the dock's order; the highlighter
+   colour stands on the flags only (the Highlighter Rule) */
+.flagstrip { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.flagstrip .fs { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.flagstrip .flag { width: 16px; height: 14px; }
+.flagstrip .flag svg { width: 10px; height: 10px; }
+.papers td.captures { white-space: nowrap; }
+.papers .flagstrip { flex-wrap: nowrap; }
+.papers td.captures small { color: var(--pencil); font-size: 13px; }
+.shelf .flagstrip .num { color: var(--on-cobalt-2); }
 .cap-from { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .view .cap-from label { margin: 0; }
 .cap-from select { width: auto; max-width: 100%; }
