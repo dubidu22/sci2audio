@@ -48,9 +48,25 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
     # (#364); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
-    assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
+    assert "needs: [lint, licences, security, tests, tests-py313, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
+
+
+def test_every_run_tests_python_3_13_on_linux_too() -> None:
+    """#792: `requires-python = ">=3.12"` lets people install on 3.13, where a chapter once
+    lost its text (#587); the fast suite runs there on every PR, push and run by hand, and
+    "CI passed" waits for it. The 3.12 legs keep their names (rules and the ruleset)."""
+    assert "    name: tests (${{ matrix.os }})" in block(CI, "  tests:")
+    job = block(CI, "  tests-py313:")
+    assert "    name: tests (ubuntu-latest, py3.13)" in job
+    assert "    runs-on: ubuntu-latest" in job
+    assert not re.search(r"^    if:", job, re.M), job  # no event leaves it out
+    assert re.search(r'^      UV_PYTHON: "3\.13"$', job, re.M), job
+    # .python-version (3.12) must not win unseen: the job checks the venv's own Python
+    assert "sys.version_info[:2] == (3, 13)" in job
+    assert 'uv run pytest -m "not slow and not benchmark and not browser" -n auto' in job
+    assert "HYPOTHESIS_PROFILE: ci" in job
 
 
 def load_ci_passed():

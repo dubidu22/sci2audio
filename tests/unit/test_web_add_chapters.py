@@ -20,6 +20,7 @@ import pytest
 from audio_fakes import FakeVoice
 from test_web_listen_growing import GATE_TEXT, TITLES, three_chapters
 from test_web_player import player_data, server, work_of
+from test_web_position import Waiting
 from web_helpers import (
     book_folder,
     offline,  # noqa: F401 - fixture
@@ -337,33 +338,37 @@ def test_a_save_while_the_job_keeps_the_position_by_chapter_is_not_lost(
 ) -> None:
     """#790: the audio job reads the kept position, then writes it again with its chapter's
     index. A save by the player that lands between the read and the write is the newer
-    place and must survive: the read and the write take one turn with the player's saves."""
+    place and must survive: the read and the write take one turn with the player's saves.
+    The job goes on once the save waits on the lock or is written (#849): no clock decides
+    which comes first."""
     client, _config, doc, _gate = project(tmp_path, [0, 2])
     data = player_data(client.get(f"/documents/{doc}/listen").text)
     results = data["chapters"][1]
     body = {"chapter": 1, "time": results["start"] + 0.3, "audiobook": data["audiobook"]}
     assert client.post(f"/api/v1/documents/{doc}/position", json=body).status_code == 204
+    settled = threading.Event()  # the save waits on the lock, or has been written
+    client.app.state.sci2audio.positions.lock = Waiting(settled)
     answers: list[int] = []
+    newer = {**body, "time": results["start"] + 0.4}
+
+    def save() -> None:
+        answers.append(client.post(f"/api/v1/documents/{doc}/position", json=newer).status_code)
+        settled.set()
+
+    saver = threading.Thread(target=save)
     original = tasks.chapter_index
 
     def save_in_between(work: Path, n: int) -> int | None:
         # the job has read the position: the player saves a newer place now
         monkeypatch.setattr(tasks, "chapter_index", original)
-        newer = {**body, "time": results["start"] + 0.4}
-        saver = threading.Thread(
-            target=lambda: answers.append(
-                client.post(f"/api/v1/documents/{doc}/position", json=newer).status_code
-            )
-        )
         saver.start()
-        saver.join(timeout=1.0)  # a save that waits for the job's turn goes on after it
+        assert settled.wait(timeout=60)  # only a hang fails here, not the outcome
         return original(work, n)
 
     monkeypatch.setattr(tasks, "chapter_index", save_in_between)
     assert audio(client, doc, [1], keep_settings=True)["state"] == "done"
-    deadline = time.monotonic() + 30
-    while not answers and time.monotonic() < deadline:
-        time.sleep(0.01)
+    saver.join(timeout=60)
+    assert not saver.is_alive()
     assert answers == [204]
     data = player_data(client.get(f"/documents/{doc}/listen").text)
     chapter, at = resume_of(client.get(f"/documents/{doc}/listen").text)

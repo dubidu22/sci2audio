@@ -285,6 +285,44 @@ def test_a_chunk_with_nothing_to_speak_that_opens_a_chapter_leads_the_sentence_a
     assert sentence_starts(data, document) == view.sentences == [0, 0]
 
 
+@pytest.mark.parametrize(
+    ("blocks", "spans"),
+    [
+        # the marker opens the item's block, after a sentence of another block
+        (["Intro.", "•\nItem one."], [(0, 0, 6), (1, 0, 1), (1, 2, 11)]),
+        # the marker stands between two sentences of one block
+        (["Intro. • Item one."], [(0, 0, 6), (0, 7, 8), (0, 9, 18)]),
+    ],
+)
+def test_a_marker_in_mid_chapter_belongs_to_the_item_it_leads(
+    blocks: list[str], spans: list[tuple[int, int, int]]
+) -> None:
+    """#869: a silent chunk followed in its block by the sentence it opens leads that
+    sentence (the cutter's rule since #855), for the highlight and for Previous, Next and
+    the markers alike: it is never highlighted with one sentence and counted with another."""
+    document = make_document([("paragraph", text) for text in blocks])
+    data = readalong(spans)
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s2", "s2"]
+    assert sentence_starts(data, document) == view.sentences == [0, 1, 1]
+    assert [p.text for b in view.chapters[0].blocks for p in b.pieces if p.element] == [
+        "Intro.",
+        "Item one.",
+    ]
+
+
+def test_a_marker_never_leads_a_sentence_of_the_next_chapter() -> None:
+    """#869: a hand-made or broken file puts the words after a marker in the next chapter,
+    though they share its block. A sentence never runs across chapters, so the marker
+    stays a piece of the sentence before it, with that sentence's element."""
+    document = make_document([("paragraph", "Intro. • Item one.")])
+    data = readalong([(0, 0, 6), (0, 7, 8), (0, 9, 18)], (("One", 0), ("Two", 2)), [0, 0, 1])
+    assert sentence_starts(data, document) == [0, 0, 2]
+    view = build_view(document, record(chunks=3), data)
+    assert [c[3] for c in view.chunks] == ["s0", "s0", "s2"]
+    assert view.sentences == [0, 0, 2]
+
+
 def test_a_notice_read_for_printed_brackets_is_still_a_sentence() -> None:
     """#652: a placeholder's chunk reads its notice, so printed text of only brackets in a
     code block is no chunk with nothing to speak."""
@@ -871,14 +909,30 @@ def test_nothing_is_lost_or_doubled_and_every_chunk_has_one_element(
     if not any(silent):
         assert view.sentences == [int(w.removeprefix("s")) for w in wanted]
         return
-    # a silent chunk is a piece of the sentence before it; a run of them that opens the
-    # chapter (one chapter here) leads the chunk after it (#652); the chunks drawn group as
-    # the page draws them
+    # a silent chunk followed in its block by a chunk with text (or by one that leads in
+    # turn) leads that chunk's sentence, with its element (#869); any other is a piece of
+    # the sentence before it; a run of them that opens the chapter (one chapter here) leads
+    # the chunk after it (#652); the chunks drawn group as the page draws them. The spans
+    # here are in text order and never overlap, so "the chunk the page draws next in the
+    # block" is the next chunk.
+    leads = [False] * len(spans)
+    for number in reversed(range(len(spans) - 1)):
+        block, start, end = spans[number + 1]
+        leads[number] = (
+            silent[number]
+            and block == spans[number][0]
+            and (leads[number + 1] or (start < end and not silent[number + 1]))
+        )
     sentences = view.sentences
     leading = True  # every chunk so far is silent
     for number in range(len(spans)):
-        if number and (silent[number] or leading):
+        if number and (leading or leads[number - 1] or (silent[number] and not leads[number])):
             assert sentences[number] == sentences[number - 1]
+        elif leads[number]:
+            assert sentences[number] == number
+        if leads[number]:
+            led = next(n for n in range(number, len(spans)) if not leads[n])
+            assert elements[number] == elements[led]
         leading = leading and silent[number]
     drawn = [n for n, (_, start, end) in enumerate(spans) if start < end and not silent[n]]
     pairs = {(sentences[n], wanted[n]) for n in drawn}
