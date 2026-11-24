@@ -19,6 +19,7 @@ from sci2audio.app import (
     OutputExistsError,
     SettingsChangedError,
     job,
+    kept_settings,
     run_audio_job,
 )
 from sci2audio.app.playable import RECORD, read_record
@@ -360,6 +361,26 @@ def test_keep_settings_never_takes_another_books_settings(tmp_path: Path) -> Non
     )
     assert voice.spoken
     assert {(v, s) for _, v, s in voice.spoken} == {("af_heart", 1.0)}
+
+
+def test_the_kept_settings_are_public_and_are_those_the_chapters_were_made_with(
+    tmp_path: Path,
+) -> None:
+    asked = JobSettings(chapters=(1,), output_folder=tmp_path / "elsewhere")
+    assert kept_settings(tmp_path / "work", asked) == asked  # no project yet: the job's own
+    run(tmp_path, FakeVoice(), (0,), settings={"speed": 1.2, "voice": "bm_george"})
+    kept = kept_settings(tmp_path / "work", asked)
+    assert (kept.speed, kept.voice) == (1.2, "bm_george")
+    assert (kept.chapters, kept.output_folder) == (asked.chapters, asked.output_folder)
+
+
+def test_kept_settings_of_a_version_1_record_name_what_cannot_be_brought_back(
+    tmp_path: Path,
+) -> None:
+    run(tmp_path, FakeVoice(), (0,))
+    as_version_1(tmp_path / "work")
+    with pytest.raises(OutputExistsError, match="earlier version"):
+        kept_settings(tmp_path / "work", JobSettings(chapters=(1,)))
 
 
 def test_adding_chapters_reports_an_unknown_chapter_as_a_fresh_run_does(tmp_path: Path) -> None:

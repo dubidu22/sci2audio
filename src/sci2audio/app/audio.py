@@ -765,6 +765,18 @@ def _same_book(record: ChapterRecord, book: BookInfo, out_folder: Path) -> bool:
     )
 
 
+def kept_settings(work: Path, settings: JobSettings) -> JobSettings:
+    """The settings the project's chapters were made with, read from the working folder's
+    record (#783): only `settings`' chapter choice and output folder are kept from it. The
+    settings as given if the project has no chapters; raises OutputExistsError if the
+    record can't bring them back, as a job that keeps them does."""
+    record = read_record(work)
+    if record is None or not record.chapters:
+        return settings
+    kept, _, _ = _kept(record, settings, None, ())
+    return kept
+
+
 def _kept(
     record: ChapterRecord | None,
     settings: JobSettings,

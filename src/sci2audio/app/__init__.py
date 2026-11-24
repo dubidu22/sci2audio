@@ -15,6 +15,7 @@ from sci2audio.app.audio import (
     AudioProgress,
     PlannedChunk,
     SkippedUtterance,
+    kept_settings,
     plan_audio,
     run_audio_job,
 )
@@ -118,6 +119,7 @@ __all__ = [
     "file_id",
     "find_chapters",
     "is_reference_title",
+    "kept_settings",
     "kokoro_voice",
     "language_warning",
     "load_settings",
