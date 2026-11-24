@@ -9,7 +9,14 @@ import re
 from pathlib import Path
 
 from playwright.sync_api import Page, Route, expect
-from test_player import chunk_id, highlighted, make_audiobook, paused, watch_status
+from test_player import (
+    chunk_id,
+    highlighted,
+    make_audiobook,
+    paused,
+    wait_for_seek,
+    watch_status,
+)
 
 from conftest import Live, SlowFetch, check_axe, inside, serve, tab_key
 from sci2audio.output import read_readalong
@@ -84,6 +91,7 @@ def test_the_next_run_offers_to_continue_where_the_person_stopped(
         assert paused(page)
         assert highlighted(page) == later
         page.wait_for_function("() => document.getElementById('audio').currentTime > 0")
+        wait_for_seek(page)
         state = page.evaluate(
             "() => { const d = JSON.parse(document.getElementById('player-data').textContent);"
             " const a = document.getElementById('audio');"
