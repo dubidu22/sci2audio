@@ -143,3 +143,74 @@ def test_a_write_keeps_a_partial_file_when_the_process_check_is_refused(
     held = _leave(tmp_path / ".x.json.1-0123abcd.partial", age=OLD)
     files.write_texts({tmp_path / "x.json": "whole"}, overwrite=True)
     assert held.exists()
+
+
+class _RefusedReplace:
+    """`os.replace` that refuses with access denied `refusals` times, then replaces."""
+
+    def __init__(self, refusals: int) -> None:
+        self.refusals = refusals
+        self.calls = 0
+        self.real = os.replace
+
+    def __call__(self, source: Path, target: Path) -> None:
+        self.calls += 1
+        if self.calls <= self.refusals:
+            raise PermissionError(13, "Access is denied")
+        self.real(source, target)
+
+
+def _refuse_replace(
+    monkeypatch: pytest.MonkeyPatch, refusals: int, *, windows: bool
+) -> tuple[_RefusedReplace, list[float]]:
+    replace = _RefusedReplace(refusals)
+    pauses: list[float] = []
+    monkeypatch.setattr(files, "_REPLACE_IS_RETRIED", windows)
+    monkeypatch.setattr(files.os, "replace", replace)
+    monkeypatch.setattr(files.time, "sleep", pauses.append)
+    return replace, pauses
+
+
+def test_a_replace_refused_on_windows_is_tried_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Windows refuses a replace while another writer is replacing the same file (#828)."""
+    target = tmp_path / "position.json"
+    target.write_text("old", encoding="utf-8")
+    replace, pauses = _refuse_replace(monkeypatch, 3, windows=True)
+    files.write_texts({target: "new"}, overwrite=True)
+    assert target.read_text(encoding="utf-8") == "new"
+    assert [p.name for p in tmp_path.iterdir()] == [target.name]
+    assert replace.calls == 4
+    assert len(pauses) == 3
+    assert pauses == sorted(pauses)
+    assert pauses[0] == files.REPLACE_FIRST_PAUSE
+
+
+def test_a_replace_refused_every_time_gives_up_and_keeps_the_old_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "position.json"
+    target.write_text("old", encoding="utf-8")
+    replace, pauses = _refuse_replace(monkeypatch, 10_000, windows=True)
+    with pytest.raises(PermissionError):
+        files.write_bytes_atomically(target, b"new", overwrite=True)
+    assert replace.calls == files.REPLACE_ATTEMPTS
+    assert len(pauses) == files.REPLACE_ATTEMPTS - 1
+    assert max(pauses) <= files.REPLACE_MAX_PAUSE
+    assert sum(pauses) < 1.0  # a file another program holds open fails quickly
+    assert target.read_text(encoding="utf-8") == "old"
+    assert [p.name for p in tmp_path.iterdir()] == [target.name]
+
+
+def test_a_refused_replace_off_windows_is_not_tried_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Elsewhere a refused rename is a real permission problem, not a passing clash."""
+    target = tmp_path / "position.json"
+    replace, pauses = _refuse_replace(monkeypatch, 1, windows=False)
+    with pytest.raises(PermissionError):
+        files.write_texts({target: "new"}, overwrite=True)
+    assert replace.calls == 1
+    assert pauses == []
+    assert list(tmp_path.iterdir()) == []

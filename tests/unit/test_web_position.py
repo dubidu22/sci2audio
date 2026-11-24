@@ -118,6 +118,29 @@ def test_two_saves_at_once_both_succeed(tmp_path: Path) -> None:
     assert json.loads((tmp_path / player.POSITION).read_text(encoding="utf-8"))["time"] >= 0
 
 
+def test_a_change_writes_only_what_it_makes_of_a_record(tmp_path: Path) -> None:
+    """#790: `PositionSaves.change` reads and writes in one turn; no record, or a change
+    that gives None, writes nothing."""
+    saves = player.PositionSaves()
+    seen: list[Position] = []
+
+    def later(position: Position) -> Position | None:
+        seen.append(position)
+        return Position(position.chapter, position.time + 1.0)
+
+    saves.change(tmp_path, DOC, STAMP, later)
+    assert seen == []
+    assert not (tmp_path / player.POSITION).exists()
+    saves.save(tmp_path, DOC, STAMP, Position(1, 7.0))
+    before = (tmp_path / player.POSITION).read_bytes()
+    saves.change(tmp_path, DOC, STAMP, lambda position: None)
+    assert (tmp_path / player.POSITION).read_bytes() == before
+    saves.change(tmp_path, DOC, STAMP, later)
+    assert seen == [Position(1, 7.0)]
+    assert player.recorded_position(tmp_path, DOC, STAMP) == Position(1, 8.0)
+    assert not saves.lock.locked()
+
+
 def test_no_record_and_a_folder_in_its_place_are_ignored(tmp_path: Path) -> None:
     assert read_position(tmp_path, DOC, STAMP, two_chapters()) is None
     (tmp_path / player.POSITION).mkdir()
