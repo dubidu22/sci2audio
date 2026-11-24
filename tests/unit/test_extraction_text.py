@@ -668,3 +668,50 @@ def test_a_two_letter_line_can_be_a_title_line() -> None:
     (#561); "0" has none and stays joined."""
     text = "EU\nThe second line runs on for quite a long while here, as prose does.\n"
     assert tags_of(text) == [("p",), ("p",)]
+
+
+# ---- #570: a title line between two prose lines ------------------------------------------
+
+
+@pytest.mark.parametrize("end", [".", "!", "?", "…", ".”", ".)"])
+def test_a_title_line_after_the_end_of_a_sentence_starts_an_element_of_its_own(end: str) -> None:
+    """A short line in capitals inside a paragraph, after a line that ends a sentence, is cut
+    before as well as after: the heading is not read as the end of the prose before it."""
+    text = (
+        f"The first part of the note ends here, at the end of the first part{end}\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_german_title_line_after_a_sentence_starts_an_element_of_its_own() -> None:
+    text = (
+        "Der erste Teil der Notiz endet hier, am Ende des ersten Teils.\n"
+        "ERGEBNISSE DER STUDIE\n"
+        "Der zweite Teil beginnt in dieser Zeile und läuft eine Weile weiter.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+@pytest.mark.parametrize("end", ["", ",", ":", ";", "-"])
+def test_a_title_line_after_a_line_that_runs_on_stays_joined_to_it(end: str) -> None:
+    """Without the end of a sentence before it, the short line in capitals ends the element
+    before it, as it did (#466): an acronym wrapped onto a line of its own stays in place."""
+    text = (
+        f"The first part of the note runs on here and names the agency of the{end}\n"
+        "NASA JPL\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p",)]
+
+
+def test_a_short_last_line_in_capitals_after_a_sentence_stays_joined() -> None:
+    """The last line of a paragraph has no next line to start: a licence in capitals whose
+    short last line follows a full stop stays one paragraph."""
+    text = (
+        "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY. IN NO EVENT SHALL.\n"
+        "THE AUTHORS BE LIABLE.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]

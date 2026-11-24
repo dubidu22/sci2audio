@@ -16,8 +16,10 @@ Introduction" alone or a German date opening a paragraph ("3. Oktober 1990") sta
 Markdown would make a lone "1." line an item; plain text differs on purpose, for those
 German dates and ordinals. And the line after a title line is tagged ``p``: a short line in
 capitals, or a short line without closing punctuation before a line that starts with a
-capital (`_title`). Hard-wrapped prose keeps its lines together: none of its lines but the
-last is short, measured against its longest line that holds a space.
+capital (`_title`). A short line in capitals after a line that ends a sentence, with a line
+after it, is tagged ``p`` too: a heading typed between two prose lines is cut before as well
+as after (#570). Hard-wrapped prose keeps its lines together: none of its lines but the last
+is short, measured against its longest line that holds a space.
 
 `decode_text` is shared with the Markdown reader: a byte order mark decides the encoding; a
 file without one is read as UTF-8 if it is valid UTF-8, else as Windows-1252 as the WHATWG
@@ -83,6 +85,7 @@ _BULLET = re.compile(r"[-*\u2022]\s+\S")
 _NUMBERED = re.compile(r"(\d{1,3})([.)])\s+\S")
 TITLE_SHARE = 0.6  # a title line is at most this share of its paragraph's longest line
 _ENDS = ".!?:;,\u2026-\u2010\u2011\u2013\u2014/"  # a line ending in one of these runs on
+_STOPS = (".", "!", "?", "\u2026")  # a line ending in one of these ends a sentence (#570)
 _CLOSERS = "\"'\u201c\u201d\u2019\u00ab\u00bb\u2039\u203a)]}"  # looked through at a line's end
 # looked through at a line's start
 _OPENERS = "\"'\u201c\u201e\u2018\u201a\u00ab\u00bb\u2039\u203a([{"
@@ -211,8 +214,9 @@ def read_text(data: bytes, name: str) -> Content:
 
 def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
     """The tags of each line of a plain-text paragraph (#466): ``p`` for its first line and
-    for a line after a title line (`_title`), ``ul, li`` or ``ol, li`` for a line that opens a
-    list item, and the tags of the line before plus ``br`` for any other line.
+    for a line after a title line (`_title`) and for a heading between two prose lines
+    (`_heading`), ``ul, li`` or ``ol, li`` for a line that opens a list item, and the tags
+    of the line before plus ``br`` for any other line.
 
     A line with a list marker (`_items`) opens an item only where the shape says list: as
     the paragraph's first line, right after a line that opens or continues an item, or after
@@ -231,7 +235,11 @@ def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
         if k in items and anchored:
             element = items[k]
             out.append(element)
-        elif k and not _title(paragraph[k - 1], text, longest):
+        elif (
+            k
+            and not _title(paragraph[k - 1], text, longest)
+            and not _heading(paragraph, k, longest)
+        ):
             out.append((*element, "br"))
         else:
             element = ("p",)
@@ -268,11 +276,31 @@ def _title(line: str, after: str, longest: int) -> bool:
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
     has no lower-case letter ("LISTENING TO PAPERS") or ends without punctuation, hyphen or
     dash before a line starting with a capital ("A pilot note" / "Written for ...")."""
-    letters = [c for c in line if c.isalpha()]
-    if len(letters) < 2 or len(line) > TITLE_SHARE * longest:
+    if not _short(line, longest):
         return False
-    if not any(c.islower() for c in letters) and any(c.isupper() for c in letters):
+    if _capitals(line):
         return True
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     return after.lstrip(_OPENERS)[:1].isupper()
+
+
+def _heading(paragraph: list[str], k: int, longest: int) -> bool:
+    """True if line `k` is a heading set between two prose lines (#570): a short line in
+    capitals (`_title`'s first kind, "RESULTS") after a line that ends a sentence, and not
+    the paragraph's last line. A short last line in capitals ends the prose it follows (a
+    licence in capitals), and one after a line that runs on stays in its sentence."""
+    if not 0 < k < len(paragraph) - 1 or not paragraph[k - 1].rstrip(_CLOSERS).endswith(_STOPS):
+        return False
+    return _short(paragraph[k], longest) and _capitals(paragraph[k])
+
+
+def _short(line: str, longest: int) -> bool:
+    """True if `line` holds at least two letters and is no longer than `TITLE_SHARE` of the
+    paragraph's longest line."""
+    return sum(c.isalpha() for c in line) >= 2 and len(line) <= TITLE_SHARE * longest
+
+
+def _capitals(line: str) -> bool:
+    """True if `line` holds a capital and no lower-case letter."""
+    return not any(c.islower() for c in line) and any(c.isupper() for c in line)
