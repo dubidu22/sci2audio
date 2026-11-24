@@ -221,6 +221,20 @@ BROKEN_V1 = {
     "an empty sentence": GOOD.replace(b'"text": "\xc2\xb5 = 3 "', b'"text": ""'),
     "a nul in a note": GOOD.replace(b'"note": "Were', b'"note": "\\u0000Were'),
     "nested too deeply": b"[" * 100_000 + b"]" * 100_000,
+    # one past each limit of the v1.3 reader, and numbers of another type
+    "a note one character too long": GOOD.replace(
+        b'"note": "Were naps left out on purpose? \xce\xb1 \xe2\x89\xa4 0.05"',
+        b'"note": "' + b"n" * (v13.NOTE_LIMIT + 1) + b'"',
+    ),
+    "a created time one character too long": GOOD.replace(
+        b'"created": "2026-09-02T08:15:00Z"', b'"created": "' + b"t" * 41 + b'"', 1
+    ),
+    "a changed time one character too long": GOOD.replace(
+        b'"changed": "2026-09-03T21:40:12Z"', b'"changed": "' + b"t" * 41 + b'"', 1
+    ),
+    "a block true": GOOD.replace(b'"block": 4', b'"block": true'),
+    "a block as text": GOOD.replace(b'"block": 4', b'"block": "1"'),
+    "an end as a fraction": GOOD.replace(b'"end": 32', b'"end": 32.0'),
 }
 # texts the v1.3 reader accepts but the capture model refuses (#786: no UTF-8 form)
 SURROGATE_V1 = {
@@ -242,6 +256,7 @@ def _refused_and_untouched(work: Path, raw: bytes, match: str) -> None:
 
 @pytest.mark.parametrize("case", sorted(BROKEN_V1))
 def test_a_v1_file_v13_cant_read_is_reported_and_left_as_it_is(work: Path, case: str) -> None:
+    assert BROKEN_V1[case] != GOOD
     raw = _put_markers(work, BROKEN_V1[case])
     with pytest.raises(v13.MarkersBroken):  # v1.3 refuses it too
         v13.read_markers(work, DOC)
@@ -257,6 +272,37 @@ def test_a_lone_surrogate_v13_accepts_is_refused_and_nothing_is_written(
     raw = _put_markers(work, SURROGATE_V1[case])
     assert len(v13.read_markers(work, DOC)) == 3  # v1.3 reads it
     _refused_and_untouched(work, raw, "surrogate")
+
+
+def test_the_v1_limits_are_the_v13_readers() -> None:
+    assert module.MARKERS_LIMIT == v13.FILE_LIMIT
+    assert module.MAX_MARKERS == v13.MAX_MARKERS
+    assert module.NOTE_LIMIT == v13.NOTE_LIMIT
+
+
+def test_a_v1_file_at_every_limit_carries_over(work: Path) -> None:
+    """Exactly 2000 markers, a 4000-character note and 40-character times: v1.3 reads
+    them, so every one carries over."""
+    time = "2026-09-02T08:15:00.000000000000000+0000"
+    assert len(time) == 40
+    note = "n" * v13.NOTE_LIMIT
+    full = [
+        Marker(f"{n:016x}", time, time, v13.Anchor(n, 0, 1, "x"), note if n == 0 else "")
+        for n in range(v13.MAX_MARKERS)
+    ]
+    raw = _put_markers(work, markers_text(DOC, full))
+    assert len(v13.read_markers(work, DOC)) == v13.MAX_MARKERS
+    carried = load_captures(work, DOC)
+    assert carried is not None
+    assert len(carried.captures) == v13.MAX_MARKERS
+    first = carried.captures[0]
+    assert (first.type, first.text, first.created, first.changed) == (
+        CaptureType.NOTE,
+        note,
+        time,
+        time,
+    )
+    _untouched(work, raw, captures=True)
 
 
 def test_too_many_markers_are_refused(work: Path) -> None:
@@ -418,23 +464,38 @@ from pathlib import Path
 from sci2audio.app import files
 from sci2audio.app.captures import load_captures
 
-def killed(partial, target, overwrite):
+def before_rename(partial, target, overwrite):
     os._exit(9)  # killed outright: the partial file is complete, nothing renamed
 
-files._commit = killed
+def half_written(partial, content):
+    with partial.open("w", encoding="utf-8", newline="\\n") as text:
+        text.write(content[: len(content) // 2])
+        text.flush()
+        os.fsync(text.fileno())
+    os._exit(9)  # killed outright while the partial file is half written
+
+if sys.argv[3] == "commit":
+    files._commit = before_rename
+else:
+    files._write_partial = half_written
 load_captures(Path(sys.argv[1]), sys.argv[2])
 """
 
 
-def test_a_carry_over_killed_mid_write_is_done_again_on_the_next_load(work: Path) -> None:
+@pytest.mark.parametrize("point", ["write", "commit"])
+def test_a_carry_over_killed_mid_write_is_done_again_on_the_next_load(
+    work: Path, point: str
+) -> None:
     raw = _put_markers(work, V1)
     child = subprocess.run(
-        [sys.executable, "-c", _KILLED, str(work), DOC], capture_output=True, timeout=120
+        [sys.executable, "-c", _KILLED, str(work), DOC, point], capture_output=True, timeout=120
     )
     assert child.returncode == 9, child.stderr
     assert not (work / CAPTURES).exists()
-    left = [p.name for p in work.iterdir() if p.name.endswith(".partial")]
+    left = [p for p in work.iterdir() if p.name.endswith(".partial")]
     assert len(left) == 1  # swept by a later write once its process is gone an hour
+    full = len(captures_text(CARRIED).encode("utf-8"))
+    assert (left[0].stat().st_size == full) is (point == "commit")
     assert load_captures(work, DOC) == CARRIED
     assert (work / MARKERS).read_bytes() == raw
     assert read_captures(work, DOC) == CARRIED
