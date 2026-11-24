@@ -1,22 +1,24 @@
 # ruff: noqa: RUF001
 # (minus signs, dashes and the times sign are what these texts are made of)
 """Readings a second run over the first run's script keeps (D-577): an arrow of logic beside
-"Nx" (#843), an arrow or a sign where another step reads what stands before it (#924), and
-an ISO date after a dash range (#957). Each is pinned on the printed text and on its first
-run's script, in English and German."""
+"Nx" (#843, #984), an arrow or a sign where another step reads what stands before it (#924,
+#972), an ISO date after a dash range (#957) and a part's Roman numeral before a full stop
+(#976). Each is pinned on the printed text and on its first run's script, in English and
+German."""
 
 import pytest
 
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
 from sci2audio.textprep import StepContext, run_steps, spoken_text
+from sci2audio.textprep.notation import in_ascii_run
 
 
-def _both_runs(text: str, language: str) -> tuple[str, str]:
+def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) -> tuple[str, str]:
     context = StepContext(language)
-    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    document = make_document([(kind, text)], language)
     first = spoken_text(run_steps(document, context, strict=True).script())
-    again = make_document([(BlockKind.PARAGRAPH, first)], language)
+    again = make_document([(kind, first)], language)
     return first, spoken_text(run_steps(again, context, strict=True).script())
 
 
@@ -66,7 +68,77 @@ def _both_runs(text: str, language: str) -> tuple[str, str]:
         ("from 2019-03-01–2019-03-05", "en", "from 1 March 2019 to 5 March 2019"),
         ("3–3–1999-02-01", "de", "3 bis 3 bis ersten Februar 19 hundert 99"),
         ("3-3-1999-02-01", "de", "3-3-1999-02-01"),
+        # #972: a sign or an arrow after an English abbreviation read with its full stop
+        ("e.g.=1", "en", "for example equals 1"),
+        ("approx.⇒1", "en", "approximately implies 1"),
+        ("i.e.=2", "en", "that is equals 2"),
+        ("cf.⇒A", "en", "compare implies A"),
+        (
+            "See e.g. = 1 and i.e. ⇒ 2 here.",
+            "en",
+            "See for example equals 1 and that is implies 2 here.",
+        ),
+        ("e.g. ⇒ the data", "en", "for example ⇒ the data"),  # named between two words
+        ("End. = 1", "en", "End. = 1"),  # no abbreviation: as before
+        # #984: the "=" after "⇐" or "⇐=" is a piece of that arrow, so "=>" there is no arrow
+        # and ">" is a sign to both steps; before "<" it ends the pieced arrow ("⇐=<=>")
+        ("A ⇐==> 3x", "de", "A folgt aus größer als 3x"),
+        ("A ⇐=> 3x", "de", "A folgt aus größer als 3x"),
+        ("A ⇐= > 3x", "de", "A folgt aus größer als 3x"),
+        ("A ⇐=<=> 3x", "de", "A folgt aus genau dann, wenn 3 mal"),
+        ("A ⇐==> 3x und B", "de", "A folgt aus größer als 3x und B"),
+        # ... in English a bare "greater than" after the arrow's words is prose (D-605)
+        ("A ⇐==> 3x", "en", "A is implied by greater than 3 times"),
+        ("A ⇐= > 3x", "en", "A is implied by greater than 3 times"),
+        ("A ⇒ > 3x", "en", "A implies greater than 3 times"),
+        ("A ⇐=<=> 3x", "en", "A is implied by if and only if 3 times"),
+        ("y > 3x", "en", "y greater than 3x"),  # no arrow before the sign: as before
+        # #976: a part's Roman numeral before a full stop, in a paragraph
+        ("Siehe Kapitel I.", "de", "Siehe Kapitel 1."),
+        ("Kapitel I. Einleitung", "de", "Kapitel 1. Einleitung"),
+        ("Kapitel IV.", "de", "Kapitel 4."),
+        ("Das zeigt Teil II.", "de", "Das zeigt Teil 2."),
+        ("Kap. I. Einleitung", "de", "Kapitel 1. Einleitung"),
+        ("Teil II und III. Dann", "de", "Teil II und III. Dann"),  # a run: left whole
+        # ... but not after another keyword or word, nor where "1." is an ordinal next time
+        ("Ludwig XIV.", "de", "Ludwig XIV."),
+        ("Typ I.", "de", "Typ I."),
+        ("Phase II. Dann", "de", "Phase II. Dann"),
+        ("Kapitel I. Teil", "de", "Kapitel I. Teil"),
+        ("Kapitel I. Mai", "de", "Kapitel I. Mai"),
+        ("Kapitel I.2", "de", "Kapitel I.2"),
     ],
 )
 def test_the_reading_is_the_same_on_both_runs(printed: str, language: str, said: str) -> None:
     assert _both_runs(printed, language) == (said, said)
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("Kapitel I. Einleitung", "Kapitel 1. Einleitung"),
+        ("Teil II.", "Teil 2."),
+        ("Typ I.", "Typ I."),
+    ],
+)
+def test_a_heading_reads_a_part_number_as_a_paragraph_does(printed: str, said: str) -> None:
+    # #976
+    assert _both_runs(printed, "de", BlockKind.HEADING) == (said, said)
+
+
+@pytest.mark.parametrize(
+    ("text", "arrow", "in_run"),
+    [
+        ("A ==> B", "=>", True),
+        ("A >=> B", "=>", True),
+        ("A ⇐==> B", "=>", True),  # the "=" after "⇐=" is that arrow's (#984)
+        ("A ⇐=> B", "=>", True),
+        ("A ⇐=<=> B", "<=>", False),  # "⇐=" ends before "<": two arrows
+        ("A <<=> B", "<=>", True),
+        ("A => B", "=>", False),
+        ("A ⇒=> B", "=>", False),
+    ],
+)
+def test_an_ascii_arrow_after_a_pieced_left_arrow(text: str, arrow: str, in_run: bool) -> None:
+    start = text.rindex(arrow)
+    assert in_ascii_run(text, start, arrow) is in_run

@@ -305,6 +305,7 @@ class UnitStep(TextStep):
                 table.said_operators,
                 table.words.decimal,
                 table.compared,
+                english=table.language == "en",
             ):
                 yield self._symbol(index, text, match.start("x"), words["times"])
 
@@ -751,7 +752,15 @@ def reads_x_after(text: str, end: int, language: str) -> bool:
     times = table.words.words["times"]
     return any(
         match.end("number") == end
-        and _times_x(text, match, times, table.said_operators, table.words.decimal, table.compared)
+        and _times_x(
+            text,
+            match,
+            times,
+            table.said_operators,
+            table.words.decimal,
+            table.compared,
+            english=table.language == "en",
+        )
         for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
     )
 
@@ -763,6 +772,8 @@ def _times_x(
     said: re.Pattern[str] | None = None,
     decimal: str = ".",
     compared: re.Pattern[str] | None = None,
+    *,
+    english: bool = False,
 ) -> bool:
     """True if the letter x stands for "times": between numbers, or glued after one."""
     after = match.end("x")
@@ -780,7 +791,7 @@ def _times_x(
     if len(rest) == 2 and rest[0] in "⁺⁻" and rest[1] in "⁰¹²³⁴⁵⁶⁷⁸⁹":
         return False  # "3x⁻²" is "3 x⁻²", as "1x⁶" is
     return _boundary(text, after) and not _in_algebra(
-        text, match.start("number"), after, times, said, compared
+        text, match.start("number"), after, times, said, compared, english=english
     )
 
 
@@ -804,6 +815,8 @@ def _in_algebra(
     times: str,
     said: re.Pattern[str] | None = None,
     compared: re.Pattern[str] | None = None,
+    *,
+    english: bool = False,
 ) -> bool:
     """True for "2x" in a formula: an operator right before the number or after the x
     ("y = 2x + 1", "3x^2", "= 4x."), so the x is the variable, not "times". The word this
@@ -820,15 +833,20 @@ def _in_algebra(
     if compared is not None and compared.search(text, max(0, start - 24), start):
         return True  # "y less than 2x" (#358, D-646)
     before = head[-1:]
+    before_at = max(0, start - len(times) - 3) + len(head) - 1
     ahead = text[end : end + 3]
     after = ahead.lstrip(" ")[:1]
     after_at = end + len(ahead) - len(ahead.lstrip(" "))
     # the "=" or ">" of an arrow of logic is no operator: the statistics step reads "=>" as
     # "implies", and "3x" before that word is "3 times" on a second run, as "3x ⇒" is (#843)
+    # ... nor, in English, a "<" or ">" right after such an arrow: its reading follows the
+    # arrow's words ("is implied by greater than 3x"), where a bare "greater than" is prose
+    # and a second run reads "3 times" (D-605, #984)
     if (
         before != ""
         and before in _OPERATORS
-        and not _arrow_of_logic(_LOGIC_ARROW_BEFORE.search(text, max(0, start - 16), start), text)
+        and not _arrow_before(text, start)
+        and not (english and before in "<>" and _arrow_before(text, before_at))
     ):
         return True
     return (
@@ -836,6 +854,18 @@ def _in_algebra(
         and after in _OPERATORS + "("
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
     )
+
+
+def _arrow_before(text: str, at: int) -> bool:
+    """True if an arrow of logic ends right before `at`, maybe with spaces between: one the
+    statistics step reads whole there, not the start of a longer run ("=>" in "=>>")."""
+    found = _LOGIC_ARROW_BEFORE.search(text, max(0, at - 16), at)
+    if found is None:
+        return False
+    whole = _LOGIC_ARROW.match(text, found.start())
+    if whole is None or whole.end() != found.start() + len(found.group().rstrip(" ")):
+        return False
+    return _arrow_of_logic(found, text)
 
 
 def _arrow_of_logic(found: re.Match[str] | None, text: str) -> bool:

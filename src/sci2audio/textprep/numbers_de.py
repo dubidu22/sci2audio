@@ -1252,6 +1252,14 @@ _KEYWORDS = frozenset(
     | {"anhang", "abschnitt", "tabelle", "tabellen", "abbildung", "abbildungen", "weltkrieg"}
 )
 _ABBREVIATED_KEYWORDS = frozenset({"abb", "tab", "kap", "abschn", "bd", "anh"})
+# the keywords that number a part of a text: their one numeral is read before a full stop too
+# ("Kapitel I. Einleitung" as "Kapitel I, Einleitung" is, #976); after any other keyword
+# ("Typ I.", "Phase II.") such a numeral is left as printed, as is "Ludwig XIV.", and so is a
+# run ("Teil II und III.")
+_PART_KEYWORDS = frozenset(
+    {"kapitel", "teil", "teile", "abschnitt", "anhang", "band", "bände"}
+    | {"kap", "abschn", "anh", "bd"}
+)
 _ROMAN = r"[IVX]{1,6}"
 # a number joined after a Roman numeral or a label's number; unlike `_JOINED_AFTER` not by a
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
@@ -1262,11 +1270,13 @@ _ROMAN_RUN = re.compile(
     + _ROMAN
     + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
     + _ROMAN
-    # with a full stop after it, it is left as printed ("Ludwig XIV.", "Kapitel XIV. Kapitel":
-    # "14. Kapitel" would be an ordinal on a second run)
+    # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a full
+    # stop and white space or the end, only one numeral after a part's keyword is read
+    # (`_PART_KEYWORDS`)
     # nor a run cut short before such a numeral: "Teil II und III." is left whole
     # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
-    + r")*)(?![\w⁺⁻.%]|\s+%|\s+(?:Quadrat|hoch)\b|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+    + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z)|\s+%|\s+(?:Quadrat|hoch)\b"
+    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
     + _ROMAN
     + ")"
 )
@@ -1298,6 +1308,12 @@ def _roman_numerals(plain: str) -> list[Candidate]:
         parts = list(_ROMAN_PART.finditer(match["run"]))
         if not all(_roman_value(p["numeral"]) for p in parts if p["numeral"]):
             continue  # "Typ IIX": not a numeral, so nothing in the run is read as one
+        if plain[match.end("run") : match.end("run") + 1] == "." and (
+            match["keyword"].lower() not in _PART_KEYWORDS
+            or len(parts) > 1
+            or _ordinal_on_a_second_run(plain, *match.span("run"), str(_roman_value(match["run"])))
+        ):
+            continue  # "Typ I.", "Teil II und III.", "Kapitel I. Teil": left as printed
         for part in parts:
             start, end = offset + part.start(), offset + part.end()
             if part["numeral"]:
@@ -1310,6 +1326,24 @@ def _roman_numerals(plain: str) -> list[Candidate]:
                 reason = f'"{sep}" between Roman numerals read as "{words.strip()}"'
                 found.append(Candidate(start, end, words, reason))
     return found
+
+
+def _ordinal_on_a_second_run(plain: str, start: int, end: int, digits: str) -> bool:
+    """True if the numeral at `start`, read as `digits`, makes an ordinal or a date with the
+    full stop after it on a second run ("Kapitel I. Teil" is "Kapitel 1. Teil" then, whose
+    "1." is "erster"; "Kapitel I. Mai"): it is left as printed there, as before (#976). An
+    abbreviated keyword is its words there ("Kap. I. Kapitel" is "Kapitel 1. Kapitel"). Only
+    the text around the numeral is looked at, so long blocks stay linear."""
+    low = max(0, start - 2 * WINDOW)
+    before = plain[low:start]
+    read = read_before(plain, start, "de")
+    if read is not None and read[0] >= low:
+        printed = plain[read[0] : start]
+        gap = printed[len(printed.rstrip()) :]
+        before = plain[low : read[0]] + read[1] + gap
+    around = before + digits + plain[end : end + 2 * WINDOW]
+    at, stop = len(before), len(before) + len(digits) + 1  # the full stop with it
+    return any(c.start < stop and c.end > at for c in (*_ordinals(around), *_dates(around)))
 
 
 # --- all rules -------------------------------------------------------------------------------

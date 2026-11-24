@@ -3265,3 +3265,54 @@ expected = [
     "3-3-1999-02-01",
     "Wir maßen vom ersten März 2019 bis fünften März 2019.",
 ]
+
+[[case]]
+id = "de-a-part-number-in-roman-numerals-before-a-full-stop"
+audit = 0
+issue = 976
+goal = "A Roman numeral after 'Kapitel', 'Teil' and other part keywords is read before a full stop too ('Kapitel I.' as 'Kapitel 1.'), in a paragraph and a heading; the full stop stays and ends the sentence. After other words ('Ludwig XIV.', 'Typ I.') and where '1.' would be an ordinal on a second run ('Kapitel I. Teil') the numeral is left as printed (#976)."
+language = "de"
+blocks = [
+    { kind = "heading", text = "Kapitel I. Einleitung" },
+    { kind = "paragraph", text = "Siehe Kapitel I. Dann folgt Kapitel IV." },
+    { kind = "paragraph", text = "Das zeigt Teil II." },
+    { kind = "heading", text = "Teil II." },
+    { kind = "paragraph", text = "Ludwig XIV. regierte lange. Typ I. ist selten." },
+    { kind = "paragraph", text = "Kapitel I. Teil" },
+]
+expected = [
+    "Kapitel 1. Einleitung",
+    "Siehe Kapitel 1. Dann folgt Kapitel 4.",
+    "Das zeigt Teil 2.",
+    "Teil 2.",
+    "Ludwig XIV. regierte lange. Typ I. ist selten.",
+    "Kapitel I. Teil",
+]
+utterances = [
+    "Kapitel 1.",
+    "Einleitung",
+    "Siehe Kapitel 1.",
+    "Dann folgt Kapitel 4.",
+    "Das zeigt Teil 2.",
+    "Teil 2.",
+    "Ludwig XIV. regierte lange.",
+    "Typ I. ist selten.",
+    "Kapitel I. Teil",
+]
+
+[[case]]
+id = "de-an-arrow-in-pieces-and-a-sign-before-nx"
+audit = 0
+issue = 984
+goal = "In 'A ⇐==> 3x' the statistics step reads '⇐==' as the arrow and '>' as a sign, so the units step takes '>' as a sign before '3x' too and leaves '3x' as printed, as before #971 (#984)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A ⇐==> 3x und B." },
+    { kind = "paragraph", text = "Also A ⇐=> 3x und B." },
+    { kind = "paragraph", text = "Also A ⇐=<=> 3x und B." },
+]
+expected = [
+    "Also A folgt aus größer als 3x und B.",
+    "Also A folgt aus größer als 3x und B.",
+    "Also A folgt aus genau dann, wenn 3 mal und B.",
+]

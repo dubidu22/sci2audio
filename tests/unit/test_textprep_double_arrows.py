@@ -5,7 +5,7 @@ both runs. The voices read "=⇒" as "equals" ("gleich"), which flips the meanin
 operands the arrows are read as words, since the voices say nothing for them (#796)."""
 
 import pytest
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from sci2audio.core import BlockKind, apply_edits
@@ -123,6 +123,10 @@ def arrow_texts(draw: st.DrawFn) -> str:
 
 
 @given(arrow_texts(), st.sampled_from(["en", "de"]))
+@example("e.g.=1", "en")  # #972
+@example("cf.\u21d2A", "en")  # #972
+@example("A \u21d0==> 3x", "de")  # #984
+@example("A \u21d0==> 3x", "en")  # #984
 def test_arrows_and_signs_read_the_same_on_a_second_run(text: str, language: str) -> None:
     """D-577 for #796: whether an arrow is read depends on nothing a first run changes."""
     first, second = first_and_second_run(text, language)
