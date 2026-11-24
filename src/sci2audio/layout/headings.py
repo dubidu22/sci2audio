@@ -27,7 +27,9 @@ level 1. Under a lettered subsection, a number with a closing parenthesis ("1) H
 one level deeper than the letter, kept as printed ("1)", #798). The letter must be a heading
 the font rules keep, in the same Roman section: before the first such letter of a Roman
 section, and in a document that is not Roman, "1)" is no heading number, so a "1)" list item
-stays a list item unless it is set like these headings. The outline reads it the same way.
+stays a list item unless it is set like these headings. The "1)" numbers take their style
+from each other, not from the letters at their depth ("A.1.", #918). The outline reads them
+the same way.
 
 A heading stands over text no larger than the body text, or over another heading: the
 title, the authors and their affiliations at the top of a paper are not headings.
@@ -301,8 +303,11 @@ class _Headings:
         # the Roman section numbers by block index, with their values (`_roman`)
         self.sections: dict[int, int] = {}
         # the lettered subsections of a Roman document kept as headings, by block index,
-        # with their depths (set by `_parenthesised`)
+        # with their depths (set by `_parenthesised`, cut to the headings by `levels`)
         self.letters: dict[int, int] = {}
+        # each "1)" number of a Roman document, with the letter it stands under (positions
+        # in `texts`; set by `_parenthesised`)
+        self.under: dict[int, int] = {}
         arabic = sum(label[0].isdigit() for label in numbers.values())
         roman = self._roman(arabic)
         self.roman = roman is not None
@@ -360,38 +365,56 @@ class _Headings:
         numbered = len(self.numbers) >= self.settings.heading_repeats
         found = self._numbered() if numbered else self._unnumbered()
         found |= self._numeral_one(found)
-        # from the end: a heading stands over body text or another heading
+        kept = self._over_text(found)
+        # a "1)" under a letter that is no heading has no letter over it, so it is none
+        # either (#918); dropping it may drop the heading over it, so go on until none is
+        while lost := {k for k in kept if k in self.under and self.under[k] not in kept}:
+            found = {k: level for k, level in found.items() if k not in lost}
+            kept = self._over_text(found)
+        heads = {self.texts[k].index for k in kept}
+        self.letters = {at: depth for at, depth in self.letters.items() if at in heads}
+        return {self.texts[k].index: level for k, level in kept.items()}
+
+    def _over_text(self, found: dict[int, tuple[int, str]]) -> dict[int, tuple[int, str]]:
+        """The headings found that stand over body text or another heading, from the end."""
         kept: dict[int, tuple[int, str]] = {}
         for k in sorted(found, reverse=True):
             after = k + 1
             if after < len(self.texts) and after not in kept and self._larger(self.texts[after]):
                 continue
             kept[k] = found[k]
-        return {self.texts[k].index: level for k, level in kept.items()}
+        return kept
 
-    def _styles(self) -> dict[int, Style]:
-        """The style of each depth of number: the one most of its numbers have."""
-        votes: dict[int, Counter[Style]] = {}
+    def _kind(self, k: int) -> tuple[int, bool]:
+        """The kind of number at `k`: its depth, and if it is a "1)" number, which votes for
+        its style apart from the letters of its depth ("A.1.", #918)."""
+        return self.depths[k], k in self.under
+
+    def _styles(self) -> dict[tuple[int, bool], Style]:
+        """The style of each kind of number (`_kind`): the one most of its numbers have."""
+        votes: dict[tuple[int, bool], Counter[Style]] = {}
         for k in self.numbers:
-            votes.setdefault(self.depths[k], Counter())[self.texts[k].style] += 1
-        return {depth: vote.most_common(1)[0][0] for depth, vote in votes.items()}
+            votes.setdefault(self._kind(k), Counter())[self.texts[k].style] += 1
+        return {kind: vote.most_common(1)[0][0] for kind, vote in votes.items()}
 
     def _parenthesised(self) -> None:
         """Adds the "1)" numbers of a Roman document to its numbers (#798): one level deeper
         than the last letter in its own Roman section that is set in its depth's style (a
         letter the font rules keep). Those letters are recorded for the outline (`depth`). A
-        "1)" without such a letter is no number, so it takes no part in the style vote."""
+        "1)" without such a letter is no number, so it takes no part in the style vote; the
+        "1)" numbers vote among themselves (`_kind`), so the letters keep these styles."""
         styles = self._styles()  # of the Roman numbers and letters only
-        under: int | None = None  # the depth of the last such letter in this Roman section
+        under: int | None = None  # the last such letter in this Roman section
         for k in self.short:
             index, label = self.texts[k].index, self.numbers.get(k)
             text = self.texts[k].block.text.strip()
             if index in self.sections:
                 under = None
-            elif label is not None and styles[self.depths[k]] == self.texts[k].style:
-                under = self.letters[index] = self.depths[k]
+            elif label is not None and styles[self._kind(k)] == self.texts[k].style:
+                self.letters[index], under = self.depths[k], k
             elif label is None and under is not None and (item := _PAREN_NUMBER.match(text)):
-                self.numbers[k], self.depths[k] = item["label"], under + 1
+                self.numbers[k], self.depths[k] = item["label"], self.depths[under] + 1
+                self.under[k] = under
 
     def _numbered(self) -> dict[int, tuple[int, str]]:
         """Headings in a document that numbers them: each depth of number in one style."""
@@ -402,7 +425,7 @@ class _Headings:
         started = False  # the first numbered heading has come
         for k in self.short:
             style, label = self.texts[k].style, self.numbers.get(k)
-            if label is not None and styles[self.depths[k]] == style:
+            if label is not None and styles[self._kind(k)] == style:
                 found[k] = (self.depths[k] + shift, label)
                 started = True
             elif label is None and started and style > max(styles.values()):
