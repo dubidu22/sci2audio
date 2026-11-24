@@ -480,7 +480,12 @@ class _Rules:
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
+        # a join word before and after a removal, which would read side by side (#628)
+        either = rf"{words.and_word}|{words.or_word}"
+        self.join_after = re.compile(rf"\s+(?:{either})(?!\w)", re.IGNORECASE)
+        self.join_before = re.compile(rf"\s+({either})\s*\Z", re.IGNORECASE)
         self._paired: set[int] = set()  # the later brackets of lists, this look only
+        self._link_ends: dict[int, int] = {}  # where each link removal ends, this look only
         self._numbered: set[int] = set()  # the square brackets decided, this look only
         self.identifiers = _identifiers_pattern(words)
         leads = "|".join(
@@ -608,13 +613,44 @@ class _Rules:
         self._runs: dict[int, int] = {}  # for `_before_removals`, this look only
         self._paired, self._numbered = set(), set()
         self._link_starts = {end: start for start, end in links}  # for `_numeric`
+        self._link_ends = {start: end for start, end in links}  # for `_glued_word`
         roots = brackets(text)
         self._lists = self._bracket_lists(text, roots)
         for node in roots:
             self._visit(text, node, found, cuts)
         found.sort()
         settled = _settled(text, self._unhung(text, _settled(text, found), _pairs(roots)))
-        return _clear_of_links(text, _shells(text, self._tidied(text, settled)), links)
+        tidied = self._joins_apart(text, _shells(text, self._tidied(text, settled)))
+        return _clear_of_links(text, tidied, links)
+
+    def _joins_apart(self, text: str, found: list[_Found]) -> list[_Found]:
+        """A removal between two join words takes the one before along: "Then it and (Lee,
+        2019) and more" reads "Then it and more", not "Then it and and more"; so does "Then it
+        and https://x.org (Lee, 2019) and more", the join word then an edit of its own before
+        the link's removal (#628). Not where the join word starts the sentence."""
+        result: list[_Found] = []
+        kept_end = 0
+        for start, end, kind, replacement, reason in found:
+            if kind is EditKind.REMOVE and self.join_after.match(text, end):
+                before = start  # past the removed links right before it
+                while before in self._link_starts and self._link_starts[before] >= kept_end:
+                    before = self._link_starts[before]
+                window = max(kept_end, before - _LOOK_BACK)
+                left = self.join_before.search(text, window, before)
+                if (
+                    left
+                    and text[window : left.start()].strip()
+                    and not self._starts_sentence(text, left.start(1))
+                ):
+                    said, _, feature = reason.rpartition(" (")
+                    reason = f'{said}; "{left.group(1)}" before it goes too ({feature}'
+                    if before == start:
+                        start = left.start()
+                    else:
+                        result.append((left.start(), before, kind, replacement, reason))
+            result.append((start, end, kind, replacement, reason))
+            kept_end = end
+        return result
 
     def _unhung(self, text: str, found: list[_Found], pairs: dict[int, int]) -> list[_Found]:
         """Removals that would leave a separator hanging at a bracket's edge take it along:
@@ -1740,7 +1776,17 @@ class _Rules:
             if start > 0:
                 after = _SPACE.match(text, end)
                 return start, after.end() if after else end
+        if start > 0 and text[start - 1].isspace() and self._glued_word(text, end):
+            # "Text (Smith, 2019)Lee" reads "Text Lee", not "TextLee"; "Text
+            # [1](https://a.org)Smith" too, once the links step took the link (#629)
+            return start, end
         return _with_space(text, start, end)
+
+    def _glued_word(self, text: str, position: int) -> bool:
+        """True if a word stands right at `position`, past the removed links that start there."""
+        while position in self._link_ends:
+            position = self._link_ends[position]
+        return text[position : position + 1].isalnum()
 
 
 _IDENTIFIER_REASON = "identifier"  # how an identifier's removal starts its reason
