@@ -3083,6 +3083,75 @@ expected = [
     "Figure 2: ⇔",
 ]
 
+# ---- #652 nothing to speak: a lone dash, bullet, quote mark or bracket ------------------------
+# The German cases stand here because german.toml is held by an open PR; they set language = "de".
+
+[[case]]
+id = "de-dash-list-middle-dash-on-its-own-line"
+audit = 0
+issue = 652
+goal = "Three dash-led questions, the middle dash on a line of its own: three utterances, each led by its own dash, none only '-', nothing after a question mark (#652)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?\n-\nWelche Hürden treten auf und wie lassen sie sich abbauen?\n- Mit wem lässt sich der Ort gemeinsam gestalten?" }]
+expected = ["- Welche Räume stehen offen und wie lassen sie sich nutzen? - Welche Hürden treten auf und wie lassen sie sich abbauen? - Mit wem lässt sich der Ort gemeinsam gestalten?"]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "- Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "- Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+[[case]]
+id = "de-dash-list-split-into-blocks-by-layout"
+audit = 0
+issue = 652
+goal = "The same list as layout split it in the reported handout: a block of only '-', and the next item's dash at the end of the block before. No utterance is only '-', and none ends in a dash after its question mark (#652)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "- Welche Räume stehen offen und wie lassen sie sich nutzen?" },
+    { kind = "paragraph", text = "-" },
+    { kind = "paragraph", text = "Welche Hürden treten auf und wie lassen sie sich abbauen?\n-" },
+    { kind = "paragraph", text = "Mit wem lässt sich der Ort gemeinsam gestalten?" },
+]
+expected = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "-",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen? -",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+utterances = [
+    "- Welche Räume stehen offen und wie lassen sie sich nutzen?",
+    "Welche Hürden treten auf und wie lassen sie sich abbauen?",
+    "Mit wem lässt sich der Ort gemeinsam gestalten?",
+]
+
+[[case]]
+id = "lone-bullets-quotes-and-brackets-are-no-utterance"
+audit = 0
+issue = 652
+goal = "A list marker on the line after a sentence leads its own item; a block of only a bullet, a quote mark or brackets gives no utterance (#652)."
+blocks = [
+    { kind = "paragraph", text = "• Which data were used?\n•\nHow were they cleaned?\n• Who checked them?" },
+    { kind = "paragraph", text = "•" },
+    { kind = "paragraph", text = "“" },
+    { kind = "paragraph", text = "( )" },
+    { kind = "paragraph", text = "– •" },
+    { kind = "paragraph", text = "The list ends here." },
+]
+expected = [
+    "• Which data were used? • How were they cleaned? • Who checked them?",
+    "•",
+    "“",
+    "( )",
+    "– •",
+    "The list ends here.",
+]
+utterances = [
+    "• Which data were used?",
+    "• How were they cleaned?",
+    "• Who checked them?",
+    "The list ends here.",
+]
+
 # ---- B6 sentence cutter (#482) ---------------------------------------------------------------
 
 [[case]]
