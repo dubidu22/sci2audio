@@ -101,8 +101,8 @@ fonts with no Unicode source (`extraction.letters`):
 
 A refused font keeps today's text, and part B stops or warns as before (AC-442.6).
 Recognition costs nothing for a file without fonts with no Unicode source: no drawing is
-loaded and no page read twice (AC-442.10). Recognising 2,000 glyphs takes well under a
-second on a MacBook Pro M4, far inside the 60 s a step of the reader may take
+loaded and no page read twice (AC-442.10). Recognising 2,000 glyphs, the most one read draws,
+takes 1.4 s on a MacBook Pro M4, far inside the 60 s a step of the reader may take
 (`docs/baseline.md`).
 
 `core.Page` has the field `recovered: int = 0`: how many of the page's `unmapped`

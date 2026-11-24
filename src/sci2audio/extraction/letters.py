@@ -59,8 +59,9 @@ GLYPH_DISTANCE = 0.35  # a glyph's letter lies at most this far from its drawing
 FONT_SHARE = 0.95  # of the drawn glyphs' occurrences, this many must be recognised
 FONT_DISTANCE = 0.2  # mean distance of the recognised occurrences, at most
 # A reading is a close call when it lies within CLOSE_SHARE of the best reading's distance
-# of it, and within CLOSE_FLOOR at least: of the 89 letters measured, those whose nearest
-# other letter lies within half the own distance are the ones whose readings can flip.
+# of it, and within CLOSE_FLOOR at least. Set on whole texts in Times New Roman, Arial and
+# Courier New, every style: at 0.5 no letter came out wrong; at 0.35 Arial Bold's "l" read
+# as "I"; larger shares only refused more (docs/unreadable-pdf-text.md).
 CLOSE_SHARE = 0.5
 CLOSE_FLOOR = 0.01
 _BLUR = 1.0  # cells: the spread of the blur before drawings are compared

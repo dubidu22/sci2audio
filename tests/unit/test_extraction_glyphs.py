@@ -20,6 +20,8 @@ from pdf_maker import composite_glyph, font_program, sfnt, simple_glyph, truetyp
 from sci2audio.extraction import glyphs
 from sci2audio.extraction.glyphs import COLUMNS, ROWS, draw, read_font
 
+pytestmark = pytest.mark.timeout(120)
+
 FONTS = Path(__file__).resolve().parents[1] / "fixtures" / "fonts"
 SQUARE = [(100, 0), (500, 0), (500, 400), (100, 400)]
 

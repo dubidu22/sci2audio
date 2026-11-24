@@ -1146,7 +1146,7 @@ def _width(
 _SFNT = (b"\x00\x01\x00\x00", b"true", b"OTTO")  # TrueType and OpenType font programs
 _UNICODE_TABLES = {b"cmap", b"post"}  # a program's own ways to name its glyphs
 # Fonts with no Unicode source whose letters are recognised (#618): what one read keeps of
-# them. Recognising 2,000 glyphs takes about 3 s (docs/baseline.md), far inside
+# them. Recognising MAX_DRAWN_GLYPHS takes 1.4 s on an M4 (docs/baseline.md), far inside
 # STEP_SECONDS.
 MAX_SOURCELESS_FONTS = 32
 MAX_SOURCELESS_BYTES = 64 * 1024**2  # their programs, added up

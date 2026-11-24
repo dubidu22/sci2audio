@@ -135,6 +135,22 @@ Limits, measured on the same container: a Flate bomb that unpacks to 1.1 GB is s
 the limits allow takes about 2 s; a 400-page book reads in 21 s and a 1,000-page book in 66 s,
 well inside the 60 s per step.
 
+## Recognising letters from glyph shapes (#618)
+
+A PDF whose fonts have no Unicode source has its letters recognised from the glyphs' shapes
+after its last page is read, as one step of the reader's child process, which may take
+`STEP_SECONDS` = 60 s (AC-442.11). `test_benchmark_recognising_2000_glyphs` times
+`letters.recognise` on a font of 2,000 glyphs, the Tinos subset's drawings over and over (the
+reader's whole glyph budget, `MAX_DRAWN_GLYPHS`; drawings alike make every glyph a close
+call); it fails above 15 s. A file without such fonts runs none of it: the 8 corpus papers
+read in the child (`extract_pdf`, mean of 5 runs after one warm-up, summed) took 5.17 s and
+8.50 s on `main` (80e8caa) and 5.34 s and 6.08 s with #618 in two runs each, so the change is
+inside the run-to-run spread on a machine shared with other work.
+
+| Machine | 2,000 glyphs recognised | Date | Commit |
+|---|---|---|---|
+| macOS 26.6.2, Apple M4, 10 cores, 16 GB | 1.35 s | 2026-11-24 | branch of 80e8caa (bcb6d605c3fe) |
+
 ## The text-step plugin guard (#216)
 
 Every plugin step runs behind a guard (D-836): a deep copy of the document, a worker thread

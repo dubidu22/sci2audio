@@ -37,8 +37,9 @@ _UNITS = (16, 16384)  # units per em the format allows
 
 # The grid a glyph is drawn on, in em: 24 columns from -0.05 to 1.05 em across, 30 rows
 # from 1.05 em above the baseline to 0.3 em below it, each cell sampled 4 x 4 times and
-# given its covered share as 0 to 15. Measured on Times New Roman against Tinos: finer grids
-# separate no more letters, and the drawings stay small.
+# given its covered share as 0 to 15. A cell is about a stroke wide: a comma, a crossbar or
+# a dot over a letter fills cells of its own, while a twin font's other serifs fall in the
+# same cells, and the drawings of 20 styles stay at 240 KB.
 COLUMNS, ROWS = 24, 30
 LEFT, RIGHT = -0.05, 1.05
 TOP, BOTTOM = 1.05, -0.3
