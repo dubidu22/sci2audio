@@ -903,3 +903,55 @@ def test_a_short_line_in_capitals_without_a_colon_is_a_title_line() -> None:
         ("p",),
         ("p",),
     ]
+
+
+# ---- #848: a number before a full stop ---------------------------------------------------
+
+_ORDINAL = "Die Konferenz fand in diesem Jahr in Berlin statt, und zwar am 3.\n"
+
+
+@pytest.mark.parametrize("month", ["OKTOBER", "MAERZ", "MÄRZ", "DEZEMBER", "JULY"])
+def test_a_german_ordinal_before_a_month_in_capitals_stays_in_its_sentence(month: str) -> None:
+    """ "am 3." / "OKTOBER" is a date wrapped over two lines, not a sentence end before a
+    heading: the month stays in the sentence (#848). (The line after the month is judged by
+    the title rule, which this issue leaves alone.)"""
+    text = f"{_ORDINAL}{month}\nDie Teilnehmer kamen aus ganz Europa zusammen und blieben da.\n"
+    assert tags_of(text)[:2] == [("p",), ("p", "br")]
+
+
+def test_a_german_ordinal_before_a_month_is_no_sentence_end_for_a_mixed_case_heading() -> None:
+    """ "am 3." / "Oktober 2020" twice in a document: the month line is the date's second
+    half, not a mixed-case heading after a sentence end (#848)."""
+    second = "Die Auswertung lief danach noch eine ganze Weile, und zwar bis zum 7.\n"
+    after = "Die Teilnehmer kamen aus ganz Europa zusammen und blieben lange da.\n"
+    text = f"{_ORDINAL}Oktober 2020\n{after}{second}März 2021\n{after}"
+    br = ("p", "br")
+    assert tags_of(text)[:2] == [("p",), br]
+    assert tags_of(text)[3:5] == [br, br]
+
+
+def test_a_german_ordinal_before_a_line_that_goes_on_stays_one_paragraph() -> None:
+    text = f"{_ORDINAL}Oktober 2020 in einem grossen Saal mit vielen Teilnehmern aus Europa.\n"
+    assert tags_of(text) == [("p",), ("p", "br")]
+
+
+def test_a_number_before_a_stop_runs_on_into_a_lower_case_line() -> None:
+    """ "approximately 3." / "PDF" / "files and ...": the sentence runs on through the
+    capitals line, judged by the line after it (#848)."""
+    text = (
+        "The tool reads many kinds of input, and the error rose to approximately 3.\n"
+        "PDF\n"
+        "files and plain text, and it runs on for a while here as prose does.\n"
+    )
+    assert tags_of(text) == [("p",), ("p", "br"), ("p", "br")]
+
+
+def test_a_number_before_a_stop_ends_a_sentence_before_a_heading_and_a_new_sentence() -> None:
+    """ "approximately 3." / "RESULTS" / "The second ...": the next line starts a sentence,
+    so the number's full stop ends one and the heading is cut before (#570, #848)."""
+    text = (
+        "The tool reads many kinds of input, and the error rose to approximately 3.\n"
+        "RESULTS\n"
+        "The second part starts on this line and runs on for a while here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
