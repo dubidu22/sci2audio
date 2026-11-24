@@ -24,8 +24,8 @@ expression, magnitude letter or symbol, with the words of `data/<language>/units
   an element symbol: the raised digits are written as superscript digits, which is how they
   are printed and which no step reads as a number, so the letter stays as printed on both
   runs (#449). The voice reads "⁴⁰K" as it reads "40K". After a power printed in
-  superscripts the letter is no magnitude either (English, #576): a one-letter unit glued to
-  it reads as with a space ("10⁴K" as "10⁴ K", "kelvin"), and "M" or "B" is set apart
+  superscripts the letter is no magnitude either (#576): a one-letter unit glued to it reads
+  as with a space ("10⁴K" as "10⁴ K", "kelvin"; German too, #815), and "M" or "B" is set apart
   ("10⁶M" reads "10⁶ M"), so a second run does not read "6M" as "6 million".
 - **Raised exponents:** an exponent whose raise only its run shows ("10" and a raised "4",
   `footnotes.raised_exponents`) is read as if printed in superscripts (#576, #589).
@@ -417,9 +417,9 @@ def _unit_after(
     if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
         return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
     # after a power printed in superscripts ("10⁴K") a glued letter reads as it does with a
-    # space ("10⁴ K"); English only, where the numbers step reads the power before it (#576)
+    # space ("10⁴ K"), where the numbers step reads the power before it (#576; German, #815)
     exponent = number["exponent"] or ""
-    powered = table.language == "en" and exponent[:1] not in ("", "^")
+    powered = exponent[:1] not in ("", "^")
     parsed = _expression(text, start, table)
     if parsed is not None:
         terms, stop = parsed
