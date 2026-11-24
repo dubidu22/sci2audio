@@ -1,7 +1,7 @@
 """A sentence cut for the voice is one sentence on the Listen page (#480, D-730; the browser
 tests of plans/480-c2-tests.md): the mark and the bar stay on it through its pieces, next
 and previous step over it whole, a click plays it from its start, M in the first 1.2 s of a
-later piece marks it, and its marker's tick stands at its start.
+later piece marks it, and its mark's tick stands at its start.
 
 The fake voice speaks 0.1 s per character, so each piece lasts long enough to be seen.
 """
@@ -209,35 +209,35 @@ def test_m_early_in_a_later_piece_marks_the_cut_sentence_and_its_tick_is_at_its_
     page.locator(f"#{data['element']}").click()
     page.wait_for_function("() => !document.getElementById('audio').paused")
     page.keyboard.press("m")
-    expect(page.locator("#marker-said")).to_have_text("Marker set.")
-    expect(page.locator("#marker-flags [data-for]")).to_have_attribute("data-for", data["before"])
-    page.locator("#marker-undo").click()
-    expect(page.locator("#marker-said")).to_have_text("Marker removed.")
+    expect(page.locator("#capture-said")).to_have_text("Marked.")
+    expect(page.locator("#capture-flags [data-for]")).to_have_attribute("data-for", data["before"])
+    page.locator("#capture-undo").click()
+    expect(page.locator("#capture-said")).to_have_text("Mark removed.")
     # M in the first 1.2 s of its second piece: the sentence itself, not the one before
     at(page, data, chunks[second][0] + 0.2)
     assert not paused(page)
     page.keyboard.press("m")
-    expect(page.locator("#marker-said")).to_have_text("Marker set.")
+    expect(page.locator("#capture-said")).to_have_text("Marked.")
     page.locator("#play").click()
-    expect(page.locator("#marker-flags [data-for]")).to_have_attribute("data-for", data["element"])
+    expect(page.locator("#capture-flags [data-for]")).to_have_attribute("data-for", data["element"])
     page.reload()
     (marker,) = page.evaluate(
-        "() => JSON.parse(document.getElementById('player-data').textContent).markers"
+        "() => JSON.parse(document.getElementById('player-data').textContent).captures"
     )
     # the page names the sentence by its first piece, though a later one overlaps most (#520)
     assert marker["chunk"] == first
-    expect(page.locator("#marker-ticks rect")).to_have_count(1)
+    expect(page.locator("#capture-ticks rect")).to_have_count(1)
     # the tick stands at the sentence's start, where the list's Go to and a click go
-    x = page.locator("#marker-ticks rect").get_attribute("x")
+    x = page.locator("#capture-ticks rect").get_attribute("x")
     length = float(page.locator("#timeline").get_attribute("max") or 0)
     assert x is not None
     assert abs(float(x.removesuffix("%")) - chunks[first][0] / length * 100) < 0.01, x
-    # the Markers list says that time and its Go to goes there
-    page.locator("#tab-markers").click()
-    (row,) = page.locator("#marker-list > li").all()
+    # the Captures list says that time and its Play from here goes there
+    page.locator("#tab-captures").click()
+    (row,) = page.locator("#capture-list > li").all()
     seconds = int(chunks[first][0])
-    expect(row.locator(".mk-at")).to_have_text(f"Chapter 1 · {seconds // 60}:{seconds % 60:02d}")
-    row.get_by_role("button", name="Go to").click()
+    expect(row.locator(".cp-at")).to_have_text(f"Chapter 1 · {seconds // 60}:{seconds % 60:02d}")
+    row.get_by_role("button", name="Play from here").click()
     expect(page.locator("#text .s.now")).to_have_id(data["element"])
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert abs(time - chunks[first][0]) < 0.05, time

@@ -10,9 +10,16 @@ from typing import Any
 
 import pytest
 from test_web_player import make, player_data, server, work_of
-from web_helpers import book_folder, markers_of, offline, set_marker  # noqa: F401 - fixture
+from web_helpers import (  # noqa: F401 - fixture
+    book_folder,
+    markers_of,
+    offline,
+    set_capture,
+    set_marker,
+)
 
-from sci2audio.core import Span
+from sci2audio.core import Anchor, CaptureType, Span
+from sci2audio.web.captures import CaptureBook
 from sci2audio.web.markers import MarkerBook, anchor_of, place
 from sci2audio.web.player import load_document, locate, read_audio_record
 
@@ -80,23 +87,24 @@ def test_a_new_marker_anchors_the_whole_sentence_from_any_piece(book: dict[str, 
     assert len(markers_of(book["work"])["markers"]) == 1
 
 
-def test_a_marker_set_on_one_piece_before_480_is_the_sentences_marker(
+def test_a_mark_anchored_to_one_piece_is_the_sentences_mark(
     book: dict[str, Any],
 ) -> None:
-    """An old marker anchored to the second piece only: the page shows it on the joined
-    sentence, and M on that sentence finds it instead of setting a second one."""
+    """A mark anchored to the second piece only (a marker set before #480, carried over by
+    #475): the page shows it on the joined sentence, and M on that sentence finds it instead
+    of setting a second one (#397)."""
     client, doc, stamp, work = book["client"], book["doc"], book["data"]["audiobook"], book["work"]
     first, second = book["pieces"][:2]
     document = load_document(work)
-    old_span = _spans(book)[second]
-    old, _ = MarkerBook().set(work, doc, anchor_of(document, old_span), lambda markers: None)
-    shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
+    printed = anchor_of(document, _spans(book)[second])
+    anchor = Anchor(printed.block, printed.start, printed.end, printed.text)
+    old, _ = CaptureBook().add(work, doc, CaptureType.MARK, anchor, "", lambda captures: None)
+    shown = player_data(client.get(f"/documents/{doc}/listen").text)["captures"]
     # placed on the second piece, named by the sentence's first piece (#520)
-    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(old.id, first, "found")]
+    assert [(c["id"], c["chunk"], c["state"]) for c in shown] == [(old.id, first, "found")]
     assert book["elements"][second] == book["elements"][first]
-    again = set_marker(client, doc, first, stamp, status=200)
+    again = set_capture(client, doc, "mark", first, stamp, status=200)
     assert again["id"] == old.id
-    assert len(markers_of(work)["markers"]) == 1
 
 
 def test_the_api_and_the_page_name_a_marked_cut_sentence_by_its_first_piece(
@@ -111,10 +119,10 @@ def test_the_api_and_the_page_name_a_marked_cut_sentence_by_its_first_piece(
     longest = max(book["pieces"], key=lambda n: (spans[n].end - spans[n].start, -n))
     assert longest != first, "the first piece is the longest: this test proves nothing"
     for piece in (first, longest):  # set by any piece: the answer names the first
-        marker = set_marker(client, doc, piece, stamp, status=201 if piece == first else 200)
-        assert marker["chunk"] == first
-    shown = player_data(client.get(f"/documents/{doc}/listen").text)["markers"]
-    assert [(m["id"], m["chunk"], m["state"]) for m in shown] == [(marker["id"], first, "found")]
+        mark = set_capture(client, doc, "mark", piece, stamp, 201 if piece == first else 200)
+        assert mark["chunk"] == first
+    shown = player_data(client.get(f"/documents/{doc}/listen").text)["captures"]
+    assert [(c["id"], c["chunk"], c["state"]) for c in shown] == [(mark["id"], first, "found")]
 
 
 def _spans(book: dict[str, Any]) -> list[Any]:

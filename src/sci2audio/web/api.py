@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
-from sci2audio.core import Document, Span, SpanError
+from sci2audio.core import Anchor, Capture, CaptureType, Document, Span, SpanError
 from sci2audio.output import BookKind
 from sci2audio.textprep import Category
 from sci2audio.voices import (
@@ -32,6 +32,16 @@ from sci2audio.voices import (
     voice_pack,
 )
 from sci2audio.web import models
+from sci2audio.web.captures import (
+    CapturedAgain,
+    CaptureError,
+    CaptureLimit,
+    CaptureMissing,
+    CapturesUnreadable,
+    MarkersWaiting,
+    TextRefused,
+)
+from sci2audio.web.captures import UndoExpired as CaptureUndoExpired
 from sci2audio.web.documents import DocumentBusyError, RemoveError, StoredDocument, StoreError
 from sci2audio.web.i18n import (
     COOKIE_AGE,
@@ -51,6 +61,7 @@ from sci2audio.web.markers import (
     Placed,
     UndoExpired,
     anchor_of,
+    locate,
     place,
 )
 from sci2audio.web.player import (
@@ -705,6 +716,182 @@ def restore_marker(state: State, document_id: str, marker_id: _MARKER_ID) -> mod
         lambda: state.markers.restore(listening.work, listening.document, marker_id, clash)
     )
     return _marker_out(book, marker)
+
+
+# ---- captures (#397, ADR-008) -----------------------------------------------------------------
+# Marks, notes and quotes at the sentence the page reads, as the markers: the page names the
+# chunk and the audiobook it was drawn for, and every change goes through the one locked
+# read-modify-write of `CaptureBook.change`. A sentence holds one capture of each type.
+
+_CAPTURE_STATUS = {
+    CapturesUnreadable: 409,
+    MarkersWaiting: 409,
+    CapturedAgain: 409,
+    CaptureMissing: 404,
+    CaptureUndoExpired: 410,
+    CaptureLimit: 422,
+    TextRefused: 422,
+    CaptureError: 503,  # a file it would not read back: nothing is written
+}
+
+
+def _capture_chunk(book: _Book, capture: Capture) -> tuple[int | None, str]:
+    """Where this audiobook shows the capture: its sentence's first chunk, and the state."""
+    ((_, chunk, state),) = locate([capture], lambda c: c.anchor, book.document, book.spans)
+    return (None if chunk is None else book.firsts[chunk]), state
+
+
+def _capture_on(
+    book: _Book, chunk: int | None, kind: CaptureType, captures: list[Capture]
+) -> Capture | None:
+    """The capture of `kind` shown on the sentence chunk `chunk` is a piece of, if any."""
+    if chunk is None:
+        return None
+    first = book.firsts[chunk]
+    of_kind = [c for c in captures if c.type is kind]
+    return next(
+        (
+            capture
+            for capture, at, _ in locate(of_kind, lambda c: c.anchor, book.document, book.spans)
+            if at is not None and book.firsts[at] == first
+        ),
+        None,
+    )
+
+
+def _capture_out(book: _Book, capture: Capture) -> models.CaptureOut:
+    chunk, state = _capture_chunk(book, capture)
+    return models.CaptureOut(
+        id=capture.id,
+        type=capture.type.value,
+        created=capture.created,
+        changed=capture.changed,
+        sentence=capture.anchor.text,
+        text=capture.text,
+        chunk=chunk,
+        state=state,  # type: ignore[arg-type]
+    )
+
+
+def _capturing[T](change: Callable[[], T]) -> T:
+    """Run a change of the captures file, with its refusals as answers."""
+    try:
+        return change()
+    except CaptureError as error:
+        status = next(s for kind, s in _CAPTURE_STATUS.items() if isinstance(error, kind))
+        raise ApiError(status, error.kind, str(error)) from error
+    except OSError as error:
+        raise ApiError(
+            503, "captures-not-saved", f"the captures could not be saved: {error.strerror}"
+        ) from error
+
+
+_CAPTURE_ID = Annotated[str, Path_(pattern=r"^[0-9a-f]{16}$", description="the capture's id")]
+
+
+@router.post(
+    "/documents/{document_id}/captures",
+    status_code=201,
+    responses={
+        200: {"model": models.CaptureOut, "description": "the sentence's capture of that type"},
+        **_errors(404, 409, 503),
+    },
+    summary="Capture a mark, a note or a quote at a sentence of the document's audiobook",
+)
+def add_capture(
+    state: State, document_id: str, given: models.CaptureIn, response: Response
+) -> models.CaptureOut:
+    """A capture on the sentence the page reads: chunk `chunk` of the audiobook the page was
+    drawn for (409 if it was made again since). A sentence that has a capture of that type
+    answers it unchanged (200); the page toggles marks and quotes and edits a note."""
+    book = _book(state, document_id)
+    if given.audiobook != book.stamp:
+        raise ApiError(409, "other-audiobook", "the audiobook was made again since this page")
+    piece = book.spans[given.chunk] if given.chunk < len(book.spans) else None
+    try:
+        if piece is None or piece.start >= piece.end:
+            raise SpanError("no sentence")
+        span = book.sentence(given.chunk)
+        book.document.check_span(span)
+    except SpanError:
+        raise ApiError(422, "no-such-sentence", "the audiobook has no such sentence") from None
+    kind = CaptureType(given.type)
+    printed = anchor_of(book.document, span)
+    anchor = Anchor(printed.block, printed.start, printed.end, printed.text)
+    listening = book.listening
+    capture, new = _capturing(
+        lambda: state.captures.add(
+            listening.work,
+            listening.document,
+            kind,
+            anchor,
+            given.text,
+            lambda captures: _capture_on(book, given.chunk, kind, captures),
+        )
+    )
+    if not new:
+        response.status_code = 200
+    return _capture_out(book, capture)
+
+
+@router.patch(
+    "/documents/{document_id}/captures/{capture_id}",
+    responses=_errors(404, 409, 503),
+    summary="Change a note's text",
+)
+def write_capture_note(
+    state: State, document_id: str, capture_id: _CAPTURE_ID, given: models.CaptureTextIn
+) -> models.CaptureOut:
+    """Plain text, at most 4000 characters; a note without text is removed instead."""
+    book = _book(state, document_id)
+    listening = book.listening
+    capture = _capturing(
+        lambda: state.captures.write_note(
+            listening.work, listening.document, capture_id, given.text
+        )
+    )
+    return _capture_out(book, capture)
+
+
+@router.delete(
+    "/documents/{document_id}/captures/{capture_id}",
+    responses=_errors(404, 409, 503),
+    summary="Remove a capture",
+)
+def remove_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> models.CaptureOut:
+    """It leaves the file at once; this server keeps it for 10 minutes (the last 20 of the
+    document) so the page's Undo can put it back (ADR-008 2.1 item 6)."""
+    book = _book(state, document_id)
+    listening = book.listening
+    capture = _capturing(
+        lambda: state.captures.remove(listening.work, listening.document, capture_id)
+    )
+    return _capture_out(book, capture)
+
+
+@router.post(
+    "/documents/{document_id}/captures/{capture_id}/restore",
+    status_code=201,
+    responses=_errors(404, 409, 410, 503),
+    summary="Put back a capture removed in the last 10 minutes (Undo)",
+)
+def restore_capture(state: State, document_id: str, capture_id: _CAPTURE_ID) -> models.CaptureOut:
+    """The capture comes back unchanged, from what this server kept: 410 once it no longer
+    holds it (10 minutes, a restart, 20 later removals), 409 if its sentence has a capture of
+    its type again."""
+    book = _book(state, document_id)
+    listening = book.listening
+
+    def clash(capture: Capture, captures: list[Capture]) -> bool:
+        if any(c.anchor == capture.anchor and c.type is capture.type for c in captures):
+            return True
+        chunk, _ = _capture_chunk(book, capture)
+        return _capture_on(book, chunk, capture.type, captures) is not None
+
+    capture = _capturing(
+        lambda: state.captures.restore(listening.work, listening.document, capture_id, clash)
+    )
+    return _capture_out(book, capture)
 
 
 @router.delete(

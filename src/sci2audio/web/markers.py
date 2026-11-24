@@ -29,7 +29,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from sci2audio.app.captures import CapturesBroken, read_captures
 from sci2audio.app.files import write_texts
@@ -108,6 +108,19 @@ class Anchor:
     start: int
     end: int
     text: str
+
+
+class Anchored(Protocol):
+    """What finding a sentence again needs: a marker's anchor or a capture's (#397)."""
+
+    @property
+    def block(self) -> int: ...
+    @property
+    def start(self) -> int: ...
+    @property
+    def end(self) -> int: ...
+    @property
+    def text(self) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -326,7 +339,7 @@ class _Finder:
             self._normal[block] = _normal(self.texts[block])
         return self._normal[block]
 
-    def find(self, anchor: Anchor) -> tuple[int, int, int] | None:
+    def find(self, anchor: Anchored) -> tuple[int, int, int] | None:
         """(block, start, end) of the anchor's sentence in this document, or None."""
         needle = _normal(anchor.text)[0]
         if not needle:
@@ -347,7 +360,7 @@ class _Finder:
         # 3. the same text across neighbouring blocks (a sentence the layout now splits)
         return self._across(anchor, needle)
 
-    def _across(self, anchor: Anchor, needle: str) -> tuple[int, int, int] | None:
+    def _across(self, anchor: Anchored, needle: str) -> tuple[int, int, int] | None:
         low = max(0, min(anchor.block, len(self.texts)) - NEAR_BLOCKS)
         high = min(len(self.texts), anchor.block + NEAR_BLOCKS + 1)
         hay: list[str] = []
@@ -374,24 +387,26 @@ class _Finder:
         return block, raws[0], raws[-1] + 1
 
 
-def place(markers: Sequence[Marker], document: Document, spans: Sequence[Span]) -> list[Placed]:
-    """Each marker where this audiobook reads it (`spans`: the read-along's chunks, in
-    order), in reading order: found ones by their chunk, then those whose text this
-    audiobook does not read, then those not found, each group in the file's order. The
+def locate[T](
+    items: Sequence[T], anchor: Callable[[T], Anchored], document: Document, spans: Sequence[Span]
+) -> list[tuple[T, int | None, State]]:
+    """Each item, by its anchor, where this audiobook reads it (`spans`: the read-along's
+    chunks, in order), in reading order: found ones by their chunk, then those whose text
+    this audiobook does not read, then those not found, each group in the given order. The
     sentence shown is the chunk that overlaps the found place most (the first on a tie).
-    No marker is ever left out."""
+    No item is ever left out. Markers and captures (#397) are placed alike."""
     finder = _Finder(document)
     by_block: dict[int, list[tuple[int, Span]]] = {}
     for number, span in enumerate(spans):
         if span.start < span.end:
             by_block.setdefault(span.block, []).append((number, span))
-    found: list[tuple[int, int, Placed]] = []
-    unread: list[Placed] = []
-    lost: list[Placed] = []
-    for order, marker in enumerate(markers):
-        where = finder.find(marker.anchor)
+    found: list[tuple[int, int, tuple[T, int | None, State]]] = []
+    unread: list[tuple[T, int | None, State]] = []
+    lost: list[tuple[T, int | None, State]] = []
+    for order, item in enumerate(items):
+        where = finder.find(anchor(item))
         if where is None:
-            lost.append(Placed(marker, None, "not-found"))
+            lost.append((item, None, "not-found"))
             continue
         block, start, end = where
         best, most = None, 0
@@ -400,11 +415,19 @@ def place(markers: Sequence[Marker], document: Document, spans: Sequence[Span]) 
             if overlap > most:
                 best, most = number, overlap
         if best is None:
-            unread.append(Placed(marker, None, "not-read"))
+            unread.append((item, None, "not-read"))
         else:
-            found.append((best, order, Placed(marker, best, "found")))
-    found.sort(key=lambda item: (item[0], item[1]))
-    return [item[2] for item in found] + unread + lost
+            found.append((best, order, (item, best, "found")))
+    found.sort(key=lambda entry: (entry[0], entry[1]))
+    return [entry[2] for entry in found] + unread + lost
+
+
+def place(markers: Sequence[Marker], document: Document, spans: Sequence[Span]) -> list[Placed]:
+    """Each marker where this audiobook reads it, in reading order (`locate`)."""
+    return [
+        Placed(marker, chunk, state)
+        for marker, chunk, state in locate(markers, lambda m: m.anchor, document, spans)
+    ]
 
 
 # ---- changing the file -----------------------------------------------------------------------

@@ -29,6 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from sci2audio import __version__
 from sci2audio.app import find_chapters, load_settings, shown_original
+from sci2audio.app.captures import CAPTURES
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.app.updates import RELEASES_URL, Outcome, release_page
 from sci2audio.app.voice import primary_language
@@ -46,6 +47,7 @@ from sci2audio.voices import (
     voice_pack,
 )
 from sci2audio.web.api import REDIRECTS, plan_hosts
+from sci2audio.web.captures import CapturesUnreadable, MarkersWaiting
 from sci2audio.web.config import UPLOAD_LIMIT, app_log_file
 from sci2audio.web.documents import StoredDocument, supported_suffixes
 from sci2audio.web.i18n import (
@@ -56,6 +58,7 @@ from sci2audio.web.i18n import (
     LANGUAGES,
     PLAYER_MAX_SPEED,
     PLAYER_MIN_SPEED,
+    SOUNDS_COOKIE,
     THEME_COOKIE,
     THEMES,
     Strings,
@@ -65,9 +68,11 @@ from sci2audio.web.i18n import (
     known_announce,
     known_keys,
     known_language,
+    known_sounds,
     known_theme,
     local_path,
     player_speed_of,
+    sounds_of,
     strings_of,
     theme_of,
 )
@@ -85,7 +90,7 @@ from sci2audio.web.library import (
     when,
     write_opened,
 )
-from sci2audio.web.markers import MARKERS, MarkersBroken, count_captures, place, read_markers
+from sci2audio.web.markers import MARKERS, count_captures, locate
 from sci2audio.web.models import PREVIEW_LIMIT
 from sci2audio.web.player import (
     ChapterStates,
@@ -1226,7 +1231,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         position = read_position(found.work, found.document, stamp, located.readalong)
     except OSError:  # the read-along file went away since the checks: nothing to offer
         stamp, position = "", None
-    marking = _markers_data(found.work, found.document, made_from, located)
+    capturing = _captures_data(state, found.work, found.document, made_from, located)
     growing = _growing_data(state, found.id, view)
     made = None if stored is None else _made_chapters(state, found.id, _chapters_of(stored))
     rows = (
@@ -1254,11 +1259,18 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         resume=None if position is None else _resume(view, position),
         # the stamp goes back with each save of the position (#153)
         data=data_block(
-            {**_indexed(view.data(found.id), found.work), "audiobook": stamp, **marking, **growing}
+            {
+                **_indexed(view.data(found.id), found.work),
+                "audiobook": stamp,
+                **capturing,
+                **growing,
+            }
         ),
         planned=growing.get("growing", {}).get("planned", []),
-        markers=marking["markers"],
-        markers_file=marking["markers_file"],
+        captures=capturing["captures"],
+        captures_off=capturing["captures_off"],
+        captures_file=capturing["captures_file"],
+        sounds=sounds_of(request),  # a short sound on each capture (#397)
         problem=None,
         announce=announce_of(request),  # each sentence to screen readers, if switched on (#392)
         changes=_listen_changes(view, s),
@@ -1358,7 +1370,7 @@ def listen_chapter(request: Request, state: State, document_id: str, n: int) -> 
     """Chapter `n` of the audiobook (its place in the read-along file), for a Listen page
     that is open while the book grows (#724): its text drawn as the page draws it, its
     chunks and sentences, where it lies on the timeline, the book's length now, and the
-    markers placed in the book as it is now. 404 while the chapter is not playable."""
+    captures placed in the book as it is now. 404 while the chapter is not playable."""
     s = strings_of(request)
     found = state.listening(document_id)
     if found is None:
@@ -1394,7 +1406,7 @@ def listen_chapter(request: Request, state: State, document_id: str, n: int) -> 
             "clock": outline[n]["clock"],
             "ticks": [chapter["at"] for chapter in outline],
             "total": clock(view.duration),
-            **_markers_data(found.work, found.document, made_from, located),
+            **_captures_data(state, found.work, found.document, made_from, located),
             **_growing_data(state, found.id, view),
         }
     )
@@ -1406,30 +1418,36 @@ _CHAPTER = (
 )
 
 
-def _markers_data(
-    work: Path, document_id: str, made_from: Document, located: Any
+def _captures_data(
+    state: ServerState, work: Path, document_id: str, made_from: Document, located: Any
 ) -> dict[str, Any]:
-    """The document's markers for the page, placed in this audiobook (#474): never one left
-    out (D-728 ruling 1). A file this version can't read is named, and the page then sets no
-    markers on this document."""
+    """The document's captures for the page, placed in this audiobook (#397, ADR-008 2.1
+    item 3): never one left out. `captures_off` says why the page captures nothing here: a
+    file this version can't read (`unreadable`, named in `captures_file`) or v1.3 markers
+    the carry-over refused (`markers`, #475); else it is ""."""
     try:
-        markers = read_markers(work, document_id)
-    except (MarkersBroken, OSError):
-        return {"markers": [], "markers_file": str(work / MARKERS)}
+        found = state.captures.read(work, document_id)
+    except MarkersWaiting:
+        return {"captures": [], "captures_off": "markers", "captures_file": str(work / MARKERS)}
+    except (CapturesUnreadable, OSError):
+        return {"captures": [], "captures_off": "unreadable", "captures_file": str(work / CAPTURES)}
     spans = [chunk.span for chunk in located.readalong.chunks]
     firsts = sentence_starts(located.readalong)  # a sentence by its first piece (#520)
+    captures = found.captures if found else ()
     return {
-        "markers": [
+        "captures": [
             {
-                "id": p.marker.id,
-                "text": p.marker.anchor.text,
-                "note": p.marker.note,
-                "chunk": None if p.chunk is None else firsts[p.chunk],
-                "state": p.state,
+                "id": capture.id,
+                "type": capture.type.value,
+                "sentence": capture.anchor.text,
+                "text": capture.text,
+                "chunk": None if chunk is None else firsts[chunk],
+                "state": where,
             }
-            for p in place(markers, made_from, spans)
+            for capture, chunk, where in locate(captures, lambda c: c.anchor, made_from, spans)
         ],
-        "markers_file": "",
+        "captures_off": "",
+        "captures_file": "",
     }
 
 
@@ -1628,6 +1646,7 @@ def settings_page(request: Request, state: State) -> HTMLResponse:
         "settings.html",
         themes=THEMES,
         announce=announce_of(request),
+        sounds=sounds_of(request),
         output_folder=str(saved.output_folder or state.config.output_folder),
         speed=_speed_field(s, saved.speed, MIN_SPEED, MAX_SPEED, "voice.speed_value"),
         warnings=warnings,
@@ -1657,18 +1676,24 @@ def _update_status(state: ServerState, s: Strings) -> dict[str, Any]:
 
 @router.get("/appearance")
 def choose_appearance(
-    request: Request, theme: str = "", announce: str = "", keys: str = "", back: str = ""
+    request: Request,
+    theme: str = "",
+    announce: str = "",
+    keys: str = "",
+    sounds: str = "",
+    back: str = "",
 ) -> RedirectResponse:
-    """Remembers the appearance (`system`, `light`, `dark`), the sentence announcements or
-    the keyboard shortcuts (`on`, `off`) in their own cookies and goes back to the page the
-    form was on, like the language switch (D-288, D-321, D-671): a GET form guarded like
-    every page, setting nothing but these choices, sending the browser only to a path on
-    this server."""
+    """Remembers the appearance (`system`, `light`, `dark`), the sentence announcements,
+    the keyboard shortcuts or the capture sounds (`on`, `off`) in their own cookies and goes
+    back to the page the form was on, like the language switch (D-288, D-321, D-671): a GET
+    form guarded like every page, setting nothing but these choices, sending the browser
+    only to a path on this server."""
     response = RedirectResponse(local_path(back), 303)
     for cookie, chosen in (
         (THEME_COOKIE, known_theme(theme)),  # one of THEMES, never the request's text
         (ANNOUNCE_COOKIE, known_announce(announce)),  # one of ANNOUNCE
         (KEYS_COOKIE, known_keys(keys)),  # one of KEYS
+        (SOUNDS_COOKIE, known_sounds(sounds)),  # one of SOUNDS (#397)
     ):
         if chosen is not None:
             response.set_cookie(

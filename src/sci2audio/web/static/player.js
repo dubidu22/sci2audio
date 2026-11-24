@@ -168,7 +168,7 @@ function readAlong() {
       reveal(marked);
     }
     placeBars();
-    markerState();
+    captureState();
   }
 
   function update() {
@@ -563,56 +563,74 @@ function readAlong() {
   window.addEventListener("resize", placeBars);
   document.fonts?.ready.then(placeBars);
 
-  // ---- markers (#474, D-723, D-728) -----------------------------------------------------
-  // A marker on the sentence being read, set or removed by M or the dock's button, with an
-  // optional note in the panel. The server keeps them in the working folder and places each
-  // in this audiobook; the page draws a flag beside its sentence (no fill: the reading mark
-  // stays the only fill), a tick above the timeline and a row in the panel. A removal never
-  // asks: the toast's Undo puts it back, for 60 s (D-723 ruling 1).
-  const markerButton = document.getElementById("marker");
-  const markerList = document.getElementById("marker-list");
-  const markersTab = document.getElementById("tab-markers");
-  const markersEmpty = document.getElementById("markers-empty");
-  const flags = document.getElementById("marker-flags");
-  const focusFlag = document.getElementById("focus-flag");
-  const markerTicks = document.getElementById("marker-ticks");
-  const toast = document.getElementById("marker-toast");
-  const toastSaid = document.getElementById("marker-said");
-  const undoButton = document.getElementById("marker-undo");
-  const addNoteButton = document.getElementById("marker-add-note");
-  const markersUrl = `/api/v1/documents/${encodeURIComponent(data.document)}/markers`;
-  const markersOff = Boolean(data.markers_file); // a file this version can't read: hands off
-  const MARK_BACK = 1.2; // seconds into a sentence in which M marks the one that just ended
+  // ---- captures (#397, ADR-008) ---------------------------------------------------------
+  // N, Q and M (or the dock's three keys) capture a note, a quote or a mark at the sentence
+  // being read. A quote and a mark are saved at once while the voice goes on, with a short
+  // sound and a toast whose Undo takes them back; pressed again on the same sentence they
+  // are removed. A note pauses the voice and opens a box in the panel (on the sentence's
+  // note if it has one). The server keeps them in the working folder and places each in
+  // this audiobook; the page draws a flag per type at the sheet edge beside its sentence, a
+  // tick per type above the timeline and a row in the panel. The highlighter colours stand
+  // only on those flags and ticks (DESIGN.md, the Highlighter Rule).
+  const KINDS = ["note", "quote", "mark"]; // the dock's order
+  const captureButtons = Object.fromEntries(KINDS.map((kind) => [kind, document.getElementById(`capture-${kind}`)]));
+  const captureList = document.getElementById("capture-list");
+  const capturesTab = document.getElementById("tab-captures");
+  const capturesEmpty = document.getElementById("captures-empty");
+  const composerBox = document.getElementById("capture-composer");
+  const flags = document.getElementById("capture-flags");
+  const focusFlags = document.getElementById("focus-flags");
+  const captureTicks = document.getElementById("capture-ticks");
+  const toast = document.getElementById("capture-toast");
+  const toastFlag = document.getElementById("capture-toast-flag");
+  const toastSaid = document.getElementById("capture-said");
+  const undoButton = document.getElementById("capture-undo");
+  const capturesUrl = `/api/v1/documents/${encodeURIComponent(data.document)}/captures`;
+  const capturesOff = data.captures_off || ""; // a file this version can't read: hands off
+  const sounding = document.getElementById("listen")?.dataset.sounds === "on"; // Settings (#397)
+  const CAPTURE_BACK = 1.2; // seconds into a sentence in which a key takes the one that just ended
   const TOAST_FOR = 60000; // ms the toast's Undo stays
   const NOTE_LIMIT = 4000;
-  let markers = data.markers || []; // {id, text, note, chunk, state}, in the server's order
+  const TONES = { note: 660, quote: 880, mark: 990 }; // Hz, as the design's prototype
+  const MOD = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : tr("capture.ctrl");
+  let captures = data.captures || []; // {id, type, sentence, text, chunk, state}, in reading order
   let undo = null; // what the toast's Undo does
-  let noteFor = null; // the marker the toast's "Add note" opens
   let toastTimer = 0;
-  let editing = null; // the marker whose note box is open
+  let editing = null; // the note whose box is open in its row
+  let composing = null; // a new note's box: {chunk, id, sentence}
   let resumeAfterNote = false;
-  let showMarkers = null; // opens the panel on the Markers tab (contextPanel)
-  let markerQueue = Promise.resolve(); // the marker changes M and the button asked for
+  let showCaptures = null; // opens the panel on the Captures tab (contextPanel)
+  let captureQueue = Promise.resolve(); // the changes the keys and the buttons asked for
+  let fresh = new Set(); // ids of captures whose flag slides out on the next draw
+  let tones = null; // the AudioContext, made on the first sound
 
-  const elementOf = (marker) => (marker.chunk === null ? "" : chunks[marker.chunk]?.[3] || "");
-  const markersOn = (id) => (id ? markers.filter((m) => elementOf(m) === id) : []);
+  sortCaptures(); // on one sentence, in the dock's order
+  const elementOf = (capture) => (capture.chunk === null ? "" : chunks[capture.chunk]?.[3] || "");
+  const capturesOn = (id, kind) =>
+    id ? captures.filter((c) => elementOf(c) === id && (!kind || c.type === kind)) : [];
 
-  // reading order: found ones by their sentence, then those not read, then those not found
-  function sortMarkers() {
+  // reading order: found ones by their sentence and the dock's order, then those not read,
+  // then those not found
+  function sortCaptures() {
     const rank = { found: 0, "not-read": 1, "not-found": 2 };
-    markers = markers
-      .map((marker, at) => [marker, at])
-      .sort(([a, i], [b, j]) => rank[a.state] - rank[b.state] || (a.state === "found" ? a.chunk - b.chunk : 0) || i - j)
-      .map(([marker]) => marker);
+    captures = captures
+      .map((capture, at) => [capture, at])
+      .sort(
+        ([a, i], [b, j]) =>
+          rank[a.state] - rank[b.state] ||
+          (a.state === "found" ? a.chunk - b.chunk || KINDS.indexOf(a.type) - KINDS.indexOf(b.type) : 0) ||
+          i - j,
+      )
+      .map(([capture]) => capture);
   }
 
-  // the sentence M acts on: the one being read, or the one that just ended while the voice
-  // is in the first 1.2 s of the next (#397), counted from the start of the next one's first
+  // the sentence a key acts on: the one being read, or the one that just ended while the
+  // voice is in the first 1.2 s of the next, counted from the start of the next one's first
   // piece (#480); the chunk its element starts with
-  function markerTarget() {
+  function captureTarget() {
     if (current < 0) return null;
     let at = current;
-    if (!audio.paused && bookTime() - chunks[firstOf[current]][0] < MARK_BACK) {
+    if (!audio.paused && bookTime() - chunks[firstOf[current]][0] < CAPTURE_BACK) {
       const id = chunks[current][3];
       let back = current - 1;
       while (back >= 0 && (!chunks[back][3] || chunks[back][3] === id)) back--;
@@ -620,10 +638,32 @@ function readAlong() {
     }
     const id = chunks[at][3];
     const element = id ? document.getElementById(id) : null;
-    return element ? { id, chunk: Number(element.dataset.chunk) } : null;
+    return element ? { id, chunk: Number(element.dataset.chunk), element } : null;
   }
 
-  async function markerCall(url, method, body) {
+  // a short tone of the capture's own pitch, if Settings leaves the sounds on; made in this
+  // page, never fetched
+  function sound(kind) {
+    if (!sounding) return;
+    try {
+      tones = tones || new AudioContext();
+      const now = tones.currentTime;
+      const tone = tones.createOscillator();
+      const gain = tones.createGain();
+      tone.type = "sine";
+      tone.frequency.value = TONES[kind];
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      tone.connect(gain).connect(tones.destination);
+      tone.start(now);
+      tone.stop(now + 0.2);
+    } catch {
+      // no audio here: the toast says it
+    }
+  }
+
+  async function captureCall(url, method, body) {
     try {
       const options = { method };
       if (body) {
@@ -638,13 +678,22 @@ function readAlong() {
     }
   }
 
-  function tell(said, then = null, noted = null) {
+  function flagOf(kind) {
+    const flag = document.createElement("span");
+    flag.className = `flag f-${kind}`;
+    flag.setAttribute("aria-hidden", "true");
+    flag.append(captureButtons[kind].querySelector("svg").cloneNode(true));
+    return flag;
+  }
+
+  function tell(said, kind = null, then = null) {
     clearTimeout(toastTimer);
     toastSaid.textContent = said;
+    toastFlag.hidden = !kind;
+    toastFlag.className = kind ? `flag f-${kind}` : "flag";
+    toastFlag.replaceChildren(...(kind ? [captureButtons[kind].querySelector("svg").cloneNode(true)] : []));
     undo = then;
-    noteFor = noted;
     undoButton.hidden = !then;
-    addNoteButton.hidden = !noted;
     toast.hidden = false;
     say(said); // the status line, for screen readers
     toastTimer = setTimeout(hideToast, TOAST_FOR);
@@ -655,7 +704,6 @@ function readAlong() {
     const inside = toast.contains(document.activeElement);
     toast.hidden = true;
     undo = null;
-    noteFor = null;
     if (inside) play.focus(); // the button pressed goes away: the focus goes to the player
   }
 
@@ -664,116 +712,185 @@ function readAlong() {
     hideToast();
     then?.();
   });
-  addNoteButton.addEventListener("click", () => {
-    const id = noteFor;
-    hideToast();
-    if (id) openNote(id);
-  });
 
-  async function setMarker(chunk) {
-    const marker = await markerCall(markersUrl, "POST", { chunk, audiobook: data.audiobook });
-    if (!marker) return;
-    keepMarker(marker);
-    tell(tr("marker.set"), () => removeMarker(marker), marker.id);
+  async function addCapture(kind, chunk, text = "") {
+    const capture = await captureCall(capturesUrl, "POST", { type: kind, chunk, audiobook: data.audiobook, text });
+    if (!capture) return null;
+    fresh.add(capture.id);
+    keepCapture(capture);
+    sound(kind);
+    tell(tr(`capture.saved_${kind}`), kind, () => removeCapture(capture));
+    return capture;
   }
 
-  async function removeMarker(marker) {
-    const gone = await markerCall(`${markersUrl}/${marker.id}`, "DELETE");
+  async function removeCapture(capture) {
+    const gone = await captureCall(`${capturesUrl}/${capture.id}`, "DELETE");
     if (!gone) return;
     if (editing === gone.id) editing = null;
-    markers = markers.filter((m) => m.id !== gone.id);
-    drawMarkers();
-    tell(gone.note ? tr("marker.removed_note") : tr("marker.removed"), () => restoreMarker(gone.id));
+    captures = captures.filter((c) => c.id !== gone.id);
+    drawCaptures();
+    tell(tr(`capture.removed_${gone.type}`), gone.type, () => restoreCapture(gone.id));
   }
 
-  async function restoreMarker(id) {
-    const marker = await markerCall(`${markersUrl}/${id}/restore`, "POST");
-    if (!marker) return;
-    keepMarker(marker);
-    tell(tr("marker.restored"));
+  async function restoreCapture(id) {
+    const capture = await captureCall(`${capturesUrl}/${id}/restore`, "POST");
+    if (!capture) return;
+    fresh.add(capture.id);
+    keepCapture(capture);
+    tell(tr("capture.restored"), capture.type);
   }
 
-  function keepMarker(marker) {
-    const kept = { id: marker.id, text: marker.text, note: marker.note, chunk: marker.chunk, state: marker.state };
-    markers = [...markers.filter((m) => m.id !== kept.id), kept];
-    sortMarkers();
-    drawMarkers();
+  function keepCapture(capture) {
+    const { id, type, sentence, text: words, chunk, state } = capture;
+    captures = [...captures.filter((c) => c.id !== id), { id, type, sentence, text: words, chunk, state }];
+    sortCaptures();
+    drawCaptures();
   }
 
-  function toggleMarker() {
-    if (markersOff) {
-      say(tr("error.markers-unreadable"), true);
+  // Q and M: one change at a time, in the order pressed; a second press on the same
+  // sentence removes what the first one set
+  function toggleCapture(kind) {
+    if (capturesOff) {
+      say(tr(capturesOff === "markers" ? "error.markers-not-carried" : "error.captures-unreadable"), true);
       return;
     }
-    const target = markerTarget(); // the sentence when the key was pressed
+    const target = captureTarget(); // the sentence when the key was pressed
     if (!target) return;
-    // one change at a time, in the order pressed: a second press on the same sentence
-    // removes what the first one set
-    markerQueue = markerQueue.then(() => {
-      const there = markersOn(target.id)[0];
-      return there ? removeMarker(there) : setMarker(target.chunk);
+    captureQueue = captureQueue.then(() => {
+      const there = capturesOn(target.id, kind)[0];
+      return there ? removeCapture(there) : addCapture(kind, target.chunk);
     });
   }
-  markerButton.addEventListener("click", toggleMarker);
 
-  // the button is pressed while the sentence being read has a marker
-  function markerState() {
+  // N: the voice pauses and the box opens, on the sentence's note if it has one
+  function startNote() {
+    if (capturesOff) {
+      say(tr(capturesOff === "markers" ? "error.markers-not-carried" : "error.captures-unreadable"), true);
+      return;
+    }
+    const target = captureTarget();
+    if (!target) return;
+    captureQueue = captureQueue.then(() => {
+      const there = capturesOn(target.id, "note")[0];
+      if (there) {
+        openNote(there.id);
+        return;
+      }
+      pauseForNote();
+      editing = null;
+      composing = { chunk: target.chunk, id: target.id, sentence: target.element.textContent.trim() };
+      drawComposer();
+      showCaptures?.();
+      composerBox.querySelector("textarea")?.focus();
+    });
+  }
+
+  for (const kind of KINDS) {
+    captureButtons[kind].addEventListener("click", () => (kind === "note" ? startNote() : toggleCapture(kind)));
+  }
+
+  // the keys are pressed while the sentence being read has a quote or a mark
+  function captureState() {
     const id = current >= 0 ? chunks[current][3] : "";
-    markerButton.disabled = markersOff || !id;
-    markerButton.setAttribute("aria-pressed", String(markersOn(id).length > 0));
+    for (const kind of KINDS) {
+      const button = captureButtons[kind];
+      button.disabled = Boolean(capturesOff) || !id;
+      if (kind !== "note") button.setAttribute("aria-pressed", String(capturesOn(id, kind).length > 0));
+    }
   }
 
   // ---- the flags and the ticks ----
 
+  // the kinds on each sentence, in the dock's order
+  function kindsBySentence() {
+    const found = new Map();
+    for (const capture of captures) {
+      const id = elementOf(capture);
+      if (!id) continue;
+      if (!found.has(id)) found.set(id, new Map());
+      found.get(id).set(capture.type, capture.id);
+    }
+    return found;
+  }
+
   function placeFlags() {
     const box = sheet.getBoundingClientRect();
     const column = text.getBoundingClientRect();
-    const ids = focusing ? [] : [...new Set(markers.map(elementOf).filter(Boolean))];
-    while (flags.children.length > ids.length) flags.lastElementChild.remove();
-    while (flags.children.length < ids.length) {
-      const flag = document.createElement("span");
-      flag.className = "marker-flag";
-      flag.append(focusFlag.querySelector("svg").cloneNode(true));
-      flags.append(flag);
+    const wanted = [];
+    if (!focusing) {
+      for (const [id, kinds] of kindsBySentence()) {
+        for (const kind of KINDS) if (kinds.has(kind)) wanted.push({ id, kind, capture: kinds.get(kind) });
+      }
     }
-    ids.forEach((id, n) => {
-      const flag = flags.children[n];
-      const lines = linesOf(document.getElementById(id));
-      flag.dataset.for = id;
-      flag.hidden = !lines.length;
-      if (!lines.length) return;
-      const width = flag.offsetWidth;
-      const height = flag.offsetHeight;
-      flag.style.top = `${lines[0].top - box.top - sheet.clientTop + (lines[0].height - height) / 2}px`;
-      flag.style.left = `${column.right - box.left - sheet.clientLeft + (box.right - column.right - width) / 2}px`;
+    const old = new Map([...flags.children].map((flag) => [`${flag.dataset.for} ${flag.dataset.kind}`, flag]));
+    const lines = new Map();
+    const drawn = wanted.map(({ id, kind, capture }) => {
+      let flag = old.get(`${id} ${kind}`);
+      old.delete(`${id} ${kind}`);
+      if (!flag) {
+        flag = flagOf(kind);
+        flag.dataset.for = id;
+        flag.dataset.kind = kind;
+        if (fresh.has(capture)) flag.classList.add("new"); // slides out of the sheet's edge
+      }
+      if (!lines.has(id)) lines.set(id, { lines: linesOf(document.getElementById(id)), n: 0 });
+      const at = lines.get(id);
+      flag.hidden = !at.lines.length;
+      flag.dataset.n = String(at.n++);
+      return flag;
     });
+    for (const flag of old.values()) flag.remove();
+    flags.replaceChildren(...drawn);
+    for (const flag of drawn) {
+      if (flag.hidden) continue;
+      const first = lines.get(flag.dataset.for).lines[0];
+      const height = flag.offsetHeight;
+      const step = flag.offsetWidth + 2; // side by side, in the dock's order
+      flag.style.top = `${first.top - box.top - sheet.clientTop + (first.height - height) / 2}px`;
+      flag.style.left = `${column.right - box.left - sheet.clientLeft + 8 + Number(flag.dataset.n) * step}px`;
+    }
+    if (fresh.size) {
+      fresh = new Set();
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => flags.querySelectorAll(".flag.new").forEach((f) => f.classList.remove("new"))),
+      );
+    }
     // in Focus: right of the stage's sentence, at its first line
-    const staged = focusing && marked && markersOn(marked.id).length ? linesOf(focusNow) : [];
-    focusFlag.hidden = !staged.length;
+    const kinds = focusing && marked ? kindsBySentence().get(marked.id) : null;
+    const staged = kinds ? linesOf(focusNow) : [];
+    focusFlags.hidden = !staged.length;
+    focusFlags.replaceChildren(...(staged.length ? KINDS.filter((k) => kinds.has(k)).map(flagOf) : []));
     if (staged.length) {
-      const at = focusFlag.parentElement.getBoundingClientRect();
+      const at = focusFlags.parentElement.getBoundingClientRect();
       const right = Math.max(...staged.map((r) => r.right));
-      focusFlag.style.top = `${staged[0].top - at.top + (staged[0].height - focusFlag.offsetHeight) / 2}px`;
-      focusFlag.style.left = `${right - at.left + 8}px`;
+      focusFlags.style.top = `${staged[0].top - at.top + (staged[0].height - focusFlags.offsetHeight) / 2}px`;
+      focusFlags.style.left = `${right - at.left + 8}px`;
     }
   }
 
   function drawTicks() {
     const length = Number(timeline.max) || 0;
-    const times = [...new Set(markers.filter((m) => m.chunk !== null).map((m) => chunks[firstOf[m.chunk]][0]))];
-    markerTicks.replaceChildren(
-      ...times.map((time) => {
-        const tick = document.createElementNS(markerTicks.namespaceURI, "rect");
+    const seen = new Set();
+    const ticks = [];
+    for (const kind of KINDS) {
+      for (const capture of captures) {
+        if (capture.type !== kind || capture.chunk === null) continue;
+        const time = chunks[firstOf[capture.chunk]][0];
+        if (seen.has(`${kind} ${time}`)) continue;
+        seen.add(`${kind} ${time}`);
+        const tick = document.createElementNS(captureTicks.namespaceURI, "rect");
+        tick.setAttribute("class", `f-${kind}`);
         tick.setAttribute("x", `${length > 0 ? (time / length) * 100 : 0}%`);
         tick.setAttribute("y", "0");
         tick.setAttribute("width", "7");
         tick.setAttribute("height", "10");
-        return tick;
-      }),
-    );
+        ticks.push(tick);
+      }
+    }
+    captureTicks.replaceChildren(...ticks);
   }
 
-  // ---- the panel's list ----
+  // ---- the panel's list and the note box ----
 
   function made(tag, className, words) {
     const element = document.createElement(tag);
@@ -789,131 +906,201 @@ function readAlong() {
     return button;
   }
 
-  function row(marker) {
-    const item = made("li", "marker-row");
-    item.dataset.marker = marker.id;
-    if (marker.state === "found") {
-      const [time, , chapter] = chunks[firstOf[marker.chunk]]; // the sentence's start (#480)
-      item.append(made("p", "mk-at", tr("marker.at", { n: chapter + 1, time: clockOf(time) })));
-    } else {
-      const notice = marker.state === "not-read" ? tr("marker.not_read") : tr("marker.not_found");
-      item.append(made("p", "mk-state", notice));
-    }
-    const quote = made("blockquote", "mk-text", marker.text);
+  function quoted(sentence) {
+    const quote = made("blockquote", "cp-text", sentence);
     quote.lang = text.lang;
+    return quote;
+  }
+
+  function row(capture) {
+    const item = made("li", "capture-row");
+    item.dataset.kind = capture.type;
+    item.dataset.capture = capture.id;
+    item.append(flagOf(capture.type), made("p", "cp-kind", tr(`capture.kind_${capture.type}`)));
+    if (capture.state === "found") {
+      const [time, , chapter] = chunks[firstOf[capture.chunk]]; // the sentence's start (#480)
+      item.append(made("p", "cp-at", tr("capture.at", { n: chapter + 1, time: clockOf(time) })));
+    } else {
+      const notice = capture.state === "not-read" ? tr("capture.not_read") : tr("capture.not_found");
+      item.append(made("p", "cp-state", notice));
+    }
+    const quote = quoted(capture.sentence);
     item.append(quote);
-    if (marker.text.length > 200) {
+    if (capture.sentence.length > 200) {
       quote.classList.add("clamped");
-      const more = action(tr("marker.show_all"), () => {
+      const more = action(tr("capture.show_all"), () => {
         const open = quote.classList.toggle("clamped") === false;
-        more.textContent = open ? tr("marker.show_less") : tr("marker.show_all");
+        more.textContent = open ? tr("capture.show_less") : tr("capture.show_all");
         more.setAttribute("aria-expanded", String(open));
       });
-      more.classList.add("mk-more");
+      more.classList.add("cp-more");
       more.setAttribute("aria-expanded", "false");
       item.append(more);
     }
-    if (marker.note) item.append(made("p", "mk-note", marker.note));
-    if (editing === marker.id) {
-      item.append(noteBox(marker));
+    if (editing === capture.id) {
+      item.append(noteBox(capture.text, capture.id, (value) => saveNote(capture, value), () => closeNote(capture.id)));
       return item;
     }
-    const actions = made("p", "mk-actions");
-    if (marker.state === "found") {
-      actions.append(action(tr("marker.go_to"), () => playFrom(firstOf[marker.chunk], !audio.paused)));
+    if (capture.text) item.append(made("p", "cp-note", capture.text));
+    const actions = made("p", "cp-actions");
+    if (capture.state === "found") {
+      actions.append(action(tr("capture.go_to"), () => playFrom(firstOf[capture.chunk], !audio.paused)));
     }
-    const edit = action(marker.note ? tr("marker.edit_note") : tr("marker.add_note"), () => openNote(marker.id));
-    edit.classList.add("mk-edit-note");
-    actions.append(edit, action(tr("marker.remove"), () => removeMarker(marker)));
+    if (capture.type === "note") {
+      const edit = action(tr("capture.edit_note"), () => openNote(capture.id));
+      edit.classList.add("cp-edit-note");
+      actions.append(edit);
+    }
+    actions.append(action(tr("capture.remove"), () => removeCapture(capture)));
     item.append(actions);
     return item;
   }
 
-  function noteBox(marker) {
-    const box = made("div", "mk-edit");
-    const id = `note-${marker.id}`;
-    const label = made("label", "", tr("marker.note"));
+  // a note's box: ⌘ or Ctrl+Enter saves, Esc cancels
+  function noteBox(value, key, save, cancel) {
+    const box = made("div", "cp-edit");
+    const id = `note-${key}`;
+    const paused = made("p", "cp-paused", tr("capture.paused"));
+    const label = made("label", "", tr("capture.note_label"));
     label.htmlFor = id;
     const area = made("textarea");
     area.id = id;
     area.rows = 4;
     area.maxLength = NOTE_LIMIT;
-    area.value = marker.note;
-    const left = made("p", "hint mk-left");
+    area.placeholder = tr("capture.note_placeholder");
+    area.value = value;
+    const hint = made("p", "hint cp-hint", tr("capture.save_hint", { mod: MOD }));
+    hint.id = `${id}-hint`;
+    const left = made("p", "hint cp-left");
     left.id = `${id}-left`;
     left.setAttribute("aria-live", "polite");
-    area.setAttribute("aria-describedby", left.id);
+    area.setAttribute("aria-describedby", `${hint.id} ${left.id}`);
     const count = () => {
       const rest = NOTE_LIMIT - area.value.length;
-      left.textContent = rest <= 400 ? tr("marker.note_left", { n: rest }) : "";
+      left.textContent = rest <= 400 ? tr("capture.note_left", { n: rest }) : "";
     };
     area.addEventListener("input", count);
     count();
     area.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        saveNote(marker.id, area.value);
+        save(area.value);
       } else if (event.key === "Escape") {
         event.preventDefault(); // the panel stays open, and Focus is not left
         event.stopPropagation();
-        closeNote(marker.id);
+        cancel();
       }
     });
     const buttons = made("p", "buttons");
-    const save = action(tr("marker.save"), () => saveNote(marker.id, area.value));
-    save.classList.replace("quiet", "primary");
-    buttons.append(save, action(tr("marker.cancel"), () => closeNote(marker.id)));
-    box.append(label, area, left, buttons);
+    const saveButton = action(tr("capture.save"), () => save(area.value));
+    saveButton.classList.replace("quiet", "primary");
+    buttons.append(saveButton, action(tr("capture.cancel"), cancel));
+    box.append(paused, label, area, hint, left, buttons);
     return box;
   }
 
-  function rowOf(id) {
-    return markerList.querySelector(`li[data-marker="${CSS.escape(id)}"]`);
+  function drawComposer() {
+    if (!composing) {
+      if (composerBox.contains(document.activeElement)) capturesTab.focus({ preventScroll: true });
+      composerBox.replaceChildren();
+      composerBox.className = "";
+      capturesEmpty.hidden = captures.length > 0;
+      return;
+    }
+    capturesEmpty.hidden = true;
+    composerBox.className = "capture-composer";
+    composerBox.replaceChildren(
+      flagOf("note"),
+      made("p", "cp-kind", tr("capture.kind_note")),
+      quoted(composing.sentence),
+      noteBox("", "new", saveNewNote, () => closeComposer(true)),
+    );
   }
 
-  // the note box: playback pauses while it is open and goes on after it closes (#397)
-  function openNote(id) {
-    if (!markers.some((m) => m.id === id)) return;
+  function rowOf(id) {
+    return captureList.querySelector(`li[data-capture="${CSS.escape(id)}"]`);
+  }
+
+  // the voice pauses while a note's box is open and goes on after it closes (#397)
+  function pauseForNote() {
     if (focusing) setFocus(false);
-    if (editing === null) resumeAfterNote = !audio.paused;
+    if (editing === null && composing === null) resumeAfterNote = !audio.paused;
     audio.pause();
+  }
+
+  function resumeVoice() {
+    if (resumeAfterNote) audio.play().catch(() => {});
+    resumeAfterNote = false;
+  }
+
+  function openNote(id) {
+    if (!captures.some((c) => c.id === id && c.type === "note")) return;
+    pauseForNote();
+    composing = null;
+    drawComposer();
     editing = id;
     drawList();
-    showMarkers?.();
+    showCaptures?.();
     rowOf(id)?.querySelector("textarea")?.focus();
   }
 
   function closeNote(id) {
     editing = null;
     drawList();
-    rowOf(id)?.querySelector(".mk-edit-note")?.focus();
-    if (resumeAfterNote) audio.play().catch(() => {});
-    resumeAfterNote = false;
+    rowOf(id)?.querySelector(".cp-edit-note")?.focus();
+    resumeVoice();
   }
 
-  async function saveNote(id, value) {
-    const note = value.trim() ? value : "";
-    const marker = await markerCall(`${markersUrl}/${id}`, "PATCH", { note });
-    if (!marker) return;
+  function closeComposer(back) {
+    composing = null;
+    drawComposer();
+    if (back) captureButtons.note.focus();
+    resumeVoice();
+  }
+
+  async function saveNewNote(value) {
+    const note = composing;
+    if (!note) return;
+    if (!value.trim()) {
+      closeComposer(true); // nothing written, nothing kept
+      return;
+    }
+    const capture = await addCapture("note", note.chunk, value);
+    if (!capture) return;
+    closeComposer(false);
+    rowOf(capture.id)?.querySelector(".cp-edit-note")?.focus();
+  }
+
+  async function saveNote(capture, value) {
+    if (!value.trim()) {
+      editing = null; // a note emptied is removed, with Undo
+      await removeCapture(capture);
+      captureButtons.note.focus();
+      resumeVoice();
+      return;
+    }
+    const saved = await captureCall(`${capturesUrl}/${capture.id}`, "PATCH", { text: value });
+    if (!saved) return;
     editing = null;
-    keepMarker(marker);
-    say(tr("marker.saved"));
-    closeNote(id);
+    keepCapture(saved);
+    sound("note");
+    tell(tr("capture.saved_note"), "note");
+    closeNote(capture.id);
   }
 
   function drawList() {
     // the focus never falls out of the panel while its rows are drawn again: over the page
     // that would close it (#444); the caller puts it where it belongs
-    if (markerList.contains(document.activeElement)) markersTab.focus({ preventScroll: true });
-    markerList.replaceChildren(...markers.map(row));
-    markersEmpty.hidden = markers.length > 0;
-    markersTab.textContent = tr("marker.tab_count", { n: markers.length });
+    if (captureList.contains(document.activeElement)) capturesTab.focus({ preventScroll: true });
+    captureList.replaceChildren(...captures.map(row));
+    capturesEmpty.hidden = captures.length > 0 || composing !== null;
+    capturesTab.textContent = tr("capture.tab_count", { n: captures.length });
   }
 
-  function drawMarkers() {
+  function drawCaptures() {
     drawList();
     drawTicks();
-    markerState();
+    captureState();
     placeBars();
   }
 
@@ -979,7 +1166,11 @@ function readAlong() {
     } else if ((key === "p" || key === "P") && !focusing) {
       if (once) panelByKey?.(); // the focus stays where it is (#461)
     } else if (key === "m" || key === "M") {
-      if (once) toggleMarker(); // also in Focus (#474)
+      if (once) toggleCapture("mark"); // also in Focus (#474, #397)
+    } else if (key === "q" || key === "Q") {
+      if (once) toggleCapture("quote"); // also in Focus (#397)
+    } else if (key === "n" || key === "N") {
+      if (once) startNote(); // leaves Focus: the box is in the panel (#397)
     } else return;
     event.preventDefault();
   });
@@ -1064,8 +1255,8 @@ function readAlong() {
   seek(0, chapters[0].start, false);
   const panel = contextPanel();
   panelByKey = panel?.byKey;
-  showMarkers = panel?.show;
-  drawMarkers();
+  showCaptures = panel?.show;
+  drawCaptures();
 
   // drawn disabled: a press before this script ran would be lost (#350, #427)
   for (const control of [
@@ -1080,8 +1271,7 @@ function readAlong() {
     control.disabled = false;
   }
   undoButton.disabled = false;
-  addNoteButton.disabled = false;
-  markerState(); // drawn disabled too: enabled once a sentence is there to mark
+  captureState(); // drawn disabled too: enabled once a sentence is there to capture at
 
   // ---- a book still being made (#724, LW-02) ---------------------------------------------
   // The audio job makes each chapter playable as soon as it is spoken (#723). The page
@@ -1172,9 +1362,10 @@ function readAlong() {
         if (row) Object.assign(row, { chapter: n, state: "ready" });
       }
       for (const row of rows) drawRow(row);
-      if (!part.markers_file) {
-        markers = part.markers;
-        drawMarkers();
+      if (!part.captures_off) {
+        captures = part.captures;
+        sortCaptures();
+        drawCaptures();
       }
       if (loaded >= 0) showChapter(loaded);
       showTime(bookTime(), true);
@@ -1294,7 +1485,7 @@ function readAlong() {
   }
 }
 
-// ---- the context panel (#393): Changes, Chapters and Markers (#474) --------------------------
+// ---- the context panel (#393): Changes, Chapters and Captures (#397) --------------------------
 // Beside the desk from 1280 px, where its button hides and shows it; below, it opens over
 // the page, takes the focus, and Esc or its button closes it and gives the focus back. The
 // focus never reaches what it covers: when the focus leaves it, it closes (#444).
@@ -1416,12 +1607,12 @@ function contextPanel() {
   }
   show();
   for (const control of [toggle, close, ...tabs]) control.disabled = false;
-  const markersTab = document.getElementById("tab-markers");
+  const capturesTab = document.getElementById("tab-captures");
   return {
     byKey: () => set(toggle.getAttribute("aria-expanded") !== "true", true),
-    // the Markers tab, the panel open: as P opens it, so the focus comes back where it was
+    // the Captures tab, the panel open: as P opens it, so the focus comes back where it was
     show: () => {
-      if (markersTab) choose(markersTab, false);
+      if (capturesTab) choose(capturesTab, false);
       if (toggle.getAttribute("aria-expanded") !== "true") set(true, true);
     },
   };
