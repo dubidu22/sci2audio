@@ -96,8 +96,9 @@ _NUMBER = re.compile(
     r"\d[\d.,]*(?:\s*(?:[\d.,()\[\]%±/+-]"
     rf"|(?<![^\W\d_])(?!(?:{_JOINING})\b)[^\W\d_]{{1,3}}\b))*"
 )
-# the hyphens that may end a line inside a word, as the hyphen step reads them
-_HYPHENS = "-\u2010\u00ad"
+# what may end a line inside a word, a compound or a range: hyphens (as the hyphen step
+# reads them, a soft one too) and the en dash of a range (1990 to 2000)
+_HYPHENS = "-\u2010\u00ad\u2013"
 # what may close a sentence after its full stop: quotes (English and German, #958),
 # guillemets either way round, brackets
 _CLOSING = "\"'\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a)]"
@@ -907,8 +908,9 @@ class Paragraphs:
         leave the page's order (#966). A float's own lines under its caption (an algorithm's,
         a note's) stand in the column the paragraph runs on from or goes on in (nowak p5:
         on the next page, left of where it goes on), and still wait for it, as does the
-        caption alone (#61, #958). A word broken or joined by a hyphen over the break
-        (`_hyphen_end`) is never cut: the hyphen step mends it only inside one block."""
+        caption alone (#61, #958). A word, compound or range broken by a hyphen or an en
+        dash over the break (`_hyphen_end`) is never cut: the steps that mend or read it
+        work only inside one block."""
         last, first = self.aside[-1], self.open[0] if self.open else None
         return (
             first is not None
@@ -1135,11 +1137,14 @@ def _split_word(row: Row, next_row: Row) -> bool:
 
 
 def _hyphen_end(row: Row) -> bool:
-    """True if the row ends in a hyphen right after a letter or a digit ("-", U+2010 or a
-    soft hyphen): a word broken or joined over the line's end, whatever the next row opens
-    with ("Corona-" "Pandemie", "COVID-" "19"); a dash after a space is no hyphen."""
+    """True if the row ends in a hyphen or an en dash (`_HYPHENS`) with no white space
+    right before it, after any character: a word, a compound or a range broken over the
+    line's end, whatever the next row opens with ("Corona-" "Pandemie", "„Bio“-"
+    "Lebensmittel", a range's "1990" and en dash, "2000"). A dash after a space stands
+    between words."""
     end = row.text.rstrip()
-    return end[-1:] in _HYPHENS and end[-2:-1].isalnum()
+    before = end[-2:-1]
+    return end[-1:] in _HYPHENS and bool(before) and not before.isspace()
 
 
 def _sentence_end(row: Row) -> bool:
