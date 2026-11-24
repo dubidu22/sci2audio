@@ -64,6 +64,7 @@ from sci2audio.textprep.notation import (
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
+from sci2audio.textprep.statistics import comparisons_read_alone
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
@@ -162,8 +163,22 @@ _JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
 _MINUS_SAID_EN = re.compile(r"(?<![\w-])minus\s*\Z")
 # ... but not after "plus or" or "plus/", in any case and with any white space: "plus or minus"
 # is the reading of "±", which is no such sign ("± 3x" is "plus or minus 3 times"), and a
-# second run sees its white space joined ("plus or\nminus" is "plus or minus" then)
-_PLUS_OR_BEFORE_EN = re.compile(r"plus(?:\s+or\s+|\s*/\s*)\Z", re.IGNORECASE)
+# second run sees its white space joined ("plus or\nminus" is "plus or minus" then); nor after
+# "plus" and a glued dash or Unicode hyphen, which is "plus-minus" as typeset (#1021)
+_PLUS_OR_BEFORE_EN = re.compile(
+    r"plus(?:\s+or\s+|\s*/\s*|[\u2010\u2011\u2013\u2014])\Z", re.IGNORECASE
+)
+# after "Nx", the numbers step's reading of a minus sign before a number counts as that sign,
+# as before it: "3x", a minus sign and "2" read "3x minus 2" on both runs (#1010); "minus the
+# rest" is no such reading
+_MINUS_SAID_AFTER_EN = re.compile(r"\s+minus\s+\.?\d")
+# after "Nx", a bare "less than" / "greater than" counts as the sign before a one-letter
+# variable (not "a", "A", "I", which are words) or an opening bracket, mirroring
+# `_COMPARED_EN`: "3x greater than y" is the reading of "3x > y" (#1010, D-646)
+_COMPARED_AFTER_EN = re.compile(r"\s*(?:less|greater) than\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()")
+# the numbers step's reading of a power ("A⁻¹" is "A to the power of minus 1"): its number is
+# an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did (#816)
+_POWER_SAID_EN = re.compile(r"(?<![\w-])to the power of (?:minus )?\Z")
 # the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
 # second number is no unit's number, as the printed denominator is not (#335, D-605)
 _OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
@@ -436,6 +451,10 @@ def _unit_after(
         return None
     if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
         return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
+    if table.language == "en" and _POWER_SAID_EN.search(
+        text, max(0, number.start() - 24), number.start()
+    ):
+        return None
     # after a power printed in superscripts ("10⁴K") a glued letter reads as it does with a
     # space ("10⁴ K"), where the numbers step reads the power before it (#576; German, #815)
     exponent = number["exponent"] or ""
@@ -846,6 +865,8 @@ def _in_algebra(
         return True  # "y less than 2x" (#358, D-646)
     if english and _minus_said_before(text, start):
         return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
+    if english and (_MINUS_SAID_AFTER_EN.match(text, end) or _COMPARED_AFTER_EN.match(text, end)):
+        return True  # "3x minus 2", "3x greater than y": the readings of signs after "3x"
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
     ahead = text[end : end + 3]
@@ -866,11 +887,24 @@ def _in_algebra(
         and not (english and _bare_comparison(text, before, before_at, compared))
     ):
         return True
+    # ... and, in English, a bare "<" or ">" after "Nx" counts only where its words do on a
+    # second run (`_COMPARED_AFTER_EN`): "3x > 2" is "3 times greater than 2", as "2 < 3x" is
     return (
         after != ""
         and after in _OPERATORS + "("
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
+        and not (english and _bare_comparison_after(text, after, after_at))
     )
+
+
+def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
+    """True if the `sign` at `at`, after "Nx", is a "<" or ">" the statistics step reads alone
+    as "less than" or "greater than", and those words before what follows are prose on a
+    second run (`_COMPARED_AFTER_EN`)."""
+    if sign not in ("<", ">") or at not in comparisons_read_alone(text):
+        return False
+    said_after = " less than " + text[at + 1 : at + 33].lstrip()
+    return _COMPARED_AFTER_EN.match(said_after) is None
 
 
 def _minus_said_before(text: str, start: int) -> bool:

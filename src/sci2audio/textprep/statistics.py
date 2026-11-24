@@ -28,6 +28,7 @@ from __future__ import annotations
 import bisect
 import re
 from collections.abc import Iterator, Mapping
+from functools import lru_cache
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.abbreviations import reads_full_stop
@@ -106,6 +107,9 @@ _LEFT_OF_ARROW = re.compile(
 _LINE_BREAKS = frozenset("\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029")
 _SPACE = re.compile(r"\s*")
 _NUMBER_START = re.compile(r"[−+-]?\.?\d")
+# a minus sign the numbers step reads "minus" with a space or line break before its number
+# (its N1, `numbers._MINUS`); glued to the number it starts one (`_NUMBER_START`)
+_MINUS_READ = re.compile(r"[\u2212\u2012](?: |\n)\.?\d")
 _TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?>")
 _NUMBER = r"\d+(?:\.\d+)?"
 _SIGNED = r"[−-]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
@@ -209,6 +213,20 @@ def find_statistics(text: str) -> list[Candidate]:
             *_operators(text, plain),
         ]
     )
+
+
+@lru_cache(maxsize=16)
+def comparisons_read_alone(text: str) -> frozenset[int]:
+    """Where the English step reads a "<" or ">" alone as "less than" or "greater than" in
+    `text`: the units step asks whether such a sign after "Nx" is the sign on a second run
+    (#1010). Cached, as it is asked once for each "Nx" of a block."""
+    said = {OPERATORS["<"], OPERATORS[">"]}
+    signs = set()
+    for found in find_statistics(text):
+        if found.replacement.strip() in said:
+            span = text[found.start : found.end]
+            signs.add(found.start + len(span) - len(span.lstrip()))
+    return frozenset(signs)
 
 
 def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
@@ -383,12 +401,16 @@ def _operators(
                 )
             )
             continue
-        if not _OPERAND.match(plain, right_start):
+        # an English "=" glued before a minus sign the numbers step reads apart from its
+        # number is no arrow: a second run sees "A=minus 3" and reads "equals" there, so the
+        # first does too (#1010)
+        minus_read = op == "=" and language == "en" and bool(_MINUS_READ.match(plain, end))
+        if not (_OPERAND.match(plain, right_start) or minus_read):
             continue
         if op in "<>=" and (
             (before in _ARROW and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
             or (after and after in "<>=")
-            or _arrow_after(plain, end)
+            or (_arrow_after(plain, end) and not minus_read)
         ):
             continue
         # German (`word_stop`) reads "=" whatever comes before it: what comes before can be

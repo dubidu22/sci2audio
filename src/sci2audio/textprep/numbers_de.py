@@ -49,7 +49,8 @@ from sci2audio.textprep.notation import (
     unit_follows,
     unit_starts_at,
 )
-from sci2audio.textprep.statistics_de import OPERATORS_DE
+from sci2audio.textprep.statistics import find_statistics_in_german
+from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE
 from sci2audio.textprep.units import reads_unit_after, reads_unit_after_per, reads_x_after
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
@@ -1261,6 +1262,8 @@ _PART_KEYWORDS = frozenset(
     | {"kap", "abschn", "anh", "bd"}
 )
 _ROMAN = r"[IVX]{1,6}"
+# the first characters of the signs and arrows the statistics step reads as words
+_SIGN_START = "[" + re.escape("".join(sorted({s[0] for s in (*OPERATORS_DE, *ARROWS_DE)}))) + "]"
 # a number joined after a Roman numeral or a label's number; unlike `_JOINED_AFTER` not by a
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
 # date as words)
@@ -1273,10 +1276,15 @@ _ROMAN_RUN = re.compile(
     # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a full
     # stop and white space or the end, only one numeral after a part's keyword is read
     # (`_PART_KEYWORDS`)
-    # nor a run cut short before such a numeral: "Teil II und III." is left whole
+    # nor a run cut short before such a numeral: "Teil II und III." is left whole, and so is
+    # a range joined by "bis", read none as "Kapitel I. bis III." is (#996, #1010)
     # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
-    + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z)|\s+%|\s+(?:Quadrat|hoch)\b"
-    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+    # ... but a full stop glued to a sign may stand before the sign's words on a second run
+    # ("Kapitel IV.=1" is "Kapitel IV. gleich 1" then): the statistics step decides (#1010)
+    + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
+    + _SIGN_START
+    + r")|\s+%|\s+(?:Quadrat|hoch)\b"
+    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&|bis)\s+)"
     + _ROMAN
     + ")"
 )
@@ -1300,6 +1308,7 @@ def _roman_value(numeral: str) -> int:
 
 def _roman_numerals(plain: str) -> list[Candidate]:
     found = []
+    signs: frozenset[int] | None = None  # where the statistics step reads a sign, when asked
     for match in _ROMAN_RUN.finditer(plain):
         keyword = match["keyword"]
         known = _ABBREVIATED_KEYWORDS if match["dot"] else _KEYWORDS
@@ -1310,6 +1319,13 @@ def _roman_numerals(plain: str) -> list[Candidate]:
             plain, match.end("run")
         ):
             continue  # "Kapitel I-3", "Kapitel I x1": "1-3" a range, "1 x1" "1 mal 1" next time
+        stop = match.end("run")
+        glued_after_stop = plain[stop + 1 : stop + 2]
+        if plain[stop : stop + 1] == "." and glued_after_stop and not glued_after_stop.isspace():
+            if signs is None:
+                signs = frozenset(found.start for found in find_statistics_in_german(plain))
+            if stop + 1 not in signs:
+                continue  # "Kapitel IV.==1": the sign stays as printed, so does the numeral
         offset = match.start("run")
         parts = list(_ROMAN_PART.finditer(match["run"]))
         if not all(_roman_value(p["numeral"]) for p in parts if p["numeral"]):

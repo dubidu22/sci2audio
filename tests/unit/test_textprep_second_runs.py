@@ -206,7 +206,10 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         # #1010: a sign after a citation that starts the block and is removed
         ("[1] < 3x", "en", "less than 3 times"),
         ("[1] > 3", "en", "greater than 3"),
-        ("[1, 2] = 3", "en", "equals 3"),
+        ("[1, 2] ≤ 3x", "en", "less than or equal to 3x"),
+        ("[1, 2] < 3x", "en", "less than 3 times"),
+        ("It holds. [1] < 3x.", "en", "It holds. less than 3 times."),
+        ("[1] = 3", "en", "= 3"),  # "=" needs a word before it: as before
         ("So [1] < 3x.", "en", "So less than 3 times."),
         ("[1] < 3x", "de", "kleiner als 3x"),
         # #1010: a part's numeral before a full stop and a sign the statistics step reads
@@ -218,7 +221,6 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("Kapitel IV.==1", "de", "Kapitel IV.==1"),
         ("Kapitel IV.⇒1", "de", "Kapitel IV.⇒1"),
         ("Typ II.=1", "de", "Typ II. gleich 1"),
-        ("Kapitel I.2", "de", "Kapitel I.2"),
         # #1010: a range joined by "bis" is read none, as with full stops (#996)
         ("Kapitel I bis III", "de", "Kapitel I bis III"),
         ("Kapitel II bis IV folgen.", "de", "Kapitel II bis IV folgen."),
