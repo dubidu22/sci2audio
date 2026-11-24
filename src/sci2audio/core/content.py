@@ -86,8 +86,13 @@ class Box:
 class TextRun:
     """A piece of a line in one style. Fields the source doesn't give stay at their default.
 
-    `tags` are the source's own markup around the run, e.g. ("h2",) in an EPUB or ("li", "em")
-    in Markdown: hints for the layout stage, not decisions.
+    `tags` are hints for the layout stage, not decisions. They come from two places:
+
+    - The source's own markup around the run, e.g. ("h2",) in an EPUB or ("li", "em") in
+      Markdown. `extraction.markup` sets them for `extraction.markdown` and `extraction.epub`;
+      `extraction.text` sets them for plain text from the shape of its lines.
+    - For a PDF, which has no markup, layout's reading of the font: `layout.inline_code` adds
+      the tag "code" to a typewriter run inside prose.
     """
 
     text: str
