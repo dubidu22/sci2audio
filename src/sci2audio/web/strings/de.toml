@@ -773,6 +773,10 @@ keep_hint = "Die neuen Kapitel bekommen dieselbe Stimme, dasselbe Tempo und dies
 replace_all = "Alle Kapitel neu erstellen"
 replace_hint = "Alle Kapitel werden mit den jetzt gewählten Einstellungen neu erstellt, und die bisherigen Dateien werden ersetzt."
 speaking = "Kapitel {n} von {total} wird gesprochen"
+# #1054: der letzte Satz des Kapitels ist gesprochen, seine Dateien werden geschrieben; danach kann man es hören
+saving = "Kapitel {n} von {total} wird gespeichert"
+# das Kapitel, das gesprochen wird, und wie weit es ist; {part} ist js.percent
+chapter_part = "Kapitel {n} von {total}: {part}"
 leave = "Sie können dieses Fenster schließen. Die Arbeit läuft weiter, solange sci2audio läuft, und schon gesprochene Sätze bleiben erhalten."
 pause = "Pausieren"
 pause_hint = "Pausieren hält die Stimme an und behält jeden bisher gesprochenen Satz; Fortsetzen macht dort weiter."

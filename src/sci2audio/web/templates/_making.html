@@ -3,8 +3,11 @@
     button is drawn disabled; app.js enables each once its click is attached (#350, #427).
     Import it "with context". -#}
 {% from "_icons.html" import icon %}
-{% macro segments(list) -%}
-{% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<span class="job-seg{% if kind %} {{ kind }}{% endif %}"></span>{% endfor %}</span>{% endif %}
+{#- One bar per chapter: done ones full, the current one as far as it is spoken (`part`, 0 to
+    100), later ones empty (#1054). Bars, not width styles: the CSP forbids style attributes.
+    The line under them says the same to a screen reader. -#}
+{% macro segments(list, part=0) -%}
+{% if list %}<span class="segs" id="job-segments" aria-hidden="true">{% for kind in list %}<progress class="job-seg{% if kind %} {{ kind }}{% endif %}" max="100" value="{{ 100 if kind == 'done' else (part if kind == 'now' else 0) }}"></progress>{% endfor %}</span>{% endif %}
 {%- endmacro %}
 {#- Freeing the cache deletes every spoken sentence, so it asks first, as Cancel does (D-733) -#}
 {% macro free_button(card) -%}
@@ -26,8 +29,9 @@
 <div class="body">
 {% if card.state == 'running' %}
   <p class="job-line"><strong id="job-chapter">{{ card.head }}</strong><span id="job-left">{{ card.left }}</span></p>
-  <progress id="job-bar" max="100"{% if card.percent is not none %} value="{{ card.percent }}"{% endif %} aria-valuetext="{{ card.head }}{% if card.left %}, {{ card.left }}{% endif %}" aria-labelledby="making-title" aria-describedby="job-progress"></progress>
-  {{ segments(card.segments) }}
+  <progress id="job-bar" max="100"{% if card.percent is not none %} value="{{ card.percent }}"{% endif %} aria-valuetext="{{ card.head }}{% if card.left %}, {{ card.left }}{% endif %}" aria-labelledby="making-title" aria-describedby="job-chapter-progress job-progress"></progress>
+  {{ segments(card.segments, card.chapter_part) }}
+  <p id="job-chapter-progress" class="job-count"{% if not card.chapter_line %} hidden{% endif %}>{{ card.chapter_line }}</p>
   <p id="job-progress" class="job-count">{{ card.sentences }}</p>
   {#- the chapters are playable as they are spoken (#723): the first one opens Listen (#724);
       app.js shows the link when the first one is ready -#}

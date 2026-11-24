@@ -768,6 +768,10 @@ keep_hint = "The new chapters are made with the voice, speed and text settings t
 replace_all = "Make every chapter again"
 replace_hint = "Every chapter is made again with the settings you chose now, and the files made so far are replaced."
 speaking = "Speaking chapter {n} of {total}"
+# #1054: the chapter's last sentence is spoken and its files are being written; listening opens after
+saving = "Saving chapter {n} of {total}"
+# the chapter being spoken and how far it is; {part} is js.percent
+chapter_part = "Chapter {n} of {total}: {part}"
 leave = "You can close this window. The work continues while sci2audio runs, and the sentences already spoken are kept."
 pause = "Pause"
 pause_hint = "Pause stops the voice and keeps every sentence spoken so far; Resume continues from there."

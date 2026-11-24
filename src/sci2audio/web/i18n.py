@@ -67,6 +67,9 @@ SCRIPT_KEYS = (
     "common.kilobytes",
     "common.bytes",
     "making.speaking",  # the job card's headline (#391)
+    "making.saving",  # ... while a chapter's files are written (#1054)
+    "making.chapter_part",  # the chapter being spoken (#1054)
+    "paper.listen",  # the Listen tab, a link once a chapter is playable (#1054)
     "making.cancel_size",
     "player.",
     "capture.",  # the captures on the Listen page (#397)

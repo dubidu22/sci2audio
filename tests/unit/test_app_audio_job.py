@@ -251,6 +251,39 @@ def test_progress_numbers_the_chapter_and_says_when_it_is_done(tmp_path: Path) -
     assert all(e.chapter_number == 0 and not e.chapter_done for e in before)
 
 
+def test_progress_counts_the_chunks_of_the_chapter_being_spoken(tmp_path: Path) -> None:
+    """#1054: each chunk's event says how many of its chapter's chunks are done and how many
+    the chapter has, so the card can fill the chapter's own bar. The chosen order counts."""
+    events: list[AudioProgress] = []
+    run(
+        PYMEDPHYS,
+        tmp_path,
+        FakeVoice(),
+        settings=JobSettings(chapters=(2, 0)),
+        progress=events.append,
+    )
+    spoken = [
+        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None
+    ]
+    by_chapter: dict[int | None, list[AudioProgress]] = {}
+    for event in spoken:
+        by_chapter.setdefault(event.chapter, []).append(event)
+    assert list(by_chapter) == [2, 0]
+    for chapter in by_chapter.values():
+        assert [e.chapter_chunks_done for e in chapter] == list(range(1, len(chapter) + 1))
+        assert {e.chapter_chunks_total for e in chapter} == {len(chapter)}
+        assert chapter[-1].chapter_done
+    assert sum(len(chapter) for chapter in by_chapter.values()) == spoken[-1].chunks_total
+    # the event that says a chapter became playable repeats its last chunk's counts
+    ready = [e for e in events if e.ready is not None]
+    assert [(e.chapter_chunks_done, e.chapter_chunks_total) for e in ready] == [
+        (len(by_chapter[2]), len(by_chapter[2])),
+        (len(by_chapter[0]), len(by_chapter[0])),
+    ]
+    before = [e for e in events if e.phase is not Phase.SPEAKING or e.chunks_done == 0]
+    assert all(e.chapter_chunks_done == 0 == e.chapter_chunks_total for e in before)
+
+
 class CostClock:
     """A clock the fake voice moves on: each call costs `cost(characters)` seconds, the
     first `slow` calls twice that (a voice warming up)."""

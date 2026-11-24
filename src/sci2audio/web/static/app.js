@@ -1247,24 +1247,35 @@ function sizeText(n) {
   return tr("common.bytes", { n });
 }
 
-// Where the job stands, from its latest progress (D-695): the chapter being spoken counted
-// from 1, one past the chapters once every one is spoken, 0 before the first chunk. The
-// progress names the last finished chunk; when that one ended its chapter, the next began.
+// Where the job stands, as pages._chapter_now (D-695, #1054): the current chapter counted
+// from 1 (0 before the first chunk, one past the last once every one is written), how far it
+// is (0 to 1), and whether its files are being written. The progress names the last finished
+// chunk; when that one ended its chapter, the chapter stays the current one until it is
+// playable, and only then the next one begins.
 function chapterNow(progress) {
   const chapters = progress.chapters || 0;
-  if (progress.phase === "encoding" || progress.phase === "done") return chapters + 1;
+  const nothing = { now: 0, part: 0, saving: false };
+  if (progress.phase === "encoding" || progress.phase === "done") return { ...nothing, now: chapters + 1 };
   const number = progress.chapter_number || 0;
-  if (progress.phase !== "speaking" || !number) return 0;
-  if (progress.chapter_done) return number >= chapters ? chapters + 1 : number + 1;
-  return number;
+  if (progress.phase !== "speaking" || !number) return nothing;
+  if (progress.chapter_done) {
+    if (!(progress.playable || []).includes(progress.chapter)) return { now: number, part: 1, saving: true };
+    return { ...nothing, now: number + 1 };
+  }
+  const total = progress.chapter_chunks_total || 0;
+  const part = total ? Math.min(1, (progress.chapter_chunks_done || 0) / total) : 0;
+  return { now: number, part, saving: false };
 }
 
 // The running card's words, as pages._running_lines draws them first.
 function cardShown(progress) {
-  const now = chapterNow(progress);
+  const { now, part: chapterPart, saving } = chapterNow(progress);
   const chapters = progress.chapters || 0;
+  const inChapter = progress.phase === "speaking" && now >= 1 && now <= chapters;
   let head;
-  if (progress.phase === "speaking" && now && now <= chapters) {
+  if (saving) {
+    head = tr("making.saving", { n: now, total: chapters });
+  } else if (inChapter) {
     head = tr("making.speaking", { n: now, total: chapters });
   } else {
     const words = STRINGS[`phase.${progress.phase}`] ?? tr("job.state_running");
@@ -1280,24 +1291,45 @@ function cardShown(progress) {
   const sentences = progress.chunks_total
     ? tr("js.sentences", { done: progress.chunks_done || 0, n: progress.chunks_total })
     : "";
+  const percent = Math.floor(100 * chapterPart);
+  const chapterLine = inChapter
+    ? tr("making.chapter_part", { n: now, total: chapters, part: tr("js.percent", { n: percent }) })
+    : "";
   // what a screen reader is told: the same words, as one sentence
-  const said = [head, sentences, ...left].filter(Boolean).join(", ");
-  return { head, left: left.join(" · "), said, part, now, chapters, sentences };
+  const said = [head, chapterLine, sentences, ...left].filter(Boolean).join(", ");
+  return { head, left: left.join(" · "), said, part, now, chapters, sentences, chapterLine, percent };
 }
 
-// One segment per chapter: done, the one being spoken, or to come (classes only: the CSP
-// forbids style attributes).
-function drawSegments(box, chapters, now) {
+// One bar per chapter: done ones full, the current one as far as it is (`percent`), later
+// ones empty (bars, not widths: the CSP forbids style attributes).
+function drawSegments(box, chapters, now, percent) {
   if (!box) return;
   while (box.children.length < chapters) {
-    const seg = document.createElement("span");
+    const seg = document.createElement("progress");
     seg.className = "job-seg";
+    seg.max = 100;
+    seg.value = 0;
     box.append(seg);
   }
   Array.from(box.children).forEach((seg, n) => {
     seg.classList.toggle("done", n + 1 < now);
     seg.classList.toggle("now", n + 1 === now);
+    seg.value = n + 1 < now ? 100 : n + 1 === now ? percent : 0;
   });
+}
+
+// The Listen tab once a chapter of the book is playable (#1054): the audiobook's record is
+// written only at the job's end, so the page drew it as "No audio yet".
+function listenTab(doc) {
+  const off = document.querySelector("span#tab-listen.tab-off");
+  if (!off) return;
+  const link = document.createElement("a");
+  link.href = `/documents/${doc}/listen`;
+  link.id = "tab-listen";
+  link.append(...off.childNodes);
+  const words = link.querySelector("span");
+  if (words) words.textContent = tr("paper.listen");
+  off.replaceWith(link);
 }
 
 // Waits until the job is no longer running, asking the server, never trusting the stream
@@ -1430,6 +1462,7 @@ function makingCard() {
   const chapter = document.getElementById("job-chapter");
   const left = document.getElementById("job-left");
   const count = document.getElementById("job-progress");
+  const chapterLine = document.getElementById("job-chapter-progress");
   const status = document.getElementById("job-status");
   const announce = announcer(status);
   // each chapter is playable as soon as it is spoken (#723): the first one shows "Start
@@ -1451,13 +1484,18 @@ function makingCard() {
       segs.setAttribute("aria-hidden", "true");
       bar.after(segs);
     }
-    drawSegments(segs, shown.chapters, shown.now);
+    drawSegments(segs, shown.chapters, shown.now, shown.percent);
+    if (chapterLine) {
+      chapterLine.textContent = shown.chapterLine;
+      chapterLine.hidden = !shown.chapterLine;
+    }
     bar.setAttribute("aria-valuetext", shown.said);
     announce(progress, shown.said);
     const playable = (progress.playable || []).length;
     if (listenBox && playable > ready) {
       ready = playable;
       listenBox.hidden = false;
+      listenTab(doc);
       status.textContent = tr("player.chapter_ready", { n: playable });
     }
   }, () => {
