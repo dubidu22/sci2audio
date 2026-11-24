@@ -323,6 +323,28 @@ def test_a_v1_file_over_its_limit_is_not_read(work: Path) -> None:
     _refused_and_untouched(work, raw, "larger than")
 
 
+def _v1_of_size(size: int) -> bytes:
+    """A valid v1 file of exactly `size` bytes: spaces after the JSON, which v1.3 reads."""
+    raw = V1.encode("utf-8")
+    assert len(raw) <= size
+    return raw + b" " * (size - len(raw))
+
+
+def test_a_v1_file_of_exactly_the_size_limit_carries_over(work: Path) -> None:
+    raw = _put_markers(work, _v1_of_size(v13.FILE_LIMIT))
+    assert (work / MARKERS).stat().st_size == module.MARKERS_LIMIT == 2_000_000
+    assert len(v13.read_markers(work, DOC)) == len(CARRIED.captures)  # v1.3 accepts it
+    assert load_captures(work, DOC) == CARRIED
+    _untouched(work, raw, captures=True)
+
+
+def test_a_valid_v1_file_one_byte_over_the_size_limit_is_refused(work: Path) -> None:
+    raw = _put_markers(work, _v1_of_size(v13.FILE_LIMIT + 1))
+    with pytest.raises(v13.MarkersBroken):  # v1.3 refuses it too
+        v13.read_markers(work, DOC)
+    _refused_and_untouched(work, raw, "larger than")
+
+
 def test_markers_that_would_pass_the_captures_limit_are_not_carried(
     work: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -606,6 +628,10 @@ def _markers_in_place(work: Path, tmp_path: Path, kind: str) -> None:
         _put_markers(work, b"{broken")
     elif kind == "folder":
         (work / MARKERS).mkdir()
+    elif kind == "dangling":
+        if sys.platform == "win32":
+            pytest.skip("links need rights on Windows")
+        (work / MARKERS).symlink_to(tmp_path / "gone.json")
     else:
         if sys.platform == "win32":
             pytest.skip("links need rights on Windows")
@@ -614,11 +640,14 @@ def _markers_in_place(work: Path, tmp_path: Path, kind: str) -> None:
 
 
 def _snapshot(work: Path) -> dict[str, bytes | str]:
-    """Every entry of the working folder: a file's bytes, a link's target, or 'folder'."""
+    """Every entry of the working folder: a file's bytes, a link's target path and, if
+    there is one, its bytes, or 'folder'."""
     seen: dict[str, bytes | str] = {}
     for path in work.iterdir():
         if path.is_symlink():
             seen[path.name] = str(os.readlink(path))
+            if path.exists() and path.is_file():
+                seen[f"{path.name} -> target"] = path.read_bytes()
         elif path.is_dir():
             seen[path.name] = "folder"
         else:
@@ -626,7 +655,7 @@ def _snapshot(work: Path) -> dict[str, bytes | str]:
     return seen
 
 
-@pytest.mark.parametrize("kind", ["v1", "broken", "folder", "link"])
+@pytest.mark.parametrize("kind", ["v1", "broken", "folder", "link", "dangling"])
 @pytest.mark.parametrize("captures", [FRESH, CaptureFile(DOC)], ids=["one", "empty"])
 def test_a_new_captures_json_beside_uncarried_markers_is_refused(
     work: Path, tmp_path: Path, kind: str, captures: CaptureFile
