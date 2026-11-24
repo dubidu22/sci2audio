@@ -37,12 +37,22 @@ def _both_runs(text: str, language: str) -> tuple[str, str]:
         ("So 3x = A and y = 2x + 1.", "en", "So 3x equals A and y equals 2x + 1."),
         ("So 3x>=A.", "en", "So 3x>=A."),
         ("So 3x ==> A.", "en", "So 3x ==> A."),  # no arrow of logic: left as printed
+        # ... nor after "<", ">" or "=", where the statistics step reads none either
+        ("A ==> 3x and B", "en", "A ==> 3x and B"),
+        ("A >=> 3x and B", "en", "A >=> 3x and B"),
+        ("A ==> 3x und B", "de", "A ==> 3x und B"),
+        ("A >=> 3x und B", "de", "A >=> 3x und B"),
         ("It runs 3x faster and 3 × 4 is 12.", "en", "It runs 3 times faster and 3 times 4 is 12."),
         ("Es läuft 3x schneller.", "de", "Es läuft 3 mal schneller."),
         # #924: an arrow after an abbreviation read with its full stop
         ("Jh.⇒1", "de", "Jahrhundert daraus folgt 1"),
         ("usw. => 1", "de", "und so weiter daraus folgt 1"),
         ("Jh. ⇒ Das gilt.", "de", "Jahrhundert ⇒ Das gilt."),  # named between two words
+        # ... also where the abbreviation ends in one letter: it is one prose word
+        ("z. B. ⇒ Die Daten", "de", "zum Beispiel ⇒ Die Daten"),
+        ("d. h. ⇒ wir messen", "de", "das heißt ⇒ wir messen"),
+        ("i. V. m. ⇒ dem Gesetz", "de", "in Verbindung mit ⇒ dem Gesetz"),
+        ("z. B. ⇒ 2", "de", "zum Beispiel daraus folgt 2"),
         ("Ende. ⇒ 3 Teilnehmer", "de", "Ende. ⇒ 3 Teilnehmer"),  # no abbreviation: as before
         # ... and a sign after a left arrow in pieces, read as after "←"
         ("←−=1", "de", "← gleich 1"),

@@ -56,7 +56,12 @@ from sci2audio.textprep.footnotes import (
     raised_numbers,
     unread_marks,
 )
-from sci2audio.textprep.notation import DOUBLE_ARROW, FILE_NUMBER_DE, edits_through_unread
+from sci2audio.textprep.notation import (
+    DOUBLE_ARROW,
+    FILE_NUMBER_DE,
+    edits_through_unread,
+    in_ascii_run,
+)
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -823,7 +828,17 @@ def _in_algebra(
     if (
         before != ""
         and before in _OPERATORS
-        and not _LOGIC_ARROW_BEFORE.search(text, max(0, start - 16), start)
+        and not _arrow_of_logic(_LOGIC_ARROW_BEFORE.search(text, max(0, start - 16), start), text)
     ):
         return True
-    return after != "" and after in _OPERATORS + "(" and not _LOGIC_ARROW.match(text, after_at)
+    return (
+        after != ""
+        and after in _OPERATORS + "("
+        and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
+    )
+
+
+def _arrow_of_logic(found: re.Match[str] | None, text: str) -> bool:
+    """True if `found` is an arrow the statistics step reads as one: not the end of a longer
+    ASCII run ("==>", ">=>"), whose signs stay operators as there (#843)."""
+    return found is not None and not in_ascii_run(text, found.start(), found.group().rstrip(" "))

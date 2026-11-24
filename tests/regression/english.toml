@@ -3285,3 +3285,19 @@ expected = [
     "3-3-1999-02-01",
     "We ran it from 1 March 2019 to 5 March 2019.",
 ]
+
+# added in review round 1 of PR #971: the English counterpart of the German row
+# "de-an-arrow-after-an-abbreviation-before-a-prose-word"
+[[case]]
+id = "an-arrow-after-an-abbreviation-before-a-prose-word"
+audit = 0
+issue = 924
+goal = "An arrow between an abbreviation read as words ('e.g.', 'i.e.') and a prose word is left as printed on both runs (#924)."
+blocks = [
+    { kind = "paragraph", text = "Values rise, e.g. ⇒ the data show it." },
+    { kind = "paragraph", text = "It is new, i.e. ⇒ we measure it." },
+]
+expected = [
+    "Values rise, for example ⇒ the data show it.",
+    "It is new, that is ⇒ we measure it.",
+]

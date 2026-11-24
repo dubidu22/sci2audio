@@ -3195,6 +3195,26 @@ expected = [
     "Jahrhundert ⇒ Das gilt.",
 ]
 
+# added in review round 1 of PR #971: an abbreviation read as words counts as one prose word,
+# whatever its last printed piece ("z. B.", "d. h."), so the arrow before a prose word stays
+# named, as on main
+[[case]]
+id = "de-an-arrow-after-an-abbreviation-before-a-prose-word"
+audit = 0
+issue = 924
+goal = "An arrow between an abbreviation read as words and a prose word is named and left as printed on both runs, also where the abbreviation's last piece is one letter ('z. B.', 'd. h.'): the abbreviation is one prose word (#924)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Werte steigen, z. B. ⇒ Die Daten zeigen es." },
+    { kind = "paragraph", text = "Das ist neu, d. h. ⇒ wir messen." },
+    { kind = "paragraph", text = "Siehe dazu s. o. ⇒ die Tabelle." },
+]
+expected = [
+    "Die Werte steigen, zum Beispiel ⇒ Die Daten zeigen es.",
+    "Das ist neu, das heißt ⇒ wir messen.",
+    "Siehe dazu siehe oben ⇒ die Tabelle.",
+]
+
 [[case]]
 id = "de-a-sign-after-a-pieced-left-arrow"
 audit = 0
