@@ -164,7 +164,7 @@ def test_a_program_that_is_not_a_readable_truetype_font_is_none(program: bytes) 
 
 def test_a_budget_bounds_the_points_one_read_parses() -> None:
     """The limits of a glyph bound one glyph; the budget bounds a whole read: once it is
-    spent, no outline is read any more, however small (#618 review, AC-442.11)."""
+    spent, no outline is read any more, however small (#618, AC-442.11)."""
     font = read_font(truetype_program(5))  # each rectangle has 4 points
     assert font is not None
     budget = glyphs.Budget(points=9)

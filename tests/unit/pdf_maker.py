@@ -969,7 +969,7 @@ def twin_pdf(
 
 def heavy_glyph_pdf(count: int, points: int = 8191, widths: tuple[int, ...] = (600,)) -> bytes:
     """One page of `count` different glyphs of a font with no Unicode source, each a
-    composite holding the same simple glyph of `points` points (#618 review): within every
+    composite holding the same simple glyph of `points` points (#618): within every
     limit a glyph has, but each one costs the reader the work of `points` points. The codes
     start at U+4E00, so PDFium reads each as a glyph number with a map error. The glyphs'
     advances (1/1000 em) take `widths` in turn: one width is a monospaced font, Times New

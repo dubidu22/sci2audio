@@ -35,7 +35,7 @@ MAX_COMPONENTS = 64  # components of one composite glyph, those of its component
 MAX_DEPTH = 4  # composites inside composites
 _UNITS = (16, 16384)  # units per em the format allows
 # Those limits bound one glyph, not a read: thousands of glyphs that each hold one glyph of
-# 8,191 points stay within them and cost minutes (#618 review). One read of a PDF therefore
+# 8,191 points stay within them and cost minutes (#618). One read of a PDF therefore
 # has one `Budget` for all its fonts: the points it parses, and the readings its close calls
 # try (`letters`). The recognised fonts of the #442 file parse about 20,000 points; the
 # budget's worst case costs about a second to parse and draw on an M4 (docs/baseline.md).

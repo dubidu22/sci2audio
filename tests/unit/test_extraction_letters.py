@@ -136,7 +136,7 @@ def test_a_monospaced_font_behind_a_glyph_map_keeps_todays_text(
 ) -> None:
     """A Cousine subset whose codes go through a shuffled /CIDToGIDMap stream: every advance
     is the same, so the widths cannot show the codes are glyph numbers, and the shapes drawn
-    are not the ones printed. The font is refused (#618 review)."""
+    are not the ones printed. The font is refused (#618)."""
     data = twin_pdf(ENGLISH, "courier", cid_map=True)
     content = read(data)
     assert content == unrecognised(data, monkeypatch)
@@ -158,7 +158,7 @@ def test_a_font_whose_characters_pdfium_partly_maps_keeps_todays_text(
     """Glyph numbers in the Arabic, Hebrew or Tamil ranges get no map error from PDFium, so
     those characters of the font are not counted as glyph numbers. A font whose characters
     on a page are not all accounted for is refused, and part B judges the page as before
-    (#618 review)."""
+    (#618)."""
     data = twin_pdf(GERMAN, "arial", spread=0xE00, seed=1, metrics="full")
     content = read(data)
     assert content == unrecognised(data, monkeypatch)
@@ -281,7 +281,7 @@ def test_a_word_counts_when_common_or_a_number(text: str, known: bool) -> None:
 
 def test_the_word_step_stops_at_its_budget(monkeypatch: pytest.MonkeyPatch) -> None:
     """The close calls' work is counted against the read's budget: with none left, c and e
-    drawn alike are not settled and the font is refused (#618 review)."""
+    drawn alike are not settled and the font is refused (#618)."""
     data = twin_pdf(ENGLISH, same=("c", "e"))
     monkeypatch.setattr(glyphs, "MAX_WORD_STEPS", 0)
     content = read(data)
@@ -305,7 +305,7 @@ def test_the_word_step_spends_at_most_its_budget() -> None:
 def test_a_font_of_heavy_glyphs_costs_little(count: int, widths: tuple[int, ...]) -> None:
     """Glyphs that each hold one 8,191-point glyph: within every limit of a glyph, but before
     the read's budget a page of 20,000 took over 60 s and 2,000 took 43 s to recognise
-    (#618 review). No outline is parsed while the page is read; the monospaced font is
+    (#618). No outline is parsed while the page is read; the monospaced font is
     refused before any glyph is drawn, the one with Times New Roman's widths when the
     read's points run out. The page keeps today's text; main reads it in about 1 s."""
     data = heavy_glyph_pdf(count, widths=widths)
@@ -314,6 +314,8 @@ def test_a_font_of_heavy_glyphs_costs_little(count: int, widths: tuple[int, ...]
     elapsed = time.perf_counter() - start
     assert content.pages[0].recovered == 0
     assert content.pages[0].unmapped == content.pages[0].characters == count
+    # The budget's work took minutes before it; 10 s is ten times the M4's time.
+    # clock-bound: unbounded font work, which ran past the reader's 60 s step clock
     assert elapsed < pdf.STEP_SECONDS / 6
 
 

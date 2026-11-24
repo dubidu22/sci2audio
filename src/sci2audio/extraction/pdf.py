@@ -1176,7 +1176,7 @@ class _Sourceless:
     read of those pages passes the letters in (`reading`). A character of such a font that
     PDFium does map (a glyph number in the Arabic or Hebrew range, a combining mark) is not
     one of its counted glyph numbers: a font with such characters is not recognised, so a
-    page is never part recovered letters, part characters nothing counted (#618 review).
+    page is never part recovered letters, part characters nothing counted (#618).
 
     Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
     fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
@@ -1259,7 +1259,7 @@ class _Sourceless:
     def _inked(self, key: bytes, glyph: int) -> bool:
         """True if the font's glyph has ink; False for one without, or one that can't be
         read. Read from the glyph's header alone: no outline is parsed while pages are read
-        (#618 review)."""
+        (#618)."""
         usage = self.usage.get(key)
         if usage is None:
             return False
