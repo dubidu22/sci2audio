@@ -234,7 +234,7 @@ def read_text(data: bytes, name: str) -> Content:
 
 
 def document_tags(paragraphs: list[list[str]]) -> list[list[tuple[str, ...]]]:
-    """The tags of each line of each plain-text paragraph (`paragraph_tags`), and a cut before
+    """The tags of each line of each plain-text paragraph (`_paragraph_tags`), and a cut before
     each mixed-case heading between two prose lines (`_mixed_heading`, #812) when the document
     holds at least two of them: one stray short line is a wrapped line, not a heading."""
     tagged = [_paragraph_tags(paragraph) for paragraph in paragraphs]
@@ -243,11 +243,6 @@ def document_tags(paragraphs: list[list[str]]) -> list[list[tuple[str, ...]]]:
             for k in found:
                 tags[k] = ("p",)
     return [tags for tags, _ in tagged]
-
-
-def paragraph_tags(paragraph: list[str]) -> list[tuple[str, ...]]:
-    """The tags of each line of one plain-text paragraph on its own (`_paragraph_tags`)."""
-    return _paragraph_tags(paragraph)[0]
 
 
 def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[int]]:
@@ -280,7 +275,7 @@ def _paragraph_tags(paragraph: list[str]) -> tuple[list[tuple[str, ...]], list[i
             out.append(element)
         elif (
             k
-            and not _title(paragraph[k - 1], text, longest)
+            and not _title(paragraph[k - 1], text, longest, paragraph[k - 2] if k > 1 else None)
             and not (element[0] == "p" and _heading(paragraph, k, longest))
         ):
             out.append((*element, "br"))
@@ -316,17 +311,19 @@ def _run(run: list[tuple[int, int, str]]) -> dict[int, tuple[str, ...]]:
     return {k: ("ol", "li") for k, _, _ in run} if len(run) >= 2 else {}
 
 
-def _title(line: str, after: str, longest: int) -> bool:
+def _title(line: str, after: str, longest: int, before: str | None) -> bool:
     """True if `line` is a title line, so `after` starts a paragraph of its own: it holds at
     least two letters, is no longer than `TITLE_SHARE` of the paragraph's longest line, and
     has no lower-case letter ("LISTENING TO PAPERS", "ABSTRACT:") or ends without punctuation,
     hyphen or dash before a line starting with a capital ("A pilot note" / "Written for ...").
-    A line in capitals without punctuation at its end before a line starting in lower case is
-    an acronym wrapped mid-sentence ("PDF" / "files and ..."), not a title (#827)."""
+    A line in capitals inside a running sentence is an acronym wrapped onto a line of its own,
+    not a title (#827): it is not the paragraph's first line (`before` is None), the line
+    `before` it does not end a sentence, and `after` starts in lower case ("... scans, e.g." /
+    "PDF" / "files and ..."). A heading before "mRNA ..." or "this paper ..." still cuts."""
     if not _short(line, longest):
         return False
     if _capitals(line):
-        return line.rstrip(_CLOSERS)[-1:] in _ENDS or not after.lstrip(_OPENERS)[:1].islower()
+        return before is None or _ends_sentence(before) or not after.lstrip(_OPENERS)[:1].islower()
     if line.rstrip(_CLOSERS)[-1:] in _ENDS:
         return False
     return after.lstrip(_OPENERS)[:1].isupper()
@@ -356,7 +353,7 @@ def _mixed_heading(paragraph: list[str], k: int, longest: int) -> bool:
         line.lstrip(_OPENERS)[:1].isupper()
         and not _capitals(line)
         and len(line) + 1 + len(after.split(" ", 1)[0]) <= longest
-        and _title(line, after, longest)
+        and _title(line, after, longest, paragraph[k - 1])
     )
 
 
@@ -364,7 +361,8 @@ def _ends_sentence(line: str) -> bool:
     """True if `line` ends a sentence: in a stop (`_STOPS`), looking through closing quotes
     and brackets, that is not the full stop of an abbreviation ("e.g.", "Calif.", #827)."""
     line = line.rstrip(_CLOSERS)
-    return line.endswith(_STOPS) and not _ABBREVIATION.search(line)
+    # every abbreviation and the character before it fit in the line's last 16 characters
+    return line.endswith(_STOPS) and not _ABBREVIATION.search(line[-16:])
 
 
 def _short(line: str, longest: int) -> bool:

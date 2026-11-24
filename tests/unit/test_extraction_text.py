@@ -870,3 +870,36 @@ def test_a_short_line_a_hard_wrap_left_before_a_long_word_is_no_mixed_case_headi
     text = f"{_INTRO}The new\n{word}.\n" * 2
     br = ("p", "br")
     assert tags_of(text) == [("p",), br, ("p",), br, br, ("p",)]
+
+
+# ---- #827: a capitals title before a lower-case first word still cuts --------------------
+
+
+@pytest.mark.parametrize(
+    "after", ["this paper presents a method", "mRNA vaccines are discussed", "pH values rose"]
+)
+def test_a_first_line_in_capitals_before_a_lower_case_line_is_a_title_line(after: str) -> None:
+    """A heading whose next line starts in lower case ("mRNA", "pH") still ends its element:
+    only a capitals line inside a running sentence runs on (#827)."""
+    text = f"ABSTRACT\n{after} and runs on for a long line here as prose does.\n"
+    assert tags_of(text) == [("p",), ("p",)]
+
+
+@pytest.mark.parametrize("heading", ["INTRODUCTION", "RESULTS"])
+def test_a_capitals_heading_after_a_sentence_before_a_lower_case_line_is_cut(
+    heading: str,
+) -> None:
+    text = (
+        "The samples were prepared as before and all of them were checked twice.\n"
+        f"{heading}\n"
+        "mRNA levels and pH values rose in every sample, and it runs on here.\n"
+    )
+    assert tags_of(text) == [("p",), ("p",), ("p",)]
+
+
+def test_a_short_line_in_capitals_without_a_colon_is_a_title_line() -> None:
+    """The no-colon variant of the "ABSTRACT:" pin above."""
+    assert tags_of("ABSTRACT\nthe text of the abstract runs on for a long line.\n") == [
+        ("p",),
+        ("p",),
+    ]
