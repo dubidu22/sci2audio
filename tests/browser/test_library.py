@@ -16,7 +16,7 @@ from urllib.parse import urlencode
 
 from playwright.sync_api import Page, expect
 from test_keyboard import press_on
-from test_player import chunk_id, make_audiobook, paused
+from test_player import chunk_id, make_audiobook, paused, wait_for_seek
 from test_remove import opened
 from test_shell import CONTROLS, HIGHLIGHTED, WIDTHS, scrolls_sideways
 from web_helpers import pdf_bytes
@@ -160,6 +160,7 @@ def test_continue_listening_opens_the_player_paused_at_the_saved_time(
     expect(page.locator("#resume")).to_have_count(0)  # the offer was taken at once
     expect(page.get_by_role("button", name="Play")).to_be_focused()
     page.wait_for_function("() => document.getElementById('audio').currentTime > 0")
+    wait_for_seek(page)
     assert paused(page)  # never plays by itself (D-300)
     time = page.evaluate(
         "() => { const d = JSON.parse(document.getElementById('player-data').textContent);"

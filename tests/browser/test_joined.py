@@ -16,7 +16,7 @@ from typing import Any
 
 from playwright.sync_api import Page, expect
 from test_focus import nobody_focused
-from test_player import chunk_id, highlighted, listen_to, paused
+from test_player import chunk_id, highlighted, listen_to, paused, wait_for_seek
 
 from conftest import Live, check_axe
 from sci2audio.core import Span
@@ -97,14 +97,7 @@ def first_step(page: Page, data: dict[str, Any]) -> None:
     """Press Next on a page that has not played yet: it loads the file, paused, and its own
     seek waits for the file, so a seek of the test's before that one would be lost."""
     page.locator("#next-sentence").click()
-    page.wait_for_function(
-        """(start) => {
-            const audio = document.getElementById('audio');
-            return audio.readyState >= 1 && !audio.seeking
-                && Math.abs(audio.currentTime - start) < 0.05;
-        }""",
-        arg=data["chunks"][0][0],
-    )
+    wait_for_seek(page, data["chunks"][0][0])
 
 
 def test_the_mark_and_the_bar_stay_on_the_sentence_through_its_pieces(
@@ -260,6 +253,7 @@ def test_m_early_in_a_later_piece_marks_the_cut_sentence_and_its_tick_is_at_its_
     expect(row.locator(".cp-at")).to_have_text(f"Chapter 1 · {seconds // 60}:{seconds % 60:02d}")
     row.get_by_role("button", name="Play from here").click()
     expect(page.locator("#text .s.now")).to_have_id(data["element"])
+    wait_for_seek(page, chunks[first][0])
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert abs(time - chunks[first][0]) < 0.05, time
 

@@ -8,7 +8,8 @@ line break, with *before* the word ending in the hyphen and *after* the word sta
 next line, the first rule that applies decides:
 
 1. Not letters on both sides ("2019-/2020", "COVID-/19", "J.-/P."): keep the hyphen; if no
-   letter or digit follows, or white space comes before, no edit.
+   letter or digit follows, or white space comes before, no edit. In German a sign the
+   statistics step reads as words counts as a digit ("Abb.-/≠" is "Abb.-ungleich", #970).
 2. Suspended hyphen: *after* is a conjunction of the language ("and", "or", "nor"; German
    "und", "oder", "bis", "sowie", ...: "pre-/and post-test", "Wohnungs-/und Sozialarbeit"): no
    edit, the line break is read as a space, as printed.
@@ -45,6 +46,8 @@ from dataclasses import dataclass
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.characters import ACCENTS
+from sci2audio.textprep.notation import through_unread
+from sci2audio.textprep.statistics import find_statistics_in_german
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 HYPHENS = "-\u2010"  # hyphen-minus and HYPHEN
@@ -133,7 +136,8 @@ class LineEndHyphenStep(TextStep):
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
-        words = WORDS[context.language.split("-", 1)[0].lower()]
+        language = context.language.split("-", 1)[0].lower()
+        words = WORDS[language]
         spelling: Counter[str] | None = None
         edits = []
         for index, block in enumerate(document.blocks):
@@ -141,21 +145,37 @@ class LineEndHyphenStep(TextStep):
                 continue
             if spelling is None:
                 spelling = printed_words(document)
+            signs: frozenset[int] | None = None
             for match in _LINE_END.finditer(block.text):
-                edit = self._decide(block.text, match.start(), index, spelling, words)
+                sign_after = False
+                if language == "de" and _SIGN_AFTER.match(block.text, match.end()):
+                    if signs is None:
+                        signs = _signs_read(block.text)
+                    sign_after = match.end() in signs
+                edit = self._decide(block.text, match.start(), index, spelling, words, sign_after)
                 if edit is not None:
                     edits.append(edit)
         return edits
 
     def _decide(
-        self, text: str, hyphen: int, block: int, spelling: Counter[str], words: HyphenWords
+        self,
+        text: str,
+        hyphen: int,
+        block: int,
+        spelling: Counter[str],
+        words: HyphenWords,
+        sign_after: bool = False,
     ) -> Edit | None:
-        """The edit for the hyphen at `hyphen` (a line break follows it), if any."""
+        """The edit for the hyphen at `hyphen` (a line break follows it), if any. With
+        `sign_after` a sign the German statistics step reads as words starts the next line."""
         line_break = hyphen + 1
         previous = text[hyphen - 1 : hyphen]
         following = text[line_break + 1 : line_break + 2]
         if not (_is_letter(previous) and _is_letter(following)):
-            if not previous or previous.isspace() or not following.isalnum():
+            # a sign read as words is kept to the hyphen as a digit is: left with its line
+            # break, its words would be decided by the rules on a second run ("Abb.-\n≠" is
+            # "Abb.-\nungleich" then, #970)
+            if not previous or previous.isspace() or not (following.isalnum() or sign_after):
                 return None  # a dash between words, or nothing to join to
             before = _TOKEN_BEFORE.search(text, max(0, hyphen - _LOOK_BACK), hyphen)
             after = _TOKEN_AFTER.match(text, line_break + 1)
@@ -218,6 +238,16 @@ class LineEndHyphenStep(TextStep):
             reason=f'word split at a line end joined: "{word}"{because}',
             step=self.id,
         )
+
+
+# a character that may start a sign the German statistics step reads as words ("≠", "<", "⇒")
+_SIGN_AFTER = re.compile(r"[^\w\s]")
+
+
+def _signs_read(text: str) -> frozenset[int]:
+    """Where the signs start that the German statistics step reads as words in `text`."""
+    found = through_unread(text, find_statistics_in_german)
+    return frozenset(c.start for c in found if c.replacement.strip())
 
 
 def _suspended(word: str, text: str, end: int, words: HyphenWords) -> bool:

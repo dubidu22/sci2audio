@@ -922,6 +922,28 @@ def _check_targets(
     return _Found(reuse, frozenset(owned), record if same else None)
 
 
+def _standing(work: Path, out_folder: Path, plan: _BookPlan, found: _Found) -> tuple[int, ...]:
+    """The chapters playable before this run puts its first file in place (#1065): the
+    ones it takes as they are, in its order, if the earlier run's book still stands whole.
+    Until then the Listen page plays that book, and only as a whole: every file its record
+    names, as recorded, with this book's read-along file among them (and its `audio.json`
+    once it was finished). Otherwise none, so the job never reports a chapter the page
+    cannot open."""
+    old = found.record
+    if old is None or not found.reuse:
+        return ()
+    files = [*old.book, *(f for c in old.chapters for f in c.files)]
+    readalong = plan.targets(out_folder).readalong.name
+    if (
+        not all(c.files for c in old.chapters)
+        or not all(f.name in found.keep for f in files)
+        or readalong not in {f.name for f in old.book}
+        or (old.complete and not (work / RECORD).is_file())
+    ):
+        return ()
+    return tuple(index for index in plan.order if index in found.reuse)
+
+
 class _Chapters:
     """Writes each chapter's files as soon as its last chunk is spoken, and keeps the
     chapter record (`playable.py`) one step ahead of the files (#723)."""
@@ -952,9 +974,12 @@ class _Chapters:
         self.rates: set[int] = set()
         self.in_book = False  # writing the book's files (the M4B and its subtitles)
         self.placing: set[str] = set()  # book files vouched for, maybe not yet in place
+        self.standing = _standing(work, out_folder, plan, found)
 
     @property
     def playable(self) -> tuple[int, ...]:
+        if self.writer is None:
+            return self.standing
         return tuple(c.index for c in self.record.chapters)
 
     def done(self, index: int, keys: Collection[str], event: AudioProgress) -> None:
@@ -1124,7 +1149,11 @@ def _speak(
     session: EngineSession | None = None
     try:
         if needed:
-            tell(AudioProgress(Phase.LOADING_VOICE, chapters=speech.chapters))
+            tell(
+                AudioProgress(
+                    Phase.LOADING_VOICE, chapters=speech.chapters, playable=chapters.playable
+                )
+            )
             engine, session = _load(voice)
         tell(
             AudioProgress(
@@ -1132,6 +1161,7 @@ def _speak(
                 chapters=speech.chapters,
                 chunks_total=speech.chunks_total,
                 characters_total=speech.characters_total,
+                playable=chapters.playable,
             )
         )
         for index, chunk in enumerate(plan.chunks):

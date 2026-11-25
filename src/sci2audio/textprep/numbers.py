@@ -383,8 +383,17 @@ def _iso_dates(text: str) -> list[Candidate]:
         if day > calendar.monthrange(year, month)[1]:
             continue
         words = f"{day} {calendar.month_name[month]} {year}"
+        if text[match.end() : match.end() + 1] == ":" and _ratio_after(words, text, match.end()):
+            continue  # "1999-02-01:3": "1 February 1999:3" would be a ratio next time (#1053)
         found.append(Candidate(*match.span(), words, f'date "{match.group()}" read as "{words}"'))
     return found
+
+
+def _ratio_after(words: str, text: str, end: int) -> bool:
+    """True if `_ratios` reads the colon at `end` once what ends there is read as `words`, as
+    a second run sees it. Only a window after `end` is looked at (linear on long blocks)."""
+    around = words + text[end : end + WINDOW]
+    return any(c.start == len(words) for c in _ratios(around))
 
 
 def _roman_value(numeral: str) -> int:

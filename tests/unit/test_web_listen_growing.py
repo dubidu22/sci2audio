@@ -22,6 +22,7 @@ from typing import Any
 import pytest
 from audio_fakes import FakeVoice
 from pdf_maker import Text, make_pdf
+from test_app_audio_chapters import damage, run, stopped_in
 from test_web_player import player_data, server, work_of
 from web_helpers import (
     events,
@@ -32,6 +33,7 @@ from web_helpers import (
     wait,
 )
 
+from sci2audio.app import AudioProgress, Phase
 from sci2audio.app.playable import read_record
 from sci2audio.web import create_app, player
 from sci2audio.web.documents import AUDIO_RECORD
@@ -414,3 +416,37 @@ def test_after_a_restart_a_finished_audiobook_opens_the_listen_tab_as_before(
     data = player_data(client.get(f"/documents/{book.doc}/listen").text)
     assert "growing" not in data
     assert [c["title"] for c in data["chapters"]] == TITLES
+
+
+@pytest.mark.parametrize(
+    ("how", "overwrite"),
+    [("intact", False), ("missing", False), ("truncated", True), ("readalong", True)],
+)
+def test_a_resume_reports_only_chapters_the_listen_page_opens_before_the_voice_loads(
+    tmp_path: Path, how: str, overwrite: bool
+) -> None:
+    """The app's playable chapters on a resume (#1065) agree with the Listen page: every
+    chapter the job reports while the voice loads is in the book the page finds then. An
+    app test (`test_app_audio_chapters`) cannot ask the web layer, so the check is here."""
+    stopped_in(tmp_path, "Gamma")
+    work, out, doc = tmp_path / "work", tmp_path / "out", "0123456789abcdef"
+    made = player.Made(voice="af_heart", switched_off=frozenset(), plugins=frozenset(), version="1")
+    player.write_record(work, doc, out, made)  # as the web notes it on the first chapter
+    damage(tmp_path, how)
+    seen: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+
+    def progress(event: AudioProgress) -> None:
+        if event.phase is Phase.LOADING_VOICE:
+            try:
+                book = player.current_audiobook(work, doc, [out])
+            except player.PlayerError:
+                found: tuple[int, ...] = ()
+            else:
+                assert book.growing is not None
+                found = tuple(c.index for c in book.growing.chapters)
+            seen.append((event.playable, found))
+
+    run(tmp_path, FakeVoice(), progress=progress, overwrite=overwrite)
+    ((reported, found),) = seen
+    assert set(reported) <= set(found)
+    assert reported == ((0, 1) if how == "intact" else ())
