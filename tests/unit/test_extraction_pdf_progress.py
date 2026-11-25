@@ -410,15 +410,17 @@ def test_a_child_whose_end_another_thread_took_is_not_closed_as_running(
     second read starts its child; it notes the exit code only a moment later. A read ending
     in that moment found no child left to wait for: `join()` returned with no exit code and
     `close()` took the ended child for a running one, so the read raised "Cannot close a
-    process while it is still running" in place of its result (#440, twice on Linux CI). No
-    timing: the end is taken between the read's last word and its clean-up."""
+    process while it is still running" in place of its result (#440: on Linux CI, a
+    cancelled read in the SIGINT-while-starting test twice, and a finished read with no
+    cancel, as in the held-back-SIGINT test, once). No timing: the end is taken between the
+    read's last word and its clean-up."""
     wait = isolate._wait
-    cancel = threading.Event()
+    cancel = threading.Event() if cancelled else None
     taken: dict[str, Any] = {}
     signalled: list[str] = []
 
     def end_taken_by_another_thread(child: Any, *rest: Any) -> Any:
-        if cancelled:
+        if cancel is not None:
             cancel.set()
         result = wait(child, *rest)
         # what the other thread does before it notes the code
