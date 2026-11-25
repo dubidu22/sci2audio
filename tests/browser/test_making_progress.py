@@ -113,7 +113,9 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
         page.reload()
         settled(page)
         at_rest(page)
-        document = page.url.rsplit("/", 1)[-1]
+        opened = re.search(r"/documents/([0-9a-f]{16})", page.url)
+        assert opened is not None
+        document = opened.group(1)
         page.locator("#make").click()
         page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
         if place == "document":  # the same card on the document's own address (#1059)
@@ -180,7 +182,10 @@ def test_after_a_restart_the_chapters_on_disk_open_the_listen_tab_and_play(
     page.set_input_files("#file", files=[PDF])
     page.locator("#open-file button[type=submit]").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
-    document = page.url.rsplit("/", 1)[-1]
+    # the id alone: WebKit may already show the `#step-check` the page adds after opening
+    opened = re.search(r"/documents/([0-9a-f]{16})", page.url)
+    assert opened is not None
+    document = opened.group(1)
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
     at_rest(page)
@@ -191,6 +196,10 @@ def test_after_a_restart_the_chapters_on_disk_open_the_listen_tab_and_play(
 
     # the next run of sci2audio: no job on its board, only the folder says chapter 1 plays
     with serve(tmp_path, live.voice, SlowFetch()) as second:
+        # Leave the old page while the old fence still stands: a font or event stream it
+        # was still asking its server for would otherwise reach the new fence, which counts
+        # the old port as outside (#1088).
+        page.goto("about:blank")
         page.unroute("**/*")
 
         def fence(route: Route) -> None:
