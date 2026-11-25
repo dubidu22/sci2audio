@@ -604,6 +604,7 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
 @example(
     make_document([(BlockKind.PARAGRAPH, "um 24:00 R^2\u200b"), (BlockKind.PARAGRAPH, "x")], "de")
 )
+@example(make_document([(BlockKind.HEADING, "am 3. 1/2 N und Die 12. 3/4 m")], "de"))  # #1078
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
