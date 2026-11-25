@@ -3613,3 +3613,17 @@ expected = [
     "1 March 2019:12:30",
     "from 1 March 2019 to 2019-03-05:3",
 ]
+
+[[case]]
+id = "maths-italic-letter-after-a-number-is-no-unit"
+audit = 0
+issue = 1082
+goal = "An italic maths letter after a number names a variable, not a unit (units are set upright, ISO 80000), so the units step does not read it on the first run: 'with 5 𝑁 samples' is 'with 5 N samples', as on main, while an upright one is a unit ('2 𝐬' is '2 seconds'). The characters step makes the italic letter a plain 'N', which a second run reads as a unit; that stays as on main and is the owner's to decide (listed in SECOND_RUN_EXCEPTIONS, #1082)."
+blocks = [
+    { kind = "paragraph", text = "with 5 𝑁 samples" },
+    { kind = "paragraph", text = "where 2 𝑚 + 1" },
+]
+expected = [
+    "with 5 N samples",
+    "where 2 m + 1",
+]

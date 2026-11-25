@@ -24,7 +24,13 @@ CASES_FILE = Path(__file__).resolve().parents[1] / "regression" / "german.toml"
 CASES = load_cases(CASES_FILE)
 
 # cases that do not read the same on a second run, each with the reason (D-577)
-SECOND_RUN_EXCEPTIONS: dict[str, str] = {}
+SECOND_RUN_EXCEPTIONS: dict[str, str] = {
+    "de-a-maths-italic-letter-after-a-number-is-no-unit": (
+        "an italic maths letter after a number is a variable, so the first run leaves it; the "
+        "characters step makes it a plain letter, which a second run reads as a unit (as on "
+        "main; the owner decides, #1082)"
+    ),
+}
 
 # cases whose utterances a second run cuts differently, each with the reason (#482). The
 # script is the same (above); only where a sentence ends moves.

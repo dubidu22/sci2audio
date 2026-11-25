@@ -244,10 +244,12 @@ class UnitStep(TextStep):
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context):
                 continue
+            # upright maths letters as the plain letters the characters step makes of them last
+            # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
             found = edits_through_unread(
                 index,
                 as_superscripts(block.text, exponents.get(index, ())),  # as printed (#576)
-                lambda read: _without_overlaps(self._edits(index, read, table)),  # noqa: B023
+                lambda read: _without_overlaps(self._edits(index, _upright(read), table)),  # noqa: B023
                 self.id,
                 marks.get(index, ()),
             )
@@ -790,6 +792,28 @@ def symbol_word_at(text: str, position: int, language: str) -> str | None:
         if not (head[-1:].isascii() and head[-1:].isdigit()):
             return words["about"]
     return None
+
+
+# the maths alphabets set slanted or ornate: their letters are variables, not units (ISO 80000)
+_SLANTED = ("ITALIC", "SCRIPT", "FRAKTUR", "DOUBLE-STRUCK")
+
+
+def _upright(text: str) -> str:
+    """The text with upright maths letters and digits as plain ones ("𝐬" as "s", "𝟏" as "1");
+    same length. An italic one ("𝑠") stays: it names a variable, and units are set upright."""
+    if text.isascii():
+        return text
+    return "".join(_upright_char(char) for char in text)
+
+
+@cache
+def _upright_char(char: str) -> str:
+    if "\U0001d400" <= char <= "\U0001d7ff":
+        name = unicodedata.name(char, "")
+        folded = unicodedata.normalize("NFKC", char)
+        if len(folded) == 1 and not any(style in name for style in _SLANTED):
+            return folded
+    return char
 
 
 def unit_spans(text: str, language: str) -> list[tuple[int, int]]:
