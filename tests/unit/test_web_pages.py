@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf, twin_pdf
 from test_layout_language import german_pdf
 from web_helpers import (
     ORIGIN,
@@ -241,6 +241,63 @@ def test_a_readable_document_shows_no_unreadable_callout(server: tuple[FastAPI, 
     page = client.get(f"/documents/{doc['id']}").text
     assert 'id="unreadable"' not in page
     assert 'id="picture-pages"' not in page
+    assert 'id="recovered-pages"' not in page
+
+
+TWIN_LINES = [
+    "The book was written in 1980, at a time when the work in the neighbourhoods had to be",
+    "thought anew (see pages 12-14). The people who live there know what is missing: 3/4 of",
+]
+
+
+def test_pages_read_from_letter_shapes_are_named_and_may_hold_mistakes(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#618, AC-442.9: step 1 names the pages whose letters were recognised from their
+    shapes and says the text may hold mistakes, in the page's language; making the
+    audiobook is not blocked by it."""
+    monkeypatch.setattr(pages, "missing_files", lambda folder: [])
+    client = client_of(server)
+    data = joined_pdf(twin_pdf(TWIN_LINES), twin_pdf(TWIN_LINES, "arial"), twin_pdf(TWIN_LINES))
+    doc = analysed_file(client, data, "twins.pdf")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    callout = re.search(
+        r'<div class="callout warn" id="recovered-pages">.*?</div></div>', page, re.S
+    )
+    assert callout is not None
+    assert (
+        "The text of 3 pages was recognised from the shapes of its letters (1\u20133): the "
+        "PDF&#39;s fonts give glyph numbers there instead of letters. The recognised text may "
+        "hold mistakes."
+    ) in callout[0]
+    assert 'id="unreadable"' not in page
+    assert 'data-blocked="needs_text"' not in page
+    client.cookies.set("sci2audio-language", "de")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert (
+        "Der Text von 3 Seiten wurde an der Form seiner Buchstaben erkannt (1\u20133): Die "
+        "Schriften der PDF geben dort Glyphennummern statt Buchstaben. Der erkannte Text kann "
+        "Fehler enthalten."
+    ) in page
+
+
+def test_one_page_read_from_letter_shapes_is_named_alone(
+    server: tuple[FastAPI, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pages, "missing_files", lambda folder: [])
+    client = client_of(server)
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    doc = analysed_file(client, joined_pdf(plain, twin_pdf(TWIN_LINES)), "twin.pdf")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert (
+        "The text of page 2 was recognised from the shapes of its letters: the PDF&#39;s fonts "
+        "give glyph numbers there instead of letters. The recognised text may hold mistakes."
+    ) in page
+    client.cookies.set("sci2audio-language", "de")
+    page = main_part(client.get(f"/documents/{doc['id']}").text)
+    assert "Der Text von Seite 2 wurde an der Form seiner Buchstaben erkannt: Die" in page
 
 
 def test_scanned_pages_among_text_pages_are_named(server: tuple[FastAPI, Any]) -> None:

@@ -1,6 +1,7 @@
 """Whether a PDF's text can be read aloud (#442 part B, #187; policy D-762, D-772): the
 pages `extraction.legibility` finds unreadable stop the audiobook when they hold more than
-half of the document's characters, and are named in a warning otherwise. PDF only."""
+half of the document's characters, and are named in a warning otherwise. PDF only. The
+pages whose letters were recognised from their shapes are named too (#618, AC-442.9)."""
 
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ import pytest
 from core_strategies import contents
 from hypothesis import event, given
 from hypothesis import strategies as st
-from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf, twin_pdf
 
 from sci2audio.app.readability import (
     Unreadable,
@@ -16,6 +17,8 @@ from sci2audio.app.readability import (
     pages_named,
     picture_pages,
     picture_warning,
+    recovered_pages,
+    recovered_warning,
     stop_message,
     unreadable,
     warning,
@@ -359,3 +362,47 @@ def test_the_pages_of_pictures_are_those_with_a_picture_and_no_text(content: Con
     event(f"left out {min(len(only_pictures) - len(named), 2)}")
     assert set(unmeasured) <= set(named) <= set(only_pictures)
     assert named == tuple(sorted(named, key=only_pictures.index))
+
+
+# ---- pages read from the shapes of their letters (#618, AC-442.9) --------------------------
+
+ENGLISH = [
+    "The book was written in 1980, at a time when the work in the neighbourhoods had to be",
+    "thought anew (see pages 12-14). The people who live there know what is missing: 3/4 of",
+]
+
+
+def test_the_pages_whose_letters_were_recognised_are_named() -> None:
+    """A page of an Office font that lost its maps, between plain pages: its letters are
+    recognised (PR 1 of #618), and it is the page named; the plain pages are not."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    data = joined_pdf(plain, twin_pdf(ENGLISH), plain, twin_pdf(ENGLISH, "arial"))
+    content = read_pdf(data, "twins.pdf")
+    assert [p.recovered > 0 for p in content.pages] == [False, True, False, True]
+    assert recovered_pages(content) == (2, 4)
+    assert unreadable(content) is None  # recognised, so voiced
+
+
+def test_a_page_counts_once_any_of_its_characters_was_recognised() -> None:
+    recognised = Page(2, lines=page(2, 300).lines, unmapped=300, recovered=1)
+    assert recovered_pages(pdf(page(1, 300), recognised, page(3, 300))) == (2,)
+    assert recovered_pages(pdf(page(1, 300), glyph_page(2, 300))) == ()
+
+
+@pytest.mark.parametrize("kind", [SourceFormat.EPUB, SourceFormat.MARKDOWN, SourceFormat.TEXT])
+def test_only_a_pdf_names_recognised_pages(kind: SourceFormat) -> None:
+    """As `unreadable` (D-772): only a PDF's page is a printed page."""
+    recognised = Page(1, lines=page(1, 300).lines, unmapped=300, recovered=300)
+    assert recovered_pages(pdf(recognised, kind=kind)) == ()
+
+
+def test_the_recognised_warning_names_the_pages_and_says_it_may_be_wrong() -> None:
+    assert recovered_warning([2]) == (
+        "The text of page 2 was recognised from the shapes of its letters: the PDF's fonts "
+        "give glyph numbers there instead of letters. The recognised text may hold mistakes."
+    )
+    assert recovered_warning([3, 1, 2, 7]).startswith(
+        f"The text of pages 1{DASH}3, 7 was recognised from the shapes of its letters"
+    )
