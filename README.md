@@ -9,12 +9,13 @@ sci2audio reads a PDF, EPUB, Markdown or plain-text file in English or German, p
 - **Reads** PDF, EPUB, Markdown and plain text. It finds the reading order of one- and two-column pages, leaves out running heads, page numbers and sidebars, and finds headings, footnotes, captions, tables, figures and formulas. A scanned PDF needs a text layer: sci2audio has no text recognition yet.
 - **Prepares the text** with transparent rules: it joins words hyphenated at a line end, leaves out citations, URLs and DOIs, reads units, statistics, numbers and abbreviations as words where the voice would get them wrong, and replaces formulas, tables and figures with a short spoken notice in the text's language (English or German). Footnotes are read where their mark stands. Every change is listed in a report with its reason, and each kind of change can be switched off.
 - **Speaks** it with a local Kokoro voice: 28 English voices and the German voice Thorsten, at the speed you choose, with abbreviations it spells out (such as NLP) read at their own, slower pace if you like. An interrupted run picks up where it stopped.
-- **Writes** an M4B with chapter marks and the cover, one MP3 per chapter, and a read-along file; on request also SRT and WebVTT subtitles. The audio is labelled as AI-generated in its metadata.
-- **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read. Click any sentence to play from there.
+- **Writes** one MP3 per chapter as soon as it is spoken, a read-along file and the whole book as one M4B (or MP3) with chapter marks and the cover; on request also SRT and WebVTT subtitles. The command line writes the whole book at once, the interface when you download it. Chapters you left out can be made later. The audio is labelled as AI-generated in its metadata.
+- **Plays** it in a read-along view that shows the text as printed and highlights the sentence being read, from the first chapter on while the rest is still being made. Click any sentence to play from there.
+- **Keeps what you hear:** N, Q and M keep a note, a quote or a mark at the sentence being read. The Captures page gathers them from every document and saves them as a Markdown or CSV file.
 
 ## Principles
 
-- **Your files stay on your computer.** No account, no upload, no telemetry. The only network access is the download of the voice, which you start yourself.
+- **Your files stay on your computer.** No account, no upload, no telemetry. The only network access is the download of the voice, which you start yourself, and the update check if you turn it on.
 - **Faithful, not rewritten.** Every change to the text is a marked, explainable rule; nothing is summarised.
 - **Free and open source** under the GNU GPL v3 or later.
 - **Accessible:** the interface works with the keyboard alone and with screen readers, in English and German.
@@ -88,7 +89,7 @@ sci2audio listen paper.pdf           # play it in the browser with the text, sen
 
 `script` needs no voice and lists the chapters; choose them with `--chapters 1,3-5` (counted from 1, read in the order given, so `3,1` reads chapter 3 first; or `all`; by default every chapter but the reference list and an EPUB's publisher's pages). Switch a kind of text handling off with `--off citations` (read as printed) or on with `--on footnote-texts` (leave the notes out); `sci2audio script --help` lists the categories. `convert` takes the same options and `--voice`, `--speed`, `--letter-pace normal|slower|slowest` (how fast spelled-out abbreviations such as NLP are read), `--format both|m4b|mp3` and `--with-script`.
 
-Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in sci2audio's data folder, and `sci2audio clean paper.pdf` removes it. `listen` takes the same `-o` and `--work-folder` as `convert` and only plays what `convert` made there. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
+Files go next to the input file, or into the folder given with `-o`; existing files are replaced only with `--overwrite`. Run `convert` again with other `--chapters` to add chapters to the audiobook: the chapters made before are kept, and `--keep-settings` makes the new ones with the settings the others were made with. If `convert` is stopped (Ctrl-C, a crash, a closed laptop), run the same command again: the sentences already spoken are kept in a speech cache in sci2audio's data folder, and `sci2audio clean paper.pdf` removes it. `listen` takes the same `-o` and `--work-folder` as `convert` and only plays what `convert` made there. The command line takes its defaults from the settings saved by the interface and never changes them; `--ignore-settings` uses the built-in defaults.
 
 Exit codes, for scripts:
 
@@ -101,7 +102,7 @@ Exit codes, for scripts:
 | 4 | a file type sci2audio can't read |
 | 5 | the file is damaged, protected or can't be opened, or its text can't be read |
 | 6 | the voice files are not installed (`sci2audio voices download`) |
-| 7 | output files exist (add `--overwrite`) |
+| 7 | output files exist (add `--overwrite`), or the audiobook's chapters were made with other settings (add `--keep-settings` or `--overwrite`) |
 | 8 | another sci2audio job is working on this file |
 | 130 | stopped with Ctrl-C |
 

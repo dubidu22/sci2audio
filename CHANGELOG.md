@@ -4,27 +4,100 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [1.5.0] - unreleased
+
+Listen while the audiobook is made, and keep what you hear. In the interface the first chapter plays as soon as it is spoken, while the rest is still being made; chapters left out can be made later, and the whole book is one file you download when you want it. While you listen, N, Q and M keep a note, a quote or a mark at the sentence being read; the Captures page gathers them from every document and saves them as files. Markers from 1.4 carry over. Also new: an update check you can turn on, text-step plugins, PDFs whose fonts carry no letters, and many layout and reading fixes. For everyone who tried 1.4; your voices, library and settings stay. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
+
+### Download
+
+| Your computer | File | Size |
+|---|---|---|
+| Mac with an Apple chip, macOS 14 (Sonoma) or newer | `sci2audio-1.5.0-macos-arm64.dmg` | about 380 MB |
+| Windows 10 (1809 or newer) or 11, 64-bit | `sci2audio-1.5.0-windows-x64-setup.exe` | about 280 MB |
+| Linux x86_64 (Ubuntu 22.04, Debian 12, Fedora 36 or newer) | `sci2audio-1.5.0-linux-x86_64.AppImage` | about 430 MB |
+
+Intel Macs are not supported: PyTorch has no builds for them. `SHA256SUMS.txt` lists every file's checksum; `gh attestation verify <file> --repo dubidu22/sci2audio` checks that this repository's release workflow built it. With uv instead: `uv tool install sci2audio` (see the README).
+
+### First start
+
+The installers are not signed with a paid certificate, so the first start warns once:
+
+- **macOS:** open the app, click Done, then **System Settings → Privacy & Security → Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/sci2audio.app`). To replace an older version, quit it, drag the new sci2audio onto Applications and choose Replace.
+- **Windows:** "Windows protected your PC" → **More info → Run anyway**. The installer needs no administrator rights.
+- **Linux:** `chmod +x` the AppImage and run it; it opens in your browser, with **Quit sci2audio** in the menu.
+
+The first audiobook asks to download the voices: English (Kokoro and a spaCy model, about 355 MB) and German (Thorsten, about 330 MB), from huggingface.co and github.com, each file shown with its size and licence first. If you used 1.4, they are there already. Apart from the update check you can turn on, that is the only time sci2audio uses the internet, and only when you agree.
+
+Audiobooks go to `Documents/sci2audio`; the voice files, library, captures and settings stay in your user folders. Uninstalling keeps all of them; [docs/installing.md](docs/installing.md) lists where they are, step by step for each system.
+
+### Known limits
+
+- Linux opens in the browser, not a window of its own.
+- The update check is off until you turn it on in Settings; it only shows a link to the release page and never installs anything.
+- Windows: started "as administrator", the app's window runs Microsoft SmartScreen's checks of the pages it shows (all on your own computer, 127.0.0.1); started normally, as the Start menu does, sci2audio switches them off (#644).
+- Windows: when sci2audio is installed in a folder whose path holds a letter outside ASCII (such as a user name "Jörg"), and Windows does not use UTF-8 for such names, the voice cannot start. sci2audio now says so instead of ending without a word (#744).
+- Plugins can add text steps, not voices: a voice engine can be checked against the contract, but no job can use it yet.
+- Captures are saved as files into a folder whose full path you type; there is no folder picker.
+
+### Source
+
+sci2audio is GPL-3.0-or-later. Each installer carries a `licenses` folder. `sci2audio-1.5.0.tar.gz` and `sci2audio-1.5.0-sources.tar` (FFmpeg, LAME, espeak-ng, the build script of the bundled ffmpeg, and the AppImage runtime with the libfuse and squashfuse it links) on this page are the complete source.
+
 ### Added
 
+- Each chapter can be played as soon as it is spoken (#723): the audio job writes a chapter's MP3, its read-along part and its subtitles before it starts the next chapter, each file whole or not at all. A stopped or paused run keeps the chapters it finished, and a new run or Resume speaks none of them again.
+- Start listening while the rest of the book is made (#724, #1054, #1059, #1065): once the first chapter is ready, the making card offers "Start listening". The Listen page shows every chosen chapter as generated, being generated or not generated, and grows without a reload. At the end of a chapter playback goes on into the next one, or pauses with "The next chapter is still being generated." and goes on by itself once it is ready; a screen reader hears "Chapter 3 is ready.". Read-along, the listening position and captures work on a book that is still growing. The making card fills a bar for each chapter as its sentences are spoken, names the chapter and how far it is, and says "Saving chapter 1 of 4" while that chapter's file is written. After a restart, or on Resume before the voice has loaded, the Listen tab opens on the chapters already made.
+- Download the whole audiobook as one file (#725): the library row and the Listen page have "Download the audiobook…", as an M4B (chapter marks and the cover, for audiobook apps) or one MP3 (chapter marks, for almost any player). It is built from the spoken chapters, with no speech run again, shows its progress and can be cancelled, and leaves no half file. It is kept until the chapters change. When some chosen chapters are not made yet, the box names them and offers the ready ones as a file whose name says partial.
+- Make the other chapters later (#726, #810): the project and the Listen page list every chapter of the book with its state. A chapter not made yet has "Generate", and the project has "Generate the remaining chapters"; both use the voice, speed and text settings the other chapters were made with. If you changed those settings since, sci2audio says what differs and lets you choose "Keep the earlier settings" or "Make every chapter again"; nothing is mixed silently. Chapters always play and download in the book's order, whatever order they were made in.
+- The same on the command line (#725, #726, #766, #784, #808, #810): `sci2audio convert` run again with other `--chapters` adds only the chapters not made yet to the audiobook. When the settings differ from the earlier chapters' it stops with exit code 7; `--keep-settings` makes the new chapters with the earlier settings, `--overwrite` makes every chapter again. `--with-script` writes the script and report for the chapters the audio holds, with the settings they were made with. An unknown chapter number is named.
+- Capture while you listen (#397, #888, #921, #934, #955): N keeps a note at the sentence being read, Q a quote, M a mark, as do the Note, Quote and Mark buttons in the dock. Pressed in the first 1.2 s of a sentence, they belong to the one that just ended. A quote or a mark saves at once without pausing, with a toast that offers Undo (and the page, for a PDF); Q or M again on the same sentence removes it. A note pauses the voice and opens a box in the panel: Ctrl+Enter (⌘+Enter on a Mac) saves, Esc cancels. Each capture gets a flag at the edge of the text and a tick on the timeline; the panel's Captures tab lists them. Settings has a switch for a short sound on each capture.
+- The Captures page (#398, #1012): a new item in the side bar lists the marks, notes and quotes of every document, by document in reading order, filtered by type and document. "Listen from here" plays each from its sentence. A capture whose sentence the current audiobook does not read, or cannot be found, or whose document has no audiobook now, is listed as such and kept as it is. Remove takes a capture out at once, with Undo in the toast.
+- Save captures as files (#399, #975, #990, #1003, #1014): from the Captures page, the captures shown go into a Markdown file (for Obsidian: each document a heading, each sentence a quote, your note under it) or a CSV table (document, type, page, sentence and note, for a spreadsheet or Anki's own import), in a folder you name. Sentences and quotes are the printed text. A file of that name is replaced only after you say so, and a file another program holds, a missing or refused folder or a full disk is named. Nothing leaves your computer.
+- Captures in the library (#418, #962, #1000, #1023): a Captures column between Listened and Opened, and a strip under each shelf item, give each type's count with its icon. Removing a document says how many captures go with it.
+- Markers from 1.4 carry over (#475, #396, #875, #910, #887): the first time a document's captures are read, each marker becomes a mark, or a note when it has text, at the same sentence with its time. `markers.json` is left as it is, and a file that cannot be carried over is named and left untouched.
 - An update check you can turn on in Settings (#217): once a day it asks GitHub for the newest version's number and shows a link to its release page. It is off by default, sends nothing but the request itself, and never downloads or installs anything; the privacy page says what it sends.
 - Text-step plugins: other Python packages can add text steps through the `sci2audio.text_steps` entry point. The public interface is `sci2audio.textprep.api` (contract version 1). Plugins run after the built-in steps of their stage, follow the category switches, and are listed in the report. A plugin that fails to load, raises, takes longer than 60 s or changes the document is left out with a problem in the report, and the job goes on. `docs/plugins.md` shows how to write one and check it, and a voice engine, with the conformance suite in `sci2audio.testing` (#216, #203).
 - `sci2audio script` and `sci2audio convert` take `--no-plugins` to run a job with the built-in text steps only; the report says so (#667). An audiobook's record names the text-step plugins that made it (#669).
 - The read-along shows the edits of the text-step plugins the audiobook was made with (#666), the document page lists the plugins an analysis ran with (#668), and the privacy page says what an installed plugin can do and lists the installed ones (#685).
+- A PDF whose fonts carry no letters at all, only glyph numbers (Acrobat Distiller after a PDF organiser), is read again when its fonts are Times New Roman, Arial or their likes: sci2audio recognises the letters from the glyphs' shapes, compared with the drawings of the open fonts that have the same widths (Tinos, Arimo, Cousine, Caladea, Carlito). A letter it cannot tell for sure is left out rather than guessed, and a font it cannot read well enough keeps today's text, so such a file is still stopped or warned about. The report and the Prepare page name the pages read this way and say the text may hold mistakes (#618, #442).
 
-- A PDF whose fonts carry no letters at all, only glyph numbers (Acrobat Distiller after a PDF organiser), is read again when its fonts are Times New Roman, Arial or their likes: sci2audio recognises the letters from the glyphs' shapes, compared with the drawings of the open fonts that have the same widths (Tinos, Arimo, Cousine, Caladea, Carlito). A letter it cannot tell for sure is left out rather than guessed, and a font it cannot read well enough keeps today's text, so such a file is still stopped or warned about (#618, #442).
+### Changed
+
+- In the interface the audio job writes the chapters only; the whole book is built when you download it (#723, #725). `sci2audio convert` still writes the M4B and the MP3s at once.
+- A chapter's number in its file name and track number is its place among the book's chapters, not among the chosen ones, so chapters made later fit in without renaming (#725).
+- Inline code (Markdown backticks, an EPUB's `<code>`, a word set in a typewriter font in a PDF's prose) is read as printed: no text step changes it. Code that holds only a link is still left out with the link (#854, #879, #880).
+- The arrows ⇒, ⇐ and ⇔ between two operands are read as words ("implies", "is implied by", "if and only if"; in German "daraus folgt", "folgt aus", "genau dann, wenn"); a long arrow printed as "=⇒" is one arrow, not "equals" (#796, #590).
+- The Settings page's list of single keys names N, Q and M too.
+- sci2audio is also tested on Python 3.13, which an install with uv or pipx may use (#792).
 
 ### Fixed
 
 - In a PDF whose fonts carry no letters, digits, commas, periods, brackets, "ü" and "ß" are no longer dropped from the text (#618).
-- A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
-- A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693).
-- Several text-step plugins in one package whose import hangs wait the 30 s load limit once, not once each (#694).
 - Accents a PDF draws apart from their letter are read with it: names such as "Marasović" and "Šmejkal" keep their accent, and braces reaching below a line no longer join it to the next line of a reference (#125, #126).
-- Headings set with a rule or numbered like a list, plots without a caption and their labels, and tables without rules on a two-column page are read where they belong (#181, #54, #59, #55, #56).
+- Headings: ruled and list-numbered headings (#181), IEEE section numbers "I." to "XII." with lettered subsections (#49), third-level "1)" headings and "1) Word:" run-in heads (#798, #826, #918, #963), part headings such as "Part IV" of any word (#993, #1008), mixed-case headings in text files (#812), a title line inside a text paragraph (#570), and an abbreviation before a heading no longer ends the sentence there (#827).
+- Columns and figures: columns of running text inside a column are found (#32, #866, #872); a centred heading atop a short column stays in it (#735); a figure in the gutter or atop a middle column is read between the columns with its labels and caption, without cutting the paragraph beside it (#873, #895, #905, #906, #916, #932, #933, #938, #945, #958, #966, #1017); plots without a caption and their labels, and tables without rules on a two-column page, are read where they belong (#54, #55, #56, #59).
+- Lists and code: list dashes before quotes, brackets and digits open their item, hyphen lists are list items and dash columns in tables stay cells (#832, #856, #859, #985, #1002); three-digit list labels in plain text and the printed markers of tagged list items are kept (#571, #917); code under a full paragraph line, a lone indented code line, and code inside an EPUB note are code, judged once per document (#599, #603, #787, #794, #890).
+- Dates and references: a date stays in its reference entry in Vancouver, Chicago, APA and numbered lists, and a month line inside a running sentence stays in its paragraph, in English and German (#848, #893, #900, #903, #908, #922, #930, #942, #947, #981, #995).
+- A line with two inline fractions side by side stays one paragraph (#648, #819), and a listing's indented part after a page break keeps its indent in the player (#612).
+- A page with only a small picture is no longer named as a scanned page (#605).
+- A file that names a text encoding which cannot read it (such as punycode) is read as UTF-8; on Python 3.13 its chapter lost its text (#587). The command line's help and its error for a wrong choice read the same on Python 3.12 and 3.13 (#1025, #1029).
+- Readings: a sentence of only dashes, bullets or quote marks is no longer spoken or shown as a sentence of its own (#652); no two joining words are left around a removed link (#628, #629); a dating bracket of a season, a term or a period ("(Spring 2020)") is read, not removed as a citation (#588, #595); a raised exponent reads as a power, so "10⁴K" is no "104 thousand" (#576, #589); "2019 × 3" reads "2,019 times 3" (#871).
+- German readings: edition years after "Ausgabe", "Stand" or a colon (#591, #782, #806), raised powers before a unit letter or after a bracket (#815), Roman numeral lists such as "Kapitel I. und II." and "Kapitel I." (#976, #996).
+- Many readings came out differently when the script was read a second time; these now read the same on both runs, in English and German: signs and arrows beside "3x", four-digit numbers before a sign, dates after a dash or before a colon, clock times, ordinals before a fraction, and more (#816, #843, #844, #870, #924, #957, #970, #972, #984, #988, #997, #1010, #1021, #1053, #1078, #1082).
+- Player: two quick steps keep their place in the audio (#720); the speed panel keeps its clicks in Safari (#699); a position saved at the very end of a chapter is kept (#779); two position saves at once, or one while an audiobook is made, no longer fail (#763, #790, #839); a silent bullet of an older audiobook steps with its item (#869).
+- A project folder name the audiobook folder's disk refuses (an older disk or a network share) is made again from its old characters, never taking over an existing folder (#584).
+- Windows: a file being replaced by another write at the same moment is tried again instead of failing with "access denied", and a refused rename says the file exists (#828, #850, #860); two writes of the script at once no longer share a temporary file (#778).
+- The voice refuses an espeak-ng data folder whose path is too long with an error, instead of ending sci2audio (#663).
+- Ctrl-C or Cancel while a PDF's reader starts ends the job as cancelled, not as an unreadable file (#367, #803), and a read whose end another thread noticed first ends with its result, not "still running" (#440).
+- A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684). Several plugins in one package whose import hangs wait the 30 s once, not once each (#694).
+- A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693, #804).
+- macOS: a quit from the Dock, with Cmd-Q or by an Apple Event writes "stopped" to the start-up log (#717).
 
 ### Security
 
 - Every answer of the interface's server also carries a `Permissions-Policy` that switches off the browser features the interface does not use, and `Cross-Origin-Embedder-Policy: require-corp` (#172).
+- Broken or hostile files cost less: a PDF at the drawing limits needs under 50 MB of memory instead of about 500 MB (#355); a text file with a paragraph of more than 4,000,000 characters is refused, and an EPUB table of contents of more than 200,000 elements is left out (#607, #608).
+- Saved captures cannot run as formulas: a CSV cell that starts with `=`, `+`, `-` or `@` is written so a spreadsheet reads it as text (#399).
 
 ## [1.4.1] - 2026-11-21
 
