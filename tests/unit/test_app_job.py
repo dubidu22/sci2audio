@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from output_helpers import NEWER, refuse_newer_names
-from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, glyph_number_pdf, image_only_pdf, joined_pdf, make_pdf, twin_pdf
 
 from sci2audio.app import (
     EXTRACTORS,
@@ -282,6 +282,59 @@ def test_a_pdf_of_text_has_no_picture_pages_key(tmp_path: Path) -> None:
     data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
     assert "picture_pages" not in data
     assert job.report.picture_pages == ()
+
+
+TWIN_LINES = [
+    "The book was written in 1980, at a time when the work in the neighbourhoods had to be",
+    "thought anew (see pages 12-14). The people who live there know what is missing: 3/4 of",
+]
+RECOGNISED = (
+    "The text of page 2 was recognised from the shapes of its letters: the PDF's fonts give "
+    "glyph numbers there instead of letters. The recognised text may hold mistakes."
+)
+
+
+def test_pages_read_from_letter_shapes_are_a_report_warning(tmp_path: Path) -> None:
+    """#618, AC-442.9: a page set in an Office font that lost its maps is read from its glyph
+    shapes (`Page.recovered`), and report.json, report.md and the key `recovered_pages` name
+    it, so the interface and the command line read the same."""
+    plain = make_pdf(
+        [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+    )
+    source = tmp_path / "twin.pdf"
+    source.write_bytes(joined_pdf(plain, twin_pdf(TWIN_LINES), plain))
+    job = run_script_job(source, JobSettings(language="en"), tmp_path / "w")
+    assert job.report.warnings == (RECOGNISED,)
+    assert job.report.recovered_pages == (2,)
+    assert job.report.unreadable is None  # voiced
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert data["warnings"] == [RECOGNISED]
+    assert data["recovered_pages"] == {"pages": [2], "ranges": "2"}
+    assert list(data)[-1] == "recovered_pages"  # added at the end: other reports as before
+    assert f"- {RECOGNISED}" in job.files.report_markdown.read_text(encoding="utf-8")
+
+
+def test_the_recognised_warning_comes_after_the_picture_one_and_before_the_rest(
+    tmp_path: Path,
+) -> None:
+    """What the audiobook lacks is said before what it may say wrongly; both before the
+    warning that the text did not tell its language (D-495)."""
+    source = tmp_path / "twin and scan.pdf"
+    source.write_bytes(joined_pdf(image_only_pdf(), twin_pdf(TWIN_LINES[:1])))
+    job = run_script_job(source, JobSettings(), tmp_path / "w")
+    warnings = job.report.warnings
+    assert warnings[0].startswith("Page 1 holds no text, only pictures")
+    assert warnings[1] == RECOGNISED
+    assert all(not w.startswith("The text of") for w in warnings[2:])
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert list(data)[-2:] == ["picture_pages", "recovered_pages"]
+
+
+def test_a_pdf_of_unicode_text_has_no_recovered_pages_key(tmp_path: Path) -> None:
+    job = run_script_job(small_pdf(tmp_path), JobSettings(), tmp_path / "w")
+    data = json.loads(job.files.report_json.read_text(encoding="utf-8"))
+    assert "recovered_pages" not in data
+    assert job.report.recovered_pages == ()
 
 
 def test_a_damaged_epub_fails_with_a_message_naming_the_file(tmp_path: Path) -> None:

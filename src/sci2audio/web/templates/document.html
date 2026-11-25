@@ -30,6 +30,9 @@
 {% if report.picture_pages %}{# a PDF's pages that are scans without text (#186) #}
 <div class="callout warn" id="picture-pages">{{ icon('alert', 'l') }}<div><p>{{ t('document.picture_pages', n=report.picture_pages.pages|length, pages=report.picture_pages.ranges) }}</p></div></div>
 {% endif %}
+{% if report.recovered_pages %}{# letters recognised from their shapes: read, but may be wrong (#618) #}
+<div class="callout warn" id="recovered-pages">{{ icon('alert', 'l') }}<div><p>{{ t('document.recovered_pages', n=report.recovered_pages.pages|length, pages=report.recovered_pages.ranges) }}</p></div></div>
+{% endif %}
 {% if report.problems %}
 <div class="callout warn">{{ icon('alert', 'l') }}<div>
   <p>{{ t('document.problems') }}</p>

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
-from pdf_maker import glyph_number_pdf, joined_pdf
+from pdf_maker import glyph_number_pdf, joined_pdf, twin_pdf
 from playwright.sync_api import Page, expect
 from test_flow import open_paper
 from test_shell import HIGHLIGHTED, axe_with_dark_chosen, scrolls_sideways
@@ -156,3 +156,43 @@ def test_a_pdf_of_glyph_numbers_says_why_and_never_starts_a_job(
     german = "Der Text von 2 Seiten lässt sich nicht lesen (1, 2)"
     expect(page.locator("#unreadable")).to_contain_text(german)
     check_axe(page, "prepare, unreadable PDF, German")
+
+
+def test_pages_read_from_letter_shapes_are_named_and_the_audiobook_can_be_made(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    """#618, AC-442.9: step 1 names the pages whose letters were recognised from their
+    shapes and says the text may hold mistakes, light and dark, in English and German;
+    "Make the audiobook" is not blocked by it."""
+    page = signed_in
+    live.install_voice()
+    lines = [
+        "The book was written in 1980, at a time when the work in the neighbourhoods had to be",
+        "thought anew (see pages 12-14). The people who live there know what is missing: 3/4",
+    ]
+    source = tmp_path / "twins.pdf"
+    source.write_bytes(joined_pdf(twin_pdf(lines), twin_pdf(lines, "arial")))
+    page.set_input_files("#file", files=[str(source)])
+    page.get_by_role("button", name="Open and analyse").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
+    notice = page.locator("#recovered-pages")
+    expect(notice).to_have_text(
+        "The text of 2 pages was recognised from the shapes of its letters (1, 2): the PDF's "
+        "fonts give glyph numbers there instead of letters. The recognised text may hold "
+        "mistakes."
+    )
+    expect(page.locator("#unreadable")).to_have_count(0)
+    make = page.get_by_role("button", name="Make the audiobook")
+    expect(make).not_to_have_attribute("aria-disabled", "true")
+    check_axe(page, "prepare, letters recognised from their shapes")
+    page.context.add_cookies([{"name": COOKIE, "value": "de", "url": live.url}])
+    page.reload()
+    settled(page)
+    expect(notice).to_have_text(
+        "Der Text von 2 Seiten wurde an der Form seiner Buchstaben erkannt (1, 2): Die "
+        "Schriften der PDF geben dort Glyphennummern statt Buchstaben. Der erkannte Text kann "
+        "Fehler enthalten."
+    )
+    check_axe(page, "prepare, letters recognised from their shapes, German")

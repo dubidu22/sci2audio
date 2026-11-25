@@ -9,6 +9,9 @@ measures each page and says which are unreadable; this module decides what the j
   not counted), the audio job stops before the voice and writes nothing (`stops`);
 - otherwise every unreadable page is named in a warning of the report.
 
+The pages whose letters extraction recognised from their glyph shapes are read, and named
+in a warning of their own, since the recognised text may hold mistakes (#618).
+
 PDF only (D-772): a page is a printed page only there; an EPUB's "page" is one of its files
 and a text file is one page, and their text comes from the file's own letters, not from a
 font.
@@ -78,6 +81,26 @@ def warning(found: Unreadable) -> str:
         f"The text of {where} cannot be read: the PDF's fonts give glyph numbers "
         "or wrong letters there, so the voice would read nonsense. Leave the chapters on "
         "those pages out."
+    )
+
+
+def recovered_pages(content: Content) -> tuple[int, ...]:
+    """The pages of a PDF whose letters extraction recognised from their glyph shapes
+    (`Page.recovered`, #618): a font with no Unicode source read after all, which may hold
+    mistakes. A page counts once any character was recognised: one wrong letter can change
+    a number. PDF only, as `unreadable` (D-772)."""
+    if content.source.format is not SourceFormat.PDF:
+        return ()
+    return tuple(page.number for page in content.pages if page.recovered)
+
+
+def recovered_warning(pages: Iterable[int]) -> str:
+    """The report's warning for the pages read from their letters' shapes (#618, AC-442.9),
+    worded as the unreadable one, which names the same fonts when they can't be read."""
+    return (
+        f"The text of {pages_named(pages)} was recognised from the shapes of its letters: the "
+        "PDF's fonts give glyph numbers there instead of letters. The recognised text may hold "
+        "mistakes."
     )
 
 

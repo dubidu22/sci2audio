@@ -24,6 +24,8 @@ from sci2audio.app.readability import (
     page_ranges,
     picture_pages,
     picture_warning,
+    recovered_pages,
+    recovered_warning,
     unreadable,
     warning,
 )
@@ -105,6 +107,8 @@ class Report:
     unreadable: Unreadable | None = None
     # a PDF's pages that hold pictures and no text: scans, not read (#186)
     picture_pages: tuple[int, ...] = ()
+    # a PDF's pages whose letters were recognised from their shapes: may hold mistakes (#618)
+    recovered_pages: tuple[int, ...] = ()
     # the text-step plugins the job ran with (#216)
     plugins: tuple[PluginInfo, ...] = ()
 
@@ -174,6 +178,9 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         warnings = (guessed, *warnings)
     if language := language_warning(document):
         warnings = (language, *warnings)
+    recovered = recovered_pages(document.content)
+    if recovered:  # after the picture warning: what is missing outweighs what may be wrong
+        warnings = (recovered_warning(recovered), *warnings)
     pictures = picture_pages(document.content)
     if pictures:  # after the unreadable warning: it says what is missing from the audiobook
         warnings = (picture_warning(pictures), *warnings)
@@ -197,6 +204,7 @@ def build_report(result: ScriptResult, settings: dict[str, Any]) -> Report:
         language_guess=document.language_guess,
         unreadable=found,
         picture_pages=pictures,
+        recovered_pages=recovered,
         plugins=result.run.plugins,
     )
 
@@ -259,8 +267,9 @@ def language_line(report: Report) -> str:
 
 def report_data(report: Report) -> dict[str, Any]:
     """The report as JSON data, keys in a fixed order. `unreadable` (#442) is there only when
-    a page's text can't be read, and `picture_pages` (#186) only when a PDF page holds
-    pictures and no text, so the reports of other documents are as before."""
+    a page's text can't be read, `picture_pages` (#186) only when a PDF page holds pictures
+    and no text, and `recovered_pages` (#618) only when a page's letters were recognised
+    from their shapes, so the reports of other documents are as before."""
     data = {
         "format": FORMAT,
         "version": VERSION,
@@ -330,6 +339,11 @@ def report_data(report: Report) -> dict[str, Any]:
         data["picture_pages"] = {
             "pages": list(report.picture_pages),
             "ranges": page_ranges(report.picture_pages),
+        }
+    if report.recovered_pages:
+        data["recovered_pages"] = {
+            "pages": list(report.recovered_pages),
+            "ranges": page_ranges(report.recovered_pages),
         }
     return data
 
