@@ -191,6 +191,10 @@ def test_after_a_restart_the_chapters_on_disk_open_the_listen_tab_and_play(
 
     # the next run of sci2audio: no job on its board, only the folder says chapter 1 plays
     with serve(tmp_path, live.voice, SlowFetch()) as second:
+        # Leave the old page while the old fence still stands: a font or event stream it
+        # was still asking its server for would otherwise reach the new fence, which counts
+        # the old port as outside (#1088).
+        page.goto("about:blank")
         page.unroute("**/*")
 
         def fence(route: Route) -> None:
