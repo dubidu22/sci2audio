@@ -157,12 +157,27 @@ def run(
             return _wait(child, receive, step_seconds, on_step, cancel)
         finally:
             receive.close()
-            if child.is_alive():
-                child.kill()
-            child.join()
-            child.close()
+            _end(child)
     finally:
         readers.give()
+
+
+def _end(child: Any) -> None:
+    """End `child` if it still runs, wait for its end, and free its handles.
+
+    Another thread can take the child's end first: multiprocessing reaps each child it finds
+    ended (`os.waitpid`) in `active_children()` and in every `Process.start()`, so a second
+    read starting its child does it too, and notes the exit code only a moment later. In
+    that moment `is_alive()` takes the ended child for a running one (and `kill()` would
+    signal a pid that is free again), `join()` returns with no exit code, and `close()`
+    raises "still running" (#440). The sentinel, which the child holds open until it ends,
+    tells its end whoever reaped it."""
+    if not multiprocessing.connection.wait([child.sentinel], 0):
+        child.kill()
+    child.join()
+    if child.exitcode is not None:
+        child.close()
+    # else the thread that reaped it notes the code; its handles close with the object
 
 
 def _start(

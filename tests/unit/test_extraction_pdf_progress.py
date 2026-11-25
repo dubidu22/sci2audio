@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
+import os
 import signal
 import sys
 import threading
@@ -394,6 +395,58 @@ def test_a_resource_tracker_started_with_the_first_child_keeps_sigint_held(
     finally:
         tracker._stop()  # type: ignore[attr-defined]
     assert result == (True, False)  # SIGINT held back at the child's first line
+
+
+# ---- another thread takes the child's end (#440) --------------------------------------------
+
+
+@posix_only
+@pytest.mark.parametrize("cancelled", [True, False], ids=["cancelled", "finished"])
+def test_a_child_whose_end_another_thread_took_is_not_closed_as_running(
+    monkeypatch: pytest.MonkeyPatch, cancelled: bool
+) -> None:
+    """multiprocessing reaps each child it finds ended (`os.waitpid`) in
+    `active_children()`, as `sigint_children` calls it, and in every `Process.start()`, as a
+    second read starts its child; it notes the exit code only a moment later. A read ending
+    in that moment found no child left to wait for: `join()` returned with no exit code and
+    `close()` took the ended child for a running one, so the read raised "Cannot close a
+    process while it is still running" in place of its result (#440: on Linux CI, a
+    cancelled read in the SIGINT-while-starting test twice, and a finished read with no
+    cancel, as in the held-back-SIGINT test, once). No timing: the end is taken between the
+    read's last word and its clean-up."""
+    wait = isolate._wait
+    cancel = threading.Event() if cancelled else None
+    taken: dict[str, Any] = {}
+    signalled: list[str] = []
+
+    def end_taken_by_another_thread(child: Any, *rest: Any) -> Any:
+        if cancel is not None:
+            cancel.set()
+        result = wait(child, *rest)
+        # what the other thread does before it notes the code
+        _, status = os.waitpid(child.pid, 0)
+        taken.update(child=child, code=os.waitstatus_to_exitcode(status))
+        monkeypatch.setattr(child, "kill", lambda: signalled.append("kill"))
+        return result
+
+    monkeypatch.setattr(isolate, "_wait", end_taken_by_another_thread)
+    readers = isolate.Readers(1)
+    try:
+        result = isolate.run(
+            targets.pages_then_rest,
+            (1, 0.0, 0.0),
+            memory=GiB,
+            step_seconds=60,
+            readers=readers,
+            cancel=cancel,
+        )
+    finally:
+        if "child" in taken and taken["child"]._popen is not None:
+            taken["child"]._popen.returncode = taken["code"]  # ... and then notes it
+    assert result == (isolate.Stopped("cancelled", "starting") if cancelled else 1)
+    assert signalled == []  # its pid is free: a signal could reach another process
+    assert readers.alive == 0
+    assert multiprocessing.active_children() == []
 
 
 # ---- a child that ends while starting, as a Ctrl-C ends it (#367) ---------------------------

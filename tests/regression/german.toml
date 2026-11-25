@@ -3647,3 +3647,34 @@ expected = [
     "um 13:30 m^2 hier",
     "um 24 Uhr n Quadrat hier",
 ]
+
+[[case]]
+id = "de-an-ordinal-before-a-fraction-read-with-ein"
+audit = 0
+issue = 1078
+goal = "An ordinal before a fraction read with 'ein' ('1/2' as 'ein halb', up to '1/10') takes 'ein' as its next word, as a second run sees it: 'am 3. 1/2 N' is 'am dritten ein halb N' on both runs, in a paragraph and a heading, as a date without its year is read before it (#310). Before a fraction that keeps its digit ('3/4' as '3 Viertel', '1/12' as '1 von 12') the ordinal stays as printed on both runs (#1078)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3. 1/2 N" },
+    { kind = "paragraph", text = "am 3. 1/2" },
+    { kind = "paragraph", text = "Die 12. 1/2 Liter" },
+    { kind = "paragraph", text = "am 3. 1/10" },
+    { kind = "paragraph", text = "am 3. 1/2 < 5" },
+    { kind = "paragraph", text = "Die 12. 3/4 m" },
+    { kind = "paragraph", text = "am 3. 1/12 Liter" },
+    { kind = "heading", text = "am 3. 1/2 N" },
+    { kind = "heading", text = "Die 12. 1/2 Liter" },
+    { kind = "heading", text = "Die 12. 3/4 m" },
+]
+expected = [
+    "am dritten ein halb N",
+    "am dritten ein halb",
+    "Die zwölfte ein halb Liter",
+    "am dritten ein Zehntel",
+    "am dritten ein halb kleiner als 5",
+    "Die 12. 3 Viertel m",
+    "am 3. 1 von 12 Liter",
+    "am dritten ein halb N",
+    "Die zwölfte ein halb Liter",
+    "Die 12. 3 Viertel m",
+]
