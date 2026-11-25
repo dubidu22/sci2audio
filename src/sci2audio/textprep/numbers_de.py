@@ -60,7 +60,6 @@ from sci2audio.textprep.units import (
     reads_unit_after_per,
     reads_x_after,
     symbol_word_at,
-    tilde_after,
     unit_spans,
 )
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
@@ -1125,8 +1124,9 @@ def _ordinals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
         ):
             # "Es gilt Satz 2. Satz 3", "Kap. 2. Kap. 3": a label's number, then the same
             # label again, ends the sentence (D-719); "Im Punkt 2. Teil" keeps its ordinal.
-            # Abbreviated or not, as the abbreviations step makes them one: "Kapitel 14. Kap.
-            # 3" is "Kapitel 14. Kapitel 3" on a second run, as "Kapitel XIV. Kap. 3" is (#1082)
+            # Abbreviated or not: "Kapitel 14. Kap. 3" is "Kapitel 14. Kapitel 3" on a second
+            # run, as "Kapitel XIV. Kap. 3" is; where the abbreviations step leaves "Kap."
+            # ("Kap. drei") it is the same label on both runs alike (#1082)
             continue
         ending = _ending(text, match.start(), day=month)
         if (
@@ -1633,10 +1633,6 @@ def find_numbers_de(text: str) -> list[Candidate]:
             *_fractions(text),
         ]
     )
-    # "1/2 ~ 2": the units step leaves a "~" after a digit, but a second run would read it
-    # "etwa" after "ein halb"; so the number stays as printed with it, as before an "x" the
-    # units step leaves (`_x_left_alone`, #1082)
-    found = [c for c in found if not _word_before_tilde(text, c)]
     # a label's run left as printed ("Abschnitt 2.5 und 2.612-1") is left whole: "2612" read
     # alone would make "2.5" a label's number on a second run
     return _outside(found, kept)
@@ -1666,18 +1662,6 @@ def _file_numbers(text: str) -> list[tuple[int, int]]:
         if match.start("token") not in starts
     ]
     return sorted(shaped + labelled)
-
-
-def _word_before_tilde(text: str, candidate: Candidate) -> bool:
-    """True if the candidate's reading ends in a word where its printed text ends in a digit
-    before a "~" (`tilde_after`)."""
-    printed = text[candidate.end - 1 : candidate.end]
-    return (
-        candidate.replacement.rstrip()[-1:].isalpha()
-        and printed.isascii()
-        and printed.isdigit()
-        and tilde_after(text, candidate.end)
-    )
 
 
 def _outside(found: list[Candidate], kept: list[tuple[int, int]]) -> list[Candidate]:

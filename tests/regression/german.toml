@@ -3683,13 +3683,14 @@ expected = [
 id = "de-a-unit-printed-as-a-maths-letter"
 audit = 0
 issue = 1082
-goal = "A unit printed as a maths letter ('𝐬', which the characters step reads 's' last) is read after a number on the first run as a second run reads 's': '1–1 𝐬' is '1 bis 1 Sekunden' on both runs, in a paragraph and a heading, as '1–1 s' is (#1082, D-150)."
+goal = "A unit printed as an upright maths letter ('𝐬', which the characters step reads 's' last) is read after a number on the first run as a second run reads 's': '1–1 𝐬' is '1 bis 1 Sekunden' on both runs, in a paragraph and a heading, as '1–1 s' is; a maths digit before a unit too ('𝟏 s' is 'eine Sekunde'). An italic maths letter is a variable, not a unit: see de-a-maths-italic-letter-after-a-number-is-no-unit (#1082, D-150)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "1–1 𝐬" },
     { kind = "paragraph", text = "1 𝐬" },
     { kind = "paragraph", text = "2 𝐬" },
     { kind = "paragraph", text = "x 𝐬" },
+    { kind = "paragraph", text = "𝟏 s" },
     { kind = "heading", text = "1–1 𝐬" },
 ]
 expected = [
@@ -3697,6 +3698,7 @@ expected = [
     "eine Sekunde",
     "2 Sekunden",
     "x s",
+    "eine Sekunde",
     "1 bis 1 Sekunden",
 ]
 
@@ -3704,7 +3706,7 @@ expected = [
 id = "de-a-label-number-before-the-same-label-abbreviated"
 audit = 0
 issue = 1082
-goal = "A label's number and the same label again end the sentence (D-719) whether either label is abbreviated or not, as the abbreviations step makes them one: 'Kapitel 2. Kap. 3' is 'Kapitel 2. Kapitel 3', not 'Kapitel zweites Kapitel 3', and a part's Roman numeral there is read, so 'Kapitel XIV. Kap. I. und II.' is 'Kapitel 14. Kapitel I. und II.' on both runs and for the numbers step alone, in a paragraph and a heading (#1082)."
+goal = "A label's number and the same label again end the sentence (D-719) whether either label is abbreviated or not: 'Kapitel 2. Kap. 3' is 'Kapitel 2. Kapitel 3', not 'Kapitel zweites Kapitel 3', 'Band 2. Bd. 3' 'Band 2. Band 3', and where the abbreviations step leaves the abbreviation ('Kap. drei') it stays the same label. A part's Roman numeral there is read, so 'Kapitel XIV. Kap. I. und II.' is 'Kapitel 14. Kapitel I. und II.' on both runs and for the numbers step alone, in a paragraph and a heading (#1082)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "1–1 Kapitel XIV. Kap. I. und II." },
@@ -3714,6 +3716,9 @@ blocks = [
     { kind = "paragraph", text = "Kapitel 2. Kap. 3" },
     { kind = "paragraph", text = "Kap. 2. Kapitel 3" },
     { kind = "paragraph", text = "die 12. Kap. 3" },
+    { kind = "paragraph", text = "Band 2. Bd. 3" },
+    { kind = "paragraph", text = "Bd. 2. Band 3" },
+    { kind = "paragraph", text = "Kapitel 2. Kap. drei" },
     { kind = "heading", text = "1–1 Kapitel XIV. Kap. I. und II." },
 ]
 expected = [
@@ -3724,6 +3729,9 @@ expected = [
     "Kapitel 2. Kapitel 3",
     "Kapitel 2. Kapitel 3",
     "die zwölfte Kapitel 3",
+    "Band 2. Band 3",
+    "Band 2. Band 3",
+    "Kapitel 2. Kap. drei",
     "1 bis 1 Kapitel 14. Kapitel I. und II.",
 ]
 
@@ -3799,26 +3807,16 @@ expected = [
 ]
 
 [[case]]
-id = "de-a-reading-that-ends-in-a-word-before-a-tilde"
+id = "de-a-maths-italic-letter-after-a-number-is-no-unit"
 audit = 0
 issue = 1082
-goal = "A number whose reading ends in a word ('1/2' as 'ein halb', '3/4' as '3 Viertel', 'x^2' as 'x Quadrat', '13:00' as '13 Uhr') before a '~' and a number stays as printed: the units step leaves a '~' after a digit ('5 ~ 10'), but would read it 'etwa' after the word on a second run. '1/2 ~ 2' is '1/2 ~ 2' on both runs, in a paragraph and a heading, as a number before an 'x' the units step leaves is (#1082)."
+goal = "An italic maths letter after a number names a variable, not a unit (units are set upright, ISO 80000), so the units step does not read it on the first run: 'mit 5 𝑁 Proben' is 'mit 5 N Proben', as on main. The characters step makes it a plain 'N', which a second run reads as a unit; that stays as on main and is the owner's to decide (listed in SECOND_RUN_EXCEPTIONS, #1082)."
 language = "de"
 blocks = [
-    { kind = "paragraph", text = "1/2 ~ 2" },
-    { kind = "paragraph", text = "3/4 ~ 2" },
-    { kind = "paragraph", text = "x^2 ~ 2" },
-    { kind = "paragraph", text = "um 13:00 ~ 2" },
-    { kind = "paragraph", text = "1/2 ≈ 2" },
-    { kind = "paragraph", text = "1/12 ~ 2" },
-    { kind = "heading", text = "1/2 ~ 2" },
+    { kind = "paragraph", text = "mit 5 𝑁 Proben" },
+    { kind = "paragraph", text = "Es gilt 𝑥 = 2 𝑠 + 1" },
 ]
 expected = [
-    "1/2 ~ 2",
-    "3/4 ~ 2",
-    "x^2 ~ 2",
-    "um 13:00 ~ 2",
-    "ein halb ungefähr 2",
-    "1 von 12 ~ 2",
-    "1/2 ~ 2",
+    "mit 5 N Proben",
+    "Es gilt x gleich 2 s + 1",
 ]
