@@ -288,6 +288,9 @@ def test_characters_not_read_do_not_hide_a_number(printed: str, said: str) -> No
 @example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")]))  # #957
 @example(make_document([(BlockKind.PARAGRAPH, "3-3-1999-02-01")]))  # #957
 @example(make_document([(BlockKind.PARAGRAPH, "3\u20143\u20141999-02-01")]))  # #957
+@example(make_document([(BlockKind.PARAGRAPH, "1999-02-01:3 \u00d7 10\u22124")]))  # #1053
+@example(make_document([(BlockKind.HEADING, "1999-02-01:3")]))  # #1053
+@example(make_document([(BlockKind.PARAGRAPH, "from 2019-03-01\u20132019-03-05:3")]))  # #1053
 def test_the_step_keeps_the_contract_on_any_document(document: Document) -> None:
     check_text_step(STEP, [document], allow_ask=False)
 

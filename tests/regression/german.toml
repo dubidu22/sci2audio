@@ -3440,3 +3440,210 @@ expected = [
     "Also 5 pro Ampere hoch 2 K hier.",
     "Also 10 hoch 2 Kelvin hier.",
 ]
+
+# ---- v1.6 second-run batch: the shapes the nightly property found (#1053, #970) ------------
+
+[[case]]
+id = "de-iso-date-before-a-colon-and-a-digit-stays-as-printed"
+audit = 0
+issue = 1053
+goal = "An ISO date glued to a colon and a digit stays as printed, in a paragraph and a heading, as in English (#1053); after a colon and a space it is read."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1999-02-01:3" },
+    { kind = "paragraph", text = "1999-02-01: 3" },
+    { kind = "paragraph", text = "1999-02-01:3 × 10−4" },
+    { kind = "heading", text = "1999-02-01:3 × 10−4" },
+]
+expected = [
+    "1999-02-01:3",
+    "erster Februar 19 hundert 99: 3",
+    "1999-02-01:3 mal 10 hoch minus 4",
+    "1999-02-01:3 mal 10 hoch minus 4",
+]
+
+[[case]]
+id = "de-a-clock-time-before-an-arrow"
+audit = 0
+issue = 970
+goal = "The 'Uhr' of a clock time with minutes is no prose word before an arrow, since the numbers step reads '13:30 Uhr' as '13 Uhr 30' and a second run sees the minutes there: the arrow is read on the first run too. A clock time on the full hour reads '13 Uhr', a prose word, on both runs, so the arrow between it and a prose word stays as printed (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "13:30 Uhr ⇒ gibt" },
+    { kind = "paragraph", text = "1:12 Uhr=⇒am 3. Mai" },
+    { kind = "paragraph", text = "1–1um 13:30 Uhr=⇒am 3. Mai" },
+    { kind = "paragraph", text = "13:30 Uhr\u00A0=>\nPlatz" },
+    { kind = "paragraph", text = "13:00 Uhr ⇒ gibt" },
+]
+expected = [
+    "13 Uhr 30 daraus folgt gibt",
+    "1 Uhr 12 daraus folgt am dritten Mai",
+    "1 bis 1um 13 Uhr 30 daraus folgt am dritten Mai",
+    "13 Uhr 30 daraus folgt Platz",
+    "13 Uhr ⇒ gibt",
+]
+
+[[case]]
+id = "de-a-date-or-an-ordinal-before-a-sign-or-a-one"
+audit = 0
+issue = 970
+goal = "A date or an ordinal ending in a full stop is read on the first run as a second run reads it after the words before it: an ordinal before a sign the statistics step reads takes the sign's words as its next word ('am 3. < =1' is 'am dritten kleiner als gleich 1'); a date or an ordinal before a '1' the units step reads as a word before its unit is read ('am 3.4. 1 N'), one before '2 N' stays as printed. A date without its year before an arrow the statistics step leaves after its full stop stays as printed with it, as a second run would read the arrow after 'April' (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3.4. =⇒ M" },
+    { kind = "paragraph", text = "am 3.4. 1 N" },
+    { kind = "paragraph", text = "am 3. 1 N" },
+    { kind = "paragraph", text = "am 3.4. 2 N" },
+    { kind = "paragraph", text = "am 3. < =1" },
+    { kind = "paragraph", text = "am 3.<1 und am 3.4. < 5" },
+]
+expected = [
+    "am 3.4. ⇒ M",
+    "am dritten April ein Newton",
+    "am dritten ein Newton",
+    "am 3.4. 2 Newton",
+    "am dritten kleiner als gleich 1",
+    "am dritten kleiner als 1 und am dritten April kleiner als 5",
+]
+
+[[case]]
+id = "de-a-clock-time-before-a-hyphen-range"
+audit = 0
+issue = 970
+goal = "A clock time stays as printed where its reading would end in minutes that a second run reads as the start of a hyphen range ('um 13:30-1500' read '13 Uhr 30-1500', then '13 Uhr 30 bis 1500'); before an en dash the range is read on both runs, as before (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "um 13:30-1500 Kapitel" },
+    { kind = "paragraph", text = "um 13:30 Uhr-1500" },
+    { kind = "paragraph", text = "um 13:30–1500 Kapitel" },
+    { kind = "paragraph", text = "um 13:00-1500 Kapitel" },
+]
+expected = [
+    "um 13:30-1500 Kapitel",
+    "um 13:30 Uhr-1500",
+    "um 13 Uhr 30 bis 1500 Kapitel",
+    "um 13 Uhr-1500 Kapitel",
+]
+
+[[case]]
+id = "de-a-negated-equals-sign-before-an-ascii-arrow"
+audit = 0
+issue = 970
+goal = "The '=' of a '≠' printed as a slash and '=' is no part of an ASCII run: the statistics step reads that sign 'ungleich', so an '=>' or '<=>' glued after it is read on the first run, as a second run reads it after the word; soft hyphens and zero-width spaces between them change nothing (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "2.5 \u0338=\u00AD=>σ" },
+    { kind = "paragraph", text = "1–1 \u0338==>1" },
+    { kind = "paragraph", text = "A \u0338=\u200B<=> 2" },
+    { kind = "paragraph", text = "A ≠=> B" },
+]
+expected = [
+    "2.5 ungleich daraus folgt σ",
+    "1 bis 1 ungleich daraus folgt 1",
+    "A ungleich genau dann, wenn 2",
+    "A ungleich daraus folgt B",
+]
+
+[[case]]
+id = "de-an-arrow-in-pieces-next-to-nx"
+audit = 0
+issue = 970
+goal = "A minus sign of an arrow printed in pieces next to 'Nx' ('12x−−→', '←−12x') is no operator: the numbers step reads the pieces as one arrow, which a second run sees there, so the x reads 'mal' on both runs; soft hyphens between change nothing (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "12\u00ADx\u00AD−−→ März" },
+    { kind = "paragraph", text = "←−12x und 12x−→ M" },
+]
+expected = [
+    "12 mal → März",
+    "←12 mal und 12 mal → M",
+]
+
+[[case]]
+id = "de-a-power-before-a-colon-and-a-fraction-read-in-words"
+audit = 0
+issue = 970
+goal = "A power before a colon and a fraction the numbers step reads with 'ein' ('R³ : 1/5') is read, as a second run reads it before 'ein Fünftel'; before a fraction that keeps its digits ('R³ : 3/4') it stays as printed, as before (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "R³ : 1/5 ⇒ χ2" },
+    { kind = "paragraph", text = "R³ : 3/4 hier" },
+]
+expected = [
+    "R hoch 3 : ein Fünftel daraus folgt χ2",
+    "R³ : 3 Viertel hier",
+]
+
+[[case]]
+id = "de-a-sign-after-a-line-end-hyphen"
+audit = 0
+issue = 970
+goal = "A line-end hyphen before a sign the statistics step reads as words is kept and its line break removed, as before a digit: left with its line break, a second run would decide it by the sign's words ('Abb.- ungleich' was 'Abb.-ungleich' then, #970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Jahr\u00AD⇐= Abb.\u200B-\n\u0338=\u00ADχ2" },
+    { kind = "paragraph", text = "Abb.-\n≠ χ2" },
+    { kind = "paragraph", text = "Wert-\n= 3" },
+]
+expected = [
+    "Jahr⇐ Abb.-ungleich χ2",
+    "Abb.-ungleich χ2",
+    "Wert-gleich 3",
+]
+
+[[case]]
+id = "de-a-date-before-an-arrow-between-prose-words"
+audit = 0
+issue = 970
+goal = "A date without its year before an arrow is read where a second run leaves the arrow after the month too, as before a prose word ('am 3.4. ⇒ Mai' is 'am dritten April ⇒ Mai' on both runs, as on main); it stays as printed only where a second run would read the arrow after the month ('am 3.4. ⇒ M', #970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3.4. ⇒ Mai" },
+    { kind = "paragraph", text = "am 3.4. ⇒ Die Studie" },
+    { kind = "paragraph", text = "am 3.4. ⇒ M" },
+]
+expected = [
+    "am dritten April ⇒ Mai",
+    "am dritten April ⇒ Die Studie",
+    "am 3.4. ⇒ M",
+]
+
+[[case]]
+id = "de-an-ordinal-before-a-sign-the-units-step-reads"
+audit = 0
+issue = 970
+goal = "An ordinal before a sign the units step reads as a word ('×' as 'mal', '≈' as 'ungefähr', '~' as 'etwa') takes that word as its next word, as a second run sees it: 'am 3. × 5' is 'am dritten mal 5' on both runs, glued or spaced (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3. × 5" },
+    { kind = "paragraph", text = "am 3. ≈ 5" },
+    { kind = "paragraph", text = "am 3. ~ 5" },
+    { kind = "paragraph", text = "am 3. × 10−4" },
+    { kind = "paragraph", text = "am 3.×5" },
+]
+expected = [
+    "am dritten mal 5",
+    "am dritten ungefähr 5",
+    "am dritten etwa 5",
+    "am dritten mal 10−4",
+    "am dritten mal 5",
+]
+
+[[case]]
+id = "de-a-caret-power-after-a-clock-time"
+audit = 0
+issue = 970
+goal = "The minutes of a clock time are no number before a caret power, as they are none before a raised one: 'um 24:00 R^2' was 'um 24 Uhr R^2', whose power a second run read; it is read on the first run now. A unit after a time stays as printed, as before (#970)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "um 24:00 R^2 hier" },
+    { kind = "paragraph", text = "um 13:30 R^2 hier" },
+    { kind = "paragraph", text = "um 13:30 m^2 hier" },
+    { kind = "paragraph", text = "um 24:00 n² hier" },
+]
+expected = [
+    "um 24 Uhr R Quadrat hier",
+    "um 13 Uhr 30 R Quadrat hier",
+    "um 13:30 m^2 hier",
+    "um 24 Uhr n Quadrat hier",
+]

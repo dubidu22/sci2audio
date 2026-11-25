@@ -144,6 +144,8 @@ _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angs
 _HEX = frozenset("0123456789abcdefABCDEF")
 _OPERATORS = "=+-\u2212\u00d7\u00b7/^<>\u2264\u2265"  # around "2x", it is a variable
 _LOGIC_ARROW = re.compile(DOUBLE_ARROW)
+# minus signs and a right arrow: one arrow to the numbers step (`notation.arrows`)
+_PIECED_RIGHT_ARROW = re.compile("\u2212+\u2192")
 _LOGIC_ARROW_BEFORE = re.compile(f"(?:{DOUBLE_ARROW}) *\\Z")
 # the statistics step's English readings of those signs, which count as the signs around "2x"
 # ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
@@ -748,6 +750,48 @@ def reads_unit_after(text: str, end: int, language: str) -> bool:
     )
 
 
+def reads_one_as_word(text: str, start: int, language: str) -> bool:
+    """True if the step reads the number that starts at `start` as a word before its unit
+    ("1 N" as "ein Newton"). The numbers step asks: a second run sees that word after a date
+    or an ordinal before the "1" ("am 3.4. 1 N", #970). Court file numbers are looked for
+    near `start` only, so long blocks stay linear."""
+    table = _compiled(language)
+    if table is None:
+        return False
+    low = max(0, start - _PER_LOOK_BACK)
+    if any(
+        a <= start < b
+        for a, b in (m.span() for m in table.kept.finditer(text, low, start + _PER_LOOK_BACK))
+    ):
+        return False  # "Az. 1 N 1/12": a court's file number, no unit (#243)
+    number = table.number.match(text, start)
+    if number is None:
+        return False
+    found = _unit_after(text, number, table)
+    return found is not None and bool(found[4]) and _one(text, number, table, found[4]) is not None
+
+
+def symbol_word_at(text: str, position: int, language: str) -> str | None:
+    """The word the step reads for the "×", "≈" or "~" at `position`, or None. The numbers
+    step asks after an ordinal's full stop ("am 3. × 5" is "am 3. mal 5" after the first run,
+    whose "3." a second run reads "dritten", #970). A "~" after a number is left to the step
+    (None): after a full stop it never stands there."""
+    table = _compiled(language)
+    char = text[position : position + 1]
+    if table is None or not char:
+        return None
+    words = table.words.words
+    if char == "\u00d7" and _single(text, position, char):
+        return words["times"]
+    if char == "\u2248" and _single(text, position, char):
+        return words["approximately"]
+    if _TILDE.match(text, position):
+        head = text[max(0, position - 3) : position].rstrip(" \u00a0")
+        if not (head[-1:].isascii() and head[-1:].isdigit()):
+            return words["about"]
+    return None
+
+
 def unit_spans(text: str, language: str) -> list[tuple[int, int]]:
     """What the step reads in `text`, as spans: the numbers step writes a raised exponent as
     printed only where this step does not read it ("5 mL⁻¹" is "per millilitre", #589)."""
@@ -881,10 +925,14 @@ def _in_algebra(
     # and a second run reads "3 times" (D-605, #984)
     # ... nor, in English, any bare "<" or ">" the statistics step reads as words, unless its
     # words are the sign on a second run: "y > 3x", "(a) > 3x", but not "A > 3x" (#988, D-646)
+    # ... nor a minus sign that is a piece of an arrow printed in pieces, a left arrow and
+    # minus signs before "3x" or minus signs and a right arrow after it: the numbers step
+    # reads the pieces as one arrow, which a second run sees next to "3x" (#970)
     if (
         before != ""
         and before in _OPERATORS
         and not _arrow_before(text, start)
+        and not LEFT_ARROW_TAIL.search(text, max(0, before_at - 16), before_at + 1)
         and not (english and before in "<>" and _arrow_before(text, before_at))
         and not (english and _bare_comparison(text, before, before_at, compared))
     ):
@@ -895,6 +943,7 @@ def _in_algebra(
         after != ""
         and after in _OPERATORS + "("
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
+        and not _PIECED_RIGHT_ARROW.match(text, after_at)
         and not (english and _bare_comparison_after(text, after, after_at))
     )
 
