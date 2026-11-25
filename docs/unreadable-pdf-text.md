@@ -106,7 +106,9 @@ fonts with no Unicode source (`extraction.letters`):
 7. **The font is accepted** only when at least 95 % of its inked glyphs' occurrences are
    recognised (`FONT_SHARE`) at a mean distance of at most 0.2 (`FONT_DISTANCE`).
 8. **The pages are read again** with the letters. A font any of whose pages is still
-   unreadable by `legibility` is refused, and its pages keep the first read.
+   unreadable by `legibility` is refused, and its pages keep the first read. Refusing a
+   font can make another page fail; after two reads again in which a page failed, every
+   font left is refused, so a page is read at most three times (`LETTER_ROUNDS`).
 
 A font is also refused when some of its characters are not glyph numbers PDFium failed to
 map: PDFium maps some codes itself (glyph numbers in the Arabic, Hebrew or Tamil ranges,

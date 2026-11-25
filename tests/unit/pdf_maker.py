@@ -1008,3 +1008,81 @@ def heavy_glyph_pdf(count: int, points: int = 8191, widths: tuple[int, ...] = (6
         9: stream(program, b"/Length1 %d" % len(program)),
     }
     return raw_pdf(objects)
+
+
+def chained_twin_pdf(big: list[str], small: str, pages: int) -> bytes:
+    """`pages` pages whose fonts are refused one round at a time (#618): font k is the
+    Tinos subset in its own shuffled glyph order (seed k, so its own program). Page 1 holds
+    font 1 in the line `small` and `big` in the rectangle font of `glyph_number_pdf`: it is
+    unreadable however its font is read. Page k holds `big` in font k - 1 and `small` in
+    font k: readable while font k - 1 is recognised, mostly glyph numbers once it is not."""
+    twin = Twin.load("times")
+    objects: dict[int, bytes] = {1: b"<< /Type /Catalog /Pages 2 0 R >>"}
+    fonts = []  # each font's codes for the characters, and its object number
+    for k in range(1, pages + 1):
+        others = list(range(1, len(twin.glyphs)))
+        random.Random(k).shuffle(others)  # noqa: S311 (a test order, no secret)
+        order = [0, *others]
+        program = twin.program(order)
+        widths = " ".join(str(round(1000 * twin.advances[g] / twin.units)) for g in order)
+        number = 100 + 10 * k
+        objects[number] = (
+            b"<< /Type /Font /Subtype /Type0 /BaseFont /ABCDE%c+TimesNewRoman /Encoding"
+            b" /Identity-H /DescendantFonts [%d 0 R] >>" % (64 + k, number + 1)
+        )
+        objects[number + 1] = (
+            b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /ABCDE%c+TimesNewRoman"
+            b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+            b" /FontDescriptor %d 0 R /CIDToGIDMap /Identity /W [0 [%s]] >>"
+            % (64 + k, number + 2, widths.encode())
+        )
+        objects[number + 2] = (
+            b"<< /Type /FontDescriptor /FontName /ABCDE%c+TimesNewRoman /Flags 6"
+            b" /FontBBox [-600 -300 2000 1000] /ItalicAngle 0 /Ascent 891 /Descent -216"
+            b" /CapHeight 662 /StemV 80 /FontFile2 %d 0 R >>" % (64 + k, number + 3)
+        )
+        objects[number + 3] = stream(program, b"/Length1 %d" % len(program))
+        fonts.append(({old: new for new, old in enumerate(order)}, number))
+    shapes = truetype_program(128)
+    objects[90] = (
+        b"<< /Type /Font /Subtype /Type0 /BaseFont /GHIJKL+Rectangles /Encoding /Identity-H"
+        b" /DescendantFonts [91 0 R] >>"
+    )
+    objects[91] = (
+        b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /GHIJKL+Rectangles"
+        b" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>"
+        b" /FontDescriptor 92 0 R /CIDToGIDMap /Identity /DW 500 >>"
+    )
+    objects[92] = (
+        b"<< /Type /FontDescriptor /FontName /GHIJKL+Rectangles /Flags 6"
+        b" /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200"
+        b" /CapHeight 700 /StemV 80 /FontFile2 93 0 R >>"
+    )
+    objects[93] = stream(shapes, b"/Length1 %d" % len(shapes))
+
+    def shown(line: str, font: int, y: int) -> bytes:
+        if font < 0:
+            codes = [ord(c) - 29 for c in line]
+        else:
+            codes = [fonts[font][0][twin.letters[c]] for c in line]
+        hexed = "".join(f"{c:04X}" for c in codes).encode()
+        return b"BT /F%d 10 Tf 72 %d Td <%s> Tj ET\n" % (font + 2, y, hexed)
+
+    kids = []
+    for k in range(1, pages + 1):
+        big_font = -1 if k == 1 else k - 2  # the rectangle font (/F1) or font k - 1
+        content = shown(small, k - 1, 740)
+        for row, line in enumerate(big):
+            content += shown(line, big_font, 720 - 20 * row)
+        resources = b"<< /Font << /F1 90 0 R /F%d %d 0 R" % (k + 1, fonts[k - 1][1])
+        if k > 1:
+            resources += b" /F%d %d 0 R" % (k, fonts[k - 2][1])
+        page = 10 + 2 * k
+        objects[page] = (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources %s >> >>"
+            b" /Contents %d 0 R >>" % (resources, page + 1)
+        )
+        objects[page + 1] = stream(content)
+        kids.append(b"%d 0 R" % page)
+    objects[2] = b"<< /Type /Pages /Kids [%s] /Count %d >>" % (b" ".join(kids), pages)
+    return raw_pdf(objects)

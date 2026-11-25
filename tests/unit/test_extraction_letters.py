@@ -17,7 +17,14 @@ import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from pdf_maker import Twin, font_program, glyph_number_pdf, heavy_glyph_pdf, twin_pdf
+from pdf_maker import (
+    Twin,
+    chained_twin_pdf,
+    font_program,
+    glyph_number_pdf,
+    heavy_glyph_pdf,
+    twin_pdf,
+)
 
 from sci2audio.core import Content
 from sci2audio.extraction import glyphs, legibility, letters, pdf, read_pdf
@@ -164,6 +171,30 @@ def test_a_font_whose_characters_pdfium_partly_maps_keeps_todays_text(
     assert content == unrecognised(data, monkeypatch)
     page = content.pages[0]
     assert page.recovered == 0 < page.unmapped < page.characters
+
+
+def test_fonts_refused_one_round_at_a_time_are_read_at_most_twice_more(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Five recognisable fonts on five pages, each page readable only while the font before
+    it is recognised: page 1 refuses font 1, then page 2 refuses font 2, and so on. After
+    the second round in which a page fails, every font left is refused: no page is read more
+    than three times in all, where main reads each once, and the file keeps today's text."""
+    data = chained_twin_pdf(ENGLISH, "the cases", 5)
+    reads = []
+    real = pdf._read_again
+
+    def counted(document, first, found, sourceless):  # type: ignore[no-untyped-def]
+        reads.append(first.number)
+        return real(document, first, found, sourceless)
+
+    monkeypatch.setattr(pdf, "_read_again", counted)
+    content = read(data)
+    assert len(content.pages) == 5
+    assert len(content.pages) + len(reads) <= 3 * len(content.pages)
+    assert max(reads.count(n) for n in set(reads)) <= 2
+    monkeypatch.undo()
+    assert content == unrecognised(data, monkeypatch)
 
 
 # ---- the close call (D-789 condition) ----------------------------------------------------

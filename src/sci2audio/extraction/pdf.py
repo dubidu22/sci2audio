@@ -640,17 +640,25 @@ def _pages(document: pdfium.PdfDocument, name: str, sourceless: _Sourceless) -> 
     return tuple(pages)
 
 
+LETTER_ROUNDS = 2  # reads again with recognised letters, at most: a page is read 3 times
+
+
 def _with_letters(
     document: pdfium.PdfDocument, pages: tuple[Page, ...], sourceless: _Sourceless
 ) -> tuple[Page, ...]:
     """The pages, with the letters of the fonts with no Unicode source that `letters`
     recognises from their glyph shapes (#618, D-789): the pages holding such fonts are read
     again with the letters. A font any of whose pages is then still unreadable
-    (`legibility`) is refused, and those pages are read again without it, until every page
-    read again is readable; a refused font's pages keep the first read (AC-442.6)."""
+    (`legibility`) is refused, and the pages of the fonts left are read again without it.
+    Refusing one font can make a page that held it fail and refuse the next, so after
+    `LETTER_ROUNDS` reads in which a page failed every font left is refused: no page is
+    read more than that many times again. A refused font's pages keep the first read
+    (AC-442.6)."""
     isolate.report("letters")
     found = sourceless.recognised()
-    while found:
+    for _ in range(LETTER_ROUNDS):
+        if not found:
+            break
         numbers = sorted({n for key in found for n in sourceless.pages[key]})
         again = {n: _read_again(document, pages[n - 1], found, sourceless) for n in numbers}
         failing = {n for n, page in again.items() if measure(page).unreadable}
