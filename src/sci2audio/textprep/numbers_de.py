@@ -691,7 +691,7 @@ _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
 # a word after it, or what a second run sees as one (`_AfterNumber`): a sign the statistics
-# or the units step reads, a "1" the units step reads before its unit
+# or the units step reads, a "1" the units step reads before its unit, a "1/2" read "ein halb"
 _ORDINAL = re.compile(
     r"(?<![^\WxX])(?<![,/:\u2013-])"
     + _STOP
@@ -699,7 +699,7 @@ _ORDINAL = re.compile(
     + _SIGN_START
     + r"|\s*"
     + _UNIT_SIGN
-    + r"|\s+1(?![\d.,/]))"
+    + r"|\s+1(?![\d.,]))"
 )
 # after an en dash too, which the range rule reads "bis": a second run sees "bis 2019-03-05"
 # (#957)
@@ -901,8 +901,9 @@ _ARROW_AHEAD = re.compile(DOUBLE_ARROW)
 
 class _AfterNumber:
     """What a second run sees right after a number where the first run sees no word: the
-    words of a sign the statistics step reads ("<" is "kleiner als"), or of a "1" the units
-    step reads before its unit ("1 N" is "ein Newton"). `printed` is the block's text before
+    words of a sign the statistics step reads ("<" is "kleiner als"), of a "1" the units
+    step reads before its unit ("1 N" is "ein Newton"), or of a fraction read with "ein"
+    ("1/2" is "ein halb"). `printed` is the block's text before
     the arrows are joined, as the statistics step reads it; the statistics edits are found
     once, when first asked."""
 
@@ -910,6 +911,7 @@ class _AfterNumber:
         self.printed = printed
         self._signs: list[Candidate] | None = None
         self._starts: list[int] = []
+        self._ein: set[int] | None = None  # `_read_as_ein` of the text the rules read
 
     def _sign_at(self, at: int) -> Candidate | None:
         if self._signs is None:
@@ -933,6 +935,14 @@ class _AfterNumber:
         one = _ONE_AHEAD.match(text, end)
         if one is not None and one.end() > end and reads_one_as_word(self.printed, one.end(), "de"):
             return "ein"
+        fraction = _FRACTION_AHEAD.match(text, end)
+        if fraction is not None and fraction.end() > end:
+            # "am 3. 1/2 N" is "am 3. ein halb N" after the first run, whose "3." a second run
+            # reads "dritten"; "3/4" and "1/12" keep their digit, so the ordinal stays (#1078)
+            if self._ein is None:
+                self._ein = _read_as_ein(text)
+            if fraction.end() in self._ein:
+                return "ein"
         return None
 
     def unread_arrow(self, text: str, end: int) -> bool:
