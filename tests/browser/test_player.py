@@ -97,6 +97,20 @@ def paused(page: Page) -> bool:
     return bool(page.evaluate("() => document.getElementById('audio').paused"))
 
 
+def wait_for_seek(page: Page, time: float | None = None) -> None:
+    """Wait until the file is loaded and no seek runs, and, given `time`, until the audio
+    stands there. The page marks a sentence before its seek, which waits for the file's
+    `loadedmetadata` after a reload, so the mark says nothing about `currentTime`."""
+    page.wait_for_function(
+        """(time) => {
+            const audio = document.getElementById('audio');
+            return audio.readyState >= 1 && !audio.seeking
+                && (time === null || Math.abs(audio.currentTime - time) < 0.05);
+        }""",
+        arg=time,
+    )
+
+
 def watch_status(page: Page) -> None:
     page.locator("#message").evaluate(
         """region => {
@@ -520,12 +534,6 @@ def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
             next.click();
         }"""
     )
-    page.wait_for_function("() => document.getElementById('audio').readyState >= 1")
-    page.evaluate(
-        "() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))"
-    )
-    assert paused(page)
-    assert highlighted(page) == second
     start = page.evaluate(
         f"""() => {{
             const data = JSON.parse(document.getElementById('player-data').textContent);
@@ -533,6 +541,12 @@ def test_a_second_step_while_the_file_loads_stays_on_its_sentence(
             return data.chunks[chunk][0] - data.chapters[data.chunks[chunk][2]].offset;
         }}"""
     )
+    wait_for_seek(page, start)
+    page.evaluate(
+        "() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))"
+    )
+    assert paused(page)
+    assert highlighted(page) == second
     time = page.evaluate("() => document.getElementById('audio').currentTime")
     assert abs(time - start) < 0.05, (time, start)
     expect(page.locator("#capture-mark")).to_be_enabled()
