@@ -169,6 +169,10 @@ class Page:
     It is the count for the page as extracted, which never exceeds `characters`; a page a
     later stage builds from some of the lines (a text step's small document of the lines it
     reads) may keep the count, so it is not checked against `characters` here (#574).
+
+    `recovered` counts those of the `unmapped` characters whose letters extraction
+    recognised from the font's glyph shapes (#618): their text is the recognised letter,
+    which may be wrong, so it is told apart from text the file gives. 0 everywhere else.
     """
 
     number: int  # 1 = first page
@@ -179,12 +183,18 @@ class Page:
     height: float | None = None
     order: tuple[str, ...] = ()
     unmapped: int = 0
+    recovered: int = 0
 
     def __post_init__(self) -> None:
         if self.number < 1:
             raise ValueError(f"page number must be >= 1, got {self.number}")
         if self.unmapped < 0:
             raise ValueError(f"page {self.number} unmapped must be >= 0, got {self.unmapped}")
+        if not 0 <= self.recovered <= self.unmapped:
+            raise ValueError(
+                f"page {self.number} recovered must be 0 to unmapped ({self.unmapped}),"
+                f" got {self.recovered}"
+            )
         if (self.width is None) != (self.height is None):
             raise ValueError(f"page {self.number} needs both width and height, or neither")
         for name in ("width", "height"):

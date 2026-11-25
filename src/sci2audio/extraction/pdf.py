@@ -25,12 +25,15 @@ import ctypes
 import hashlib
 import math
 import re
+import struct
 import threading
 import unicodedata
 from bisect import bisect_left, bisect_right
+from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pypdfium2 as pdfium
 import pypdfium2.raw as raw
@@ -52,6 +55,10 @@ from sci2audio.extraction import isolate
 from sci2audio.extraction.cover import Cover, png
 from sci2audio.extraction.errors import ExtractionError, ReadCancelled
 from sci2audio.extraction.language import stated_language
+from sci2audio.extraction.legibility import measure
+
+if TYPE_CHECKING:  # imported where used: only a file with such fonts needs them (#618)
+    from sci2audio.extraction import glyphs, letters
 
 _PDFIUM = threading.Lock()
 
@@ -215,6 +222,7 @@ _LIMITS = (
     "MAX_CHARS",
     "MAX_PAGE_GRAPHICS",
     "MAX_GRAPHICS",
+    "MAX_DRAWN_GLYPHS",
     "OUTLINE_DEPTH",
     "COVER_SIZE",
     "REGION_SIDE",
@@ -274,7 +282,10 @@ def read_pdf(data: bytes, name: str) -> Content:
             raise ExtractionError(_load_message(name, data, error)) from error
         try:
             _check(document, name, data)
-            pages = _pages(document, name)
+            sourceless = _Sourceless()
+            pages = _pages(document, name, sourceless)
+            if sourceless.usage:
+                pages = _with_letters(document, pages, sourceless)
             isolate.report("outline")
             metadata = _metadata(document)
             outline = _outline(document, len(pages))
@@ -585,10 +596,11 @@ def _language(document: pdfium.PdfDocument) -> str:
     return stated_language(buffer.raw[: size - 2].decode("utf-16-le", errors="replace"))
 
 
-def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
+def _pages(document: pdfium.PdfDocument, name: str, sourceless: _Sourceless) -> tuple[Page, ...]:
     """Every page in order. A page PDFium can't load fails the whole file, named (D-398):
     reading on would lose its text without a word. PDFium counts each page's characters
-    before any of ours are made, so the limits cost nothing on a real file (D-394)."""
+    before any of ours are made, so the limits cost nothing on a real file (D-394). The
+    fonts with no Unicode source are noted in `sourceless` (#618)."""
     pages: list[Page] = []
     total = 0
     graphics = 0  # drawings and pictures so far
@@ -616,7 +628,8 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
                     raise _too_large(name, f"more than {MAX_CHARS:,} characters")
                 pictures, drawings = _graphics(page, frame, number, name, graphics)
                 graphics += len(pictures) + len(drawings)
-                lines, unmapped = _lines(textpage, frame, number, _Bars.of(drawings))
+                sourceless.start(number)
+                lines, unmapped, _ = _lines(textpage, frame, number, _Bars.of(drawings), sourceless)
             finally:
                 textpage.close()
         finally:
@@ -625,6 +638,59 @@ def _pages(document: pdfium.PdfDocument, name: str) -> tuple[Page, ...]:
             Page(number, lines, pictures, drawings, width=width, height=height, unmapped=unmapped)
         )
     return tuple(pages)
+
+
+LETTER_ROUNDS = 2  # reads again with recognised letters, at most: a page is read 3 times
+
+
+def _with_letters(
+    document: pdfium.PdfDocument, pages: tuple[Page, ...], sourceless: _Sourceless
+) -> tuple[Page, ...]:
+    """The pages, with the letters of the fonts with no Unicode source that `letters`
+    recognises from their glyph shapes (#618, D-789): the pages holding such fonts are read
+    again with the letters. A font any of whose pages is then still unreadable
+    (`legibility`) is refused, and the pages of the fonts left are read again without it.
+    Refusing one font can make a page that held it fail and refuse the next, so after
+    `LETTER_ROUNDS` reads in which a page failed every font left is refused: no page is
+    read more than that many times again. A refused font's pages keep the first read
+    (AC-442.6)."""
+    isolate.report("letters")
+    found = sourceless.recognised()
+    for _ in range(LETTER_ROUNDS):
+        if not found:
+            break
+        numbers = sorted({n for key in found for n in sourceless.pages[key]})
+        again = {n: _read_again(document, pages[n - 1], found, sourceless) for n in numbers}
+        failing = {n for n, page in again.items() if measure(page).unreadable}
+        if not failing:
+            return tuple(again.get(page.number, page) for page in pages)
+        found = {key: v for key, v in found.items() if not sourceless.pages[key] & failing}
+    return pages
+
+
+def _read_again(
+    document: pdfium.PdfDocument,
+    first: Page,
+    found: dict[bytes, dict[int, str]],
+    sourceless: _Sourceless,
+) -> Page:
+    """The page's text read again with the recognised letters of `found`'s fonts; its
+    pictures and drawings as the first read found them."""
+    isolate.report(f"letters on page {first.number} of {len(document)}")
+    page = document[first.number - 1]
+    try:
+        frame = _Frame.of(page)
+        textpage = page.get_textpage()
+        try:
+            again = sourceless.reading(found)
+            lines, unmapped, recovered = _lines(
+                textpage, frame, first.number, _Bars.of(first.drawings), again
+            )
+        finally:
+            textpage.close()
+    finally:
+        page.close()
+    return replace(first, lines=lines, unmapped=unmapped, recovered=recovered)
 
 
 @dataclass(frozen=True)
@@ -720,6 +786,7 @@ class _Char:
     v1: float
     base: float = math.nan  # where the baseline stands across the line (nan if unknown)
     unmapped: bool = False  # from a font with no Unicode source (#442)
+    recovered: bool = False  # its letter recognised from the glyph's shape (#618)
 
 
 # what stands between two characters: a space the file holds, or one PDFium added itself
@@ -842,13 +909,15 @@ def _lines(
     frame: _Frame,
     number: int,
     bars: _Bars | None = None,
-) -> tuple[tuple[TextLine, ...], int]:
-    """The page's lines, and how many of their characters come from a font with no Unicode
-    source (#442)."""
+    sourceless: _Sourceless | None = None,
+) -> tuple[tuple[TextLine, ...], int, int]:
+    """The page's lines, how many of their characters come from a font with no Unicode
+    source (#442), and how many of those were read as letters recognised from their shapes
+    (#618)."""
     lines: list[_Line] = []
     space: str | None = None
-    unmapped = 0
-    for char in _chars(textpage, frame):
+    unmapped = recovered = 0
+    for char in _chars(textpage, frame, sourceless or _Sourceless()):
         if isinstance(char, str):
             space = _SPACE if _SPACE in (space, char) else char
             continue
@@ -859,14 +928,19 @@ def _lines(
             lines.append(line)
         lines[-1].add(char, space)
         unmapped += char.unmapped
+        recovered += char.recovered
         space = None
     placed = _accents_onto_letters(lines)
-    return tuple(
-        cut
-        for i, line in enumerate(lines, 1)
-        if i - 1 not in placed  # the page keeps its numbering: the accent's id goes missing
-        for cut in _run_in(_text_line(line, f"p{number}-l{i}"))
-    ), unmapped
+    return (
+        tuple(
+            cut
+            for i, line in enumerate(lines, 1)
+            if i - 1 not in placed  # the page keeps its numbering: the accent's id goes missing
+            for cut in _run_in(_text_line(line, f"p{number}-l{i}"))
+        ),
+        unmapped,
+        recovered,
+    )
 
 
 def _run_in(line: TextLine) -> tuple[TextLine, ...]:
@@ -966,21 +1040,31 @@ def _across(a: _Char, b: _Char) -> float:
     return min(a.v1, b.v1) - max(a.v0, b.v0)
 
 
-def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]:
+def _chars(
+    textpage: pdfium.PdfTextPage, frame: _Frame, sourceless: _Sourceless
+) -> Iterator[_Char | str]:
     """Each character in stored order; `_SPACE` for a space or a line end between words
-    that the file holds, `_GENERATED` for one PDFium added itself."""
+    that the file holds, `_GENERATED` for one PDFium added itself. A character of a font with
+    no Unicode source is noted in `sourceless`, and read as the letter recognised for its
+    glyph where there is one (#618)."""
     handle = textpage.raw
     name = ctypes.create_string_buffer(256)
     flags = ctypes.c_int()
     rect = raw.FS_RECTF()
     matrix = raw.FS_MATRIX()
     origin_x, origin_y = ctypes.c_double(), ctypes.c_double()
-    sourceless = _SourcelessFonts()
     for i in range(textpage.count_chars()):
+        code = raw.FPDFText_GetUnicode(handle, i)
         hyphen = raw.FPDFText_IsHyphen(handle, i) == 1
-        text = _char_text(raw.FPDFText_GetUnicode(handle, i), hyphen)
+        text = _char_text(code, hyphen)
         generated = raw.FPDFText_IsGenerated(handle, i) == 1
+        if text is None and not generated and sourceless.inked(handle, i, code):
+            # a glyph with ink that PDFium gives as white space or a control code: the code
+            # is a glyph number (digits and , . - / : ( ) in the usual TrueType order), so
+            # the character is kept, not dropped (AC-442.7)
+            text = _UNKNOWN
         if text is None or generated:
+            sourceless.gap()
             yield _GENERATED if generated else _SPACE
             continue
         if not raw.FPDFText_GetLooseCharBox(handle, i, rect):
@@ -992,14 +1076,11 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
         x1, y1 = max(coords[0], coords[2]), max(coords[1], coords[3])
         if not frame.shows(x0, y0, x1, y1):
             continue  # outside the crop box: not printed
-        flags.value = 0
-        needed = raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
-        if needed > len(name):
-            name = ctypes.create_string_buffer(needed)
-            needed = raw.FPDFText_GetFontInfo(handle, i, name, len(name), ctypes.byref(flags))
+        name, needed = _font_name(handle, i, name, flags)
         # On failure the buffer still holds the previous character's font: don't inherit it.
         font = _SUBSET.sub("", name.value.decode("utf-8", errors="replace")) if needed else ""
-        size = raw.FPDFText_GetFontSize(handle, i) * _scale(handle, i, matrix)
+        points = raw.FPDFText_GetFontSize(handle, i)
+        size = points * _scale(handle, i, matrix)
         size = round(size, 1) if math.isfinite(size) and size > 0 else 0.0
         bold, italic = _style(font, raw.FPDFText_GetFontWeight(handle, i), flags.value)
         angle = raw.FPDFText_GetCharAngle(handle, i)
@@ -1010,52 +1091,257 @@ def _chars(textpage: pdfium.PdfTextPage, frame: _Frame) -> Iterator[_Char | str]
             origin = frame.point(origin_x.value, origin_y.value)
             base = _in_text_direction((*origin, *origin), angle)[1]
         style = (font, size, bold, italic)
-        unmapped = bool(needed) and sourceless.has(handle, i, name.value)
-        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base, unmapped)
+        key = sourceless.key(handle, i, name.value) if needed else None
+        if key is None and needed:
+            sourceless.mapped(name.value)
+        recovered = False
+        if key is None:
+            sourceless.gap()
+        else:
+            letter = sourceless.letter(key, code)
+            if letter == " ":  # a glyph without ink, recognised as white space
+                yield _SPACE
+                continue
+            if letter is not None:
+                text, recovered = letter, letter != _UNKNOWN
+            sourceless.note(key, code, _width(handle, i, rect, points, matrix))
+        unmapped = key is not None
+        yield _Char(text, style, (x0, y0, x1, y1), angle, u0, u1, v0, v1, base, unmapped, recovered)
+
+
+def _font_name(
+    handle: object, index: int, name: ctypes.Array[ctypes.c_char], flags: ctypes.c_int
+) -> tuple[ctypes.Array[ctypes.c_char], int]:
+    """The character's font name into `name` (a larger buffer if it needs one), its flags
+    into `flags`, and how many bytes PDFium needed (0: it failed)."""
+    flags.value = 0
+    needed = raw.FPDFText_GetFontInfo(handle, index, name, len(name), ctypes.byref(flags))
+    if needed > len(name):
+        name = ctypes.create_string_buffer(needed)
+        needed = raw.FPDFText_GetFontInfo(handle, index, name, len(name), ctypes.byref(flags))
+    return name, needed
+
+
+def _width(
+    handle: object, index: int, loose: raw.FS_RECTF, points: float, matrix: raw.FS_MATRIX
+) -> tuple[float, bool] | None:
+    """The character's advance in 1/1000 em as the PDF's widths give it, and whether it is
+    exact; None where the matrix turns, slants or flips the text. PDFium's loose box runs
+    from the origin over the advance, widened to the glyph's ink: where the ink ends short
+    of the box's right edge, that edge is the advance; where it reaches the edge (an en
+    dash, an italic f), the advance is at most that wide."""
+    if matrix.b or matrix.c or matrix.a <= 0 or not points > 0:
+        return None
+    origin_x, origin_y = ctypes.c_double(), ctypes.c_double()
+    left, right, bottom, top = (ctypes.c_double() for _ in range(4))
+    if not raw.FPDFText_GetCharOrigin(
+        handle, index, ctypes.byref(origin_x), ctypes.byref(origin_y)
+    ):
+        return None
+    if not raw.FPDFText_GetCharBox(
+        handle,
+        index,
+        ctypes.byref(left),
+        ctypes.byref(right),
+        ctypes.byref(bottom),
+        ctypes.byref(top),
+    ):
+        return None
+    scale = points * matrix.a / 1000
+    width = (loose.right - origin_x.value) / scale
+    if not (math.isfinite(width) and width > 0):
+        return None
+    return width, right.value < loose.right - 0.001 * scale  # else the ink reaches the edge
 
 
 _SFNT = (b"\x00\x01\x00\x00", b"true", b"OTTO")  # TrueType and OpenType font programs
 _UNICODE_TABLES = {b"cmap", b"post"}  # a program's own ways to name its glyphs
+# Fonts with no Unicode source whose letters are recognised (#618): what one read keeps of
+# them. The work of recognising them is bounded by the read's `glyphs.Budget` (points
+# parsed, close calls tried), not by these counts alone: a page of 20,000 glyphs that each
+# hold one 8,191-point glyph reads in about the time main took, and 2,000 of them stay at a
+# few seconds of STEP_SECONDS (docs/baseline.md).
+MAX_SOURCELESS_FONTS = 32
+MAX_SOURCELESS_BYTES = 64 * 1024**2  # their programs, added up
+MAX_DRAWN_GLYPHS = 2_000  # glyphs drawn to recognise them, all fonts added up
+MAX_WORDS = 100_000  # different words kept a font, for close calls
+MAX_WORD_GLYPHS = 40  # a longer run of glyphs is no word
 
 
-class _SourcelessFonts:
-    """Which characters of a page come from a font with no Unicode source (#442): the
-    font's embedded program is TrueType or OpenType without a cmap or a post table, and
-    PDFium found no Unicode for the character (its map error: no ToUnicode map, and no
-    encoding or glyph name it knows). Nothing in the file then says which letter a glyph
-    is, and PDFium gives the glyph number as the character.
+class _Sourceless:
+    """The fonts with no Unicode source of one read, and what the document does with them
+    (#442, #618): a font whose embedded program is TrueType or OpenType without a cmap or a
+    post table, for a character PDFium found no Unicode for (its map error: no ToUnicode map,
+    and no encoding or glyph name it knows). Nothing in the file then says which letter a
+    glyph is, and PDFium gives the glyph number as the character.
 
     The map error is asked first, for every character; a font is looked at (its program
     copied and its table directory read) only for a character PDFium could not map, and
-    then once per page. Fonts are told apart by the name PDFium gives (a subset's name
-    carries its own tag).
+    then once per page, by the name PDFium gives (a subset's name carries its own tag).
+    Across pages a font is its program (by SHA-256). For each, the read keeps the glyphs
+    used, how often, their widths as the PDF gives them, the pages and the words, within the
+    limits above, so `recognised` can recognise its letters after the last page; a second
+    read of those pages passes the letters in (`reading`). A character of such a font that
+    PDFium does map (a glyph number in the Arabic or Hebrew range, a combining mark) is not
+    one of its counted glyph numbers: a font with such characters is not recognised, so a
+    page is never part recovered letters, part characters nothing counted (#618).
 
     Simple fonts with glyph names PDFium does not know (TeX's math fonts, matplotlib's Type 3
     fonts) are not counted: in the corpus they set symbols and correct text (D-762). Text
     that reads as nonsense from any font is what `extraction.legibility` finds."""
 
     def __init__(self) -> None:
-        self._fonts: dict[bytes, bool] = {}  # by font name, for this page only
+        self._names: dict[bytes, bytes | None] = {}  # by font name, for this page only
+        self.usage: dict[bytes, letters.Usage | None] = {}  # by program: None if not read
+        self.pages: dict[bytes, set[int]] = {}
+        self._ink: dict[tuple[bytes, int], bool] = {}
+        self._mapped: dict[bytes, int] = {}  # this page's mapped characters, by font name
+        self.stray: Counter[bytes] = Counter()  # such fonts' mapped characters, by font
+        self._kept = 0
+        self.budget: glyphs.Budget | None = None  # the read's, made with its first such font
+        self._page = 0
+        self._word: list[int] = []
+        self._word_key: bytes | None = None
+        self._letters: dict[bytes, dict[int, str]] | None = None  # set for a second read
 
-    def has(self, textpage: object, index: int, name: bytes) -> bool:
-        """True if the character at `index`, whose font PDFium names `name`, comes from a
-        font with no Unicode source."""
+    def reading(self, found: dict[bytes, dict[int, str]]) -> _Sourceless:
+        """The same fonts, for a read that gives each glyph of `found`'s fonts its letter
+        and collects nothing."""
+        again = _Sourceless()
+        again.usage, again._ink, again._letters = self.usage, self._ink, found
+        again.budget = self.budget
+        return again
+
+    def start(self, number: int) -> None:
+        """A new page: font names are the page's own."""
+        self.gap()
+        self._count_stray()
+        self._names, self._page = {}, number
+
+    def mapped(self, name: bytes) -> None:
+        """A character PDFium mapped, of the font it names `name` on this page."""
+        self._mapped[name] = self._mapped.get(name, 0) + 1
+
+    def _count_stray(self) -> None:
+        """Count the page's mapped characters of fonts with no Unicode source (known by
+        their name on the page, whichever came first)."""
+        for name, count in self._mapped.items():
+            key = self._names.get(name)
+            if key is not None:
+                self.stray[key] += count
+        self._mapped = {}
+
+    def key(self, textpage: object, index: int, name: bytes) -> bytes | None:
+        """The font of the character at `index`, whose font PDFium names `name`, if it has
+        no Unicode source (its program's SHA-256), else None."""
+        if raw.FPDFText_HasUnicodeMapError(textpage, index) != 1:
+            return None
+        if name not in self._names:
+            program = _sourceless(textpage, index)
+            self._names[name] = self._add(program) if program else None
+        return self._names[name]
+
+    def _add(self, program: bytes) -> bytes:
+        key = hashlib.sha256(program).digest()
+        if key not in self.usage:
+            from sci2audio.extraction import glyphs, letters  # such fonts only (AC-442.10)
+
+            fits = len(self.usage) < MAX_SOURCELESS_FONTS
+            fits = fits and self._kept + len(program) <= MAX_SOURCELESS_BYTES
+            font = glyphs.read_font(program) if fits else None
+            self.usage[key] = None if font is None else letters.Usage(font)
+            self.budget = self.budget or glyphs.Budget()
+            self._kept += len(program) if font else 0
+        return key
+
+    def inked(self, textpage: object, index: int, code: int) -> bool:
+        """True if the character, which PDFium gives as white space or a control code, is a
+        glyph with ink of a font with no Unicode source: a character, not white space. A
+        glyph that can't be read stays white space, as before."""
         if raw.FPDFText_HasUnicodeMapError(textpage, index) != 1:
             return False
-        sourceless = self._fonts.get(name)
-        if sourceless is None:
-            sourceless = self._fonts[name] = _sourceless(textpage, index)
-        return sourceless
+        name, needed = _font_name(textpage, index, ctypes.create_string_buffer(256), ctypes.c_int())
+        key = self.key(textpage, index, name.value) if needed else None
+        return key is not None and self._inked(key, code)
+
+    def _inked(self, key: bytes, glyph: int) -> bool:
+        """True if the font's glyph has ink; False for one without, or one that can't be
+        read. Read from the glyph's header alone: no outline is parsed while pages are read
+        (#618)."""
+        usage = self.usage.get(key)
+        if usage is None:
+            return False
+        if (key, glyph) not in self._ink:
+            self._ink[key, glyph] = usage.font.inked(glyph)
+        return self._ink[key, glyph]
+
+    def letter(self, key: bytes, glyph: int) -> str | None:
+        """The letter recognised for the glyph (`_UNKNOWN` for one of a recognised font that
+        matched none), or None where the font's letters were not recognised."""
+        if self._letters is None or key not in self._letters:
+            return None
+        return self._letters[key].get(glyph, _UNKNOWN)
+
+    def note(self, key: bytes, glyph: int, width: tuple[float, bool] | None) -> None:
+        """A character of the font: counted, its width kept, added to the current word (a
+        glyph without ink, a space the font draws, ends it)."""
+        usage = self.usage.get(key)
+        if usage is None or self._letters is not None:
+            return
+        usage.counts[glyph] += 1
+        if width is not None:
+            (usage.widths if width[1] else usage.limits).setdefault(glyph, width[0])
+        self.pages.setdefault(key, set()).add(self._page)
+        if key != self._word_key or not self._inked(key, glyph):
+            self.gap()
+        if self._inked(key, glyph):
+            self._word_key = key
+            self._word.append(glyph)
+
+    def gap(self) -> None:
+        """White space or another font: the current word ends."""
+        usage = self.usage.get(self._word_key) if self._word_key else None
+        word = tuple(self._word)
+        kept = usage is not None and (word in usage.words or len(usage.words) < MAX_WORDS)
+        if kept and 0 < len(word) <= MAX_WORD_GLYPHS:
+            usage.words[word] += 1  # type: ignore[union-attr]
+        self._word.clear()
+        self._word_key = None
+
+    def recognised(self) -> dict[bytes, dict[int, str]]:
+        """Each font whose letters were recognised: its glyphs' letters. The fonts are taken
+        in the order the document first uses them, as long as `MAX_DRAWN_GLYPHS` and the
+        read's budget last; a font that does not fit, has characters PDFium mapped, or whose
+        recognition fails keeps its glyph numbers."""
+        from sci2audio.extraction import glyphs, letters
+
+        self.gap()
+        self._count_stray()
+        found = {}
+        left = MAX_DRAWN_GLYPHS
+        budget = self.budget or glyphs.Budget()
+        for key, usage in self.usage.items():
+            if usage is None or not usage.counts or len(usage.counts) > left or self.stray[key]:
+                continue
+            left -= len(usage.counts)
+            try:
+                result = letters.recognise(usage, budget)
+            except (ArithmeticError, IndexError, KeyError, ValueError, struct.error):
+                result = None  # a program damaged past the reader's checks: never the file's end
+            if result:
+                found[key] = result
+        return found
 
 
-def _sourceless(textpage: object, index: int) -> bool:
-    """True if the font of the character at `index` is embedded as a TrueType or OpenType
-    program without a cmap or a post table."""
+def _sourceless(textpage: object, index: int) -> bytes:
+    """The program of the font of the character at `index` if it is embedded as a TrueType
+    or OpenType program without a cmap or a post table; empty otherwise."""
     text = raw.FPDFText_GetTextObject(textpage, index)
     font = raw.FPDFTextObj_GetFont(text) if text else None
     if not font or raw.FPDFFont_GetIsEmbedded(font) != 1:
-        return False
-    return _names_no_glyph(_program(font))
+        return b""
+    program = _program(font)
+    return program if _names_no_glyph(program) else b""
 
 
 def _program(font: object) -> bytes:
