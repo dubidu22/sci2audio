@@ -8,7 +8,7 @@ is the app's call (#442 part B). The measures and their limits are in
 docs/unreadable-pdf-text.md, with the corpus margins they were set from (D-762).
 
 - Glyph numbers: the share of the page's characters that come from fonts with no Unicode
-  source.
+  source, less those whose letters were recognised from the glyphs' shapes (#618).
 - Letter pairs: the share of letter pairs inside words that English and German words
   hardly ever hold (`RARE_PAIRS`). A TrueType font in the usual glyph order without a source
   reads "Das Buch" as "'DV %XFK": plain ASCII, so no script check sees it, but "n" becomes
@@ -63,11 +63,13 @@ class PageLegibility:
     rare: int  # of those, in RARE_PAIRS
     letters: int  # letters, U+FFFD and private-use characters
     foreign: int  # of those, outside the scripts named above, or U+FFFD, or private use
+    recovered: int = 0  # of the unmapped ones, recognised from their shapes (`Page.recovered`)
 
     @property
     def unreadable(self) -> bool:
         """True if the page's text is mostly glyph numbers, or reads like them."""
-        if self.characters and self.unmapped / self.characters > UNMAPPED_SHARE:
+        left = self.unmapped - self.recovered  # glyph numbers still read as characters
+        if self.characters and left / self.characters > UNMAPPED_SHARE:
             return True
         if self.pairs >= MIN_PAIRS and self.rare / self.pairs >= RARE_SHARE:
             return True
@@ -76,10 +78,11 @@ class PageLegibility:
 
 def legibility(content: Content) -> tuple[PageLegibility, ...]:
     """Each page's measures, in page order. Never fails: any content can be measured."""
-    return tuple(_page(page) for page in content.pages)
+    return tuple(measure(page) for page in content.pages)
 
 
-def _page(page: Page) -> PageLegibility:
+def measure(page: Page) -> PageLegibility:
+    """One page's measures."""
     pairs = rare = letters = foreign = 0
     for line in page.lines:
         text = line.text
@@ -91,7 +94,7 @@ def _page(page: Page) -> PageLegibility:
                 letters += 1
                 foreign += not _at_home(char)
     return PageLegibility(
-        page.number, page.characters, page.unmapped, pairs, rare, letters, foreign
+        page.number, page.characters, page.unmapped, pairs, rare, letters, foreign, page.recovered
     )
 
 

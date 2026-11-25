@@ -11,8 +11,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 - `sci2audio script` and `sci2audio convert` take `--no-plugins` to run a job with the built-in text steps only; the report says so (#667). An audiobook's record names the text-step plugins that made it (#669).
 - The read-along shows the edits of the text-step plugins the audiobook was made with (#666), the document page lists the plugins an analysis ran with (#668), and the privacy page says what an installed plugin can do and lists the installed ones (#685).
 
+- A PDF whose fonts carry no letters at all, only glyph numbers (Acrobat Distiller after a PDF organiser), is read again when its fonts are Times New Roman, Arial or their likes: sci2audio recognises the letters from the glyphs' shapes, compared with the drawings of the open fonts that have the same widths (Tinos, Arimo, Cousine, Caladea, Carlito). A letter it cannot tell for sure is left out rather than guessed, and a font it cannot read well enough keeps today's text, so such a file is still stopped or warned about (#618, #442).
+
 ### Fixed
 
+- In a PDF whose fonts carry no letters, digits, commas, periods, brackets, "ü" and "ß" are no longer dropped from the text (#618).
 - A text-step plugin whose import or set-up hangs no longer stops sci2audio from starting: loading gives up after 30 s and lists the plugin as a problem (#684).
 - A text-step plugin can no longer stop or hang a job through what its `find` returns or raises: its edits, its error and its copies of the document and the context are read inside the guard, under its time limit, and the job gets only plain copies (#693).
 - Several text-step plugins in one package whose import hangs wait the 30 s load limit once, not once each (#694).

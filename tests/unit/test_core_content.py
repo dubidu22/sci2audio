@@ -146,6 +146,8 @@ def test_objects_are_frozen() -> None:
         lambda: Page(1, width=612),
         lambda: Page(1, width=0, height=792),
         lambda: Page(1, unmapped=-1),
+        lambda: Page(1, unmapped=3, recovered=-1),
+        lambda: Page(1, unmapped=3, recovered=4),  # recovered ones are glyph numbers too
         lambda: Content(PAPER.source, (Page(2),)),
         lambda: Content(PAPER.source, (Page(1), Page(1))),
         lambda: Content(
@@ -315,3 +317,18 @@ def test_glyph_numbers_are_counted_on_a_page_and_left_out_of_the_export_at_zero(
     assert from_data(Page, to_data(page)) == page
     assert "unmapped" not in to_data(Page(1, lines=(line,)))
     assert from_data(Page, {"number": 1}) == Page(1)
+
+
+def test_recovered_characters_are_counted_and_left_out_of_the_export_at_zero() -> None:
+    """#618 (AC-442.8): `recovered` counts the characters of fonts with no Unicode source
+    whose letters were recognised from their shapes, so it is at most `unmapped`; additive
+    with an empty default like it, so exports and golden files made before it read the
+    same."""
+    line = TextLine("p1-l1", (TextRun("Das Buch"),))
+    page = Page(1, lines=(line,), unmapped=7, recovered=7)
+    assert to_data(page)["recovered"] == 7
+    assert from_data(Page, to_data(page)) == page
+    assert "recovered" not in to_data(Page(1, lines=(line,), unmapped=7))
+    assert Page(1).recovered == 0
+    kept = dataclasses.replace(page, lines=())  # a later stage keeps both counts (#574)
+    assert (kept.unmapped, kept.recovered) == (7, 7)

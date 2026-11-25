@@ -41,8 +41,125 @@ other font, is what the text check finds.
 
 A font whose program has a `cmap` or `post` table but no ToUnicode map also reads as glyph
 numbers in PDFium; it is not counted either, and the text check finds it. Such a program
-names its glyphs, so its text could be recovered; recovering glyph numbers (#442 part 3) is
-a roadmap decision and not done.
+names its glyphs, so its text could be recovered from those names; that is not done (#618
+leaves it to an issue of its own).
+
+**White space and control codes (#618, AC-442.7).** In the usual TrueType glyph order the
+digits and `,` `.` `-` `/` `:` `(` `)`, `ü` and `ß` have glyph numbers that PDFium gives as
+white space or control codes, and extraction used to drop them (4.9 % of the characters of
+the #442 file). A character of a font with no Unicode source whose glyph has ink is now kept:
+read as its recognised letter (below), or as U+FFFD and counted in `unmapped`. A glyph
+without ink (the space) stays white space, and so does one the font's program does not let
+extraction read.
+
+## Letters recognised from glyph shapes: `Page.recovered` (#618, D-789)
+
+For the usual Office fonts, open fonts with the same advance widths exist, and the glyphs
+of the embedded program are still in the file, so the letters can be recognised from their
+shapes, without OCR. After the last page is read, extraction does this per font, for the
+fonts with no Unicode source (`extraction.letters`):
+
+1. **The font program is read** by `extraction.glyphs`, a TrueType reader of our own that
+   reads only what drawing needs (`head`, `maxp`, `hhea`, `hmtx`, `loca`, `glyf`; simple and
+   composite glyphs) and bounds every count and offset, since the program comes from the
+   user's file: at most 16 MB a program, 512 contours, 8,192 points and 64 components a
+   glyph, composites 4 deep, every offset inside its table. A glyph past a limit is not
+   drawn; a program it cannot read keeps today's text. A damaged program never fails the
+   file (fuzz tests in `tests/unit/test_extraction_glyphs.py` and `test_extraction_letters.py`).
+   CFF and Type 3 fonts, `/CIDToGIDMap` streams and CJK fonts are not read.
+   Those limits bound one glyph; one read of a PDF also has one budget for all its fonts
+   (`glyphs.Budget`): 400,000 points parsed and 2,000,000 steps of close calls (below).
+   While pages are read, no outline is parsed at all (whether a glyph has ink is read from
+   its header), and the checks that cost nothing (steps 3 and 4) come before any glyph is
+   drawn. A font the budget runs out on keeps today's text.
+2. **Each used glyph is drawn** on a fixed grid over the em (24 × 30 cells from -0.05 to
+   1.05 em across and from 1.05 em above to 0.3 em below the baseline), so a drawing keeps
+   where it stands: a comma low, an apostrophe high.
+3. **The codes must be glyph numbers.** The widths the PDF gives each glyph (PDFium's loose
+   box) must agree with the program's own advances of the glyphs with those numbers: at
+   least 95 % of at least 8 glyphs (or of all the font uses), and the agreeing glyphs must
+   have at least 3 different widths. Otherwise a `/CIDToGIDMap` stream or another encoding
+   may stand between code and glyph, and the font is refused. In a monospaced font every
+   width is the same, so a shuffled `/CIDToGIDMap` agrees just as well: nothing shows the
+   codes are glyph numbers, and a monospaced font (Courier New, a Cousine subset) is
+   always refused.
+4. **The family and style** is the reference style in which most glyphs find a letter of
+   their width, at least 90 % of them; among the styles close to it by that count, the one
+   whose letters lie nearest the 64 most used glyphs. The reference drawings are those of
+   Tinos, Arimo, Cousine, Caladea and Carlito, the metric-compatible open twins of Times
+   New Roman, Arial, Courier New, Cambria and Calibri, in regular, bold, italic and bold
+   italic (`extraction/data/letter-shapes.json.gz`, 216 letters each: the printable
+   characters of Windows-1252 and the minus sign).
+5. **Each glyph gets the nearest letter of its width** (within 1/1000 em; where the ink
+   reaches past the advance, the PDF shows only how wide the glyph is at most, and letters
+   no wider are candidates), one letter per glyph, nearest pairs first. Two drawings are
+   compared after a blur of one cell, each scaled to the same ink: the distance is the share
+   of ink that lies elsewhere (0 the same drawing, 1 nothing in common), at most
+   `GLYPH_DISTANCE` = 0.35.
+6. **Close calls.** Where another letter, or the swap of two glyphs' letters, lies within
+   half the best distance of it (`CLOSE_SHARE`, at least `CLOSE_FLOOR` = 0.01), the readings
+   that use only the letters English and German use are kept; if more than one is left, the
+   one that makes at least 2 more common English and German words, or numbers, among the
+   font's words wins (a closed list of 272 words in `extraction.letters`). A close
+   call left unsettled leaves its glyphs unrecognised. A test proves the word step on a
+   font that draws "e" exactly as "c": with the step patched out, the font is refused.
+7. **The font is accepted** only when at least 95 % of its inked glyphs' occurrences are
+   recognised (`FONT_SHARE`) at a mean distance of at most 0.2 (`FONT_DISTANCE`).
+8. **The pages are read again** with the letters. A font any of whose pages is still
+   unreadable by `legibility` is refused, and its pages keep the first read. Refusing a
+   font can make another page fail; after two reads again in which a page failed, every
+   font left is refused, so a page is read at most three times (`LETTER_ROUNDS`).
+
+A font is also refused when some of its characters are not glyph numbers PDFium failed to
+map: PDFium maps some codes itself (glyph numbers in the Arabic, Hebrew or Tamil ranges,
+combining marks), with no map error, so they are not counted in `unmapped`. Recognising the
+rest would leave a page part recovered letters, part characters nothing counts, which
+`legibility` may pass; refused, the page reads and is judged as before. An Office subset's
+glyph numbers lie under 258, so its characters are all counted.
+
+A refused font keeps today's text, and part B stops or warns as before (AC-442.6).
+Recognition costs nothing for a file without fonts with no Unicode source: no drawing is
+loaded and no page read twice (AC-442.10). On a MacBook Pro M4 recognising 2,000 glyphs of
+an Office font takes 0.5 s; the worst a hostile program can make of it, glyphs that each
+hold one 8,191-point glyph, spends the whole point budget in about 1 s, and a page of 20,000
+of them reads in 1.0 s (main: 0.96 s): a few seconds of the 60 s a step of the reader may
+take, also on slower machines (`docs/baseline.md`).
+
+`core.Page` has the field `recovered: int = 0`: how many of the page's `unmapped`
+characters were read as recognised letters (`0 <= recovered <= unmapped`). Additive with an
+empty default like `unmapped`: exports and golden files leave it out at 0. The recognised
+text may hold mistakes; the report and the document page will say which pages were
+recognised (#618 PR 2, AC-442.9).
+
+**How the limits were set.** `scripts/letter_shapes.py measure` draws the 89 letters, digits
+and marks of English and German text of fonts on the machine that runs it and compares them
+with their twins' (24 Nov 2026, Times New Roman, Arial and Courier New of macOS, every style;
+these fonts are only measured, never committed):
+
+| font | twin's letter, mean distance | at most | another letter nearer | within 0.05 |
+|---|---|---|---|---|
+| Times New Roman | 0.084 | 0.254 | 1 (8 and ß) | 7 |
+| Times New Roman Bold | 0.086 | 0.200 | 0 | 9 |
+| Times New Roman Italic | 0.168 | 0.416 | 6 (quotes, comma) | 30 |
+| Arial | 0.078 | 0.296 | 3 (Q and O, quotes) | 5 |
+| Arial Bold | 0.073 | 0.250 | 2 (Q and O, I and l) | 9 |
+| Arial Italic | 0.142 | 0.341 | 2 | 16 |
+| Courier New | 0.263 | 0.740 | 31 | 64 |
+
+Courier New's drawings differ too much from Cousine's (mean above `FONT_DISTANCE`), and as
+a monospaced font it is refused by step 3 in any case. The close-call margin was then set on whole texts: three texts
+written for the tests (two German, one English, 270 to 900 characters) set in each of these
+seven fonts as a PDF with no Unicode source holds them. With `CLOSE_SHARE` = 0.5 no letter
+came out wrong; 12 of the 21 were recognised, with 70 of their 6,100 characters (1.1 %) left
+as U+FFFD, mostly digits (no word tells 3 from 5); Times New Roman Italic, Arial Italic on
+the German texts, Courier New and the shortest, digit-heavy German text in Times New Roman
+were refused. A smaller share (0.35) let Arial Bold read "l" as "I" (their drawings differ by
+a few cells), a larger one (0.6, 0.75, 1.0) refused more and got nothing more right. Calibri and
+Cambria were not at hand to measure; Carlito, Calibri's twin, is drawn after Lato, so a
+Calibri font may be refused where Times New Roman is read. The reference drawings are made by
+`scripts/letter_shapes.py shapes` from the pinned ChromeOS releases (SHA-256 in the script;
+licences in `THIRD_PARTY_LICENSES.md`), downloading only when a person runs it; the file it
+writes is committed, and no font file ships with sci2audio.
 
 ## What extraction measures: `extraction.legibility`
 
@@ -51,7 +168,7 @@ Markdown, text). A page is `unreadable` when any of these holds:
 
 | measure | limit | corpus (most) | glyph numbers (least) |
 |---|---|---|---|
-| characters from fonts with no Unicode source | more than `UNMAPPED_SHARE` = 50 % | 0 % | 100 % |
+| characters from fonts with no Unicode source, less those `recovered` | more than `UNMAPPED_SHARE` = 50 % | 0 % | 100 % |
 | rare letter pairs, with at least `MIN_PAIRS` = 100 pairs | `RARE_SHARE` = 5 % | 0.93 % | 12.7 % |
 | foreign letters, with at least `MIN_LETTERS` = 50 letters | `FOREIGN_SHARE` = 20 % | 1.5 % | |
 

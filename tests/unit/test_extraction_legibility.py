@@ -25,7 +25,9 @@ from sci2audio.extraction import (
     extract_epub,
     extract_markdown,
     extract_text,
+    glyphs,
     legibility,
+    letters,
     pdf,
     read_pdf,
 )
@@ -219,10 +221,16 @@ def test_glyph_numbers_make_a_page_unreadable_by_their_count() -> None:
 def test_glyph_numbers_in_the_usual_order_are_found_by_their_letter_pairs(
     lines: list[str],
 ) -> None:
-    (measured,) = legibility(without_count(read(glyph_number_pdf(lines))))
+    content = without_count(read(glyph_number_pdf(lines)))
+    (measured,) = legibility(content)
     assert measured.pairs >= MIN_PAIRS
     assert measured.rare / measured.pairs >= RARE_SHARE
-    assert measured.foreign == 0  # all plain ASCII: no script check would see it
+    # Plain ASCII but for the commas and periods, which the usual glyph order puts on control
+    # codes and extraction keeps as U+FFFD since #618 (AC-442.7, they were dropped before):
+    # far below any script check's limit, so it does not see the page.
+    unknown = sum(line.text.count("�") for line in content.pages[0].lines)
+    assert 0 < unknown == measured.foreign
+    assert measured.foreign / measured.letters < FOREIGN_SHARE / 4
     assert measured.unreadable
 
 
@@ -253,8 +261,9 @@ def measured(
     rare: int = 0,
     letters: int = 0,
     foreign: int = 0,
+    recovered: int = 0,
 ) -> PageLegibility:
-    return PageLegibility(1, characters, unmapped, pairs, rare, letters, foreign)
+    return PageLegibility(1, characters, unmapped, pairs, rare, letters, foreign, recovered)
 
 
 @pytest.mark.parametrize(
@@ -262,6 +271,8 @@ def measured(
     [
         (measured(characters=100, unmapped=50), False),  # half: not more than half
         (measured(characters=100, unmapped=51), True),
+        (measured(characters=100, unmapped=100, recovered=50), False),  # AC-442.8
+        (measured(characters=100, unmapped=100, recovered=49), True),
         (measured(pairs=99, rare=99), False),  # too few pairs to judge
         (measured(pairs=100, rare=5), True),
         (measured(pairs=100, rare=4), False),
@@ -273,6 +284,8 @@ def measured(
     ids=[
         "unmapped-half",
         "unmapped-more",
+        "recovered-half",
+        "recovered-less",
         "pairs-99",
         "pairs-5-of-100",
         "pairs-4-of-100",
@@ -284,6 +297,18 @@ def measured(
 )
 def test_the_limits_hold_at_their_boundaries(page: PageLegibility, unreadable: bool) -> None:
     assert page.unreadable is unreadable
+
+
+def test_a_page_counts_its_recovered_characters() -> None:
+    """#618 (AC-442.8): letters recognised from glyph shapes are taken from the share of
+    glyph numbers; their text is measured like any other."""
+    line = TextLine("p1-l1", (TextRun("Das Buch wurde geschrieben"),))
+    content = Content(
+        Source("t.pdf", SourceFormat.PDF), (Page(1, (line,), unmapped=23, recovered=20),)
+    )
+    (found,) = legibility(content)
+    assert (found.characters, found.unmapped, found.recovered) == (23, 23, 20)
+    assert not found.unreadable
 
 
 @pytest.mark.parametrize(
@@ -312,9 +337,20 @@ def corpus() -> list[Content]:
     return found
 
 
+def untouched(*args: object) -> None:
+    raise AssertionError("a corpus file read a font program or the letter drawings")
+
+
 @pytest.fixture(scope="module")
 def documents() -> list[Content]:
-    return corpus()
+    """The corpus, read with letter recognition's font reader and drawings made to fail:
+    no corpus file has a font with no Unicode source, so none loads them (#618,
+    AC-442.10)."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(glyphs, "read_font", untouched)
+        patch.setattr(letters, "references", untouched)
+        patch.setattr(letters, "recognise", untouched)
+        return corpus()
 
 
 def test_no_corpus_page_has_glyph_numbers_or_is_unreadable(documents: list[Content]) -> None:
