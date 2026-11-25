@@ -113,7 +113,9 @@ def test_the_card_shows_the_chapter_and_opens_listening_without_a_reload(
         page.reload()
         settled(page)
         at_rest(page)
-        document = page.url.rsplit("/", 1)[-1]
+        opened = re.search(r"/documents/([0-9a-f]{16})", page.url)
+        assert opened is not None
+        document = opened.group(1)
         page.locator("#make").click()
         page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
         if place == "document":  # the same card on the document's own address (#1059)
