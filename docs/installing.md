@@ -35,6 +35,8 @@ To replace an older version, quit it, drag the new sci2audio onto **Applications
 
 The command line: `"%LOCALAPPDATA%\Programs\sci2audio\sci2audio.exe" --help`.
 
+The installer always installs into your user folder. If your Windows user name holds a letter outside ASCII, such as "ö", the voice cannot start, English or German; sci2audio says so (#755).
+
 To remove it: **Settings → Apps → Installed apps → sci2audio → Uninstall**.
 
 ## Linux

@@ -35,7 +35,7 @@ Audiobooks go to `Documents/sci2audio`; the voice files, library, captures and s
 - Linux opens in the browser, not a window of its own.
 - The update check is off until you turn it on in Settings; it only shows a link to the release page and never installs anything.
 - Windows: started "as administrator", the app's window runs Microsoft SmartScreen's checks of the pages it shows (all on your own computer, 127.0.0.1); started normally, as the Start menu does, sci2audio switches them off (#644).
-- Windows: when sci2audio is installed in a folder whose path holds a letter outside ASCII (such as a user name "Jörg"), and Windows does not use UTF-8 for such names, the voice cannot start. sci2audio now says so instead of ending without a word (#744).
+- Windows: the installer always installs into your user folder (`%LOCALAPPDATA%\Programs\sci2audio`, with no choice of folder), so when your Windows user name holds a letter outside ASCII, such as "ö", there is no voice at all, English or German. sci2audio says so instead of ending without a word (#755).
 - Plugins can add text steps, not voices: a voice engine can be checked against the contract, but no job can use it yet.
 - Captures are saved as files into a folder whose full path you type; there is no folder picker.
 
@@ -45,7 +45,7 @@ sci2audio is GPL-3.0-or-later. Each installer carries a `licenses` folder. `sci2
 
 ### Added
 
-- Each chapter can be played as soon as it is spoken (#723): the audio job writes a chapter's MP3, its read-along part and its subtitles before it starts the next chapter, each file whole or not at all. A stopped or paused run keeps the chapters it finished, and a new run or Resume speaks none of them again.
+- Each chapter can be played as soon as it is spoken (#723): the audio job writes a chapter's MP3, its read-along part and, when they are switched on, its subtitles before it starts the next chapter, each file whole or not at all. A stopped or paused run keeps the chapters it finished, and a new run or Resume speaks none of them again.
 - Start listening while the rest of the book is made (#724, #1054, #1059, #1065): once the first chapter is ready, the making card offers "Start listening". The Listen page shows every chosen chapter as generated, being generated or not generated, and grows without a reload. At the end of a chapter playback goes on into the next one, or pauses with "The next chapter is still being generated." and goes on by itself once it is ready; a screen reader hears "Chapter 3 is ready.". Read-along, the listening position and captures work on a book that is still growing. The making card fills a bar for each chapter as its sentences are spoken, names the chapter and how far it is, and says "Saving chapter 1 of 4" while that chapter's file is written. After a restart, or on Resume before the voice has loaded, the Listen tab opens on the chapters already made.
 - Download the whole audiobook as one file (#725): the library row and the Listen page have "Download the audiobook…", as an M4B (chapter marks and the cover, for audiobook apps) or one MP3 (chapter marks, for almost any player). It is built from the spoken chapters, with no speech run again, shows its progress and can be cancelled, and leaves no half file. It is kept until the chapters change. When some chosen chapters are not made yet, the box names them and offers the ready ones as a file whose name says partial.
 - Make the other chapters later (#726, #810): the project and the Listen page list every chapter of the book with its state. A chapter not made yet has "Generate", and the project has "Generate the remaining chapters"; both use the voice, speed and text settings the other chapters were made with. If you changed those settings since, sci2audio says what differs and lets you choose "Keep the earlier settings" or "Make every chapter again"; nothing is mixed silently. Chapters always play and download in the book's order, whatever order they were made in.
@@ -67,8 +67,8 @@ sci2audio is GPL-3.0-or-later. Each installer carries a `licenses` folder. `sci2
 - A chapter's number in its file name and track number is its place among the book's chapters, not among the chosen ones, so chapters made later fit in without renaming (#725).
 - Inline code (Markdown backticks, an EPUB's `<code>`, a word set in a typewriter font in a PDF's prose) is read as printed: no text step changes it. Code that holds only a link is still left out with the link (#854, #879, #880).
 - The arrows ⇒, ⇐ and ⇔ between two operands are read as words ("implies", "is implied by", "if and only if"; in German "daraus folgt", "folgt aus", "genau dann, wenn"); a long arrow printed as "=⇒" is one arrow, not "equals" (#796, #590).
-- The Settings page's list of single keys names N, Q and M too.
-- sci2audio is also tested on Python 3.13, which an install with uv or pipx may use (#792).
+- The Settings page's list of single keys names N, Q and M too (#397).
+- An install with uv can use Python 3.13; pipx and pip cannot, as the Kokoro packages accept only Python before 3.13. On 3.13 only the fast tests run, on Linux and without voices (#792).
 
 ### Fixed
 
@@ -96,8 +96,8 @@ sci2audio is GPL-3.0-or-later. Each installer carries a `licenses` folder. `sci2
 ### Security
 
 - Every answer of the interface's server also carries a `Permissions-Policy` that switches off the browser features the interface does not use, and `Cross-Origin-Embedder-Policy: require-corp` (#172).
-- Broken or hostile files cost less: a PDF at the drawing limits needs under 50 MB of memory instead of about 500 MB (#355); a text file with a paragraph of more than 4,000,000 characters is refused, and an EPUB table of contents of more than 200,000 elements is left out (#607, #608).
-- Saved captures cannot run as formulas: a CSV cell that starts with `=`, `+`, `-` or `@` is written so a spreadsheet reads it as text (#399).
+- Broken or hostile files cost less: a PDF's drawings are limited to 50,000 per document and 10,000 per page, a tenth of before, so a PDF at those limits needs under 50 MB of memory instead of about 500 MB; a PDF over them that 1.4 read is now refused as too large (#355); a text file with a paragraph of more than 4,000,000 characters is refused, and an EPUB table of contents of more than 200,000 elements is left out (#607, #608).
+- Saved captures cannot run as formulas: a CSV cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return is written so a spreadsheet reads it as text (#399).
 
 ## [1.4.1] - 2026-11-21
 
@@ -335,6 +335,8 @@ The first release. sci2audio turns a scientific text (PDF, EPUB, Markdown or pla
 - Development and process (no change for users): core data objects for extracted content and the reading document (#17); corpus truth sentences with footnote marks and inline maths (#39); test strategies that build overlapping spans (#47); axe-core waits for the page's stylesheet (#129); the same-day quarantine of flaky tests (D-374) and the fixes that emptied it (#138, #147, #157, #161, #166); layout properties for sections without positions and tagged base levels (#195, #199); review, merge and plan rules for agents in `CLAUDE.md` (D-68 to D-72, D-80).
 - The release workflow installs the built package on Linux, macOS and Windows and runs it on a corpus PDF before it publishes to PyPI, then installs the release from PyPI on all three (#80).
 
-[Unreleased]: https://github.com/dubidu22/sci2audio/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/dubidu22/sci2audio/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/dubidu22/sci2audio/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/dubidu22/sci2audio/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/dubidu22/sci2audio/compare/v1.0.0...v1.4.0
 [1.0.0]: https://github.com/dubidu22/sci2audio/releases/tag/v1.0.0
