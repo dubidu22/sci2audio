@@ -3678,3 +3678,147 @@ expected = [
     "Die zwölfte ein halb Liter",
     "Die 12. 3 Viertel m",
 ]
+
+[[case]]
+id = "de-a-unit-printed-as-a-maths-letter"
+audit = 0
+issue = 1082
+goal = "A unit printed as a maths letter ('𝐬', which the characters step reads 's' last) is read after a number on the first run as a second run reads 's': '1–1 𝐬' is '1 bis 1 Sekunden' on both runs, in a paragraph and a heading, as '1–1 s' is (#1082, D-150)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1–1 𝐬" },
+    { kind = "paragraph", text = "1 𝐬" },
+    { kind = "paragraph", text = "2 𝐬" },
+    { kind = "paragraph", text = "x 𝐬" },
+    { kind = "heading", text = "1–1 𝐬" },
+]
+expected = [
+    "1 bis 1 Sekunden",
+    "eine Sekunde",
+    "2 Sekunden",
+    "x s",
+    "1 bis 1 Sekunden",
+]
+
+[[case]]
+id = "de-a-label-number-before-the-same-label-abbreviated"
+audit = 0
+issue = 1082
+goal = "A label's number and the same label again end the sentence (D-719) whether either label is abbreviated or not, as the abbreviations step makes them one: 'Kapitel 2. Kap. 3' is 'Kapitel 2. Kapitel 3', not 'Kapitel zweites Kapitel 3', and a part's Roman numeral there is read, so 'Kapitel XIV. Kap. I. und II.' is 'Kapitel 14. Kapitel I. und II.' on both runs and for the numbers step alone, in a paragraph and a heading (#1082)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1–1 Kapitel XIV. Kap. I. und II." },
+    { kind = "paragraph", text = "Kapitel XIV. Kap. 3" },
+    { kind = "paragraph", text = "Kapitel XIV. Kapitel I. und II." },
+    { kind = "paragraph", text = "Kapitel I. Teil" },
+    { kind = "paragraph", text = "Kapitel 2. Kap. 3" },
+    { kind = "paragraph", text = "Kap. 2. Kapitel 3" },
+    { kind = "paragraph", text = "die 12. Kap. 3" },
+    { kind = "heading", text = "1–1 Kapitel XIV. Kap. I. und II." },
+]
+expected = [
+    "1 bis 1 Kapitel 14. Kapitel I. und II.",
+    "Kapitel 14. Kapitel 3",
+    "Kapitel 14. Kapitel I. und II.",
+    "Kapitel I. Teil",
+    "Kapitel 2. Kapitel 3",
+    "Kapitel 2. Kapitel 3",
+    "die zwölfte Kapitel 3",
+    "1 bis 1 Kapitel 14. Kapitel I. und II.",
+]
+
+[[case]]
+id = "de-a-number-after-a-unit-symbol-and-a-full-stop"
+audit = 0
+issue = 1082
+goal = "A comma decimal after a full stop glued to a symbol the units step reads as a word ('1 %.452,5' is 'ein Prozent.452,5' after it) is read as after a word, as a second run reads it: 'ein Prozent.452 Komma 5' on both runs, in a paragraph and a heading. Where the units step leaves the symbol ('%.452,5') the number stays as printed (#1082)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1–1 %.452,5" },
+    { kind = "paragraph", text = "1 €.452,5" },
+    { kind = "paragraph", text = "5 %.452,5" },
+    { kind = "paragraph", text = "1 %.452" },
+    { kind = "paragraph", text = "%.452,5" },
+    { kind = "heading", text = "1–1 %.452,5" },
+]
+expected = [
+    "1 bis 1 Prozent.452 Komma 5",
+    "ein Euro.452 Komma 5",
+    "5 Prozent.452 Komma 5",
+    "ein Prozent0 Komma 4 5 2",
+    "%.452,5",
+    "1 bis 1 Prozent.452 Komma 5",
+]
+
+[[case]]
+id = "de-a-power-read-as-a-word-before-a-range"
+audit = 0
+issue = 1082
+goal = "A caret power whose exponent is read into a word ('x^2' as 'x Quadrat', 'm^2' as 'Quadratmeter') leaves no number before a range, as on a second run: before 'bis' a year is read, as after 'x²'; a dash before a year stays as printed, as after 'x²', since a second run would read 'bis' and the year. 'x^2–1234' is 'x Quadrat–1234' on both runs, in a paragraph and a heading; before a number that is no year the range is read as before (#1082)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1–1\nx^2–1234" },
+    { kind = "paragraph", text = "x^2 bis 1234" },
+    { kind = "paragraph", text = "5 m^2–1998" },
+    { kind = "paragraph", text = "x^2–5" },
+    { kind = "paragraph", text = "x^3–1234" },
+    { kind = "paragraph", text = "x² bis 1234" },
+    { kind = "heading", text = "1–1\nx^2–1234" },
+]
+expected = [
+    "1 bis 1 x Quadrat–1234",
+    "x Quadrat bis 12 hundert 34",
+    "5 Quadratmeter–1998",
+    "x Quadrat bis 5",
+    "x hoch 3 bis 1234",
+    "x Quadrat bis 12 hundert 34",
+    "1 bis 1 x Quadrat–1234",
+]
+
+[[case]]
+id = "de-an-ordinal-before-a-full-date"
+audit = 0
+issue = 1082
+goal = "An ordinal before a date the numbers step reads takes the date's first word as its next word, as a second run sees it: 'am 3. 3.4.2019' is 'am dritten dritter April 2019' on both runs, in a paragraph and a heading, as an ordinal before a sign or a fraction read as words is (#970, #1078, #1082)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "am 3. 3.4.2019" },
+    { kind = "paragraph", text = "am 3. 12.03.2019" },
+    { kind = "paragraph", text = "am 3. 1.2.2019" },
+    { kind = "paragraph", text = "die 3. 3.4.2019" },
+    { kind = "paragraph", text = "Es waren 3. 4.5.2019" },
+    { kind = "heading", text = "am 3. 3.4.2019" },
+]
+expected = [
+    "am dritten dritter April 2019",
+    "am dritten zwölfter März 2019",
+    "am dritten erster Februar 2019",
+    "die dritte dritter April 2019",
+    "Es waren 3. vierter Mai 2019",
+    "am dritten dritter April 2019",
+]
+
+[[case]]
+id = "de-a-reading-that-ends-in-a-word-before-a-tilde"
+audit = 0
+issue = 1082
+goal = "A number whose reading ends in a word ('1/2' as 'ein halb', '3/4' as '3 Viertel', 'x^2' as 'x Quadrat', '13:00' as '13 Uhr') before a '~' and a number stays as printed: the units step leaves a '~' after a digit ('5 ~ 10'), but would read it 'etwa' after the word on a second run. '1/2 ~ 2' is '1/2 ~ 2' on both runs, in a paragraph and a heading, as a number before an 'x' the units step leaves is (#1082)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "1/2 ~ 2" },
+    { kind = "paragraph", text = "3/4 ~ 2" },
+    { kind = "paragraph", text = "x^2 ~ 2" },
+    { kind = "paragraph", text = "um 13:00 ~ 2" },
+    { kind = "paragraph", text = "1/2 ≈ 2" },
+    { kind = "paragraph", text = "1/12 ~ 2" },
+    { kind = "heading", text = "1/2 ~ 2" },
+]
+expected = [
+    "1/2 ~ 2",
+    "3/4 ~ 2",
+    "x^2 ~ 2",
+    "um 13:00 ~ 2",
+    "ein halb ungefähr 2",
+    "1 von 12 ~ 2",
+    "1/2 ~ 2",
+]

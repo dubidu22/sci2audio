@@ -61,6 +61,7 @@ from sci2audio.textprep.notation import (
     FILE_NUMBER_DE,
     LEFT_ARROW_TAIL,
     edits_through_unread,
+    fold,
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
@@ -244,10 +245,12 @@ class UnitStep(TextStep):
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context):
                 continue
+            # maths letters as the plain letters the characters step makes of them last
+            # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
             found = edits_through_unread(
                 index,
                 as_superscripts(block.text, exponents.get(index, ())),  # as printed (#576)
-                lambda read: _without_overlaps(self._edits(index, read, table)),  # noqa: B023
+                lambda read: _without_overlaps(self._edits(index, fold(read), table)),  # noqa: B023
                 self.id,
                 marks.get(index, ()),
             )
@@ -790,6 +793,17 @@ def symbol_word_at(text: str, position: int, language: str) -> str | None:
         if not (head[-1:].isascii() and head[-1:].isdigit()):
             return words["about"]
     return None
+
+
+def tilde_after(text: str, end: int) -> bool:
+    """True if a "~" before a number follows `end`, after at most two spaces: the step reads
+    it "about" after a word but leaves it after a number ("5 ~ 10"). The numbers step asks
+    after a number it reads into a word ("1/2 ~ 2" would be "ein halb etwa 2" on a second
+    run, #1082)."""
+    at = end
+    while at < len(text) and at - end < 2 and text[at] in " \u00a0":
+        at += 1
+    return _TILDE.match(text, at) is not None
 
 
 def unit_spans(text: str, language: str) -> list[tuple[int, int]]:

@@ -566,6 +566,7 @@ def test_the_units_step_skips_many_file_numbers_in_linear_time() -> None:
 
 @given(german_notation_documents())
 @example(make_document([(BlockKind.PARAGRAPH, "3\u20133\u20131999-02-01")], "de"))  # #957
+@example(make_document([(BlockKind.PARAGRAPH, "1\u20131 Kapitel XIV. Kap. I. und II.")], "de"))
 def test_both_steps_keep_the_contract_on_any_german_document(document: Document) -> None:
     check_text_step(NUMBERS, [document], allow_ask=False)
     check_text_step(STATISTICS, [document], allow_ask=False)
@@ -605,6 +606,12 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
     make_document([(BlockKind.PARAGRAPH, "um 24:00 R^2\u200b"), (BlockKind.PARAGRAPH, "x")], "de")
 )
 @example(make_document([(BlockKind.HEADING, "am 3. 1/2 N und Die 12. 3/4 m")], "de"))  # #1078
+@example(make_document([(BlockKind.PARAGRAPH, "1–1 \U0001d42c")], "de"))  # #1082
+@example(make_document([(BlockKind.HEADING, "1–1 Kapitel XIV. Kap. I. und II.")], "de"))
+@example(make_document([(BlockKind.PARAGRAPH, "1\u20131 %.452,5 und 1 \u20ac.452,5")], "de"))
+@example(make_document([(BlockKind.PARAGRAPH, "1–1\nx^2–1234")], "de"))  # #1082
+@example(make_document([(BlockKind.HEADING, "am 3. 3.4.2019 und die 3. 12.03.2019")], "de"))
+@example(make_document([(BlockKind.PARAGRAPH, "1/2 ~ 2 und 3/4 ~ 2")], "de"))  # #1082
 def test_a_german_job_reads_the_same_on_a_second_run(document: Document) -> None:
     context = StepContext(document.language)
     first = run_steps(document, context, strict=True)
