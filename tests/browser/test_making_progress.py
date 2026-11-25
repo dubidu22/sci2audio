@@ -180,7 +180,10 @@ def test_after_a_restart_the_chapters_on_disk_open_the_listen_tab_and_play(
     page.set_input_files("#file", files=[PDF])
     page.locator("#open-file button[type=submit]").click()
     page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
-    document = page.url.rsplit("/", 1)[-1]
+    # the id alone: WebKit may already show the `#step-check` the page adds after opening
+    opened = re.search(r"/documents/([0-9a-f]{16})", page.url)
+    assert opened is not None
+    document = opened.group(1)
     expect(page.locator("#summary")).to_be_visible()
     settled(page)
     at_rest(page)
