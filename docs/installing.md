@@ -1,12 +1,12 @@
 # Installing sci2audio
 
-sci2audio 1.4.1 comes as an installer for each system, with everything it needs inside: Python, sci2audio and an audio-only ffmpeg. Download the file for your system from the [release page](https://github.com/dubidu22/sci2audio/releases/latest).
+sci2audio 1.5.0 comes as an installer for each system, with everything it needs inside: Python, sci2audio and an audio-only ffmpeg. Download the file for your system from the [release page](https://github.com/dubidu22/sci2audio/releases/latest).
 
 | Your computer | File | Size |
 |---|---|---|
-| Mac with an Apple chip (M1 or newer), macOS 14 (Sonoma) or newer | `sci2audio-1.4.1-macos-arm64.dmg` | about 380 MB |
-| Windows 10 (version 1809 or newer) or Windows 11, 64-bit | `sci2audio-1.4.1-windows-x64-setup.exe` | about 280 MB |
-| Linux, 64-bit (x86_64), glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and later) | `sci2audio-1.4.1-linux-x86_64.AppImage` | about 430 MB |
+| Mac with an Apple chip (M1 or newer), macOS 14 (Sonoma) or newer | `sci2audio-1.5.0-macos-arm64.dmg` | about 380 MB |
+| Windows 10 (version 1809 or newer) or Windows 11, 64-bit | `sci2audio-1.5.0-windows-x64-setup.exe` | about 280 MB |
+| Linux, 64-bit (x86_64), glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and later) | `sci2audio-1.5.0-linux-x86_64.AppImage` | about 430 MB |
 
 Intel Macs are not supported: PyTorch, which runs the voice, no longer publishes builds for them.
 
@@ -25,37 +25,39 @@ sci2audio opens in a window of its own. Closing the window stops it; while an au
 
 The command line is inside the app: `/Applications/sci2audio.app/Contents/MacOS/sci2audio --help`.
 
-sci2audio 1.4.0 does not open from Finder or the Dock: it starts the command line, which quits at once without a window (#716). Version 1.4.1 fixes this; until you update, start 1.4.0 in Terminal with `open /Applications/sci2audio.app/Contents/MacOS/sci2audio-app` (or `/Applications/sci2audio.app/Contents/MacOS/sci2audio ui`).
+To replace an older version, quit it, drag the new sci2audio onto **Applications** and choose **Replace**; your audiobooks, voice files, library and settings stay. (1.4.0 did not open from Finder or the Dock; 1.4.1 and later do, #716.)
 
 ## Windows
 
-1. Run `sci2audio-1.4.1-windows-x64-setup.exe`. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**.
+1. Run `sci2audio-1.5.0-windows-x64-setup.exe`. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**.
 2. The installer needs no administrator rights: it installs sci2audio for you alone, in `%LOCALAPPDATA%\Programs\sci2audio`, and adds it to the Start menu.
 3. Start **sci2audio** from the Start menu. It opens in a window of its own (Microsoft Edge WebView2, part of Windows 11 and current Windows 10). Where WebView2 is missing, sci2audio opens in your default browser instead, with a **Quit sci2audio** item in its menu.
 
 The command line: `"%LOCALAPPDATA%\Programs\sci2audio\sci2audio.exe" --help`.
 
+The installer always installs into your user folder. If your Windows user name holds a letter outside ASCII, such as "ö", the voice cannot start, English or German; sci2audio says so (#755).
+
 To remove it: **Settings → Apps → Installed apps → sci2audio → Uninstall**.
 
 ## Linux
 
-1. Make the file executable: `chmod +x sci2audio-1.4.1-linux-x86_64.AppImage` (or tick "Allow executing file as program" in its properties).
-2. Run it: `./sci2audio-1.4.1-linux-x86_64.AppImage`. It needs FUSE, which most desktops have. Without FUSE, run it with `--appimage-extract-and-run` as the first argument.
+1. Make the file executable: `chmod +x sci2audio-1.5.0-linux-x86_64.AppImage` (or tick "Allow executing file as program" in its properties).
+2. Run it: `./sci2audio-1.5.0-linux-x86_64.AppImage`. It needs FUSE, which most desktops have. Without FUSE, run it with `--appimage-extract-and-run` as the first argument.
 
 On Linux sci2audio opens in your default browser. The menu has **Quit sci2audio**; sci2audio also stops by itself after 15 minutes in which nothing asked for anything while no audiobook is being made.
 
-With arguments, the same file is the command line: `./sci2audio-1.4.1-linux-x86_64.AppImage --help`.
+With arguments, the same file is the command line: `./sci2audio-1.5.0-linux-x86_64.AppImage --help`.
 
 ## The voices: the one download
 
-The first time you make an audiobook, sci2audio asks to download the voices: the Kokoro model with its English voices and a spaCy English model (about 355 MB, from huggingface.co and github.com), and the German voice Thorsten (about 330 MB, from huggingface.co). It lists every file with its size and licence and downloads only after you agree. You can fetch one language only. This is the only time sci2audio uses the internet, and only when you ask; everything else, the reading and the speaking, happens on your computer.
+The first time you make an audiobook, sci2audio asks to download the voices: the Kokoro model with its English voices and a spaCy English model (about 355 MB, from huggingface.co and github.com), and the German voice Thorsten (about 330 MB, from huggingface.co). It lists every file with its size and licence and downloads only after you agree. You can fetch one language only. Apart from the update check you can turn on in Settings, this is the only time sci2audio uses the internet, and only when you ask; everything else, the reading and the speaking, happens on your computer.
 
 ## Where your files are
 
 | What | macOS | Windows | Linux |
 |---|---|---|---|
 | Audiobooks (unless you choose another folder) | `~/Documents/sci2audio` | `Documents\sci2audio` | `~/Documents/sci2audio` |
-| Voice files, the library, speech caches | `~/Library/Application Support/sci2audio` | `%LOCALAPPDATA%\sci2audio` | `~/.local/share/sci2audio` |
+| Voice files, the library, your captures, speech caches | `~/Library/Application Support/sci2audio` | `%LOCALAPPDATA%\sci2audio` | `~/.local/share/sci2audio` |
 | Settings | `~/Library/Application Support/sci2audio` | `%APPDATA%\sci2audio` | `~/.config/sci2audio` |
 | The app's start-up log | `~/Library/Logs/sci2audio/app.log` | `%LOCALAPPDATA%\sci2audio\Logs\app.log` | `~/.local/state/sci2audio/log/app.log` |
 | Temporary job files | `~/Library/Caches/sci2audio` | `%LOCALAPPDATA%\sci2audio\Cache` | `~/.cache/sci2audio` |
@@ -75,7 +77,7 @@ With the GitHub command line you can also check that the release workflow built 
 
 ## The source
 
-sci2audio is free software under the GNU General Public License, version 3 or later. Each installer has a `licenses` folder with the licence of every part. The release page holds the complete source: `sci2audio-1.4.1.tar.gz`, and `sci2audio-1.4.1-sources.tar` with FFmpeg, LAME and espeak-ng, the script that builds the bundled ffmpeg, and the Linux AppImage's runtime with the libfuse and squashfuse it links.
+sci2audio is free software under the GNU General Public License, version 3 or later. Each installer has a `licenses` folder with the licence of every part. The release page holds the complete source: `sci2audio-1.5.0.tar.gz`, and `sci2audio-1.5.0-sources.tar` with FFmpeg, LAME and espeak-ng, the script that builds the bundled ffmpeg, and the Linux AppImage's runtime with the libfuse and squashfuse it links.
 
 ## With uv instead
 
