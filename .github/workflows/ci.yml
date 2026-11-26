@@ -107,9 +107,8 @@ jobs:
       - name: Workflow security (zizmor)
         run: uv run zizmor --offline .github/workflows
 
-  # pyright on src/ (#1099), its settings in pyproject.toml. Reported only until #1104 makes
-  # it required, once #1100-#1103 have fixed the errors layer by layer: "CI passed" skips a
-  # name with "reported only" in it, and the errors are listed in the job summary.
+  # Reported only until #1104 makes it required (#1099): src/ still has type errors, which
+  # #1100-#1103 fix layer by layer, and "CI passed" skips a name with "reported only" in it.
   types:
     name: types (pyright, reported only)
     runs-on: ubuntu-latest
@@ -134,7 +133,13 @@ jobs:
           {
             echo "## Type check (pyright, reported only until #1104)"
             echo
-            tail -n 1 pyright.txt
+            # exit 1 is type errors; anything higher is pyright itself failing, which a red
+            # reported-only job would otherwise hide among the errors
+            if [ "$status" -gt 1 ]; then
+              echo "**pyright did not finish (exit $status): fix the check, not the code.**"
+            else
+              tail -n 1 pyright.txt
+            fi
             echo
             echo '```'
             cat pyright.txt
