@@ -45,7 +45,7 @@ Install the pre-commit hooks once with `uv run pre-commit install`; they run ruf
 ## Labels
 
 - Triage: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` (see `docs/agents/triage-labels.md`)
-- Type: `bug`, `feature`, `chore`
+- Type: `bug`, `enhancement` (the two categories `/triage` uses), `chore`
 - Priority: `P0`, `P1`, `P2`
 - Risk: `risk:high`
 - CI: `ci:full` runs the fast tests on macOS and Windows as well (see "What CI runs")
