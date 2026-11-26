@@ -10,6 +10,7 @@ Not allowed: AGPL code, non-commercial or "research only" licences, models or vo
 |---|---|---|---|
 | Abogen voice plugin contract and Kokoro plugin (`tts_plugin/types.py`, `engine.py`, `errors.py`, `plugins/kokoro/`), revision `1807822f5871d1c92740cb470c5c6e8328b8f851` | [denizsafak/abogen](https://github.com/denizsafak/abogen) | MIT, © 2025 Deniz Şafak (notice kept at the top of each file) | `src/sci2audio/voices/types.py`, `engine.py`, `errors.py`, `kokoro_engine.py` (D-52) |
 | Python's HTML parser (`Lib/html/parser.py` and `Lib/_markupbase.py`), CPython tag `v3.13.18` | [python/cpython](https://github.com/python/cpython) | PSF-2.0, © 2001-2024 Python Software Foundation (notice, licence agreement and a summary of the changes kept at the top of the file) | `src/sci2audio/extraction/htmlparser.py`: the EPUB and Markdown readers parse with this copy, so broken markup reads the same on every Python version (#175, D-777) |
+| Setup templates of Matt Pocock's skills (`setup-matt-pocock-skills`: `issue-tracker-github.md`, `triage-labels.md`, `domain.md`), version 1.3.1 | [mattpocock/skills](https://github.com/mattpocock/skills) | MIT, © 2026 Matt Pocock (notice kept at the top of each file) | `docs/agents/issue-tracker.md`, `triage-labels.md`, `domain.md`: how the agent skills find the issue tracker, triage labels and domain docs |
 
 ## Run-time dependencies
 
