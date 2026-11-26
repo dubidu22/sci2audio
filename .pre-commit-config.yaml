@@ -20,3 +20,12 @@ repos:
         exclude: ^tests/corpus/
       - id: trailing-whitespace
         exclude: ^tests/corpus/
+  # The layer rules (D-46) take a few seconds, so they run on every commit; the tests stay in CI
+  - repo: local
+    hooks:
+      - id: lint-imports
+        name: lint-imports (layer rules)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]

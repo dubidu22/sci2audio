@@ -1,6 +1,6 @@
 name: Bug report
 description: Something sci2audio does wrong
-labels: [inbox, bug]
+labels: [needs-triage, bug]
 body:
   - type: textarea
     id: what
