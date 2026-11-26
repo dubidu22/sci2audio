@@ -107,6 +107,46 @@ jobs:
       - name: Workflow security (zizmor)
         run: uv run zizmor --offline .github/workflows
 
+  # Reported only until #1104 makes it required (#1099): src/ still has type errors, which
+  # #1100-#1103 fix layer by layer, and "CI passed" skips a name with "reported only" in it.
+  types:
+    name: types (pyright, reported only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
+      # with the app window's extra, or its pywebview imports read as missing (#215)
+      - run: uv sync --locked --extra window
+      - name: Type check (pyright)
+        env:
+          PYRIGHT_PYTHON_IGNORE_WARNINGS: "1"  # else it asks PyPI for a newer pyright
+        run: |
+          status=0
+          uv run --no-sync pyright > pyright.txt || status=$?
+          sed -i "s|$GITHUB_WORKSPACE/||" pyright.txt
+          cat pyright.txt
+          {
+            echo "## Type check (pyright, reported only until #1104)"
+            echo
+            # exit 1 is type errors; anything higher is pyright itself failing, which a red
+            # reported-only job would otherwise hide among the errors
+            if [ "$status" -gt 1 ]; then
+              echo "**pyright did not finish (exit $status): fix the check, not the code.**"
+            else
+              tail -n 1 pyright.txt
+            fi
+            echo
+            echo '```'
+            cat pyright.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
   tests:
     name: tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
