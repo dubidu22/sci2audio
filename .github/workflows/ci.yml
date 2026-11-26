@@ -107,6 +107,41 @@ jobs:
       - name: Workflow security (zizmor)
         run: uv run zizmor --offline .github/workflows
 
+  # pyright on src/ (#1099), its settings in pyproject.toml. Reported only until #1104 makes
+  # it required, once #1100-#1103 have fixed the errors layer by layer: "CI passed" skips a
+  # name with "reported only" in it, and the errors are listed in the job summary.
+  types:
+    name: types (pyright, reported only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
+          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
+      # with the app window's extra, or its pywebview imports read as missing (#215)
+      - run: uv sync --locked --extra window
+      - name: Type check (pyright)
+        env:
+          PYRIGHT_PYTHON_IGNORE_WARNINGS: "1"  # else it asks PyPI for a newer pyright
+        run: |
+          status=0
+          uv run --no-sync pyright > pyright.txt || status=$?
+          sed -i "s|$GITHUB_WORKSPACE/||" pyright.txt
+          cat pyright.txt
+          {
+            echo "## Type check (pyright, reported only until #1104)"
+            echo
+            tail -n 1 pyright.txt
+            echo
+            echo '```'
+            cat pyright.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
   tests:
     name: tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

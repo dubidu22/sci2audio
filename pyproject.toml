@@ -79,6 +79,7 @@ dev = [
     "pip-licenses>=5.5",
     "playwright>=1.65.1,<2",
     "pre-commit>=4.0",
+    "pyright[nodejs]==1.1.414",
     "pytest>=9.0",
     "pytest-benchmark>=5.3.1",
     "pytest-playwright>=0.10.0,<1",
@@ -143,6 +144,14 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PT", "S"]
 "tests/unit/test_textprep_{characters,hyphens}.py" = ["RUF001", "RUF002", "RUF003"]
 # phoneme strings (IPA) are what the German voice (#211) and letter pace (#295) tests are about
 "tests/unit/test_voices_{german,letters}.py" = ["RUF001"]
+
+[tool.pyright]
+include = ["src"]
+# Copied from CPython and kept as close to it as possible, so a newer CPython copies over
+# with a plain diff (D-777); type fixes there would be changes of our own.
+exclude = ["src/sci2audio/extraction/htmlparser.py"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
 minversion = "9.0"
