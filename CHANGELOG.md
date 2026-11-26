@@ -4,7 +4,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
-## [1.5.0] - unreleased
+## [1.5.0] - 2026-11-26
 
 Listen while the audiobook is made, and keep what you hear. In the interface the first chapter plays as soon as it is spoken, while the rest is still being made; chapters left out can be made later, and the whole book is one file you download when you want it. While you listen, N, Q and M keep a note, a quote or a mark at the sentence being read; the Captures page gathers them from every document and saves them as files. Markers from 1.4 carry over. Also new: an update check you can turn on, text-step plugins, PDFs whose fonts carry no letters, and many layout and reading fixes. For everyone who tried 1.4; your voices, library and settings stay. Feedback is very welcome: [open a tester report](https://github.com/dubidu22/sci2audio/issues/new?template=tester-report.yml).
 
