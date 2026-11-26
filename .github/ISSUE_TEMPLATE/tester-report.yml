@@ -1,6 +1,6 @@
 name: Tester report
 description: You tried an installer of sci2audio; tell us how it went, good or bad
-labels: [inbox, tester-report]
+labels: [needs-triage, tester-report]
 body:
   - type: markdown
     attributes:

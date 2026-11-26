@@ -1,6 +1,6 @@
 name: Feature or task
 description: Something sci2audio should do or something to build
-labels: [inbox, feature]
+labels: [needs-triage, feature]
 body:
   - type: input
     id: feature-id

@@ -1,26 +1,22 @@
-## What and why
+## Summary
 
-Closes #
-Feature ID: <!-- e.g. WI-02, from the feature list -->
+<!-- The smallest view that makes the change clear: a diff sketch, call tree, file tree or Mermaid diagram, next to a line or two of text. Closes #. -->
 
-## How it was tested
+## Evidence
 
-- [ ] `uv run ruff check && uv run ruff format --check`
-- [ ] `uv run lint-imports && uv run deptry src`
+- **Before:** <!-- failing test, output or screenshot -->
+  **After:** <!-- passing test, output or screenshot -->
+- [ ] `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src`
 - [ ] `uv run pytest -m "not slow and not benchmark and not browser"`: <!-- e.g. 42 passed -->
 - [ ] Interface changed? `uv run pytest -m browser`: <!-- e.g. 13 passed / not applicable -->
-- [ ] First of its kind? Tests and CI wiring added as required by `.claude/rules/tests.md`: <!-- yes / not applicable -->
 - [ ] Golden files changed? Diff explained: <!-- yes / no change -->
-- [ ] Slow tests or a manual check, if relevant: <!-- what you ran -->
 
 ## Licences
 
 <!-- New dependency, copied code, model, voice or sample text? Name it and its licence, or write "none". -->
 
-## Risk
+## Merge Danger
 
-<!-- low / risk:high (licences, deleting user files, network, release, layer contracts and plugin interfaces, core dataclasses, golden files; any of these makes the PR critical; until v1.0 the coordinator merges critical PRs after review and Colin is informed, D-80) -->
+**Door:** <!-- one-way or two-way: can a revert undo it? Deleting or overwriting user files, file formats, golden files and layer contracts are one-way. -->
 
-## Out of scope
-
-<!-- Follow-up Issues created for things not done here. -->
+**Blast Radius:** <!-- one word, then what could break; risk:high paths are listed in CLAUDE.md -->
