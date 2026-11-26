@@ -383,6 +383,15 @@ def test_a_second_run_reads_the_same_after_a_sign(printed: str, said: str) -> No
     assert _read_all(once) == once
 
 
+# #578: after a caret exponent and a space or line break a letter power is no unit, as the
+# caret rule reads "x^2" as words, so a second run sees no number before it
+@pytest.mark.parametrize("printed", ["We have x^2 x⁶ here.", "We have x^2\nx⁶ here."])
+def test_a_letter_power_after_a_caret_power_reads_the_same_on_a_second_run(printed: str) -> None:
+    once = _read_all(printed)
+    assert once == "We have x squared x to the power of 6 here."
+    assert _read_all(once) == once
+
+
 @pytest.mark.parametrize(
     ("printed", "said"),
     [
