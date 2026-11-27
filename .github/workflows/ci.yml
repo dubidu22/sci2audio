@@ -189,13 +189,16 @@ jobs:
           SHARD: ${{ matrix.shard }}
         run: uv run --no-sync python .github/scripts/shard.py "not slow and not benchmark and not browser" "$SHARD" 3 "$RUNNER_TEMP/shard.txt"
       # The 25 slowest tests close the log, so a new slow test shows in the PR that adds it.
+      # A shard warns of unused snapshots: syrupy takes a snapshot as selected when any case
+      # of its test ran, so a shard holding some cases of a golden-file test reads the others'
+      # as unused. The whole-suite legs still fail on one really left unused.
       - name: Fast tests (unit, property-based, golden files)
         shell: bash
         env:
           HYPOTHESIS_PROFILE: ci
           SHARD: ${{ matrix.shard }}
         run: |
-          if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt"; fi
+          if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt" --snapshot-warn-unused; fi
           uv run pytest -m "not slow and not benchmark and not browser" -n auto --durations=25 "$@"
       # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it; once per
       # system on Python 3.12.
