@@ -1,9 +1,11 @@
 name: Nightly
 
-# Slow tests (voices, models, the whole corpus, speech-recognition round-trip)
-# and benchmarks. Not required for merging; a red nightly run is a P1 Issue.
+# Slow tests (voices, models, the whole corpus, speech-recognition round-trip),
+# benchmarks, and how long pull requests wait for "CI passed" (#1133). Not required for
+# merging; a red nightly run is a P1 Issue.
 # A run by hand can leave parts out (D-759), so a branch check that needs only the
 # browsers holds no runners for the slow tests; the scheduled run always runs every part.
+# The pull-request wait has no switch: it only reads CI's runs, for about a minute.
 on:
   schedule:
     - cron: "17 2 * * *"  # 02:17 UTC every day
@@ -193,3 +195,22 @@ jobs:
       - name: Speed script, short run on the CPU (trend only)
         shell: bash
         run: uv run python scripts/speed.py --quick --device cpu --models-folder "$RUNNER_TEMP/test-models/voices" --json "$RUNNER_TEMP/speed.json"
+
+  # The budget is the wait a pull request feels, so it is judged on CI's own runs (#1131).
+  # A red result is for a person to act on: the job may read the runs and write nothing.
+  pr-wait:
+    name: pull-request wait (budget 6 min)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # to read CI's pull-request runs and their jobs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Median wait for "CI passed" over the last 20 pull-request runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: python3 .github/scripts/pr_wait.py
