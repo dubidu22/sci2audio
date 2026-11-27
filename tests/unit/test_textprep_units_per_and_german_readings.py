@@ -18,7 +18,8 @@ from sci2audio.textprep import (
     run_steps,
     spoken_text,
 )
-from sci2audio.textprep.units import reads_unit_after_per
+from sci2audio.textprep.readings import Reading, readings_of
+from sci2audio.textprep.steps import Category
 from sci2audio.textprep.wordlists import abbreviations, parse_abbreviations, units
 
 
@@ -62,11 +63,12 @@ def test_a_unit_after_per_reads_in_the_singular(language: str, printed: str, sai
 
 
 def test_the_numbers_step_leaves_the_power_of_a_unit_after_per() -> None:
-    assert reads_unit_after_per("per m³", 4, "en")
-    assert reads_unit_after_per("pro m³", 4, "de")
-    assert not reads_unit_after_per("per A", 4, "en")
-    assert not reads_unit_after_per("super m³", 6, "en")
-    assert not reads_unit_after_per("x m³", 2, "en")
+    units = Category.NUMBERS_AND_UNITS
+    assert readings_of("units", "per m³", "en") == (Reading(4, 6, "cubic metre", units),)
+    assert readings_of("units", "pro m³", "de") == (Reading(4, 6, "Kubikmeter", units),)
+    assert readings_of("units", "per A", "en") == ()
+    assert readings_of("units", "super m³", "en") == ()
+    assert readings_of("units", "x m³", "en") == ()
 
 
 # ---- #250 "pro Quadratsekunde" -------------------------------------------------------------

@@ -5,6 +5,7 @@ the listener, and a rerun or resume takes its own whole chapters as they are."""
 from __future__ import annotations
 
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -162,6 +163,119 @@ def test_the_job_writes_no_m4b_by_default(tmp_path: Path) -> None:
     assert len(job.written.mp3s) == 3
     assert not any(n.endswith(".m4b") for n in outputs(tmp_path))
     assert read_readalong(job.written.readalong).m4b is None
+
+
+class Ticks:
+    """A fake clock: the fake voice moves it a second per sentence, the encoder below by
+    `per_sample` for each sample fed to it."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+    def speak(self, text: str) -> None:
+        self.now += 1.0
+
+
+class SlowEncoder(Ffmpeg):
+    """The real ffmpeg on a fake clock that each sample fed moves on, so writing a long
+    chapter takes a while (#1061)."""
+
+    def __init__(self, clock: Ticks, per_sample: float) -> None:
+        super().__init__(find_ffmpeg())
+        object.__setattr__(self, "clock", clock)
+        object.__setattr__(self, "per_sample", per_sample)
+
+    def run(self, args, feed=()):  # type: ignore[no-untyped-def]
+        def slow():  # type: ignore[no-untyped-def]
+            for piece in feed:
+                self.clock.now += len(piece) // 2 * self.per_sample  # type: ignore[attr-defined]
+                yield piece
+
+        return super().run(args, slow())
+
+
+def long_book(folder: Path) -> Path:
+    """Three chapters of thirty sentences: enough speech measured in the first chapter for
+    an estimate (D-382), and enough audio for a write that takes a while."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "book.md"
+    parts = [
+        f"# {title}\n\n"
+        + " ".join(f"Sentence {n} of the chapter {title} goes on for a while." for n in range(30))
+        for title in TITLES
+    ]
+    path.write_text("\n\n".join(parts), encoding="utf-8", newline="\n")
+    return path
+
+
+def timed_run(folder: Path, per_sample: float) -> list[tuple[float, AudioProgress]]:
+    clock = Ticks()
+    told: list[tuple[float, AudioProgress]] = []
+    run(
+        folder,
+        FakeVoice(on_speak=clock.speak),
+        source=long_book(folder / "in"),
+        progress=lambda event: told.append((clock(), event)),
+        clock=clock,
+        ffmpeg=SlowEncoder(clock, per_sample),
+    )
+    return told
+
+
+def test_writing_a_long_chapter_tells_progress_and_the_time_left_counts_it(
+    tmp_path: Path,
+) -> None:
+    """#1061: while a chapter's files are written the job tells, at least every few
+    seconds, that it is saving and how far; the time left counts the writing still to
+    come, falls while a chapter is written, and the files are the same."""
+    told = timed_run(tmp_path / "slow", per_sample=1 / 30000)  # 10 s or so a chapter
+    quick = timed_run(tmp_path / "quick", per_sample=0.0)
+    chunks = [(at, e) for at, e in told if e.chunks_done and e.ready is None and e.saving is None]
+    speech_only = [e for _, e in quick if e.chunks_done and e.ready is None and e.saving is None]
+    assert [e.chunks_done for _, e in chunks] == [e.chunks_done for e in speech_only]
+    assert not [e for _, e in quick if e.saving is not None]  # a quick write tells nothing
+
+    written: dict[int, float] = {}  # chapter -> seconds its files took
+    characters: dict[int, int] = {}  # chapter -> characters spoken in it
+    before = 0
+    for chapter in range(len(TITLES)):
+        last = next(n for n, (_, e) in enumerate(told) if e.chapter_done and e.chapter == chapter)
+        ready = next(n for n, (_, e) in enumerate(told) if e.ready == chapter)
+        saving = told[last + 1 : ready]
+        assert len(saving) >= 3, chapter
+        assert all(e.phase is Phase.SPEAKING and e.chapter == chapter for _, e in saving)
+        assert all(e.chapter_done and chapter not in e.playable for _, e in saving)
+        shares = [e.saving for _, e in saving]
+        assert all(s is not None and 0 <= s <= 1 for s in shares)
+        assert shares == sorted(shares)  # type: ignore[type-var]
+        times = [at for at, _ in told[last : ready + 1]]
+        assert max(b - a for a, b in pairwise(times)) <= 3.0
+        written[chapter] = times[-1] - times[0]
+        assert written[chapter] > 5.0
+        characters[chapter] = told[last][1].characters_done - before
+        before = told[last][1].characters_done
+        # the time left falls while the chapter is written, down to the ready event
+        left = [e.seconds_left for _, e in told[last + 1 : ready + 1]]
+        assert all(s is not None for s in left)
+        assert all(a > b for a, b in pairwise(left)), left  # type: ignore[operator]
+
+    # while the later chapters are spoken, the time left is the speech left and the writing
+    # left: every chapter still to write, at the rate the written ones took
+    for (_, event), alone in zip(chunks, speech_only, strict=True):
+        if event.chapter == 0:
+            continue
+        done = range(event.chapter or 0)
+        rate = sum(written[c] for c in done) / sum(characters[c] for c in done)
+        to_write = sum(characters[c] for c in range(event.chapter or 0, len(TITLES)))
+        assert alone.seconds_left is not None
+        assert event.seconds_left == pytest.approx(alone.seconds_left + rate * to_write)
+    for name in outputs(tmp_path / "quick"):
+        assert (tmp_path / "slow" / "out" / name).read_bytes() == (
+            tmp_path / "quick" / "out" / name
+        ).read_bytes(), name
 
 
 def test_a_resume_reuses_finished_chapter_files_without_speaking_or_encoding_them(

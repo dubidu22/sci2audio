@@ -16,7 +16,9 @@ chapters written, so its files stay the same when other chapters are added later
 
 Every file is put in place as `write_audiobook` puts it (`.<name>.partial`, then a rename;
 no half file is ever seen). `vouch` hears of each file before its rename, so the app can
-record it first: a killed job leaves only whole chapters its record names.
+record it first: a killed job leaves only whole chapters its record names. `progress`
+hears how many of a chapter's samples are fed to the encoder, so a long chapter's write is
+seen to move (#1061).
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import functools
 import hashlib
 import json
 import tempfile
-from collections.abc import Callable, Collection, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from itertools import pairwise
 from pathlib import Path
@@ -43,7 +45,7 @@ from sci2audio.output.model import (
     Written,
 )
 from sci2audio.output.timeline import Timeline, plan_timeline
-from sci2audio.output.wav import ChunkAudio, ChunkAudioError
+from sci2audio.output.wav import SAMPLE_WIDTH, ChunkAudio, ChunkAudioError
 from sci2audio.output.write import (
     Vouch,
     _atomic,
@@ -179,6 +181,36 @@ def _place(
     return timeline, spoken, audio
 
 
+def _told(
+    timeline: Timeline,
+    audio: Sequence[ChunkAudio],
+    first: int,
+    stop: int,
+    progress: Callable[[int, int], None] | None,
+) -> Iterable[bytes]:
+    """`_feed` of chunks `first` up to `stop`, telling `progress` how far it is: a piece is
+    counted once the encoder asks for the next, so it was taken."""
+    feed = _feed(timeline, audio, first, stop)
+    if progress is None:
+        return feed
+    total = sum(
+        placed.start - placed.pause_start + chunk.kept
+        for placed, chunk in zip(timeline.chunks[first:stop], audio[first:stop], strict=True)
+    )
+    return _counted(feed, total, progress)
+
+
+def _counted(
+    feed: Iterable[bytes], total: int, progress: Callable[[int, int], None]
+) -> Iterator[bytes]:
+    done = 0
+    progress(done, total)
+    for piece in feed:
+        yield piece
+        done += len(piece) // SAMPLE_WIDTH
+        progress(done, total)
+
+
 def chapter_fingerprint(
     book: BookInfo,
     title: str,
@@ -299,11 +331,20 @@ class BookWriter:
         pair = self.targets.subtitles[2 * (number - 1) : 2 * number]
         return tuple(pair)
 
-    def add(self, number: int, spoken: Sequence[Spoken], *, written: bool = False) -> ChapterAudio:
+    def add(
+        self,
+        number: int,
+        spoken: Sequence[Spoken],
+        *,
+        written: bool = False,
+        progress: Callable[[int, int], None] | None = None,
+    ) -> ChapterAudio:
         """Chapter `number` (counted from 1 in `titles`): write its MP3 and subtitles, then
         the read-along file of every chapter so far. With `written`, its files are already
         in place from an earlier run (the caller checked them): only the read-along file
-        is written. Chapters must come in document order."""
+        is written. Chapters must come in document order. `progress` is told the samples
+        fed to the encoder so far and the chapter's samples in all, as the MP3's feed
+        starts and after each piece of it."""
         if not 1 <= number <= len(self.titles):
             raise ValueError(f"there is no chapter {number} of {len(self.titles)}")
         if self.chapters and number <= self.chapters[-1].number:
@@ -335,7 +376,7 @@ class BookWriter:
                             self.cover,
                             partial,
                         ),
-                        _feed(timeline, all_audio, placed.first, placed.stop),
+                        _told(timeline, all_audio, placed.first, placed.stop, progress),
                     )
             self._write_subtitles(timeline, all_spoken, self.chapter_subtitles(number), index)
         self.chapters.append(chapter)
