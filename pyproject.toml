@@ -175,8 +175,9 @@ pytest_add_cli_args = ["-m", "not browser"]  # needs a Playwright browser (D-259
 # Files outside src/ and tests/ that tests read from the repository root (mutmut copies
 # only those two into mutants/): the scripts they import, the README they check, the
 # CI workflows they read (test_ci_workflows.py, #360), the licence table whose font
-# hashes test_web_design.py checks (#549), and the docs, the archived KB and the project
-# file that tests/unit reads, so the whole of tests/unit runs there (#1093).
+# hashes test_web_design.py checks (#549), and every other root file tests/unit reads
+# (the docs, the archived KB, the packaging files, the changelog, the licence and the
+# project file), so the whole of tests/unit runs there (#1093).
 also_copy = [
     "scripts/",
     "README.md",
@@ -184,6 +185,9 @@ also_copy = [
     "THIRD_PARTY_LICENSES.md",
     "docs/",
     "governance/",
+    "packaging/",
+    "CHANGELOG.md",
+    "LICENSE",
     "pyproject.toml",
 ]
 
