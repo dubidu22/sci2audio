@@ -290,14 +290,25 @@ def test_one_page_read_from_letter_shapes_is_named_alone(
         [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
     )
     doc = analysed_file(client, joined_pdf(plain, twin_pdf(TWIN_LINES)), "twin.pdf")
-    page = main_part(client.get(f"/documents/{doc['id']}").text)
     assert (
         "The text of page 2 was recognised from the shapes of its letters: the PDF&#39;s fonts "
         "give glyph numbers there instead of letters. The recognised text may hold mistakes."
-    ) in page
+    ) in recovered_callout(client, doc)
     client.cookies.set("sci2audio-language", "de")
+    assert "Der Text von Seite 2 wurde an der Form seiner Buchstaben erkannt: Die" in (
+        recovered_callout(client, doc)
+    )
+
+
+def recovered_callout(client: TestClient, doc: dict[str, Any]) -> str:
+    """The recognised-pages callout alone: the report's warning list on the same page holds
+    the English text too (#1086)."""
     page = main_part(client.get(f"/documents/{doc['id']}").text)
-    assert "Der Text von Seite 2 wurde an der Form seiner Buchstaben erkannt: Die" in page
+    callout = re.search(
+        r'<div class="callout warn" id="recovered-pages">.*?</div></div>', page, re.S
+    )
+    assert callout is not None
+    return callout[0]
 
 
 def test_scanned_pages_among_text_pages_are_named(server: tuple[FastAPI, Any]) -> None:
