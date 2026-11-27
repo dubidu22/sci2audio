@@ -153,7 +153,7 @@ jobs:
         env:
           BROWSER: ${{ matrix.browser }}
           SHARD: ${{ matrix.shard }}
-        run: uv run --no-sync python .github/scripts/browser_shard.py "$BROWSER" "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
+        run: uv run --no-sync python .github/scripts/shard.py browser "$SHARD" 2 "$RUNNER_TEMP/shard.txt" --browser "$BROWSER"
       - name: Browser tests (main flow, keyboard, axe-core)
         shell: bash
         env:
