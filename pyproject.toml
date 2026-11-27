@@ -171,7 +171,15 @@ markers = [
 [tool.mutmut]
 source_paths = ["src/sci2audio/"]
 pytest_add_cli_args_test_selection = ["tests/"]
-pytest_add_cli_args = ["-m", "not browser"]  # needs a Playwright browser (D-259)
+# The browser tests need a Playwright browser (D-259). The linear-time check of a page of
+# drawings compares two timings against a ratio close to its limit, which mutmut's
+# trampolines distort: it failed the unmutated run of tests/unit at 32.5 against 32 (#1093).
+pytest_add_cli_args = [
+    "-m",
+    "not browser",
+    "--deselect",
+    "tests/unit/test_layout_figure_speed.py::test_a_page_of_drawings_is_laid_out_in_linear_time",
+]
 # Files outside src/ and tests/ that tests read from the repository root (mutmut copies
 # only those two into mutants/): the scripts they import, the README they check, the
 # CI workflows they read (test_ci_workflows.py, #360), the licence table whose font
