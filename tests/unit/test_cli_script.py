@@ -11,8 +11,9 @@ from pathlib import Path
 
 import pytest
 from cli_helpers import CORPUS, SEABORN, Cli, files_in, small_pdf
-from pdf_maker import Text, image_only_pdf, joined_pdf, make_pdf
+from pdf_maker import Text, image_only_pdf, joined_pdf, make_pdf, twin_pdf
 from syrupy.assertion import SnapshotAssertion
+from test_app_job import TWIN_LINES
 from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
@@ -288,6 +289,41 @@ def test_a_scanned_page_is_named(cli: Cli, tmp_path: Path) -> None:
         "sci2audio: warning: Page 2 holds no text, only pictures (a scanned page?), so nothing "
         "on it is read.\n"
     ) in result.err
+
+
+SCANNED = (
+    "sci2audio: warning: Page 3 holds no text, only pictures (a scanned page?), so nothing on "
+    "it is read.\n"
+)
+RECOGNISED = (
+    "sci2audio: warning: The text of page 2 was recognised from the shapes of its letters: the "
+    "PDF's fonts give glyph numbers there instead of letters. The recognised text may hold "
+    "mistakes.\n"
+)
+PLAIN = [Text("A plain line of English text that reads well.", 72, 100 + 14 * k) for k in range(8)]
+
+
+@pytest.mark.parametrize("command", ["script", "convert"])
+def test_pages_read_from_letter_shapes_are_named(cli: Cli, tmp_path: Path, command: str) -> None:
+    """#1086: the command line prints the report's warning for pages whose letters were
+    recognised from their shapes (#618), after the picture one, in the report's order."""
+    source = tmp_path / "twin.pdf"
+    source.write_bytes(joined_pdf(make_pdf(PLAIN), twin_pdf(TWIN_LINES), image_only_pdf()))
+    result = cli(command, source, "-o", tmp_path / "out", "-q", "--language", "en")
+    assert result.code == 0, result.err
+    assert result.err.count(RECOGNISED) == 1
+    assert result.err.index(SCANNED) < result.err.index(RECOGNISED)
+
+
+@pytest.mark.parametrize("command", ["script", "convert"])
+def test_a_pdf_without_pages_read_from_letter_shapes_warns_of_nothing(
+    cli: Cli, tmp_path: Path, command: str
+) -> None:
+    source = tmp_path / "plain.pdf"
+    source.write_bytes(joined_pdf(make_pdf(PLAIN), make_pdf(PLAIN)))
+    result = cli(command, source, "-o", tmp_path / "out", "-q", "--language", "en")
+    assert result.code == 0, result.err
+    assert result.err == ""
 
 
 def test_the_language_warnings_are_printed_once_and_a_clear_guess_is_not(
