@@ -218,7 +218,12 @@ def across(
     indent, gap = settings.formula_indent * size, settings.float_gap * size
     groups: list[list[Element]] = []
     for head in texts:
-        if head.box.x1 < right - settings.number_reach * size or not number_alone(head.line):
+        # a head always has a line (texts holds no other): the test only tells pyright so
+        if (
+            head.line is None
+            or head.box.x1 < right - settings.number_reach * size
+            or not number_alone(head.line)
+        ):
             continue
         row = [
             e
@@ -249,6 +254,7 @@ def across(
                 and e.box.x1 <= min(right - settings.fill_slack * size, box.x1)
                 and e.box.y0 <= box.y1 + gap
                 and e.box.y1 >= box.y0 - gap
+                and e.line is not None  # always so in texts: the test only tells pyright
                 and (
                     line_size(e.line) < smaller
                     or math_letters([e.line], settings.math_fonts) >= settings.math_share
