@@ -16,7 +16,7 @@ import re
 import threading
 import time
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +36,7 @@ from web_helpers import (
 
 from sci2audio.app import AudioProgress, JobSettings, Phase
 from sci2audio.app.playable import read_record
+from sci2audio.voices import EngineError
 from sci2audio.web import create_app, player
 from sci2audio.web.documents import AUDIO_RECORD
 from sci2audio.web.player import RECORD as WEB_RECORD
@@ -492,3 +493,67 @@ def test_adding_to_a_finished_book_reports_its_chapters_only_while_the_page_open
     ((reported, found),) = seen
     assert set(reported) <= set(found)
     assert reported == ((0, 1) if record else ())
+
+
+# ---- the made-with note on a resume (#1073) ------------------------------------------------
+
+
+def resumed_after_an_update(
+    book: Growing, monkeypatch: pytest.MonkeyPatch, voice: FakeVoice
+) -> dict[str, Any]:
+    """Resume the paused job in the next run of sci2audio, a newer version, with `voice`."""
+    paused = book.stop()
+    assert paused["state"] == "cancelled"
+    monkeypatch.setattr("sci2audio.web.tasks.__version__", "99.0")
+    app = create_app(book.config, voice=lambda models_dir: voice.source())
+    client = program(app, book.config)
+    body = {
+        "kind": "audio",
+        "document": book.doc,
+        "settings": paused["settings"],
+        "overwrite": paused["overwrite"],
+    }
+    answer = client.post("/api/v1/jobs", json=body)
+    assert answer.status_code == 202, answer.text
+    return wait(client, answer.json()["id"])
+
+
+def test_a_resume_whose_voice_fails_to_load_leaves_the_earlier_note_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The chapters reported while the voice loads are the earlier run's, so the note of
+    what the book is made with stays the earlier run's too: this run made none of them.
+    The making card still offers them from the voice-loading step (#1065). Held inside
+    chapter 2, the earlier run left chapter 1 playable and chapter 3 still to speak."""
+    book = start_growing(tmp_path, ready=1, gate_text="We measured it twice.")
+    note = (book.work / WEB_RECORD).read_bytes()
+    assert json.loads(note)["made"]["sci2audio"] != "99.0"
+    voice = FakeVoice(fail_to_make=EngineError("the model file is damaged"))
+    failed = resumed_after_an_update(book, monkeypatch, voice)
+    assert failed["state"] == "failed"
+    assert failed["progress"]["phase"] == "loading-voice"
+    assert failed["progress"]["playable"] == [0]
+    assert (book.work / WEB_RECORD).read_bytes() == note
+
+
+def test_a_resume_notes_its_version_once_its_first_chapter_is_playable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The resume takes chapter 1 as the earlier run left it, and notes what it makes the
+    book with only once chapter 2, the first it writes itself, is playable."""
+    book = start_growing(tmp_path, ready=1, gate_text="We measured it twice.")
+    earlier = player.recorded_made(book.work, book.doc)
+    assert earlier is not None
+    noted: list[tuple[player.Made, list[int]]] = []
+    write = player.write_record
+
+    def noting(work: Path, document_id: str, folder: Path, made: Any = None) -> None:
+        if made is not None:
+            chapters = read_record(work)
+            noted.append((made, [c.index for c in chapters.chapters] if chapters else []))
+        write(work, document_id, folder, made)
+
+    monkeypatch.setattr("sci2audio.web.tasks.write_record", noting)
+    done = resumed_after_an_update(book, monkeypatch, FakeVoice())
+    assert done["state"] == "done", done["error"]
+    assert noted == [(replace(earlier, plugins=frozenset(), version="99.0"), [0, 1])]
