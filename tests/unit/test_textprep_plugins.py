@@ -2,6 +2,7 @@
 
 import gc
 import inspect
+import os
 import subprocess
 import sys
 import threading
@@ -20,7 +21,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from sci2audio.core import BlockKind
-from sci2audio.testing import check_text_step, make_document
+from sci2audio.testing import SAMPLE_DOCUMENTS, check_text_step, make_document
 from sci2audio.textprep import (
     BUILT_IN_STEPS,
     Category,
@@ -488,9 +489,35 @@ def test_the_loaded_example_plugin_passes_the_conformance_suite() -> None:
     check_text_step(step)
 
 
+# Each guarded call ends in a full garbage collection, so on a PR the guard is checked on the
+# fewest sample documents that still give every built-in step work, in English and German
+# (only title.txt holds hidden runs and affiliation marks); the nightly checks it on every
+# one. The steps themselves keep every sample document on every PR, unguarded
+# (test_textprep_conformance.py), and so does a plugin author's plain call (#1134).
+GUARD_SAMPLES = ("paper.txt", "german.txt", "title.txt")
+GUARD_DOCUMENTS = (
+    SAMPLE_DOCUMENTS
+    if os.environ.get("HYPOTHESIS_PROFILE") == "nightly"
+    else tuple(d for d in SAMPLE_DOCUMENTS if d.content.source.name in GUARD_SAMPLES)
+)
+
+
+@pytest.mark.parametrize("step", BUILT_IN_STEPS, ids=lambda step: step.id)
+def test_the_guards_sample_set_gives_every_built_in_step_work(step) -> None:
+    samples = [d for d in SAMPLE_DOCUMENTS if d.content.source.name in GUARD_SAMPLES]
+    assert [d.content.source.name for d in samples] == ["paper.txt", "german.txt", "title.txt"]
+    assert {d.language for d in samples} >= {"en", "de"}
+    assert any(
+        step.find(document, StepContext(document.language))
+        for document in samples
+        if step.handles(document.language)
+    )
+
+
+@pytest.mark.deep
 @pytest.mark.parametrize("step", BUILT_IN_STEPS, ids=lambda step: step.id)
 def test_a_guarded_built_in_step_keeps_the_contract(step) -> None:
-    check_text_step(guarded(step), allow_ask=False)
+    check_text_step(guarded(step), GUARD_DOCUMENTS, allow_ask=False)
 
 
 @given(st.sampled_from(BUILT_IN_STEPS), documents())
