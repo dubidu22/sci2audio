@@ -11,13 +11,18 @@ import textwrap
 import time
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 from audio_fakes import FakeVoice
+from test_app_audio_faults import FailingFfmpeg
 
 from sci2audio.app import (
+    AudioProgress,
+    JobError,
     JobSettings,
     OutputExistsError,
+    Phase,
     SettingsChangedError,
     job,
     kept_settings,
@@ -26,7 +31,7 @@ from sci2audio.app import (
 from sci2audio.app.playable import RECORD, read_record, write_record
 from sci2audio.core import Content, Document
 from sci2audio.layout import LayoutSettings, build_document
-from sci2audio.output import read_readalong
+from sci2audio.output import find_ffmpeg, read_readalong
 
 UNIT = Path(__file__).resolve().parent
 TITLES = ("Alpha", "Beta", "Gamma")
@@ -406,3 +411,112 @@ def test_adding_chapters_reports_an_unknown_chapter_as_a_fresh_run_does(tmp_path
     assert added.result.ignored_chapters == (9,)
     # the unknown number changes nothing else: the same files as without it
     assert files(tmp_path) == files(tmp_path / "plain")
+
+
+def while_beta_is_spoken(
+    folder: Path, chapters: tuple[int, ...], **kwargs: Any
+) -> tuple[list[tuple[tuple[int, ...], list[str]]], list[AudioProgress]]:
+    """Run the job and note, before each of Beta's chunks is spoken, the chapters the
+    record on disk lists and the MP3s its read-along file names; and the job's events from
+    the first of its audio stage on."""
+    seen: list[tuple[tuple[int, ...], list[str]]] = []
+    events: list[AudioProgress] = []
+
+    def watch(text: str) -> bool:
+        if "Beta" in text:
+            record = read_record(folder / "work")
+            assert record is not None
+            readalong = next((folder / "out").glob("*.readalong.json"), None)
+            named = [c.mp3 for c in read_readalong(readalong).chapters] if readalong else []
+            seen.append((tuple(c.index for c in record.chapters), named))
+        return False
+
+    run(folder, FakeVoice(fail_on=watch), chapters, progress=events.append, **kwargs)
+    start = next(n for n, e in enumerate(events) if e.phase is Phase.LOADING_VOICE)
+    return seen, events[start:]
+
+
+def test_chapters_made_around_an_added_one_stay_playable_while_it_is_spoken(
+    tmp_path: Path,
+) -> None:
+    """Chapters 1 and 3 are made, chapter 2 is added (#1070): while it is spoken, the
+    record on disk and the read-along file still name chapters 1 and 3 in that order (the
+    Listen page needs both to agree), and so do the job's events."""
+    run(tmp_path, FakeVoice(), (0, 2))
+    seen, events = while_beta_is_spoken(tmp_path, (1,))
+    assert seen
+    assert all(
+        listed == ((0, 2), ["book - 01 Alpha.mp3", "book - 03 Gamma.mp3"]) for listed in seen
+    )
+    beta = next(n for n, e in enumerate(events) if e.ready == 1)
+    assert all(e.playable == (0, 2) for e in events[:beta])
+    assert events[-1].playable == (0, 1, 2)
+    # and every file is the one a job making all three at once writes
+    whole = tmp_path / "whole"
+    run(whole, FakeVoice(), (0, 1, 2))
+    assert files(tmp_path) == files(whole)
+
+
+@pytest.mark.parametrize("how", ["missing", "settings"])
+def test_a_chapter_not_taken_as_it_is_is_not_listed_until_it_is_made_again(
+    tmp_path: Path, how: str
+) -> None:
+    """Chapters 1 and 3 are made, then chapter 2 is added while chapter 3's MP3 is gone, or
+    every chapter is made again under other settings (D-909): chapter 3 is neither in the
+    record on disk nor in the events while chapter 2 is spoken, only from its own `ready`
+    on."""
+    run(tmp_path, FakeVoice(), (0, 2))
+    if how == "missing":
+        (tmp_path / "out" / "book - 03 Gamma.mp3").unlink()
+        seen, events = while_beta_is_spoken(tmp_path, (1, 2))
+    else:
+        seen, events = while_beta_is_spoken(
+            tmp_path, (0, 1, 2), settings={"speed": 1.2}, overwrite=True
+        )
+    assert seen
+    assert all(listed == ((0,), ["book - 01 Alpha.mp3"]) for listed in seen)
+    gamma = next(n for n, e in enumerate(events) if e.ready == 2)
+    assert all(2 not in e.playable for e in events[:gamma])
+    assert events[-1].playable == (0, 1, 2)
+
+
+def project(folder: Path) -> dict[str, bytes]:
+    """The audiobook's files and the working folder's records, byte for byte."""
+    work = folder / "work"
+    return {**files(folder), **{n: (work / n).read_bytes() for n in (RECORD, "audio.json")}}
+
+
+@pytest.mark.parametrize("how", ["stopped", "full-disk"])
+def test_the_old_records_stay_until_the_added_chapter_puts_its_first_file_in_place(
+    tmp_path: Path, how: str
+) -> None:
+    """Stopped while the added chapter is spoken, the earlier book is left as it was; when
+    its first file fails to be written, the old records were removed before it (D-119) and
+    the record and the read-along file name only the chapter before it. Either way the
+    rerun ends as a job making all three at once."""
+    run(tmp_path, FakeVoice(), (0, 2))
+    before = project(tmp_path)
+    if how == "stopped":
+
+        def stop(text: str) -> bool:
+            if "Beta" in text:
+                raise KeyboardInterrupt
+            return False
+
+        with pytest.raises(KeyboardInterrupt):
+            run(tmp_path, FakeVoice(fail_on=stop), (1,))
+        assert project(tmp_path) == before
+    else:
+        ffmpeg = FailingFfmpeg(find_ffmpeg(), fail_at=1, calls=[])  # Beta's MP3
+        with pytest.raises(JobError, match="No space left on device"):
+            run(tmp_path, FakeVoice(), (1,), ffmpeg=ffmpeg)
+        assert not (tmp_path / "work" / "audio.json").exists()
+        record = read_record(tmp_path / "work")
+        assert record is not None
+        assert [c.index for c in record.chapters] == [0]
+        readalong = read_readalong(tmp_path / "out" / "book.readalong.json")
+        assert [c.mp3 for c in readalong.chapters] == ["book - 01 Alpha.mp3"]
+    run(tmp_path, FakeVoice(), (1, 2))
+    whole = tmp_path / "whole"
+    run(whole, FakeVoice(), (0, 1, 2))
+    assert files(tmp_path) == files(whole)

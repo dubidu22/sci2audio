@@ -706,7 +706,7 @@ def run_audio_job(
             clock,
             chapters,
         )
-        if chapters.writer is None:
+        if not chapters.added:
             raise JobError("the voice could not speak any of the chosen chapters")
 
         tell(
@@ -1026,7 +1026,25 @@ def _standing(work: Path, out_folder: Path, plan: _BookPlan, found: _Found) -> t
 
 class _Chapters:
     """Writes each chapter's files as soon as its last chunk is spoken, and keeps the
-    chapter record (`playable.py`) one step ahead of the files (#723)."""
+    chapter record (`playable.py`) one step ahead of the files (#723).
+
+    When the old records go (#1070). While the earlier run's book stands whole
+    (`standing`), a job not told to replace it (`overwrite`) lets the chapters it takes
+    as they are wait (`waiting`) until the first chapter that must be written is spoken,
+    or until `finish` when none must be. Until then it changes nothing in the output
+    folder or the records: `chapters.json`, the read-along file, `audio.json` and
+    `document.json` stay the earlier run's, so the Listen page plays the chapters made
+    before and after an added one. That is safe because `standing` holds only when every
+    file those records name is still there as recorded (same size and SHA-256): they
+    vouch for no file this run has replaced. Meanwhile only new chunks go into the cache,
+    which no record names, and a stop leaves the earlier book as it was. Then `_writer`,
+    before any file of this run is put in place: `audio.json` and `document.json` are
+    removed (D-119), the new document is written, `chapters.json` is replaced by this
+    run's record (no chapter yet, the earlier files pending as the job's own), and the
+    writer removes the old read-along file; the waiting chapters are added again in
+    order, then the chapter just spoken. Otherwise, and for a replace (a paused one
+    resumes as a replace, D-733), the writer starts at the first chapter done, as
+    before."""
 
     def __init__(
         self,
@@ -1055,6 +1073,7 @@ class _Chapters:
         self.in_book = False  # writing the book's files (the M4B and its subtitles)
         self.placing: set[str] = set()  # book files vouched for, maybe not yet in place
         self.standing = _standing(work, out_folder, plan, found)
+        self.waiting: list[tuple[int, list[Spoken], str]] = []  # index, chunks, fingerprint
 
     @property
     def playable(self) -> tuple[int, ...]:
@@ -1074,15 +1093,32 @@ class _Chapters:
             saving.finish()
             return  # the voice failed on every sentence: the chapter gets no file (D-162)
         self._check_rates(spoken)
-        number = self.plan.number(index)
         fingerprint = self.plan.fingerprint(index, spoken)
         reused = self.found.reuse.get(index)
         written = reused is not None and reused.fingerprint == fingerprint
+        if written and self.writer is None and not self.overwrite and index in self.standing:
+            self.waiting.append((index, spoken, fingerprint))
+        else:
+            self._add(index, spoken, fingerprint, written, saving.fed)
+        self.added.append(index)
+        saving.finish()
+        self.tell(dataclasses.replace(saving.now(), ready=index, playable=self.playable))
+
+    def _add(
+        self,
+        index: int,
+        spoken: list[Spoken],
+        fingerprint: str,
+        written: bool,
+        progress: Callable[[int, int], None] | None,
+    ) -> None:
+        """Write chapter `index`'s files (`written`: take them as they are) and record it."""
+        reused = self.found.reuse.get(index)
         try:
             writer = self._writer()
             # the chunk list the whole book is built from later (#725), before the files
             spoken_sha = write_spoken(self.work, index, spoken)
-            writer.add(self.plan.place(index), spoken, written=written, progress=saving.fed)
+            writer.add(self.plan.place(index), spoken, written=written, progress=progress)
         except Exception as error:
             raise _encode_error(error, self.out_folder) from error
         if written and reused is not None:
@@ -1093,22 +1129,19 @@ class _Chapters:
         chapter = PlayableChapter(
             index,
             self.plan.titles[index],
-            number,
+            self.plan.number(index),
             fingerprint,
             tuple(f for f in files if f.name in names),
             spoken_sha,
         )
         self._save(self._placed(self.record.with_chapter(chapter)))
-        self.added.append(index)
-        saving.finish()
-        self.tell(dataclasses.replace(saving.now(), ready=index, playable=self.playable))
 
     def finish(self) -> Written:
         """The M4B and the book's subtitles when asked for, and the final read-along file."""
-        assert self.writer is not None  # noqa: S101 (finish follows a chapter)
-        self.in_book = True
         try:
-            return self.writer.finish()
+            writer = self._writer()  # the chapters still waiting are added first
+            self.in_book = True
+            return writer.finish()
         except Exception as error:
             raise _encode_error(error, self.out_folder) from error
 
@@ -1157,6 +1190,9 @@ class _Chapters:
                 numbers=self.plan.planned_numbers(),
                 count=self.plan.count,
             )
+            waiting, self.waiting = self.waiting, []
+            for index, spoken, fingerprint in waiting:
+                self._add(index, spoken, fingerprint, True, None)
         return self.writer
 
     def _vouch(self, target: Path, size: int, sha256: str) -> None:
