@@ -65,7 +65,12 @@ from sci2audio.app import (
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
-from sci2audio.app.readability import picture_pages, picture_warning
+from sci2audio.app.readability import (
+    picture_pages,
+    picture_warning,
+    recovered_pages,
+    recovered_warning,
+)
 from sci2audio.app.report import PLUGINS_OFF, plugins_line, plugins_off
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
@@ -609,13 +614,16 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
 
 
 def _document_warnings(env: CliEnv, result: ScriptResult) -> None:
-    """Say when a PDF has pages of pictures only (#186), when a text file's encoding was a
-    guess (D-346), and when the text did not tell its language or overruled the file's
-    (D-498; a clear guess is only in the report)."""
+    """Say when a PDF has pages of pictures only (#186) or pages read from their letters'
+    shapes (#618, #1086), when a text file's encoding was a guess (D-346), and when the text
+    did not tell its language or overruled the file's (D-498; a clear guess is only in the
+    report). The PDF warnings are the report's own, in its order."""
     content = result.document.content
     pictures = picture_pages(content)
+    recovered = recovered_pages(content)
     for warning in (
         picture_warning(pictures) if pictures else None,
+        recovered_warning(recovered) if recovered else None,
         encoding_warning(content.source),
         language_warning(result.document),
     ):
