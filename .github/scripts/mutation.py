@@ -16,6 +16,7 @@ the 1,567 mutants of textprep/links.py took 50 min), so a run names what it muta
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -63,11 +64,20 @@ def runners() -> int:
     return min(count, len(globs()))
 
 
+def request_key(mutants: str, test_paths: str) -> str:
+    """A short name for one request, for its concurrency group: the inputs themselves grow
+    past what GitHub accepts in a group name and the run then starts no job (#1093)."""
+    request = "\n".join(mutants.split()) + "\0" + "\n".join(test_paths.split())
+    return hashlib.sha256(request.encode("utf-8")).hexdigest()[:16]
+
+
 def matrix() -> None:
     tests()
     cells = [{"slice": k} for k in range(1, runners() + 1)]
+    key = request_key(env("MUTANTS"), env("TESTS", "tests/"))
     with Path(env("GITHUB_OUTPUT")).open("a", encoding="utf-8") as out:
         out.write(f"matrix={json.dumps({'include': cells})}\n")
+        out.write(f"key={key}\n")
     print(f"{len(cells)} runners; mutants: {' '.join(globs())}; tests: {' '.join(tests())}")
 
 

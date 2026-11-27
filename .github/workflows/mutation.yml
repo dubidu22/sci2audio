@@ -25,12 +25,6 @@ on:
 permissions:
   contents: read
 
-# A second run of the same request waits for the first instead of running beside it
-# (D-580); a different request runs beside it.
-concurrency:
-  group: mutation-${{ github.ref }}-${{ inputs.mutants }}-${{ inputs.tests }}
-  cancel-in-progress: false
-
 env:
   # The Python of .python-version (3.12.16 or newer), as uv downloads it; never the runner's
   # own, which is older on macOS and Windows and reads broken HTML differently (D-378, #175).
@@ -46,6 +40,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      key: ${{ steps.matrix.outputs.key }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,6 +53,12 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 350
+    # A second run of the same request waits for the first instead of running beside it
+    # (D-580), runner by runner; a different request runs beside it. The group names the
+    # request by its key: the inputs themselves made it too long to start (#1093).
+    concurrency:
+      group: mutation-${{ github.ref }}-${{ needs.plan.outputs.key }}-${{ matrix.slice }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}

@@ -415,7 +415,19 @@ def test_every_test_that_reads_the_nightly_profile_runs_in_the_nightly_property_
     assert readers <= selected, sorted(readers - selected)
 
 
+def own_checkout(root: Path) -> bool:
+    """Whether `root` is the top of a git checkout, not a folder inside another one."""
+    git = shutil.which("git")
+    assert git is not None
+    top = subprocess.run(
+        [git, "rev-parse", "--show-toplevel"], cwd=root, capture_output=True, text=True
+    )
+    return top.returncode == 0 and Path(top.stdout.strip()).resolve() == root.resolve()
+
+
 def tracked_files(*folders: str) -> list[str]:
+    if not own_checkout(ROOT):
+        pytest.skip("not a git checkout of its own (mutmut's copy of the tree, #1093)")
     git = shutil.which("git")
     assert git is not None
     listing = subprocess.run(
@@ -747,3 +759,67 @@ def test_runs_from_before_the_three_shards_are_not_counted(
     assert "median 5.00 min" in summary
     assert "2 runs" in summary
     assert "since 2026-11-27 16:04 UTC" in summary
+
+
+def mutation_script():  # type: ignore[no-untyped-def]
+    """`.github/scripts/mutation.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "mutation.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_mutation", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+TWELVE_TESTS = " ".join(f"tests/unit/test_textprep_part_{n}.py" for n in range(12))
+FOUR_GLOBS = " ".join(f"sci2audio.textprep.module_{n}*" for n in range(4))
+
+
+def test_a_long_mutation_request_gets_a_short_key_that_names_only_that_request() -> None:
+    """The concurrency group joined every glob and test path and grew past what GitHub
+    accepts, so a dispatch with twelve test paths started no job (#1093)."""
+    key = mutation_script().request_key
+    long = key(FOUR_GLOBS, TWELVE_TESTS)
+    assert re.fullmatch(r"[0-9a-f]{16}", long)
+    assert key(FOUR_GLOBS, TWELVE_TESTS.replace(" ", "\n  ")) == long  # the same request
+    assert key(FOUR_GLOBS, "tests/") != long
+    assert key("sci2audio.textprep.links*", TWELVE_TESTS) != long
+    assert key("a b", "c") != key("a", "b c")  # the lists are not run together
+
+
+def test_the_mutation_plan_writes_the_request_key_beside_the_matrix(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    monkeypatch.setenv("MUTANTS", FOUR_GLOBS)
+    monkeypatch.setenv("TESTS", TWELVE_TESTS)
+    monkeypatch.setenv("RUNNERS", "2")
+    module = mutation_script()
+    module.matrix()
+    lines = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert json.loads(lines["matrix"]) == {"include": [{"slice": 1}, {"slice": 2}]}
+    assert lines["key"] == module.request_key(FOUR_GLOBS, TWELVE_TESTS)
+
+
+def test_a_repeated_mutation_request_waits_and_another_runs_beside_it() -> None:
+    """D-580: the same request on the same branch waits for the first, slice by slice, and
+    is never cancelled; the group holds only the short key, whatever the inputs' length."""
+    mutation = (WORKFLOWS / "mutation.yml").read_text(encoding="utf-8")
+    assert not re.search(r"^concurrency:", mutation, re.M)
+    assert "key: ${{ steps.matrix.outputs.key }}" in block(mutation, "  plan:")
+    job = block(mutation, "  mutmut:")
+    assert [line.strip() for line in block(job, "    concurrency:").splitlines()] == [
+        "group: mutation-${{ github.ref }}-${{ needs.plan.outputs.key }}-${{ matrix.slice }}",
+        "cancel-in-progress: false",
+    ]
+    assert "inputs." not in block(job, "    concurrency:")
+
+
+def test_a_folder_that_is_no_checkout_of_its_own_is_told_apart(tmp_path: Path) -> None:
+    """mutmut runs the tests in its copy of the tree, where git lists the repository's files
+    and not the copy's (#1093); the tests that read the tracked files skip there."""
+    assert own_checkout(ROOT)
+    assert not own_checkout(ROOT / "tests")  # mutmut's copy lies inside the checkout
+    assert not own_checkout(tmp_path)
