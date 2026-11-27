@@ -572,3 +572,149 @@ def test_the_shard_collects_tests_with_golden_files(tmp_path: Path) -> None:
     tests = out.read_text(encoding="utf-8").splitlines()
     assert tests
     assert all(test.startswith(f"{golden}::") for test in tests)
+
+
+def pr_wait_script():  # type: ignore[no-untyped-def]
+    """`.github/scripts/pr_wait.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "pr_wait.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_pr_wait", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def pr_run(conclusion: str = "success") -> dict:
+    return {"run_started_at": "2026-11-27T10:00:00Z", "conclusion": conclusion}
+
+
+def ended(name: str, at: str, conclusion: str = "success") -> dict:
+    return {"name": name, "status": "completed", "conclusion": conclusion, "completed_at": at}
+
+
+def test_a_runs_wait_is_from_its_start_to_the_end_of_ci_passed() -> None:
+    jobs = [
+        ended("tests (ubuntu-latest, 1/3)", "2026-11-27T10:04:00Z"),
+        ended("CI passed", "2026-11-27T10:05:30Z"),
+        ended("types (pyright, reported only)", "2026-11-27T10:09:00Z", "failure"),
+    ]
+    assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 5.5
+
+
+@pytest.mark.parametrize(
+    "jobs",
+    [
+        [ended("lint and layers", "2026-11-27T10:01:00Z")],  # no "CI passed" at all
+        [ended("CI passed", "2026-11-27T10:02:00Z", "skipped")],
+        [{"name": "CI passed", "status": "in_progress", "conclusion": None, "completed_at": None}],
+        [  # a full run (ci:full) waits for macOS and Windows: not an ordinary PR's wait
+            ended("tests (macos-latest)", "2026-11-27T10:13:00Z"),
+            ended("CI passed", "2026-11-27T10:15:00Z"),
+        ],
+    ],
+)
+def test_a_run_without_a_finished_ci_passed_or_a_full_run_is_left_out(jobs: list[dict]) -> None:
+    assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) is None
+
+
+def test_a_run_cancelled_by_a_newer_push_is_left_out() -> None:
+    """The job "CI passed" runs `if: always()`, so in a run a newer push cancelled it still
+    ends, red, minutes later: that is the time to the next push, not a wait for CI."""
+    jobs = [ended("CI passed", "2026-11-27T10:02:00Z", "failure")]
+    assert pr_wait_script().minutes_to_ci_passed(pr_run("cancelled"), jobs) is None
+
+
+def test_a_red_ci_passed_still_counts_as_a_wait() -> None:
+    jobs = [ended("CI passed", "2026-11-27T10:07:00Z", "failure")]
+    assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 7
+
+
+def test_the_budget_judges_the_median_wait_not_one_slow_run() -> None:
+    waits = [5.0] * 10 + [5.5] * 9 + [40.0]  # one runner that was slow to start
+    assert pr_wait_script().verdict(waits) == (5.25, True)
+
+
+@pytest.mark.parametrize(("median", "within"), [(6.0, True), (6.01, False)])
+def test_a_median_above_6_minutes_fails_and_one_at_6_passes(median: float, within: bool) -> None:
+    assert pr_wait_script().verdict([median - 1, median, median + 1]) == (median, within)
+
+
+def run_pr_wait(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, waits: list[float | None]
+) -> tuple[str, list[int]]:
+    """Runs `main` on fake API answers, newest run first: a number is a run whose "CI
+    passed" ended that many minutes after its start, None a run cancelled by a newer push.
+    Returns the job summary and the runs whose jobs were read."""
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("REPO", "owner/repo")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    runs = [
+        {**pr_run("cancelled" if minutes is None else "success"), "id": i}
+        for i, minutes in enumerate(waits)
+    ]
+    read: list[int] = []
+
+    def jobs(repo: str, run_id: int) -> list[dict]:
+        assert repo == "owner/repo"
+        read.append(run_id)
+        minutes = waits[run_id]
+        if minutes is None:
+            return [ended("CI passed", "2026-11-27T10:01:00Z", "failure")]
+        seconds = round(minutes * 60)
+        return [ended("CI passed", f"2026-11-27T10:{seconds // 60:02d}:{seconds % 60:02d}Z")]
+
+    try:
+        pr_wait_script().main(runs=lambda repo: runs, jobs=jobs)
+    finally:
+        text = summary.read_text(encoding="utf-8") if summary.exists() else ""
+    return text, read
+
+
+def test_the_nightly_takes_the_median_of_the_last_20_runs_that_finished(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    waits: list[float | None] = [None, *[5.0] * 10, None, *[5.5] * 10, *[30.0] * 5]
+    summary, read = run_pr_wait(monkeypatch, tmp_path, waits)
+    assert read == list(range(22))  # no run older than the 20th that finished is read
+    assert "median 5.25 min" in summary  # of the 20 newest that finished, not the 30s
+    assert "20 runs" in summary
+    assert "budget 6 min" in summary
+
+
+def test_with_fewer_than_20_runs_it_uses_those_there_are_and_says_how_many(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    summary, _ = run_pr_wait(monkeypatch, tmp_path, [4.0, None, 5.0, 6.0])
+    assert "median 5.00 min" in summary
+    assert "3 runs" in summary
+
+
+def test_a_median_above_the_budget_fails_the_nightly_after_writing_the_summary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    with pytest.raises(SystemExit, match=r"median wait 7\.00 min .* above the budget of 6 min"):
+        run_pr_wait(monkeypatch, tmp_path, [7.0, 7.0, 6.0])
+    assert "median 7.00 min" in (tmp_path / "summary.md").read_text(encoding="utf-8")
+
+
+def test_no_finished_run_is_no_pass(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="none of the 2 pull-request runs read"):
+        run_pr_wait(monkeypatch, tmp_path, [None, None])
+
+
+def test_the_nightly_checks_the_pr_wait_with_read_rights_only() -> None:
+    """#1133: the budget check reads this repository's CI runs and may write nothing, so a
+    red budget is a person's call to act on, never a CI job opening issues itself."""
+    job = block(NIGHTLY, "  pr-wait:")
+    assert "name: pull-request wait (budget 6 min)" in job
+    permissions = block(job, "    permissions:").strip().splitlines()
+    assert [line.split("#")[0].strip() for line in permissions] == [
+        "contents: read",
+        "actions: read",
+    ]
+    assert "write" not in job
+    assert "run: python3 .github/scripts/pr_wait.py" in job
+    assert "GH_TOKEN: ${{ github.token }}" in job
+    assert "REPO: ${{ github.repository }}" in job
+    assert "persist-credentials: false" in job
