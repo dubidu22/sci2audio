@@ -14,6 +14,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 
+import pytest
 from playwright.sync_api import Page, expect
 from test_web_listen_growing import three_chapters
 
@@ -100,6 +101,9 @@ def test_a_chapter_that_becomes_ready_appears_without_a_reload(signed_in: Page, 
         expect(page.locator("#chapter-2 .s.now")).to_have_count(1)
 
 
+@pytest.mark.quarantined(
+    issue=1145, reason="no sentence of the next chapter is marked", browser="webkit"
+)
 def test_the_player_waits_for_the_next_chapter_and_goes_on_by_itself(
     signed_in: Page, live: Live
 ) -> None:
