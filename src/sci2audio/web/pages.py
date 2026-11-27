@@ -1397,8 +1397,13 @@ def _outline_rows(
     its state: a growing book's planned rows as #724 draws them, the others "missing" (not
     generated) unless the analysis found nothing to say in them. None for a book read in
     an order the person chose (#119), which is never added to: the list as before."""
-    places = {chapter_index(work, n): n for n in range(len(view.chapters))}
-    if None in places or [places[i] for i in sorted(places)] != sorted(places.values()):
+    places: dict[int, int] = {}
+    for n in range(len(view.chapters)):
+        index = chapter_index(work, n)
+        if index is None:
+            return None
+        places[index] = n
+    if [places[i] for i in sorted(places)] != sorted(places.values()):
         return None
     # whether the analysis found something to say, where it names the same chapter
     said = {
