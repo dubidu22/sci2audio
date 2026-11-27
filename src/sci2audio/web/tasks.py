@@ -180,6 +180,7 @@ def audio_work(
         except ProjectError as error:
             raise JobError(str(error)) from error
         noted = False
+        standing: frozenset[int] | None = None
         made_with = _kept_settings(document, settings) if keep_settings else settings
         try:
             # chapters added before the place the person listened to move it (#726)
@@ -188,10 +189,15 @@ def audio_work(
             logger.warning("could not keep the listening position by its chapter: %s", error)
 
         def progress(event: AudioProgress) -> None:
-            nonlocal noted
-            if event.playable and not noted:
+            nonlocal noted, standing
+            if standing is None and event.phase in (Phase.LOADING_VOICE, Phase.SPEAKING):
+                standing = frozenset(event.playable)
+            if standing is not None and not standing.issuperset(event.playable) and not noted:
                 # the Listen page plays the chapters as they come (#724): it needs to know
-                # what they are made with before the job's own record is written at the end
+                # what they are made with before the job's own record is written at the end.
+                # The chapters a resume reports as it starts are the earlier run's (#1065),
+                # so the earlier run's note stays until this run has a chapter of its own,
+                # even if the voice then fails to load after an update (#1073)
                 noted = True
                 _note_made(document, folder, made_with, voice, runner)
             job.report(audio_progress(event))
