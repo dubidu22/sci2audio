@@ -3,7 +3,9 @@
 Each step proposes its edits on the printed text, never on another step's output (D-57), so a
 step that must read the same on a second run has to know the words other steps write. It asks
 here: `readings_of("units", text, language)` gives the units step's readings of the whole
-text, each a span, the words spoken and the step's category (GLOSSARY: reading).
+text, each a span, the words spoken and the step's category (GLOSSARY: reading). The words a
+step says for its signs and names wherever it reads them, which a second run finds in their
+place, come from `words_of` ("<" is "less than" to the statistics step).
 
 Every built-in step that answers keeps its rules and offers them through one module-level
 finder, from which its own edits come too, so what other steps expect of it and what it does
@@ -19,8 +21,8 @@ from __future__ import annotations
 
 import bisect
 import threading
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from functools import cache, lru_cache
 
 from sci2audio.textprep.steps import Category
@@ -38,12 +40,24 @@ class Reading:
 
 
 @dataclass(frozen=True)
+class Words:
+    """The words a step says for its signs and names in one language, wherever it reads them:
+    what a second run finds where they were printed."""
+
+    signs: Mapping[str, str] = field(default_factory=dict)  # "<": "less than"
+    arrows: Mapping[str, str] = field(default_factory=dict)  # of logic, "⇒": "implies"
+    names: frozenset[str] = frozenset()  # notation read by name: "R squared", "odds ratio"
+    squared: frozenset[str] = frozenset()  # of those, a squared statistic's: "R squared"
+
+
+@dataclass(frozen=True)
 class Finder:
-    """A step's finder ("my readings in this block text, in this language") and the steps
-    whose readings it asks for."""
+    """A step's finder ("my readings in this block text, in this language"), the steps whose
+    readings it asks for, and the step's words in a language."""
 
     read: Callable[[str, str], Sequence[Reading]]
     asks: tuple[str, ...] = ()
+    words: Callable[[str], Words] = lambda _language: Words()
 
 
 class ReadingsError(RuntimeError):
@@ -78,6 +92,14 @@ def readings_of(step: str, text: str, language: str) -> tuple[Reading, ...]:
         return _read(step, text, language)
     finally:
         asking.pop()
+
+
+def words_of(step: str, language: str) -> Words:
+    """The words the built-in step `step` says for its signs and names in `language`."""
+    finders = _finders()
+    if step not in finders:
+        raise ReadingsError(f'no built-in step "{step}" offers readings')
+    return finders[step].words(language)
 
 
 def holding(found: Sequence[Reading], position: int) -> Reading | None:
@@ -115,9 +137,12 @@ def _read(step: str, text: str, language: str) -> tuple[Reading, ...]:
 def _finders() -> dict[str, Finder]:
     # the steps import this module to ask for readings, so their finders can only be
     # reached once every step module is loaded: the one local import of step modules here
-    from sci2audio.textprep import units
+    from sci2audio.textprep import statistics, units
 
-    return {"units": Finder(units.find_readings)}
+    return {
+        "units": Finder(units.find_readings, asks=("statistics",)),
+        "statistics": Finder(statistics.find_readings, words=statistics.words),
+    }
 
 
 _local = threading.local()  # each job's thread asks along its own chain

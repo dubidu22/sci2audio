@@ -26,10 +26,12 @@ from __future__ import annotations
 import bisect
 import re
 from collections.abc import Iterator
+from types import MappingProxyType
 
 from sci2audio.core import BlockKind
 from sci2audio.textprep.links import link_removals
 from sci2audio.textprep.notation import Candidate, padded, unit_follows
+from sci2audio.textprep.readings import Words
 
 OPERATORS_DE = {
     "=": "gleich",
@@ -83,16 +85,15 @@ _SQUARED_NAMES = {
     "χ": "Chi-Quadrat",
 }
 _PARTIAL = "partielles "  # before "Eta-Quadrat" only
+_CI_WORDS = ("Konfidenzintervall", "Konfidenzintervalle")
 _ODDS_RATIO_WORDS = "Odds Ratio"
-# the readings of S-de-3, S-de-5 and S-de-6, which the sentence cutter keeps whole (#482)
-SYMBOL_READINGS_DE = frozenset(
-    {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], _ODDS_RATIO_WORDS}
-    | set(ARROWS_DE.values())
+_SQUARED_WORDS = frozenset({*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"]})
+WORDS_DE = Words(
+    signs=MappingProxyType(OPERATORS_DE),
+    arrows=MappingProxyType(ARROWS_DE),
+    names=_SQUARED_WORDS | {*_CI_WORDS, _ODDS_RATIO_WORDS},
+    squared=_SQUARED_WORDS,
 )
-# the capital words of those readings: never an author's name before "(2019)" (#101)
-READ_WORDS = frozenset(
-    word for reading in _SQUARED_NAMES.values() for word in reading.split() if word[0].isupper()
-) - {"R"}
 _SQUARED = re.compile(
     r"(?<![\w′'])(?P<name>[Rrηωεχ])(?P<p1>p)?(?:(?P<sup>²)|(?P<two>2))(?P<p2>p)?(?![\w²])"
 )
@@ -196,7 +197,7 @@ def _confidence_intervals(text: str, plain: str) -> list[Candidate]:
             plain, max(0, start - _WINDOW), start
         ):
             start -= 1  # "95 %-KI" reads "95 % Konfidenzintervall"
-        words = "Konfidenzintervalle" if match["plural"] else "Konfidenzintervall"
+        words = _CI_WORDS[1] if match["plural"] else _CI_WORDS[0]
         reading = padded(text, start, end, words)
         if start == match.start():
             # "Jh.CI", "1 %KI", "1<CI": no space after a sign, which would have the
