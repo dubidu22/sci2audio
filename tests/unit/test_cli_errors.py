@@ -48,8 +48,30 @@ def test_the_codes_are_the_documented_ones() -> None:
         "BUSY": 8,
         "INTERRUPTED": 130,
     }
-    documented = [line.split()[0] for line in EXIT_CODES_HELP.splitlines()[1:]]
+    documented = [line.split()[0] for line in EXIT_CODES_HELP.splitlines()[1:] if line[2] != " "]
     assert documented == [str(int(code)) for code in Exit]
+
+
+def exit_meaning(code: int) -> str:
+    """The help's line for `code`, with any further lines of it, in one line."""
+    entries: dict[str, list[str]] = {}
+    last = ""
+    for line in EXIT_CODES_HELP.splitlines()[1:]:
+        if line[2] == " ":  # a further line of the entry above
+            entries[last].append(line.strip())
+        else:
+            last, meaning = line.split(maxsplit=1)
+            entries[last] = [meaning]
+    return " ".join(entries[str(code)])
+
+
+def test_exit_7_names_both_reasons_alike_in_the_help_and_the_readme() -> None:
+    """Exit 7 also means the chapters were made with other settings (#726); a script that
+    reads --help learnt only the first reason (#1097)."""
+    readme = (Path(__file__).resolve().parents[2] / "README.md").read_text(encoding="utf-8")
+    [row] = [line for line in readme.splitlines() if line.startswith("| 7 |")]
+    assert exit_meaning(7) == row.split("|")[2].strip().replace("`", "")
+    assert "--keep-settings" in exit_meaning(7)
 
 
 @pytest.mark.parametrize("command", ["script", "convert", "clean"])
