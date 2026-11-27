@@ -817,6 +817,81 @@ def test_a_repeated_mutation_request_waits_and_another_runs_beside_it() -> None:
     assert "inputs." not in block(job, "    concurrency:")
 
 
+def isolate_script():  # type: ignore[no-untyped-def]
+    """`.github/scripts/isolate.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "isolate.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_isolate", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+SIX_BROWSER_TESTS = " ".join(
+    f"tests/browser/test_listen_page_{n}.py::test_the_player_keeps_its_place_after_a_reload[{n}]"
+    for n in range(6)
+)
+
+
+def test_a_long_isolation_request_gets_a_short_key_that_names_only_that_request() -> None:
+    """The concurrency group joined every input, the test ids included, so six long ids made
+    GitHub refuse the dispatch with no job and no message (#1076)."""
+    key = isolate_script().request_key
+    long = key(SIX_BROWSER_TESTS, "chromium firefox webkit", "false", "40", "stop")
+    assert re.fullmatch(r"[0-9a-f]{16}", long)
+    # the same request, written another way
+    lines = SIX_BROWSER_TESTS.replace(" ", "\n")
+    assert key(lines, "chromium,firefox webkit", "false", "40", "stop") == long
+    for other in (
+        (SIX_BROWSER_TESTS.split()[0], "chromium firefox webkit", "false", "40", "stop"),
+        (SIX_BROWSER_TESTS, "chromium", "false", "40", "stop"),
+        (SIX_BROWSER_TESTS, "chromium firefox webkit", "true", "40", "stop"),
+        (SIX_BROWSER_TESTS, "chromium firefox webkit", "false", "80", "stop"),
+        (SIX_BROWSER_TESTS, "chromium firefox webkit", "false", "40", "full"),
+    ):
+        assert key(*other) != long, other
+    assert key("a b", "c", "false", "1", "stop") != key("a", "b c", "false", "1", "stop")
+
+
+def test_the_isolation_plan_writes_the_request_key_beside_the_matrix(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    monkeypatch.setenv("TESTS", SIX_BROWSER_TESTS)
+    monkeypatch.setenv("BROWSERS", "chromium")
+    monkeypatch.setenv("WEBKIT_MACOS", "false")
+    monkeypatch.setenv("RUNS", "40")
+    monkeypatch.setenv("RUNNERS", "2")
+    monkeypatch.setenv("MODE", "full")
+    module = isolate_script()
+    module.matrix()
+    lines = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert len(json.loads(lines["matrix"])["include"]) == 2
+    assert lines["key"] == module.request_key(SIX_BROWSER_TESTS, "chromium", "false", "40", "full")
+
+
+def test_a_repeated_isolation_request_cancels_the_older_and_another_runs_beside_it() -> None:
+    """A newer run of the same request on the same branch cancels the older one, runner by
+    runner; any other request runs beside it. The group holds only the short key, so no
+    free-text input reaches it, whatever its length (#1076)."""
+    isolate = (WORKFLOWS / "isolate.yml").read_text(encoding="utf-8")
+    assert not re.search(r"^concurrency:", isolate, re.M)
+    assert "key: ${{ steps.matrix.outputs.key }}" in block(isolate, "  plan:")
+    assert "MODE: ${{ inputs.mode }}" in block(block(isolate, "  plan:"), "      - id: matrix")
+    job = block(isolate, "  runs:")
+    assert [line.strip() for line in block(job, "    concurrency:").splitlines()] == [
+        "group: isolate-${{ github.ref }}-${{ needs.plan.outputs.key }}"
+        "-${{ matrix.os }}-${{ matrix.browser }}-${{ matrix.slice }}",
+        "cancel-in-progress: true",
+    ]
+    for workflow in WORKFLOWS.glob("*.yml"):
+        text = workflow.read_text(encoding="utf-8")
+        for group in re.findall(r"^\s+group: (.+)$", text, re.M):
+            assert "inputs.tests" not in group, (workflow.name, group)
+
+
 def test_a_folder_that_is_no_checkout_of_its_own_is_told_apart(tmp_path: Path) -> None:
     """mutmut runs the tests in its copy of the tree, where git lists the repository's files
     and not the copy's (#1093); the tests that read the tracked files skip there. A made-up

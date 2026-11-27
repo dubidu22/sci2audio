@@ -1,6 +1,6 @@
 """Runs named browser tests many times over several runners (isolate.yml, D-759, TST-08).
 
-    python .github/scripts/isolate.py matrix   # writes the job matrix to $GITHUB_OUTPUT
+    python .github/scripts/isolate.py matrix   # job matrix and request key to $GITHUB_OUTPUT
     python .github/scripts/isolate.py run      # this runner's share of the runs
     python .github/scripts/isolate.py summary FOLDER  # adds up every runner's counts
 
@@ -17,6 +17,7 @@ fails the job.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -65,11 +66,27 @@ def plan() -> tuple[list[dict[str, object]], int, int]:
     return cells, runs, runners
 
 
+def request_key(tests: str, browsers: str, webkit_macos: str, runs: str, mode: str) -> str:
+    """A short name for one request, for its concurrency group: the test ids themselves grow
+    past what GitHub accepts in a group name and the dispatch then starts no job (#1076)."""
+    parts = [tests.split(), browsers.replace(",", " ").split(), [webkit_macos, runs, mode]]
+    request = "\0".join("\n".join(part) for part in parts)
+    return hashlib.sha256(request.encode("utf-8")).hexdigest()[:16]
+
+
 def matrix() -> None:
     cells, runs, _ = plan()
     tests()  # refuse bad ids before any runner starts
+    key = request_key(
+        env("TESTS"),
+        env("BROWSERS"),
+        os.environ.get("WEBKIT_MACOS", "false"),
+        env("RUNS"),
+        os.environ.get("MODE", "stop"),
+    )
     with Path(env("GITHUB_OUTPUT")).open("a", encoding="utf-8") as out:
         out.write(f"matrix={json.dumps({'include': cells})}\n")
+        out.write(f"key={key}\n")
     print(f"{len(cells)} runners, {runs} runs per browser, tests: {' '.join(tests())}")
 
 
