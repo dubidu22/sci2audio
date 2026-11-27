@@ -195,8 +195,9 @@ def _no_constant(name: str) -> None:
 
 
 # ---- the v1.3 markers file, read only (#474, #475) ------------------------------------------
-# The checks of the v1.3 reader in the web layer (`web.markers.read_markers`), which the app
-# may not import (D-46): this reads exactly the files v1.3 reads, and a test holds both to it.
+# The checks of v1.3's own reader, which the tests keep as `read_markers` in
+# tests/unit/web_helpers.py (#887): this reads exactly the files v1.3 reads, and a test holds
+# both to it.
 
 MARKERS_FORMAT = "sci2audio-web-markers"
 MARKERS_VERSION = 1
