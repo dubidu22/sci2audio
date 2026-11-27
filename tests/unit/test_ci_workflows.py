@@ -105,7 +105,7 @@ def test_a_pr_runs_the_linux_fast_suite_in_three_shards() -> None:
     fast = block(tests, "      - name: Fast tests (unit, property-based, golden files)")
     assert f'uv run pytest -m "{FAST}" -n auto --durations=25 "$@"' in fast
     # only a shard leg reads the file; macOS, Windows and 3.13 run the suite whole
-    assert 'if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt"; fi' in fast
+    assert 'if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt"' in fast
     assert "HYPOTHESIS_PROFILE: ci" in fast
     # the first shard and the whole-suite legs of 3.12: once per system, never on 3.13
     smoke = block(tests, "      - name: Smoke test (sci2audio script on a corpus PDF)")
@@ -747,3 +747,16 @@ def test_runs_from_before_the_three_shards_are_not_counted(
     assert "median 5.00 min" in summary
     assert "2 runs" in summary
     assert "since 2026-11-27 16:04 UTC" in summary
+
+
+def test_a_shard_warns_of_unused_snapshots_and_a_whole_run_fails_on_them() -> None:
+    """syrupy counts a snapshot as selected when any case of its test ran, so a shard that
+    runs some cases of a parametrized golden-file test reads the others' snapshots as unused
+    and failed with every test passed (#1153's run 46067260939). The whole-suite legs keep
+    failing on a snapshot really left unused: macOS, Windows and 3.13 under `ci:full`, which a
+    golden-file PR needs anyway (D-69), and on every push to main."""
+    fast = block(
+        block(CI, "  tests:"), "      - name: Fast tests (unit, property-based, golden files)"
+    )
+    assert 'then set -- "@$RUNNER_TEMP/shard.txt" --snapshot-warn-unused; fi' in fast
+    assert fast.count("--snapshot-warn-unused") == 1  # only inside the shard's branch
