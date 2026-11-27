@@ -14,12 +14,12 @@ import json
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import platformdirs
 
 from sci2audio.app.files import write_text_atomically
-from sci2audio.app.settings import JobSettings
+from sci2audio.app.settings import MAX_SPEED, MIN_SPEED, JobSettings
 from sci2audio.textprep import Category
 
 CONFIG_NAME = "settings.json"
@@ -33,6 +33,18 @@ KEPT = (  # every JobSettings field but the chosen chapters and the plugin switc
     "subtitles",
     "output_folder",
 )
+
+
+class _Kept(TypedDict, total=False):
+    """Kept settings read from the file, each already of its JobSettings field's type."""
+
+    language: str
+    switched_off: frozenset[Category]
+    voice: str
+    speed: float
+    letter_pace: str
+    subtitles: bool
+    output_folder: Path | None
 
 
 def default_config_file() -> Path:
@@ -128,7 +140,7 @@ def settings_from_data(data: object) -> tuple[JobSettings, list[str]]:
     version = data.get("version")
     if type(version) is not int or version != CONFIG_VERSION:  # true is not version 1
         warnings.append(f"the settings file has version {version!r}; reading what fits")
-    values: dict[str, Any] = {}
+    values: _Kept = {}
     for key, value in data.items():
         if key == "version":
             continue
@@ -136,12 +148,12 @@ def settings_from_data(data: object) -> tuple[JobSettings, list[str]]:
             warnings.append(f"unknown setting {key!r} ignored")
             continue
         try:
-            converted = _convert(key, value)
-            JobSettings(**{key: converted})  # check it on its own
+            one = _convert(key, value)
+            JobSettings(**one)  # check it on its own
         except (TypeError, ValueError) as error:
             warnings.append(f"setting {key!r} ignored: {error}")
         else:
-            values[key] = converted
+            values.update(one)
     return JobSettings(**values), warnings
 
 
@@ -168,19 +180,40 @@ def save_settings(settings: JobSettings, file: Path) -> None:
     write_text_atomically(file, text, overwrite=True)
 
 
-def _convert(key: str, value: object) -> object:
+def _convert(key: str, value: object) -> _Kept:
     if key == "switched_off":
         if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
             raise ValueError(f"expected a list of category names, got {value!r}")
-        return frozenset(Category(name) for name in value)
+        return {"switched_off": frozenset(Category(name) for name in value)}
     if key == "output_folder":
         if value is None:
-            return None
+            return {"output_folder": None}
         if not isinstance(value, str) or not value:
             raise ValueError(f"expected a folder, got {value!r}")
-        return Path(value)
-    if key == "subtitles" and not isinstance(value, bool):
-        raise ValueError(f"expected true or false, got {value!r}")
-    if key in ("language", "voice", "letter_pace") and not isinstance(value, str):
+        return {"output_folder": Path(value)}
+    if key == "subtitles":
+        if not isinstance(value, bool):
+            raise ValueError(f"expected true or false, got {value!r}")
+        return {"subtitles": value}
+    if key == "speed":
+        return {"speed": _speed(value)}
+    if not isinstance(value, str):
         raise ValueError(f"expected text, got {value!r}")
-    return value
+    if key == "language":
+        return {"language": value}
+    if key == "voice":
+        return {"voice": value}
+    if key == "letter_pace":
+        return {"letter_pace": value}
+    raise ValueError(f"{key!r} is not a kept setting")
+
+
+def _speed(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):  # true is not 1.0
+        raise ValueError(f"expected a number, got {value!r}")
+    try:
+        return float(value)
+    except OverflowError:  # JSON numbers have no size limit; floats do
+        raise ValueError(
+            f"speed must be between {MIN_SPEED} and {MAX_SPEED}, got a number too big"
+        ) from None
