@@ -46,8 +46,8 @@ from dataclasses import dataclass
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.characters import ACCENTS
-from sci2audio.textprep.notation import through_unread
-from sci2audio.textprep.statistics import find_statistics_in_german
+from sci2audio.textprep.notation import Candidate, through_unread
+from sci2audio.textprep.readings import readings_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 HYPHENS = "-\u2010"  # hyphen-minus and HYPHEN
@@ -246,8 +246,15 @@ _SIGN_AFTER = re.compile(r"[^\w\s]")
 
 def _signs_read(text: str) -> frozenset[int]:
     """Where the signs start that the German statistics step reads as words in `text`."""
-    found = through_unread(text, find_statistics_in_german)
+    found = through_unread(text, _statistics_de)
     return frozenset(c.start for c in found if c.replacement.strip())
+
+
+def _statistics_de(read: str) -> list[Candidate]:
+    return [
+        Candidate(r.start, r.end, r.words, "statistics")
+        for r in readings_of("statistics", read, "de")
+    ]
 
 
 def _suspended(word: str, text: str, end: int, words: HyphenWords) -> bool:

@@ -65,9 +65,7 @@ from sci2audio.textprep.notation import (
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, readings_of
-from sci2audio.textprep.statistics import comparisons_read_alone
-from sci2audio.textprep.statistics_de import OPERATORS_DE
+from sci2audio.textprep.readings import Reading, holding, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
@@ -425,11 +423,12 @@ def _compiled(language: str) -> _Table | None:
     magnitude = re.compile("|".join(map(re.escape, magnitudes)) or r"(?!)")
     number = _NUMBER_DECIMAL_COMMA if listed.decimal == "," else _NUMBER
     german = language.split("-", 1)[0].lower() == "de"
-    said = re.compile(
-        "|".join(map(re.escape, sorted(set(OPERATORS_DE.values()), key=len, reverse=True)))
+    said_words = (
+        sorted(set(words_of("statistics", "de").signs.values()), key=len, reverse=True)
         if german
-        else "|".join(map(re.escape, _SAID_OPERATORS_EN))
+        else _SAID_OPERATORS_EN
     )
+    said = re.compile("|".join(map(re.escape, said_words)))
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
     per_words = _PER_WORDS.get(language.split("-", 1)[0].lower(), ())
     per_word = re.compile(rf"(?<![\w-])(?:{'|'.join(per_words)}) " if per_words else r"(?!)")
@@ -885,10 +884,17 @@ def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
     """True if the `sign` at `at`, after "Nx", is a "<" or ">" the statistics step reads alone
     as "less than" or "greater than", and those words before what follows are prose on a
     second run (`_COMPARED_AFTER_EN`)."""
-    if sign not in ("<", ">") or at not in comparisons_read_alone(text):
+    if sign not in ("<", ">") or not _read_alone(text, at):
         return False
     said_after = " less than " + text[at + 1 : at + 33].lstrip()
     return _COMPARED_AFTER_EN.match(said_after) is None
+
+
+def _read_alone(text: str, at: int) -> bool:
+    """True if the English statistics step reads the sign at `at` on its own: its reading
+    holds nothing printed but the sign and the white space around it (#1010)."""
+    found = holding(readings_of("statistics", text, "en"), at)
+    return found is not None and text[found.start : found.end].strip() == text[at]
 
 
 def _minus_said_before(text: str, start: int) -> bool:

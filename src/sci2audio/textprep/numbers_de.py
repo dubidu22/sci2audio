@@ -35,10 +35,10 @@ space (`_STOP`), since the abbreviations step reads "Abb.1:1" as "Abbildung 1:1"
 
 from __future__ import annotations
 
-import bisect
 import calendar
 import re
 from collections.abc import Container
+from functools import cache
 
 from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
@@ -52,9 +52,7 @@ from sci2audio.textprep.notation import (
     unit_follows,
     unit_starts_at,
 )
-from sci2audio.textprep.readings import first_from, holding, readings_of
-from sci2audio.textprep.statistics import find_statistics_in_german
-from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE
+from sci2audio.textprep.readings import Reading, first_from, holding, readings_of, words_of
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
@@ -247,8 +245,16 @@ _STOP = (
 # (`_AfterNumber.unit_ends_at`): "%.452,5", with no number before the "%", stays (#1082)
 _STOP_OR_SYMBOL = "(?:" + _STOP + r"|(?<=[^\w\s.]\.)(?P<symbol>))"
 
-# the first characters of the signs and arrows the statistics step reads as words
-_SIGN_START = "[" + re.escape("".join(sorted({s[0] for s in (*OPERATORS_DE, *ARROWS_DE)}))) + "]"
+
+@cache
+def _sign_start() -> str:
+    """The first characters of the signs and arrows the statistics step reads as words, as a
+    character class. The patterns with it are built at first use: the readings module reaches
+    the step's words only once every step module is loaded."""
+    said = words_of("statistics", "de")
+    return "[" + re.escape("".join(sorted({s[0] for s in (*said.signs, *said.arrows)}))) + "]"
+
+
 _UNIT_SIGNS = "\u00d7\u2248~\u223c"  # the signs the units step reads: "mal", "ungefähr", "etwa"
 _UNIT_SIGN = f"[{_UNIT_SIGNS}]"
 _MICRO_SIGN = "\u00b5"  # which the units step reads as the Greek letter, outside a unit
@@ -260,21 +266,28 @@ _COMMA_DECIMAL = re.compile(
     + _STOP_OR_SYMBOL
     + r"(?<![^\WxX])(?P<whole>\d{1,3}(?:\.\d{3})+|\d+),(?P<fraction>\d+)(?![\d_]|[⁺⁻^]|[.,/]\d)"
 )
+
+
 # a point decimal after a comparison sign (a minus may stand between) or a leading point; the
 # sign as the statistics step reads it counts too, so a second run decides the same
-_SIGN_BEFORE = re.compile(
-    "(?:["
-    + re.escape("".join({key[0] for key in OPERATORS_DE} | {"\u0338"}))
-    + "]|"
-    + "|".join(
-        sorted(
-            (rf"\b{re.escape(words)}" for words in set(OPERATORS_DE.values())),
-            key=len,
-            reverse=True,
+@cache
+def _sign_before() -> re.Pattern[str]:
+    signs = words_of("statistics", "de").signs
+    return re.compile(
+        "(?:["
+        + re.escape("".join({key[0] for key in signs} | {"\u0338"}))
+        + "]|"
+        + "|".join(
+            sorted(
+                (rf"\b{re.escape(words)}" for words in set(signs.values())),
+                key=len,
+                reverse=True,
+            )
         )
+        + r")\s*[\u2212-]?\Z"
     )
-    + r")\s*[\u2212-]?\Z"
-)
+
+
 # not before a ratio or fraction: ".5:1" read "0 Komma 5:1" would be a ratio on a second run;
 # not after "×" or an x after a number, which the units step may read "mal" ("×.45" and
 # "1x.45" are "mal.45", no decimal; "1 x0 Komma 4 5" would be "1 mal 0 ..." next time)
@@ -353,7 +366,7 @@ def _decimals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
             # the units step has read the "%", so it stays, as on a second run (#1082)
             continue
         before = _before(text, match.start())
-        if whole and not _SIGN_BEFORE.search(before):
+        if whole and not _sign_before().search(before):
             continue  # "2.5" in running text: a decimal, a date or a version; left as printed
         if not whole and _LINE_END_HYPHEN.search(before):
             continue  # "1-\n.45": the hyphen step decides by the "." after the line break
@@ -427,7 +440,7 @@ def _hyphen_range_at(text: str, start: int) -> bool:
     match = _HYPHEN_RANGE.match(text, start)
     if match is None or _x_left_alone(text, match.end()):
         return False
-    if match["a"].count(".") == 1 and _SIGN_BEFORE.search(_before(text, start)):
+    if match["a"].count(".") == 1 and _sign_before().search(_before(text, start)):
         return False  # "= 1.234-1998": a point decimal, left as printed with what joins it
     left = _value(match["a"])
     hundreds = _HUNDRED_BEFORE.search(text, max(0, start - 16), start)
@@ -533,7 +546,7 @@ def _thousands(text: str, worded: Container[int] = ()) -> list[Candidate]:
         before = _before(text, match.start())
         if (
             number.count(".") == 1
-            and _SIGN_BEFORE.search(before)
+            and _sign_before().search(before)
             and not _COUNT_LETTER.search(before)
         ):
             continue  # "M = 2.345": a point decimal, read by N-de-1 (or left as printed)
@@ -786,18 +799,24 @@ _ABBREVIATED_NOUNS = _abbreviated_nouns()
 _AFTER_UHR = re.compile(r"\bUhr\s+\Z")
 _CLOCK_UHR = re.compile(r"\d[:.]\d\d\s+Uhr\s+\Z")
 _UHR_WINDOW = 24  # characters looked back for "Uhr" and the clock time before it
+
+
 # a word after it, or what a second run sees as one (`_AfterNumber`): a sign the statistics
 # or the units step reads, a "1" the units step reads before its unit, a "1/2" read "ein
 # halb", a date read as words
-_ORDINAL = re.compile(
-    r"(?<![^\WxX])(?<![,/:\u2013-])"
-    + _STOP
-    + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_]|\s*"
-    + _SIGN_START
-    + r"|\s*"
-    + _UNIT_SIGN
-    + r"|\s+\d)"
-)
+@cache
+def _ordinal() -> re.Pattern[str]:
+    return re.compile(
+        r"(?<![^\WxX])(?<![,/:\u2013-])"
+        + _STOP
+        + r"(?P<n>\d{1,6})\.(?=\s+[^\W\d_]|\s*"
+        + _sign_start()
+        + r"|\s*"
+        + _UNIT_SIGN
+        + r"|\s+\d)"
+    )
+
+
 # after an en dash too, which the range rule reads "bis": a second run sees "bis 2019-03-05"
 # (#957)
 _ISO_DATE = re.compile(
@@ -990,7 +1009,13 @@ def _dates(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
 
 _FRACTION_AHEAD = re.compile(r"\s*(?=1/)")
 _ONE_AHEAD = re.compile(r"\s*(?=1(?![\d.,/]))")
-_SIGN_AHEAD = re.compile(r"\s*(?=" + _SIGN_START + ")")
+
+
+@cache
+def _sign_ahead() -> re.Pattern[str]:
+    return re.compile(r"\s*(?=" + _sign_start() + ")")
+
+
 _UNIT_SIGN_AHEAD = re.compile(r"\s*(?=" + _UNIT_SIGN + ")")
 _DIGIT_AHEAD = re.compile(r"\s*(?=\d)")
 _SPACES = re.compile(r"\s*")
@@ -1002,32 +1027,23 @@ class _AfterNumber:
     words of a sign the statistics step reads ("<" is "kleiner als"), of a "1" the units
     step reads before its unit ("1 N" is "ein Newton"), of a fraction read with "ein"
     ("1/2" is "ein halb"), or of a date ("3.4.2019" is "dritter April 2019"). `printed` is
-    the block's text before the arrows are joined, as the statistics step reads it; the
-    statistics edits are found once, when first asked."""
+    the block's text before the arrows are joined, as the statistics step reads it."""
 
     def __init__(self, printed: str) -> None:
         self.printed = printed
-        self._signs: list[Candidate] | None = None
-        self._starts: list[int] = []
         self._ein: set[int] | None = None  # `_read_as_ein` of the text the rules read
         self._dates: dict[int, str] | None = None  # the dates read in it, by their start
         self._unit_ends: frozenset[int] | None = None
 
-    def _sign_at(self, at: int) -> Candidate | None:
-        if self._signs is None:
-            self._signs = find_statistics_in_german(self.printed)
-            self._starts = [found.start for found in self._signs]
-        index = bisect.bisect_right(self._starts, at) - 1
-        if index >= 0 and self._signs[index].end > at:
-            return self._signs[index]
-        return None
+    def _sign_at(self, at: int) -> Reading | None:
+        return holding(readings_of("statistics", self.printed, "de"), at)
 
     def word(self, text: str, end: int) -> str | None:
         """The first word a second run sees after `end`, or None."""
-        sign = _SIGN_AHEAD.match(text, end)
+        sign = _sign_ahead().match(text, end)
         if sign is not None:
             read = self._sign_at(sign.end())
-            words = read.replacement.split() if read is not None else []
+            words = read.words.split() if read is not None else []
             return words[0] if words else None
         sign = _UNIT_SIGN_AHEAD.match(text, end)
         if sign is not None:
@@ -1084,7 +1100,7 @@ class _AfterNumber:
         `word` (the reading's last word) before it. Only a window after `end` is looked at."""
         around = word + self.printed[end : end + WINDOW]
         at = _SPACES.match(around, len(word)).end()  # type: ignore[union-attr]
-        return any(c.start <= at < c.end for c in find_statistics_in_german(around))
+        return holding(readings_of("statistics", around, "de"), at) is not None
 
 
 # the dash between the two dates of a range: a hyphen or en dash glued to both, an em dash
@@ -1126,7 +1142,7 @@ _AFTER_HUNDRED = re.compile(r"(?<![\d.,])1[1-9] hundert \Z")
 def _ordinals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
     found = []
     after = after or _AfterNumber(text)
-    for match in _ORDINAL.finditer(text):
+    for match in _ordinal().finditer(text):
         n = int(match["n"])
         if not 0 < n <= MAX_ORDINAL:
             continue
@@ -1537,29 +1553,36 @@ _ROMAN = r"[IVX]{1,6}"
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
 # date as words)
 _CLOSE_JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*[.,]?\d|[.,]?\d|[⁺⁻^⁰¹²³⁴⁵⁶⁷⁸⁹]")
-_ROMAN_RUN = re.compile(
-    r"(?<![\w-])(?P<keyword>[^\W\d_]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
-    + _ROMAN
-    + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
-    + _ROMAN
-    # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a full
-    # stop and white space or the end, only one numeral after a part's keyword is read
-    # (`_PART_KEYWORDS`)
-    # nor a run cut short before such a numeral: "Teil II und III." is left whole, and so is
-    # a range joined by "bis", read none as "Kapitel I. bis III." is (#996, #1010)
-    # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
-    # ... but a full stop glued to a sign may stand before the sign's words on a second run
-    # ("Kapitel IV.=1" is "Kapitel IV. gleich 1" then): the statistics step decides (#1010)
-    + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
-    + _SIGN_START
-    + r")|\s+%|\s+(?:Quadrat|hoch)\b"
-    + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
-    + _ROMAN
-    + r"|\s+bis\s+"
-    + _ROMAN
-    + r"(?!\w)"
-    + ")"
-)
+
+
+@cache
+def _roman_run() -> re.Pattern[str]:
+    return re.compile(
+        r"(?<![\w-])(?P<keyword>[^\W\d_]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
+        + _ROMAN
+        + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + _ROMAN
+        # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a
+        # full stop and white space or the end, only one numeral after a part's keyword is
+        # read (`_PART_KEYWORDS`)
+        # nor a run cut short before such a numeral: "Teil II und III." is left whole, and so
+        # is a range joined by "bis", read none as "Kapitel I. bis III." is (#996, #1010)
+        # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
+        # ... but a full stop glued to a sign may stand before the sign's words on a second
+        # run ("Kapitel IV.=1" is "Kapitel IV. gleich 1" then): the statistics step decides
+        # (#1010)
+        + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
+        + _sign_start()
+        + r")|\s+%|\s+(?:Quadrat|hoch)\b"
+        + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + _ROMAN
+        + r"|\s+bis\s+"
+        + _ROMAN
+        + r"(?!\w)"
+        + ")"
+    )
+
+
 # a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis
 # III."): the first numeral is no part number on its own, so the list stays as printed as a
 # whole, as "Teil II und III." does (#996)
@@ -1580,8 +1603,7 @@ def _roman_value(numeral: str) -> int:
 
 def _roman_numerals(plain: str) -> list[Candidate]:
     found = []
-    signs: frozenset[int] | None = None  # where the statistics step reads a sign, when asked
-    for match in _ROMAN_RUN.finditer(plain):
+    for match in _roman_run().finditer(plain):
         keyword = match["keyword"]
         known = _ABBREVIATED_KEYWORDS if match["dot"] else _KEYWORDS
         if keyword.lower() not in known:
@@ -1594,9 +1616,8 @@ def _roman_numerals(plain: str) -> list[Candidate]:
         stop = match.end("run")
         glued_after_stop = plain[stop + 1 : stop + 2]
         if plain[stop : stop + 1] == "." and glued_after_stop and not glued_after_stop.isspace():
-            if signs is None:
-                signs = frozenset(found.start for found in find_statistics_in_german(plain))
-            if stop + 1 not in signs:
+            sign = first_from(readings_of("statistics", plain, "de"), stop + 1)
+            if sign is None or sign.start != stop + 1:
                 continue  # "Kapitel IV.==1": the sign stays as printed, so does the numeral
         offset = match.start("run")
         parts = list(_ROMAN_PART.finditer(match["run"]))

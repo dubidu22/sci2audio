@@ -1,7 +1,7 @@
 """The readings module: what the built-in text steps read for a block's printed text (#1107,
-#1110). Readings are checked here through the readings interface; the second-run tests check
-the listening script through the runner."""
-# ruff: noqa: RUF001 (the rows hold the signs the units step reads)
+#1110, #1111). Readings are checked here through the readings interface; the second-run tests
+check the listening script through the runner."""
+# ruff: noqa: RUF001 (the rows hold the signs the units and statistics steps read)
 
 from collections.abc import Callable, Iterator
 
@@ -11,10 +11,16 @@ from hypothesis import strategies as st
 
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
-from sci2audio.textprep import StepContext, UnitStep, readings
+from sci2audio.textprep import StatisticsStep, StepContext, UnitStep, readings
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, ReadingsError, ReadingsLoopError, readings_of
+from sci2audio.textprep.readings import (
+    Reading,
+    ReadingsError,
+    ReadingsLoopError,
+    readings_of,
+    words_of,
+)
 from sci2audio.textprep.steps import Category
 
 UNITS = Category.NUMBERS_AND_UNITS
@@ -104,6 +110,151 @@ def test_the_units_step_edits_are_its_readings(block: tuple[str, str]) -> None:
         (r.start, r.end, r.words) for r in readings_of("units", text, language)
     ]
     assert {r.category for r in readings_of("units", text, language)} <= {UnitStep.category}
+
+
+# ---- the statistics step's readings, printed text -> (span, words) ----------------------
+
+STATISTICS = StatisticsStep.category
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # comparisons read on their own, with the white space around them
+        ("p < .05 here.", [(1, 4, " less than ")]),
+        ("3x > 2", [(2, 5, " greater than ")]),
+        (
+            "x ≤ 3 and y ≥ 4",
+            [(1, 4, " less than or equal to "), (11, 14, " greater than or equal to ")],
+        ),
+        ("μ ± 2", [(1, 4, " plus or minus ")]),
+        ("e.g.=1", [(4, 5, " equals ")]),
+        ("It was t(34) = 2.1.", [(8, 12, " of 34"), (12, 15, " equals ")]),
+        (
+            "χ²(1, N = 100) = 3.2",
+            [(0, 2, "chi-square"), (2, 14, " of 1, N equals 100"), (14, 17, " equals ")],
+        ),
+        ("ηp² was .3", [(0, 3, "partial eta squared")]),
+        ("OR = 2.1", [(0, 2, "odds ratio"), (2, 5, " equals ")]),
+        # an interval's brackets left out, its comma read "to"
+        (
+            "95% CI [1.2, 3.4]",
+            [(4, 6, "confidence interval"), (7, 8, ""), (11, 13, " to "), (16, 17, "")],
+        ),
+        ("A ⇒ B", [(1, 4, " implies ")]),
+        ("an arrow => B", [(8, 12, " implies ")]),
+        # nothing read: a sign glued between letters, an arrow named in prose, a plain "R2"
+        ("a<b", []),
+        ("where ⇒ marks", []),
+        ("R2 rose", []),
+    ],
+)
+def test_english_statistics_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("statistics", printed, "en") == tuple(
+        Reading(start, end, words, STATISTICS) for start, end, words in said
+    )
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("p < 0,05 hier.", [(2, 3, "kleiner als")]),
+        ("x ≠ 3", [(2, 3, "ungleich")]),
+        ("Jh.=1", [(3, 4, " gleich ")]),
+        ("Kapitel IV.=1", [(11, 12, " gleich ")]),
+        ("t(34) = 2,1", [(1, 5, " mit 34 Freiheitsgraden"), (6, 7, "gleich")]),
+        ("χ²(1) = 3", [(0, 2, "Chi-Quadrat"), (2, 5, " mit 1 Freiheitsgrad"), (6, 7, "gleich")]),
+        ("R² = 0,5", [(0, 2, "R Quadrat"), (3, 4, "gleich")]),
+        ("OR = 2", [(0, 2, "Odds Ratio"), (3, 4, "gleich")]),
+        # an interval read whole, with its numbers
+        ("95 %-KI [1,2; 3,4]", [(4, 7, " Konfidenzintervall"), (8, 18, "1 Komma 2 bis 3 Komma 4")]),
+        (
+            "KI [1; 2] und [3; 4]",
+            [(0, 2, "Konfidenzintervall"), (3, 9, "1 bis 2"), (14, 20, "3 bis 4")],
+        ),
+        ("A ⇒ B", [(2, 3, "daraus folgt")]),
+        # nothing read: a sign glued between letters
+        ("a<b", []),
+    ],
+)
+def test_german_statistics_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("statistics", printed, "de") == tuple(
+        Reading(start, end, words, STATISTICS) for start, end, words in said
+    )
+
+
+@pytest.mark.parametrize(
+    ("language", "sign", "said"),
+    [
+        ("en", "<", "less than"),
+        ("en", "≤", "less than or equal to"),
+        ("en", "=", "equals"),
+        ("en", "\u0338=", "not equal to"),
+        ("en", "±", "plus or minus"),
+        ("de", ">", "größer als"),
+        ("de", "≥", "größer oder gleich"),
+        ("de", "=", "gleich"),
+        ("de", "±", "plus minus"),
+    ],
+)
+def test_the_statistics_step_reads_its_signs_with_its_operator_words(
+    language: str, sign: str, said: str
+) -> None:
+    assert words_of("statistics", language).signs[sign] == said
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_each_sign_and_arrow_reads_its_words_between_two_operands(language: str) -> None:
+    said = words_of("statistics", language)
+    for sign, words in {**said.signs, **said.arrows}.items():
+        printed = f"A {sign} B" if sign in said.arrows else f"x {sign} 1"
+        found = readings_of("statistics", printed, language)
+        assert [r.words.strip() for r in found] == [words], sign
+
+
+def test_the_statistics_step_names_what_it_reads_by_name() -> None:
+    english, german = words_of("statistics", "en"), words_of("statistics", "de")
+    assert english.arrows == {"⇒": "implies", "⇐": "is implied by", "⇔": "if and only if"}
+    assert german.arrows == {"⇒": "daraus folgt", "⇐": "folgt aus", "⇔": "genau dann, wenn"}
+    assert {"R squared", "partial eta squared", "chi-square"} <= english.squared
+    assert {"confidence interval", "confidence intervals", "odds ratio"} <= english.names
+    assert english.squared <= english.names
+    assert {"R Quadrat", "partielles Eta-Quadrat", "Chi-Quadrat"} <= german.squared
+    assert {"Odds Ratio", "Konfidenzintervall"} <= german.names
+    assert german.squared <= german.names
+
+
+_STATISTICS_TOKENS = st.sampled_from(
+    ["p", "t", "F", "r", "R", "x", "y", "A", "B", "N", "OR", "CI", "CIs", "KI", "R2", "R²",
+     "η²", "ηp²", "ω²", "χ²", "χ2", "(34)", "(2, 57)", "(1, N = 100)", "(1; 2)", "[1, 3]",
+     "[1,2; 3,4]", "[−1, 2]", "95%", "95 %-", ".05", "0,05", "2.1", "1", "<", ">", "=", "≤",
+     "≥", "≠", "\u0338=", "±", "∓", "≪", "⇒", "⇐", "⇔", "=>", "<=>", "=⇒", "⇐=", "==>", "¬",
+     "−", "-", "and", "und", "or", "oder", "where", "The", "e.g.", "Jh.", "z. B.", "Uhr",
+     "13:30", "https://x.org", "<i>", "×", "~", "3x"]
+)  # fmt: skip
+
+
+@st.composite
+def _statistics_blocks(draw: st.DrawFn) -> tuple[str, str]:
+    """A block's text in English or German, of the pieces the statistics rules look at."""
+    tokens = _STATISTICS_TOKENS | st.text("aA1.,;( )", max_size=3)
+    pieces = draw(st.lists(st.tuples(tokens, _GAPS), max_size=14))
+    return "".join(token + gap for token, gap in pieces), draw(st.sampled_from(["en", "de"]))
+
+
+@given(_statistics_blocks())
+def test_the_statistics_step_edits_are_its_readings(block: tuple[str, str]) -> None:
+    text, language = block
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    # as for the units step: the readings answer for the printed text alone
+    assume(read_as_prose(document.blocks[0], context) and not unread_marks(document, context))
+    edits = StatisticsStep().find(document, context)
+    found = readings_of("statistics", text, language)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (r.start, r.end, r.words) for r in found
+    ]
+    assert {r.category for r in found} <= {StatisticsStep.category}
 
 
 # ---- the readings table ----------------------------------------------------------------
