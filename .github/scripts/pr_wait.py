@@ -4,10 +4,10 @@
 
 Reads the newest completed pull-request runs of the CI workflow through the REST API (GH_TOKEN
 and REPO from the environment) until RUNS of them have a finished "CI passed", looking at no
-more than one page of LOOK_AT runs, and writes the median wait to the job summary. Above the
-budget it exits 1, so the nightly goes red and a person decides what to cut; the script has
-no right to write anything, so it opens no issue itself. It runs on the runner's own Python,
-with only the standard library and the gh CLI, like ci_passed.py.
+more than one page of LOOK_AT runs and none from before SINCE, and writes the median wait to
+the job summary. Above the budget it exits 1, so the nightly goes red and a person decides
+what to cut; the script has no right to write anything, so it opens no issue itself. It runs
+on the runner's own Python, with only the standard library and the gh CLI, like ci_passed.py.
 """
 
 from __future__ import annotations
@@ -18,12 +18,15 @@ import statistics
 import subprocess
 import sys
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 BUDGET = 6.0  # minutes to "CI passed" on an ordinary Linux PR (#1131)
 RUNS = 20  # the median of 20 is not moved by one slow runner
 LOOK_AT = 100  # one API page; cancelled and full runs leave fewer than that to count
+# The merge of the three shards (#1132): runs before it waited for the old layout and would
+# keep the nightly red until 20 newer ones exist. Older than the 20th run, it changes nothing.
+SINCE = datetime(2026, 11, 27, 16, 4, tzinfo=UTC)
 SELF = "CI passed"
 FULL = "tests (macos-latest)"  # only a full run (ci:full) has it; the budget is a Linux PR's
 WAITED = ("success", "failure")  # a red run kept the author waiting just as long
@@ -83,18 +86,20 @@ def main(
 ) -> None:
     repo = os.environ["REPO"]
     waits: list[float] = []
-    read = runs(repo)
-    for run in read:
+    for run in runs(repo):
+        if moment(run["run_started_at"]) < SINCE:
+            break
         minutes = minutes_to_ci_passed(run, jobs(repo, run["id"]))
         if minutes is not None:
             waits.append(minutes)
         if len(waits) == RUNS:
             break
     if not waits:
-        sys.exit(f"none of the {len(read)} pull-request runs read has a finished {SELF!r}")
+        sys.exit(f"no pull-request run since {SINCE:%Y-%m-%d %H:%M} UTC has a finished {SELF!r}")
     median, within = verdict(waits)
     line = (
         f"Pull requests: median {median:.2f} min to {SELF!r} over the last {len(waits)} runs "
+        f"since {SINCE:%Y-%m-%d %H:%M} UTC "
         f"(budget {BUDGET:g} min; `ci:full` runs and runs cancelled by a newer push left out)."
     )
     print(line)

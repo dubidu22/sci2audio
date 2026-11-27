@@ -586,7 +586,7 @@ def pr_wait_script():  # type: ignore[no-untyped-def]
 
 
 def pr_run(conclusion: str = "success") -> dict:
-    return {"run_started_at": "2026-11-27T10:00:00Z", "conclusion": conclusion}
+    return {"run_started_at": "2026-11-28T10:00:00Z", "conclusion": conclusion}
 
 
 def ended(name: str, at: str, conclusion: str = "success") -> dict:
@@ -595,9 +595,9 @@ def ended(name: str, at: str, conclusion: str = "success") -> dict:
 
 def test_a_runs_wait_is_from_its_start_to_the_end_of_ci_passed() -> None:
     jobs = [
-        ended("tests (ubuntu-latest, 1/3)", "2026-11-27T10:04:00Z"),
-        ended("CI passed", "2026-11-27T10:05:30Z"),
-        ended("types (pyright, reported only)", "2026-11-27T10:09:00Z", "failure"),
+        ended("tests (ubuntu-latest, 1/3)", "2026-11-28T10:04:00Z"),
+        ended("CI passed", "2026-11-28T10:05:30Z"),
+        ended("types (pyright, reported only)", "2026-11-28T10:09:00Z", "failure"),
     ]
     assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 5.5
 
@@ -605,12 +605,12 @@ def test_a_runs_wait_is_from_its_start_to_the_end_of_ci_passed() -> None:
 @pytest.mark.parametrize(
     "jobs",
     [
-        [ended("lint and layers", "2026-11-27T10:01:00Z")],  # no "CI passed" at all
-        [ended("CI passed", "2026-11-27T10:02:00Z", "skipped")],
+        [ended("lint and layers", "2026-11-28T10:01:00Z")],  # no "CI passed" at all
+        [ended("CI passed", "2026-11-28T10:02:00Z", "skipped")],
         [{"name": "CI passed", "status": "in_progress", "conclusion": None, "completed_at": None}],
         [  # a full run (ci:full) waits for macOS and Windows: not an ordinary PR's wait
-            ended("tests (macos-latest)", "2026-11-27T10:13:00Z"),
-            ended("CI passed", "2026-11-27T10:15:00Z"),
+            ended("tests (macos-latest)", "2026-11-28T10:13:00Z"),
+            ended("CI passed", "2026-11-28T10:15:00Z"),
         ],
     ],
 )
@@ -621,12 +621,12 @@ def test_a_run_without_a_finished_ci_passed_or_a_full_run_is_left_out(jobs: list
 def test_a_run_cancelled_by_a_newer_push_is_left_out() -> None:
     """The job "CI passed" runs `if: always()`, so in a run a newer push cancelled it still
     ends, red, minutes later: that is the time to the next push, not a wait for CI."""
-    jobs = [ended("CI passed", "2026-11-27T10:02:00Z", "failure")]
+    jobs = [ended("CI passed", "2026-11-28T10:02:00Z", "failure")]
     assert pr_wait_script().minutes_to_ci_passed(pr_run("cancelled"), jobs) is None
 
 
 def test_a_red_ci_passed_still_counts_as_a_wait() -> None:
-    jobs = [ended("CI passed", "2026-11-27T10:07:00Z", "failure")]
+    jobs = [ended("CI passed", "2026-11-28T10:07:00Z", "failure")]
     assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 7
 
 
@@ -660,9 +660,9 @@ def run_pr_wait(
         read.append(run_id)
         minutes = waits[run_id]
         if minutes is None:
-            return [ended("CI passed", "2026-11-27T10:01:00Z", "failure")]
+            return [ended("CI passed", "2026-11-28T10:01:00Z", "failure")]
         seconds = round(minutes * 60)
-        return [ended("CI passed", f"2026-11-27T10:{seconds // 60:02d}:{seconds % 60:02d}Z")]
+        return [ended("CI passed", f"2026-11-28T10:{seconds // 60:02d}:{seconds % 60:02d}Z")]
 
     try:
         pr_wait_script().main(runs=lambda repo: runs, jobs=jobs)
@@ -699,7 +699,8 @@ def test_a_median_above_the_budget_fails_the_nightly_after_writing_the_summary(
 
 
 def test_no_finished_run_is_no_pass(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    with pytest.raises(SystemExit, match="none of the 2 pull-request runs read"):
+    no_run = "no pull-request run since 2026-11-27 16:04 UTC has a finished"
+    with pytest.raises(SystemExit, match=no_run):
         run_pr_wait(monkeypatch, tmp_path, [None, None])
 
 
@@ -718,3 +719,31 @@ def test_the_nightly_checks_the_pr_wait_with_read_rights_only() -> None:
     assert "GH_TOKEN: ${{ github.token }}" in job
     assert "REPO: ${{ github.repository }}" in job
     assert "persist-credentials: false" in job
+
+
+def test_runs_from_before_the_three_shards_are_not_counted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Runs from before the #1132 merge waited for the old layout; counted, they kept the
+    nightly red for the first 20 pull requests after it."""
+    monkeypatch.setenv("REPO", "owner/repo")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
+    runs = [
+        {"id": 1, "run_started_at": "2026-11-28T10:00:00Z", "conclusion": "success"},
+        {"id": 2, "run_started_at": "2026-11-27T16:05:00Z", "conclusion": "success"},
+        {"id": 3, "run_started_at": "2026-11-27T16:00:00Z", "conclusion": "success"},
+        {"id": 4, "run_started_at": "2026-11-27T15:00:00Z", "conclusion": "success"},
+    ]
+    ends = {1: "2026-11-28T10:05:00Z", 2: "2026-11-27T16:10:00Z", 3: "2026-11-27T16:12:00Z"}
+    read: list[int] = []
+
+    def jobs(repo: str, run_id: int) -> list[dict]:
+        read.append(run_id)
+        return [ended("CI passed", ends[run_id])]
+
+    pr_wait_script().main(runs=lambda repo: runs, jobs=jobs)
+    assert read == [1, 2]  # the runs are newest first, so the first older one ends the walk
+    summary = (tmp_path / "summary.md").read_text(encoding="utf-8")
+    assert "median 5.00 min" in summary
+    assert "2 runs" in summary
+    assert "since 2026-11-27 16:04 UTC" in summary
