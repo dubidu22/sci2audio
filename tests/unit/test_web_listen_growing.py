@@ -10,6 +10,7 @@ first two are playable while the job still runs.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import threading
@@ -33,7 +34,7 @@ from web_helpers import (
     wait,
 )
 
-from sci2audio.app import AudioProgress, Phase
+from sci2audio.app import AudioProgress, JobSettings, Phase
 from sci2audio.app.playable import read_record
 from sci2audio.web import create_app, player
 from sci2audio.web.documents import AUDIO_RECORD
@@ -450,3 +451,44 @@ def test_a_resume_reports_only_chapters_the_listen_page_opens_before_the_voice_l
     ((reported, found),) = seen
     assert set(reported) <= set(found)
     assert reported == ((0, 1) if how == "intact" else ())
+
+
+@pytest.mark.parametrize("record", [True, False], ids=["audio.json", "no audio.json"])
+def test_adding_to_a_finished_book_reports_its_chapters_only_while_the_page_opens_it(
+    tmp_path: Path, record: bool
+) -> None:
+    """A finished book is played from its `audio.json`, not from the chapter record (#1074):
+    without it the Listen page finds no book at all, so a run adding chapter 3 to chapters
+    1 and 2 reports none of them before its first file. The document id is the real one,
+    since the page refuses an `audio.json` made from another source."""
+    run(tmp_path, FakeVoice(), settings=JobSettings(chapters=(0, 1)))
+    work, out = tmp_path / "work", tmp_path / "out"
+    doc = hashlib.sha256((tmp_path / "in" / "book.md").read_bytes()).hexdigest()[:16]
+    if not record:
+        (work / AUDIO_RECORD).unlink()
+    seen: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+
+    def progress(event: AudioProgress) -> None:
+        if event.phase is Phase.LOADING_VOICE:
+            chapters = read_record(work)
+            assert chapters is not None
+            assert chapters.complete  # the earlier book, not yet touched by this run
+            try:
+                book = player.current_audiobook(work, doc, [out])
+            except player.PlayerError:
+                found: tuple[int, ...] = ()
+            else:
+                assert book.growing is None
+                assert book.located.folder == out
+                mp3s = set(book.record.mp3s)
+                found = tuple(
+                    c.index
+                    for c in chapters.chapters
+                    if any(f.name in mp3s for f in c.files if f.name.endswith(".mp3"))
+                )
+            seen.append((event.playable, found))
+
+    run(tmp_path, FakeVoice(), progress=progress, settings=JobSettings(chapters=(0, 1, 2)))
+    ((reported, found),) = seen
+    assert set(reported) <= set(found)
+    assert reported == ((0, 1) if record else ())

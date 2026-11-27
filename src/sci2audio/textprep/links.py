@@ -1108,7 +1108,8 @@ def _with_space(text: str, start: int, end: int, claimed: int) -> tuple[int, int
             start -= 1
             while start > claimed and text[start - 1].isspace():
                 start -= 1
-    elif _LEADING_SPACE.match(text).end() >= space_start:
+    # `leading` is never None: \s* matches at any position
+    elif (leading := _LEADING_SPACE.match(text)) and leading.end() >= space_start:
         start = 0 if claimed == 0 else space_start
         while end < len(text) and text[end].isspace():
             end += 1

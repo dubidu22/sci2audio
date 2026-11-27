@@ -275,3 +275,31 @@ def test_the_plugin_switch_is_not_kept(tmp_path: Path) -> None:
     save_settings(JobSettings(plugins=False), file)
     assert "plugins" not in json.loads(file.read_text(encoding="utf-8"))
     assert load_settings(file)[0].plugins is True
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("language", 7),
+        ("switched_off", "citations"),
+        ("chapters", "1-3"),  # not kept, so never read from the file (#119)
+        ("voice", ["af_heart"]),
+        ("speed", "fast"),
+        ("speed", True),
+        pytest.param("speed", 10**400, id="speed-too-big-for-a-float"),  # crashed before
+        ("letter_pace", {"pace": "slower"}),
+        ("subtitles", "on"),
+        ("plugins", "no"),  # not kept, so never read from the file (#667)
+        ("output_folder", 3),
+    ],
+)
+def test_a_wrong_typed_setting_gives_its_default_and_a_warning(
+    tmp_path: Path, key: str, value: object
+) -> None:
+    """#1103: each value is checked against its field's type before it becomes a setting."""
+    file = tmp_path / "settings.json"
+    file.write_text(json.dumps({"version": 1, key: value}), encoding="utf-8")
+    settings, warnings = load_settings(file)
+    assert settings == JobSettings()
+    assert len(warnings) == 1
+    assert f"{key!r}" in warnings[0]

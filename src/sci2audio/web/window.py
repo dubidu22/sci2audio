@@ -121,7 +121,9 @@ def load_webview(platform: str = sys.platform) -> Any | None:
     if platform not in WINDOW_SYSTEMS:
         return None
     try:
-        import webview  # the optional extra "window"; loaded only here
+        # the optional extra "window", loaded only here; a plain import, which the installer
+        # build follows, and an ignore, as pyright may run where the extra is not installed
+        import webview  # pyright: ignore[reportMissingImports]
     except ImportError:
         return None
     return webview
@@ -132,7 +134,8 @@ def load_appkit(platform: str = sys.platform) -> Any | None:
     if platform != "darwin":
         return None
     try:
-        from webview.platforms import cocoa  # pywebview's engine, which brings PyObjC
+        # pywebview's engine, which brings PyObjC; the extra may be missing, as above
+        from webview.platforms import cocoa  # pyright: ignore[reportMissingImports]
     except ImportError:
         return None
     return getattr(cocoa, "AppKit", None)
@@ -352,7 +355,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     # A packaged build starts itself again for each PDF reader process (D-581).
     multiprocessing.freeze_support()
     _quiet_streams()
-    parser = argparse.ArgumentParser(prog="sci2audio-app", description=__doc__.splitlines()[0])
+    # a module run with -OO has no docstring
+    description = (__doc__ or "").partition("\n")[0]
+    parser = argparse.ArgumentParser(prog="sci2audio-app", description=description)
     parser.add_argument("--version", action="version", version=f"sci2audio {__version__}")
     parser.add_argument("--selftest", type=Path, metavar="REPORT", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
