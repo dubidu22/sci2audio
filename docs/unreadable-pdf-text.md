@@ -127,9 +127,18 @@ take, also on slower machines (`docs/baseline.md`).
 
 `core.Page` has the field `recovered: int = 0`: how many of the page's `unmapped`
 characters were read as recognised letters (`0 <= recovered <= unmapped`). Additive with an
-empty default like `unmapped`: exports and golden files leave it out at 0. The recognised
-text may hold mistakes; the report and the document page will say which pages were
-recognised (#618 PR 2, AC-442.9).
+empty default like `unmapped`: exports and golden files leave it out at 0.
+
+The recognised text may hold mistakes, so the pages with any recognised letter are named
+(`app.readability.recovered_pages`, PDFs only; #618, AC-442.9, #1086), always in the same
+warning, `app.readability.recovered_warning`: "The text of page 2 was recognised from the
+shapes of its letters: the PDF's fonts give glyph numbers there instead of letters. The
+recognised text may hold mistakes." The report lists it after the picture-page warning and
+before the rest, and its JSON gets `"recovered_pages": {"pages": [2], "ranges": "2"}` at the
+end, only when a page was recognised. `sci2audio script` and `sci2audio convert` print the
+same warning on stderr (`sci2audio: warning: …`), after the picture-page one; a document
+without such pages prints nothing new. The document page shows it in English or German
+in step 1, after the picture-page notice (`document.recovered_pages`).
 
 **How the limits were set.** `scripts/letter_shapes.py measure` draws the 89 letters, digits
 and marks of English and German text of fonts on the machine that runs it and compares them
