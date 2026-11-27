@@ -496,9 +496,35 @@ def test_every_state_has_a_chip_with_an_icon_and_a_word(tmp_path: Path) -> None:
     for language in ("en", "de"):
         s = strings(language)
         for key, (look, icon) in pages.CHIPS.items():
-            assert s(f"library.state_{key}") != f"library.state_{key}", key
+            # a part-made book's words count its chapters (#1066)
+            assert s(f"library.state_{key}", done=1, n=2) != f"library.state_{key}", key
             assert look in ("making", "failed", "ready", "idle")  # never a highlighter
             assert icon
+
+
+def test_a_part_made_book_is_partly_listenable_unless_a_job_makes_it_or_it_is_done(
+    tmp_path: Path,
+) -> None:
+    from sci2audio.web.i18n import strings
+
+    document = stored(tmp_path)
+    part = Heard(90.0, None, chapters=(1, 3))
+    assert pages._state_of(board(), document, part) == "partly"
+    assert pages._state_of(board(), document, Heard(90.0, None)) == "new"
+    assert pages._state_of(board(job(JobKind.AUDIO)), document, part) == "making"
+    assert pages._state_of(board(None, (job(JobKind.AUDIO, JobState.FAILED),)), document, part) == (
+        "failed"
+    )
+    (document.folder / "audio.json").write_text("{}", encoding="utf-8")
+    assert pages._state_of(board(), document, part) == "ready"
+    words = {
+        "en": ("1 of 3 chapters ready", "1 of 1 chapter ready"),
+        "de": ("1 von 3 Kapiteln bereit", "1 von 1 Kapitel bereit"),
+    }
+    for language, (some, one) in words.items():
+        s = strings(language)
+        assert pages._state_text(s, "partly", part) == some
+        assert pages._state_text(s, "partly", Heard(30.0, None, chapters=(1, 1))) == one
 
 
 # ---- the library page ----------------------------------------------------------------------

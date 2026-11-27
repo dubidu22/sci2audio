@@ -77,14 +77,41 @@ class Held:
         ({"phase": "reading", "chapters": 0}, ("before", 0)),
         ({"phase": "speaking", "chapters": 2, "chapter_number": 0}, ("before", 0)),
         ({"phase": "speaking", "chapters": 2, "chapter_number": 1}, ("chapter", 1)),
-        # the last finished chunk ended chapter 1: the job was in chapter 2
+        # the last finished chunk ended chapter 1 and its files are in place: the job was
+        # in chapter 2
         (
-            {"phase": "speaking", "chapters": 2, "chapter_number": 1, "chapter_done": True},
+            {
+                "phase": "speaking",
+                "chapter": 0,
+                "chapters": 2,
+                "chapter_number": 1,
+                "chapter_done": True,
+                "playable": [0],
+            },
             ("chapter", 2),
         ),
-        # ... and when it ended the last chapter, every chapter was spoken
+        # ... while they were still written, it was in chapter 1 (#1060)
         (
-            {"phase": "speaking", "chapters": 2, "chapter_number": 2, "chapter_done": True},
+            {
+                "phase": "speaking",
+                "chapter": 0,
+                "chapters": 2,
+                "chapter_number": 1,
+                "chapter_done": True,
+                "playable": [],
+            },
+            ("chapter", 1),
+        ),
+        # ... and when it ended the last chapter, every chapter was spoken, its files written
+        # or not
+        (
+            {"phase": "speaking", "chapter": 1, "chapters": 2, "chapter_number": 2}
+            | {"chapter_done": True, "playable": [0]},
+            ("writing", 2),
+        ),
+        (
+            {"phase": "speaking", "chapter": 1, "chapters": 2, "chapter_number": 2}
+            | {"chapter_done": True, "playable": [0, 1]},
             ("writing", 2),
         ),
         ({"phase": "encoding", "chapters": 2, "chapter_number": 2}, ("writing", 2)),
@@ -173,6 +200,116 @@ def test_the_running_card_before_the_first_sentence_and_while_writing_the_book()
     lines = pages._running_lines(strings("en"), written)
     assert lines["chapter_line"] == ""
     assert lines["segments"] == ["done", "done", "done", "done"]
+
+
+# --- the paused and failed card: a chapter being saved is not done yet (#1060) -----------
+
+
+def stopped_card(
+    tmp_path: Path, progress: dict[str, Any], end: BaseException, language: str = "en"
+) -> dict[str, Any]:
+    """The card data of an audio job that ended by `end` with `progress` as its last, on a
+    document whose speech cache holds its spoken sentences."""
+    app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    assert wait(client, start(client, doc["id"]))["state"] == "done"
+    state = app.state.sci2audio
+
+    def work(job: Any) -> Any:
+        job.report(progress)
+        raise end
+
+    job = state.board.start(JobKind.AUDIO, doc["id"], None, work, cancellable=True)
+    job.join(10)
+    found = state.store.get(doc["id"])
+    assert found is not None
+    assert found.speech_cache_bytes > 0
+    return pages.making_card(state, strings(language), job, found)
+
+
+# chapter 3 of 4 has its last sentence spoken; its files are being written
+SAVING_THIRD = speaking(
+    chapter=2,
+    chapter_number=3,
+    chapter_done=True,
+    chapter_chunks_done=10,
+    chapter_chunks_total=10,
+    playable=[0, 1],
+)
+PAUSED = audio.JobCancelledError("the job was cancelled; finished parts are kept for a rerun")
+FAILED = JobError("could not write the audiobook: the disk is full")
+
+
+def test_a_card_paused_while_a_chapter_is_saved_says_that_chapter(tmp_path: Path) -> None:
+    card = stopped_card(tmp_path, SAVING_THIRD, PAUSED)
+    assert card["state"] == "cancelled"
+    assert card["title"] == "Paused in chapter 3."
+    assert card["segments"] == ["done", "done", "now", ""]
+    assert card["kept"] == "2013 of 6707 sentences are spoken and kept."
+    assert card["resume"]
+
+
+def test_a_card_paused_while_a_chapter_is_saved_in_german(tmp_path: Path) -> None:
+    assert stopped_card(tmp_path, SAVING_THIRD, PAUSED, "de")["title"] == "In Kapitel 3 pausiert."
+
+
+def test_a_card_failed_while_a_chapter_is_saved_keeps_only_the_playable_ones(
+    tmp_path: Path,
+) -> None:
+    card = stopped_card(tmp_path, SAVING_THIRD, FAILED)
+    assert card["state"] == "failed"
+    assert card["title"] == "Making the audiobook stopped in chapter 3"
+    assert card["segments"] == ["done", "done", "now", ""]
+    assert card["kept"] == (
+        "Chapters 1 to 2 are finished and kept. Making it again speaks only what is missing."
+    )
+
+
+@pytest.mark.parametrize("end", [PAUSED, FAILED], ids=["paused", "failed"])
+def test_a_card_stopped_once_a_chapter_is_playable_is_in_the_next(
+    tmp_path: Path, end: BaseException
+) -> None:
+    card = stopped_card(tmp_path, {**SAVING_THIRD, "ready": 2, "playable": [0, 1, 2]}, end)
+    assert card["segments"] == ["done", "done", "done", "now"]
+    if end is PAUSED:
+        assert card["title"] == "Paused in chapter 4."
+    else:
+        assert card["title"] == "Making the audiobook stopped in chapter 4"
+        assert card["kept"].startswith("Chapters 1 to 3 are finished and kept.")
+
+
+def test_a_card_stopped_while_the_last_chapter_is_saved_says_writing(tmp_path: Path) -> None:
+    last = {**SAVING_THIRD, "chapter": 3, "chapter_number": 4, "playable": [0, 1, 2]}
+    (tmp_path / "failed").mkdir()
+    (tmp_path / "paused").mkdir()
+    failed = stopped_card(tmp_path / "failed", last, FAILED)
+    assert failed["title"] == "Making the audiobook stopped while writing the files"
+    assert failed["kept"].startswith("Every chapter is spoken and kept.")
+    assert failed["segments"] == ["done", "done", "done", "done"]
+    paused = stopped_card(tmp_path / "paused", last, PAUSED)
+    assert paused["title"] == "Paused."
+    assert paused["segments"] == ["done", "done", "done", "now"]
+
+
+def test_the_card_paused_while_the_first_chapter_is_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pause stops the encoder's feed (D-119): the job's last progress is chapter 1's last
+    sentence, its files not in place, so the card is paused in chapter 1."""
+    gate = threading.Event()
+    reached = held_first_chapter(monkeypatch, gate)
+    _app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())
+    job = start(client, doc["id"])
+    try:
+        assert reached.wait(30)
+        assert client.post(f"/api/v1/jobs/{job}/cancel").status_code == 202
+    finally:
+        gate.set()
+    assert wait(client, job)["state"] == "cancelled"
+    paused = card(client.get(f"/jobs/{job}").text)
+    assert re.search(r'<h3 id="result"[^>]*>Paused in chapter 1\.</h3>', paused), paused
+    assert re.findall(r'class="job-seg ?(\w*)"', paused) == ["now", ""]
 
 
 # --- the paper header and the side column -------------------------------------------------

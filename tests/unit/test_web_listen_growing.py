@@ -420,6 +420,66 @@ def test_after_a_restart_a_finished_audiobook_opens_the_listen_tab_as_before(
     assert [c["title"] for c in data["chapters"]] == TITLES
 
 
+def library_row(client: Any, doc: str, language: str = "en") -> str:
+    """The document's row in the library, as drawn in `language`."""
+    client.cookies.set("sci2audio-language", language)
+    answer = client.get("/")
+    assert answer.status_code == 200, answer.text
+    return answer.text.split(f'<tr id="row-{doc}"')[1].split("</tr>")[0]
+
+
+def chip_of(row: str) -> str:
+    found = re.search(r'<span class="chip[^"]*" data-state="[^"]*">.*?</span>', row, re.S)
+    assert found is not None, row
+    return found[0]
+
+
+def test_after_a_restart_the_library_shows_the_chapters_made_as_partly_listenable(
+    tmp_path: Path,
+) -> None:
+    """Colin's case (#1066): chapters on disk and no `audio.json`, so not yet "Ready", but
+    more than "Checked, no audio yet", since the row already opens the Listen page."""
+    book = start_growing(tmp_path, ready=1, gate_text="We measured it twice.")
+    assert book.stop()["state"] == "cancelled"
+    assert not (book.work / AUDIO_RECORD).exists()
+
+    client = restart(book)
+    row = library_row(client, book.doc)
+    assert f'href="/documents/{book.doc}/listen"' in row
+    chip = chip_of(row)
+    assert chip.startswith('<span class="chip ready" data-state="partly">'), chip
+    assert '<use href="#i-play"' in chip  # an icon beside the words, never colour alone
+    assert "1 of 3 chapters ready" in chip
+    assert "Not started" in row  # the Listened column, as for any audiobook
+    assert "1 von 3 Kapiteln bereit" in chip_of(library_row(client, book.doc, "de"))
+
+
+def test_after_a_restart_a_finished_audiobook_shows_as_ready_in_the_library(
+    tmp_path: Path,
+) -> None:
+    book = start_growing(tmp_path)
+    assert book.finish()["state"] == "done"
+
+    chip = chip_of(library_row(restart(book), book.doc))
+    assert chip.startswith('<span class="chip ready" data-state="ready">'), chip
+    assert "Ready" in chip
+    assert "chapter" not in chip
+
+
+def test_after_a_restart_a_book_with_no_playable_chapter_shows_as_before_in_the_library(
+    tmp_path: Path,
+) -> None:
+    book = start_growing(tmp_path, ready=0, gate_text="Things happen and more.")
+    assert book.stop()["state"] == "cancelled"
+
+    row = library_row(restart(book), book.doc)
+    assert f'href="/documents/{book.doc}"' in row
+    chip = chip_of(row)
+    # the audio job was asked for without an analysis first, so no report was written
+    assert chip.startswith('<span class="chip idle" data-state="new">'), chip
+    assert "Not analysed yet" in chip
+
+
 @pytest.mark.parametrize(
     ("how", "overwrite"),
     [("intact", False), ("missing", False), ("truncated", True), ("readalong", True)],

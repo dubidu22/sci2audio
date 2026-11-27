@@ -79,7 +79,7 @@
         {% if row.document and row.audio %}{{ book_box(row.id, row.title, true) }}{% endif %}
         {% if row.document %}{{ remove_box(row.document, removals[row.id], row.id == busy_document, true) }}{% endif %}
       </td>
-      <td><span class="chip {{ row.chip[0] }}" data-state="{{ row.state }}">{{ icon(row.chip[1], 's') }}{{ t('library.state_' ~ row.state) }}</span></td>
+      <td><span class="chip {{ row.chip[0] }}" data-state="{{ row.state }}">{{ icon(row.chip[1], 's') }}{{ row.said }}</span></td>
       <td class="progress">
         {% if row.made is not none %}
         <progress class="meter made" max="100" value="{{ row.made }}" aria-hidden="true"></progress>

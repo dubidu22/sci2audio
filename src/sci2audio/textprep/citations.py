@@ -54,10 +54,10 @@ from sci2audio.textprep.links import (
     only_links_before,
     without_links,
 )
+from sci2audio.textprep.notation import Candidate, through_unread
 from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.statistics import OPERATORS, interval_openings
-from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
+from sci2audio.textprep.readings import readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -312,8 +312,6 @@ _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
-# the signs the English statistics step reads with nothing before them (all but "=")
-_SIGNS_READ_ALONE = frozenset({key[0] for key in OPERATORS} - {"=", "\u0338"})
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _GLUES = ".,0123456789"  # what a removal must not join to a digit after it (#308)
 _CLOSE_AHEAD = re.compile(r"\s*\)")
@@ -528,9 +526,16 @@ class _Rules:
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
         # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
         # [12]" after the first run, so a second run decides the same (#101)
-        said = OPERATORS_DE if language == "de" else OPERATORS
-        phrases = sorted(set(said.values()), key=len, reverse=True)
+        said = words_of("statistics", "de" if language == "de" else "en")
+        phrases = sorted(set(said.signs.values()), key=len, reverse=True)
         self.said_sign = re.compile(rf"(?<!\w)(?:{'|'.join(map(re.escape, phrases))})\Z")
+        # the signs the English statistics step reads with nothing before them (all but "=")
+        self.signs_read_alone = frozenset({key[0] for key in said.signs} - {"=", "\u0338"})
+        # the capital words of its names of squared statistics: never an author's name before
+        # "(2019)" (#101)
+        self.read_words = frozenset(
+            word for name in said.squared for word in name.split() if word[0].isupper()
+        ) - {"R"}
         self.language = language
 
     def block(self, text: str, links: list[tuple[int, int]] | None = None) -> list[_Found]:
@@ -1485,10 +1490,21 @@ class _Rules:
         return position in self._intervals(text)
 
     def _intervals(self, text: str) -> frozenset[int]:
-        """The statistics step's interval brackets in this block, worked out once."""
+        """The square brackets that open a reading of the statistics step in this block: its
+        intervals', which this step leaves alone, so the two steps agree on every joined pair
+        (#151); in German "KI [1,2; 3,4]" too (#101). Asked of the text as read, without the
+        characters the Unicode step removes, then mapped back (#208). Worked out once."""
         if self._intervals_of[0] != text:
-            self._intervals_of = (text, interval_openings(text, self.language))
+            found = through_unread(text, self._statistics_openings)
+            self._intervals_of = (text, frozenset(c.start for c in found))
         return self._intervals_of[1]
+
+    def _statistics_openings(self, read: str) -> list[Candidate]:
+        return [
+            Candidate(r.start, r.start + 1, "[", "interval")
+            for r in readings_of("statistics", read, self.language)
+            if read[r.start] == "["
+        ]
 
     def _spoken(self, inside: str) -> str:
         """The reading of a needed citation: "references 53 and 58", "Quelle MH17" (a key as
@@ -1661,7 +1677,7 @@ class _Rules:
         bare = "".join(c for c in bare if c not in INVISIBLE and c != SOFT_HYPHEN)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
-        if self.language == "de" and bare in READ_WORDS:
+        if self.language == "de" and bare in self.read_words:
             return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
         # "Sag and Hankamer (1984)": the reason names both authors
         pair = self.pair_end.search(before)
@@ -1807,7 +1823,7 @@ class _Rules:
         if self.language == "de":
             return False
         after = _SPACE.match(text, end)
-        return after is not None and text[after.end() : after.end() + 1] in _SIGNS_READ_ALONE
+        return after is not None and text[after.end() : after.end() + 1] in self.signs_read_alone
 
     def _with_space_around(self, text: str, start: int, end: int) -> tuple[int, int]:
         if self._starts_sentence(text, start) or only_links_before(text, start, self.language):

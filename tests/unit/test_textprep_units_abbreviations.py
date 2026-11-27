@@ -38,12 +38,14 @@ from sci2audio.textprep import (
     Stage,
     StepContext,
     UnitStep,
+    readings,
     run_steps,
     spoken_text,
     wording_for,
 )
 from sci2audio.textprep.notation import Candidate, edits_through_unread, through_unread
 from sci2audio.textprep.numbers_de import _NOUN_ENDINGS
+from sci2audio.textprep.units import _compiled
 from sci2audio.textprep.wordlists import (
     abbreviations,
     opens_sentence,
@@ -57,6 +59,15 @@ from sci2audio.textprep.wordlists import (
 EN = StepContext("en")
 UNITS = UnitStep()
 ABBREVIATIONS = AbbreviationStep()
+
+
+@pytest.fixture(autouse=True)
+def _read_afresh() -> None:
+    """Each test reads with the code it tests: the compiled lists and the units readings are
+    kept for the process, and a mutation run forks its workers from a process whose test run
+    filled them, so a mutant would otherwise meet only the answers of the unmutated code."""
+    _compiled.cache_clear()
+    readings._read.cache_clear()
 
 
 def said(
@@ -1264,3 +1275,243 @@ def test_a_number_with_more_digits_before_out_of_keeps_its_unit() -> None:
     reading of a fraction (the numbers step reads none with a 4-digit numerator)."""
     assert said(UNITS, "It was 1,017 out of 20 kg.") == "It was 1,017 out of 20 kilograms."
     assert said(UNITS, "It was 2.5 out of 20 kg.") == "It was 2.5 out of 20 kilograms."
+
+
+# ---- the readings the 1.5.0 mutation run found unpinned (#1124) -------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # a unit ends where a word cannot go on: not before "_" or a combining mark, but
+        # before the slash of a "≠" printed as two characters
+        ("It is 5 m_1 here.", "It is 5 m_1 here."),
+        ("It is 5 m\u0302 here.", "It is 5 m\u0302 here."),
+        ("The area 5 m\u00b2\u0338=1 here.", "The area 5 square metres\u0338=1 here."),
+        # at most two blank characters between a number and its unit
+        ("It is 5   kg.", "It is 5 kg."),
+        # no unit after the numbers step's "out of" or "to the power of", at the block start too
+        ("17 out of 20 kg went.", "17 out of 20 kg went."),
+        ("to the power of 2 m", "to the power of 2 m"),
+        # a magnitude letter after a power is no "million": set apart after superscripts,
+        # left glued after a caret
+        ("It is 10^6M here.", "It is 10^6M here."),
+        ("It has 10\u2076M cells.", "It has 10\u2076 M cells."),
+        ("~\u00d710\u2078B", "~ times 10\u2078 B"),
+        # "A-1" is a name, no number of a unit; "A" before a word in lower case is no unit
+        ("See A-1 m here.", "See A-1 m here."),
+        ("A 5 A iPhone charger.", "A 5 A iPhone charger."),
+        # the article that makes a unit singular, at the block start too
+        ("a 5 km race", "a 5 kilometre race"),
+        # "1" ends a range after a digit, a dash and at most one space; after a no-break
+        # space or two spaces it is one hour
+        ("2\u2013\u00a01 h", "2\u2013 1 hour"),
+        ("2\u2013 1 h", "2\u2013 1 hours"),
+        ("2\u2013  1 h", "2\u2013 1 hour"),
+        # a plain "2" is a power only after a length or a second behind "per", a plain "-1"
+        # only after a second unit
+        ("5 g/h2", "5 grams/h2"),
+        ("5 m-1", "5 metres-1"),
+        # what follows a unit in brackets, or glued after an angstrom
+        ("3 J/(kg\u00b7K) m", "3 joule metres per kilogram per kelvin"),
+        ("3 W/(m\u00b2)\u00b7s", "3 watt seconds per square metre"),
+        ("It takes 5 min/(sample).", "It takes 5 minutes/(sample)."),
+        ("3.6eV\u02daA-1", "3.6 electronvolts per angstrom"),
+        ("3.6eV\u02daAx", "3.6 electronvolts\u02daAx"),
+        ("3.6eV\u02daA s", "3.6 electronvolt angstrom seconds"),
+        # inside the brackets: a negative power, a space or a dot operator between units
+        ("3 J/(kg-1)", "3 joules/(kg-1)"),
+        ("3 J/(kg K-1)", "3 joule kelvin per kilogram"),
+        ("3 J/(kg\u22c5K)", "3 joules per kilogram per kelvin"),
+        ("3 J/(kg K)", "3 joules per kilogram per kelvin"),
+        # a unit after "per" at the block end
+        ("It costs 2 euros per m\u00b3", "It costs 2 euros per cubic metre"),
+    ],
+)
+def test_units_read_at_the_edges_of_their_rules(text: str, expected: str) -> None:
+    assert said(UNITS, text) == expected
+
+
+def test_a_label_word_counts_up_to_64_characters_before_the_number() -> None:
+    """The look-back that keeps long blocks linear: a list of labels that starts further
+    back is read as prose, so its last number takes the unit."""
+    near = "Figures 1A, 1B, 1C, 1D, 1E, 1F, 1G, 1H, 1I, 1J, 1K, 1L, 1M, and 2 m"
+    far = "Figures 1A, 1B, 1C, 1D, 1E, 1F, 1G, 1H, 1I, 1J, 1K, 1L, 10M, and 2 m"
+    assert said(UNITS, near) == near
+    assert said(UNITS, far) == (
+        "Figures 1A, 1B, 1C, 1D, 1E, 1F, 1G, 1H, 1I, 1J, 1K, 1L, 10M, and 2 metres"
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # an x is the variable after a sign; after an arrow of logic or a bare comparison
+        # sign it reads "times", as the readings of those signs do on a second run
+        ("A \u21d0=> 3x", "A \u21d0=> 3 times"),
+        ("=> 3x", "=> 3 times"),
+        ("y =>> 3x", "y =>> 3x"),
+        ("A -> 3x", "A -> 3x"),
+        ("-> 3x", "-> 3x"),
+        ("A -> 3x \u2190\u2212", "A -> 3x \u2190\u2212"),
+        ("\u2190\u2212> 3x", "\u2190\u2212> 3 times"),
+        ("A \u2190\u2212> 3x", "A \u2190\u2212> 3 times"),
+        ("A>3x", "A>3 times"),
+        ("> 3x", "> 3 times"),
+        ("< 3x faster!", "< 3 times faster!"),
+        ("A < 3x", "A < 3 times"),
+        ("x < 3x", "x < 3x"),
+        ("X < 3x", "X < 3x"),
+        ("y\n< 3x", "y < 3 times"),
+        ("[1, 2] < 3x", "[1, 2] < 3 times"),
+        # ... and after the x
+        ("So 3x>=A.", "So 3x>=A."),
+        ("So 3x >\ny.", "So 3x > y."),
+        ("So 3x >y.", "So 3x >y."),
+        ("So 3x>2.", "So 3 times >2."),
+        ("So 3x < 2.", "So 3 times < 2."),
+        ("It took 3x >2h.", "It took 3 times >2h."),
+        ("So 3x=>A.", "So 3 times =>A."),
+        (
+            "\u2190\u221212x and 12x\u2212\u2192 M",
+            "\u2190\u221212 times and 12 times \u2212\u2192 M",
+        ),
+        ("12x \u2212\u2212\u2192 y", "12 times \u2212\u2212\u2192 y"),
+        ("12\u00adx\u00ad\u2212\u2212\u2192 M", "12\u00ad times \u00ad\u2212\u2212\u2192 M"),
+        # the readings of a minus sign and of "less than" count as the signs
+        ("minus 3x", "minus 3x"),
+        ("Plus\u2013minus 3x", "Plus\u2013minus 3 times"),
+        ("So 3x minus\n2.", "So 3x minus 2."),
+        ("So 3x less than (a).", "So 3x less than (a)."),
+        # the word "times" counts as the sign only as a word of its own, after or before a
+        # few spaces and no line break
+        ("a times\n5x", "a times 5 times"),
+        ("Sometimes  5x", "Sometimes 5 times"),
+        ("(xtimes 5x)", "(xtimes 5 times)"),
+        ("a 5x\ntimes 3 grid", "a 5 times times 3 grid"),
+        ("5x    times 3", "5 times times 3"),
+        ("5x X times 3", "5 times X times 3"),
+        ("a 5x timeshare", "a 5 times timeshare"),
+        ("5x times2.", "5 times times2."),
+        # a letter or a sign further on is no operator
+        ("y = X 5x", "y = X 5 times"),
+        ("5x   + 1", "5 times + 1"),
+        ("a 5x\n+ 1", "a 5 times + 1"),
+        ("5x X+ 1", "5 times X+ 1"),
+        ("a 5x X-ray zoom", "a 5 times X-ray zoom"),
+        ("It ran 2x", "It ran 2 times"),
+        # a raised sign then a digit after the x is a power; then a letter it is not
+        ("3x\u207b\u00b2 here", "3x\u207b\u00b2 here"),
+        ("3x\u207bX", "3 times \u207bX"),
+        ("A grid of 11 x1x1 cells.", "A grid of 11 times 1 times 1 cells."),
+        # English reads ".45" as a number only after its own decimal point
+        ("In 2019 x .45", "In 2019 x .45"),
+    ],
+)
+def test_the_x_reads_times_or_stays_a_variable_by_what_stands_around_it(
+    text: str, expected: str
+) -> None:
+    assert said(UNITS, text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # "~" right after a digit stays, at the block start and after a no-break space too;
+        # after a line break, a letter or a unit's power it is "about"
+        ("5~10 runs", "5~10 runs"),
+        ("range\u00a05~10", "range 5~10"),
+        ("From 5\n~10 runs.", "From 5 about 10 runs."),
+        ("a 10X ~5 gain", "a 10 times about 5 gain"),
+        ("5\u00c52~3", "5 square angstroms about 3"),
+    ],
+)
+def test_a_tilde_reads_about_by_what_stands_before_it(text: str, expected: str) -> None:
+    assert said(UNITS, text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("A \u21d0=> 3x", "A \u21d0=> 3x"),
+        ("kleiner als 3x", "kleiner als 3x"),
+        ("am 12.03.2019 x .45", "am 12.03.2019 mal .45"),
+        ("x^2 x^2", "x^2 x^2"),
+        ("Also 5 Ampere hoch 2 K.", "Also 5 Ampere hoch 2 K."),
+        ("Es dauert 5 min/(Probe).", "Es dauert 5 Minuten/(Probe)."),
+        # "1" before a unit and a hyphen starts a compound only after a space
+        ("Ein 1 \u20ac-T-Shirt.", "Ein Ein-Euro-T-Shirt."),
+        ("Eine 1kg-Packung.", "Eine ein Kilogramm-Packung."),
+        # "pro Std." keeps its full stop at the block end, and only there or before an opener
+        ("Es kostet 3 Euro pro Std.", "Es kostet 3 Euro pro Stunde."),
+        ("Es kostet 3 Euro pro Std. Fahrt.", "Es kostet 3 Euro pro Stunde Fahrt."),
+        # a court's file number keeps its letter; a "W" after it, or before it, is "Watt"
+        (
+            "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 W Leistung.",
+            "OLG Hamm, Az. 2 W 12/07; die Lampe hat 13 Watt Leistung.",
+        ),
+        ("Az. 13 W 17/12 und 5 W", "Az. 13 W 17/12 und 5 Watt"),
+        ("Az. 3-10 O 86/12 und 3/4 davon", "Az. 3-10 O 86/12 und 3/4 davon"),
+        (
+            "Das Gericht hat im Az. 13 W 17/12 entschieden. Das Urteil (Az. 2 W 12/07) nennt 5 W.",
+            "Das Gericht hat im Az. 13 W 17/12 entschieden. Das Urteil (Az. 2 W 12/07) nennt "
+            "5 Watt.",
+        ),
+    ],
+)
+def test_german_units_and_symbols_read_at_the_edges_of_their_rules(
+    text: str, expected: str
+) -> None:
+    assert said_de(UNITS, text) == expected
+
+
+@pytest.mark.parametrize(
+    ("language", "text", "expected"),
+    [
+        # a letter before "less than" is a variable unless it is a unit ("V") or a word
+        ("en", "X less than 2x", "X less than 2x"),
+        ("en", "V less than 2x", "V less than 2 times"),
+        ("en", "y > 3x", "y > 3x"),
+        # the language's own words join a list of labels
+        ("de", "Gruppen 1 und 2 K", "Gruppen 1 und 2 K"),
+        ("de", "Bedingungen 1 bzw. 2 V", "Bedingungen 1 bzw. 2 V"),
+    ],
+)
+def test_the_compiled_lists_read_variables_and_label_joins(
+    language: str, text: str, expected: str
+) -> None:
+    reading = said(UNITS, text) if language == "en" else said_de(UNITS, text)
+    assert reading == expected
+
+
+def _said_by_block(document: Document) -> list[str]:
+    script = run_steps(document, EN, steps=(UNITS,), strict=True).script()
+    return [
+        spoken_text(piece for piece in script if piece.span.block == index)
+        for index in range(len(document.blocks))
+    ]
+
+
+def test_a_paragraph_after_a_furniture_block_is_read() -> None:
+    document = make_document(
+        [(BlockKind.FURNITURE, "Page 5 of 9"), (BlockKind.PARAGRAPH, "It took 5 mg")]
+    )
+    assert _said_by_block(document) == ["Page 5 of 9", "It took 5 milligrams"]
+
+
+def test_a_unit_before_a_hidden_run_is_read_as_without_it() -> None:
+    """The page-break number "13" glued to "°C" is a hidden run, which a second run never
+    sees: "°C" is read as at the end of a word."""
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "at 37 °C13 here")],
+        tags={0: [(8, 10, ("span", "epub:pagebreak"))]},
+    )
+    assert _said_by_block(document) == ["at 37 degrees Celsius13 here"]
+
+
+def test_a_letter_after_a_raised_exponent_is_a_unit_not_a_magnitude() -> None:
+    """The "4" is raised only by its run: "104K" is read as "10⁴K", "kelvin"."""
+    document = make_document(
+        [(BlockKind.PARAGRAPH, "At 104K the gas glows.")], tags={0: [(5, 6, "sup")]}
+    )
+    assert _said_by_block(document) == ["At 104 kelvin the gas glows."]
