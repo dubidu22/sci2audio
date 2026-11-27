@@ -54,7 +54,8 @@ def test_a_paper_becomes_an_audiobook_with_the_real_voice_offline(
 ) -> None:
     voice = kokoro_voice(models_dir())
     settings = JobSettings(output_folder=tmp_path / "out")
-    # the job writes no M4B unless asked (#723); the CLI and the web ask the same way
+    # the job writes no M4B unless asked (#723); the CLI asks as this does, while the web
+    # writes none and builds the whole book on request (#725)
     wants_m4b = OutputSettings(m4b=True)
     with no_network():
         job = run_audio_job(
