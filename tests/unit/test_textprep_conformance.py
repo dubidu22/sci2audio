@@ -44,6 +44,45 @@ def test_the_sample_documents_cover_every_block_kind_and_three_languages() -> No
     assert {document.language for document in SAMPLE_DOCUMENTS} == {"en", "en-GB", "de"}
 
 
+class FailsOn(TextStep):
+    """A step that fails on one sample document only."""
+
+    id = "fails-on-one"
+    languages = ("*",)
+    category = Category.CITATIONS
+    stage = Stage.INLINE
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def find(self, document: Document, context: StepContext) -> list[Edit]:
+        if document.content.source.name == self.name:
+            raise RuntimeError("boom")
+        return []
+
+
+EVERY_SAMPLE = [
+    "empty.txt",
+    "furniture.txt",
+    "paper.txt",
+    "paper-gb.txt",
+    "german.txt",
+    "title.txt",
+    "placeholders.txt",
+    "platzhalter.txt",
+]
+
+
+@pytest.mark.parametrize("name", EVERY_SAMPLE)
+def test_the_suite_checks_a_plugin_on_every_sample_document_by_default(name: str) -> None:
+    """Tests may check a step on fewer documents to save time (#1134); a plugin author who
+    calls the suite plainly still gets every one."""
+    problems = text_step_problems(FailsOn(name))
+    assert any(problem.startswith(f"on {name}:") for problem in problems), problems
+    with pytest.raises(ConformanceError, match=name):
+        check_text_step(FailsOn(name))
+
+
 class Bad(TextStep):
     """A paragraph step that misbehaves in one way, chosen by `how`."""
 
