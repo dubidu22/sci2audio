@@ -819,7 +819,13 @@ def test_a_repeated_mutation_request_waits_and_another_runs_beside_it() -> None:
 
 def test_a_folder_that_is_no_checkout_of_its_own_is_told_apart(tmp_path: Path) -> None:
     """mutmut runs the tests in its copy of the tree, where git lists the repository's files
-    and not the copy's (#1093); the tests that read the tracked files skip there."""
-    assert own_checkout(ROOT)
-    assert not own_checkout(ROOT / "tests")  # mutmut's copy lies inside the checkout
-    assert not own_checkout(tmp_path)
+    and not the copy's (#1093); the tests that read the tracked files skip there. A made-up
+    repository, so this holds in that copy too."""
+    git = shutil.which("git")
+    assert git is not None
+    checkout, copy, outside = tmp_path / "checkout", tmp_path / "checkout" / "mutants", tmp_path
+    copy.mkdir(parents=True)
+    subprocess.run([git, "init", "-q", str(checkout)], check=True)
+    assert own_checkout(checkout)
+    assert not own_checkout(copy)  # mutmut's copy lies inside the checkout
+    assert not own_checkout(outside)
