@@ -842,7 +842,8 @@ def _stopped_in(progress: Mapping[str, Any]) -> tuple[str, int]:
     """Where an audio job stood when it ended (D-695): ("writing", n) once every chapter
     was spoken, ("chapter", n) in its n-th chapter, ("before", 0) before the first chunk.
     The last progress names the last finished chunk; when that chunk ended its chapter,
-    the job was in the next one."""
+    the job was in the next one once that chapter was playable, and before that still in it
+    (#1060), as the running card counts it (`_chapter_now`): its files were not in place."""
     phase = progress.get("phase")
     chapters = int(progress.get("chapters") or 0)
     if phase in ("encoding", "done"):
@@ -853,6 +854,8 @@ def _stopped_in(progress: Mapping[str, Any]) -> tuple[str, int]:
     if progress.get("chapter_done"):
         if number >= chapters:
             return "writing", chapters
+        if progress.get("chapter") not in (progress.get("playable") or ()):
+            return "chapter", number
         return "chapter", number + 1
     return "chapter", number
 
