@@ -1,6 +1,6 @@
 """Runs named browser tests many times over several runners (isolate.yml, D-759, TST-08).
 
-    python .github/scripts/isolate.py matrix   # writes the job matrix to $GITHUB_OUTPUT
+    python .github/scripts/isolate.py matrix   # the job matrix and request name to $GITHUB_OUTPUT
     python .github/scripts/isolate.py run      # this runner's share of the runs
     python .github/scripts/isolate.py summary FOLDER  # adds up every runner's counts
 
@@ -8,7 +8,7 @@ Every input comes from the environment (never from the workflow text, so no valu
 as code): TESTS (node ids, one per line or space-separated, all under tests/browser/),
 BROWSERS (any of chromium firefox webkit), WEBKIT_MACOS (true/false), RUNS, RUNNERS,
 SLICE (1-based), BROWSER, RUNNER_LABEL (the runner's os label), MODE (`stop` ends at the
-first failure, `full` runs them all).
+first failure, `full` runs them all), GITHUB_REF (set by GitHub).
 
 A run counts as passed only when pytest exits 0 and every test in it passed: a failure,
 an error, a skip (a quarantined test is run with --run-quarantined) or a missing test
@@ -17,6 +17,7 @@ fails the job.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -65,11 +66,25 @@ def plan() -> tuple[list[dict[str, object]], int, int]:
     return cells, runs, runners
 
 
+def request(
+    ref: str, ids: list[str], browsers: list[str], webkit_macos: str, runs: int, mode: str
+) -> str:
+    """A short name for one request, the same for a repeat of it: the concurrency group
+    holds this, never the ids, whose length has no bound (#1076). The runner count is
+    left out, as it was of the group before, so a repeat with other runners cancels too."""
+    asked = json.dumps([ref, ids, browsers, webkit_macos, runs, mode])
+    return hashlib.sha256(asked.encode("utf-8")).hexdigest()[:16]
+
+
 def matrix() -> None:
     cells, runs, _ = plan()
-    tests()  # refuse bad ids before any runner starts
+    ids = tests()  # refuse bad ids before any runner starts
+    browsers = list(dict.fromkeys(env("BROWSERS").replace(",", " ").split()))
+    webkit_macos = os.environ.get("WEBKIT_MACOS", "false")
+    name = request(env("GITHUB_REF"), ids, browsers, webkit_macos, runs, env("MODE"))
     with Path(env("GITHUB_OUTPUT")).open("a", encoding="utf-8") as out:
         out.write(f"matrix={json.dumps({'include': cells})}\n")
+        out.write(f"request={name}\n")
     print(f"{len(cells)} runners, {runs} runs per browser, tests: {' '.join(tests())}")
 
 

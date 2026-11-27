@@ -574,6 +574,112 @@ def test_the_shard_collects_tests_with_golden_files(tmp_path: Path) -> None:
     assert all(test.startswith(f"{golden}::") for test in tests)
 
 
+ISOLATE = (WORKFLOWS / "isolate.yml").read_text(encoding="utf-8")
+
+
+def isolate_script():  # type: ignore[no-untyped-def]
+    """`.github/scripts/isolate.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "isolate.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_isolate", script)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+# Six ids as long as the ones whose group name made GitHub refuse the dispatch (#1076).
+LONG_IDS = [
+    f"tests/browser/test_a_long_pdf_becomes_an_audiobook_with_chapters.py::"
+    f"test_the_making_card_keeps_its_progress_after_a_restart_{n}[firefox]"
+    for n in range(6)
+]
+REQUEST = {
+    "ref": "refs/heads/fix/isolation-runs-of-the-flaky-making-card-tests",
+    "ids": LONG_IDS,
+    "browsers": ["chromium", "firefox", "webkit"],
+    "webkit_macos": "false",
+    "runs": 40,
+    "mode": "stop",
+}
+
+
+def test_an_isolation_request_gets_a_short_name_however_many_long_ids_it_names() -> None:
+    name = isolate_script().request(
+        **{**REQUEST, "ref": "refs/heads/" + "b" * 240, "ids": LONG_IDS * 20}
+    )
+    assert re.fullmatch(r"[0-9a-f]{16}", name), name
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"ref": "refs/heads/main"},
+        {"ids": LONG_IDS[:5]},
+        {"browsers": ["chromium"]},
+        {"webkit_macos": "true"},
+        {"runs": 80},
+        {"mode": "full"},
+    ],
+)
+def test_isolation_requests_that_differ_in_anything_get_different_names(change: dict) -> None:
+    """Two different requests run side by side; only a repeat shares a concurrency group."""
+    script = isolate_script()
+    assert script.request(**REQUEST) == script.request(**REQUEST)
+    assert script.request(**{**REQUEST, **change}) != script.request(**REQUEST)
+
+
+def plan_isolation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, tests: str) -> list[str]:
+    output = tmp_path / "output.txt"
+    output.unlink(missing_ok=True)
+    for name, value in {
+        "TESTS": tests, "BROWSERS": "chromium firefox", "WEBKIT_MACOS": "true", "RUNS": "40",
+        "RUNNERS": "2", "MODE": "full", "GITHUB_REF": REQUEST["ref"],
+        "GITHUB_OUTPUT": str(output),
+    }.items():  # fmt: skip
+        monkeypatch.setenv(name, value)
+    isolate_script().matrix()
+    return output.read_text(encoding="utf-8").splitlines()
+
+
+def test_the_isolation_plan_writes_the_requests_name_beside_the_matrix(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    spaces = plan_isolation(monkeypatch, tmp_path, " ".join(LONG_IDS))
+    lines = plan_isolation(monkeypatch, tmp_path, "\n".join(LONG_IDS) + "\n")
+    assert lines == spaces  # the same ids on lines or in one line are the same request
+    assert [line.split("=")[0] for line in lines] == ["matrix", "request"]
+    cells = json.loads(lines[0].removeprefix("matrix="))["include"]
+    assert {(cell["os"], cell["browser"]) for cell in cells} == {
+        ("ubuntu-latest", "chromium"), ("ubuntu-latest", "firefox"), ("macos-latest", "webkit"),
+    }  # fmt: skip
+    assert re.fullmatch(r"request=[0-9a-f]{16}", lines[1]), lines[1]
+
+
+def test_no_free_text_input_reaches_an_isolation_concurrency_group() -> None:
+    """#1076: six long test ids in the group name made GitHub refuse the dispatch with no
+    job and no message. Each runner's group is the request's short name and its cell."""
+    groups = re.findall(r"^ *group: (.*)$", ISOLATE, re.M)
+    assert groups == [
+        "isolate-${{ needs.plan.outputs.request }}-${{ matrix.browser }}-${{ matrix.os }}"
+        "-${{ matrix.slice }}"
+    ]
+    assert not re.search(r"^concurrency:", ISOLATE, re.M)  # a run-wide group sees no needs
+    runs = block(ISOLATE, "  runs:")
+    assert "    concurrency:\n" in runs
+    assert "      cancel-in-progress: true\n" in runs
+    assert "      request: ${{ steps.matrix.outputs.request }}" in block(ISOLATE, "  plan:")
+
+
+def test_the_isolation_workflow_runs_no_value_into_a_script() -> None:
+    scripts = re.findall(r"^ +(?:- )?run: (?![|>])(.+)$", ISOLATE, re.M)
+    for match in re.finditer(r"^( +)(?:- )?run: [|>]\n((?:\1  .*\n|\n)*)", ISOLATE, re.M):
+        scripts.append(match[2])
+    assert len(scripts) >= 6
+    for script in scripts:
+        assert "${{" not in script, script
+
+
 def pr_wait_script():  # type: ignore[no-untyped-def]
     """`.github/scripts/pr_wait.py`, imported as a module."""
     script = ROOT / ".github" / "scripts" / "pr_wait.py"
