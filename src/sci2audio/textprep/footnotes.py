@@ -231,7 +231,7 @@ class FootnoteStep(TextStep):
                 if found := self._linked_mark(index, block, group, notes):
                     yield found
                 group = []
-            if link is not None:
+            if run is not None and link is not None:  # a link is only read from a run
                 group.append((page, offset, offset + len(run.text), link))
 
     def _linked_mark(
