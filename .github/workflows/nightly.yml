@@ -1,8 +1,8 @@
 name: Nightly
 
 # Slow tests (voices, models, the whole corpus, speech-recognition round-trip),
-# benchmarks, and how long pull requests wait for "CI passed" (#1133). Not required for
-# merging; a red nightly run is a P1 Issue.
+# benchmarks, the fast tests on Python 3.13 (#1138), and how long pull requests wait for
+# "CI passed" (#1133). Not required for merging; a red nightly run is a P1 Issue.
 # A run by hand can leave parts out (D-759), so a branch check that needs only the
 # browsers holds no runners for the slow tests; the scheduled run always runs every part.
 # The pull-request wait has no switch: it only reads CI's runs, for about a minute.
@@ -25,6 +25,10 @@ on:
         default: true
       benchmarks:
         description: Benchmarks and the speed script
+        type: boolean
+        default: true
+      py313:
+        description: Fast tests on Python 3.13 (Linux)
         type: boolean
         default: true
 
@@ -101,6 +105,33 @@ jobs:
         env:
           HYPOTHESIS_PROFILE: nightly
         run: uv run pytest -m "(hypothesis or deep) and not slow and not benchmark and not browser" -n auto
+
+  # CI tests 3.13 only on pushes to main and release/* and under ci:full (#1132), so a 3.13
+  # break from a dependency moving on a quiet day shows here within a day (#1138). Whole and
+  # with CI's ci profile, as CI's 3.13 leg runs it: nobody waits on it, and the same tests
+  # make a red night comparable with a red CI run.
+  fast-py313:
+    name: fast tests (ubuntu-latest, py3.13)
+    if: github.event_name != 'workflow_dispatch' || inputs.py313
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          # sets UV_PYTHON, which wins over .python-version; still uv's own CPython
+          python-version: "3.13"
+          cache-python: true
+          cache-suffix: py3.13  # the cache of CI's 3.13 leg, never the .python-version one
+      - run: uv sync --locked
+      # Should a later change let .python-version win, this job would test 3.12 unseen.
+      - name: The tests run on Python 3.13
+        run: uv run python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
+      - name: Fast tests on Python 3.13
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto --durations=25
 
   browsers:
     name: browser (${{ matrix.browser }}, ${{ matrix.os }}, ${{ matrix.shard }}/2)
