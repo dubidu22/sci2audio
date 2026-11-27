@@ -152,12 +152,14 @@ def read_about(work: Path) -> About | None:
 @dataclass(frozen=True)
 class Heard:
     """A document's audiobook as the library shows it: its length, how far the person
-    listened (None: never started, or the record is for another audiobook), and whether the
-    Listen page offers to continue from there (`read_position`'s condition)."""
+    listened (None: never started, or the record is for another audiobook), whether the
+    Listen page offers to continue from there (`read_position`'s condition), and for a book
+    with no `audio.json` yet its chapters ready and planned (#1066)."""
 
     duration: float
     time: float | None
     resume: bool = False
+    chapters: tuple[int, int] | None = None
 
     @property
     def fraction(self) -> float | None:
@@ -203,11 +205,15 @@ def _heard_growing(work: Path, document_id: str, folders: tuple[Path | None, ...
     except (PlayerError, OSError):
         return None
     duration = current.record.duration
+    chapters = None
+    if current.growing is not None:
+        ready = [c.index for c in current.growing.chapters]
+        chapters = len(ready), len(set(current.growing.planned) | set(ready))
     position = recorded_position(work, document_id, stamp)
     if position is None or position.time > duration + 1:
-        return Heard(duration, None)
+        return Heard(duration, None, chapters=chapters)
     bounds = Bounds.of(current.located.readalong)
-    return Heard(duration, position.time, bounds.continues(position))
+    return Heard(duration, position.time, bounds.continues(position), chapters)
 
 
 def position_age(work: Path) -> float:
