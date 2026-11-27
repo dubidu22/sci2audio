@@ -147,12 +147,12 @@ def find_graphics(
     for items in pages:
         actions |= _loose(items, state, actions)
     # where each item is read: the tie rule of `_hosts`, built once for the document
-    read = {p.item: (k, n) for k, block in enumerate(blocks) for n, p in enumerate(block.parts)}
+    place = {p.item: (k, n) for k, block in enumerate(blocks) for n, p in enumerate(block.parts)}
     printed = _printed_lines(blocks, lengths)
     hosts = {
         k: line
         for items in pages
-        for k, line in _hosts(items, state, actions, read, printed).items()
+        for k, line in _hosts(items, state, actions, place, printed).items()
     }
     return _assemble(state, actions, hosts)
 
@@ -217,7 +217,8 @@ def _across(item: _Item, left: float, right: float) -> bool:
 
 
 def _gap(box: Box | float, item: _Item, down: bool) -> float:
-    edge = box if isinstance(box, float) else (box.y1 if down else box.y0)
+    # asked of the Box, since to pyright an edge typed `float` may also be an int
+    edge = (box.y1 if down else box.y0) if isinstance(box, Box) else box
     return item.box.y0 - edge if down else edge - item.box.y1
 
 

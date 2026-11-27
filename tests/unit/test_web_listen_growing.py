@@ -10,6 +10,7 @@ first two are playable while the job still runs.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import threading
@@ -33,7 +34,7 @@ from web_helpers import (
     wait,
 )
 
-from sci2audio.app import AudioProgress, Phase
+from sci2audio.app import AudioProgress, JobSettings, Phase
 from sci2audio.app.playable import read_record
 from sci2audio.web import create_app, player
 from sci2audio.web.documents import AUDIO_RECORD
@@ -418,6 +419,66 @@ def test_after_a_restart_a_finished_audiobook_opens_the_listen_tab_as_before(
     assert [c["title"] for c in data["chapters"]] == TITLES
 
 
+def library_row(client: Any, doc: str, language: str = "en") -> str:
+    """The document's row in the library, as drawn in `language`."""
+    client.cookies.set("sci2audio-language", language)
+    answer = client.get("/")
+    assert answer.status_code == 200, answer.text
+    return answer.text.split(f'<tr id="row-{doc}"')[1].split("</tr>")[0]
+
+
+def chip_of(row: str) -> str:
+    found = re.search(r'<span class="chip[^"]*" data-state="[^"]*">.*?</span>', row, re.S)
+    assert found is not None, row
+    return found[0]
+
+
+def test_after_a_restart_the_library_shows_the_chapters_made_as_partly_listenable(
+    tmp_path: Path,
+) -> None:
+    """Colin's case (#1066): chapters on disk and no `audio.json`, so not yet "Ready", but
+    more than "Checked, no audio yet", since the row already opens the Listen page."""
+    book = start_growing(tmp_path, ready=1, gate_text="We measured it twice.")
+    assert book.stop()["state"] == "cancelled"
+    assert not (book.work / AUDIO_RECORD).exists()
+
+    client = restart(book)
+    row = library_row(client, book.doc)
+    assert f'href="/documents/{book.doc}/listen"' in row
+    chip = chip_of(row)
+    assert chip.startswith('<span class="chip ready" data-state="partly">'), chip
+    assert '<use href="#i-play"' in chip  # an icon beside the words, never colour alone
+    assert "1 of 3 chapters ready" in chip
+    assert "Not started" in row  # the Listened column, as for any audiobook
+    assert "1 von 3 Kapiteln bereit" in chip_of(library_row(client, book.doc, "de"))
+
+
+def test_after_a_restart_a_finished_audiobook_shows_as_ready_in_the_library(
+    tmp_path: Path,
+) -> None:
+    book = start_growing(tmp_path)
+    assert book.finish()["state"] == "done"
+
+    chip = chip_of(library_row(restart(book), book.doc))
+    assert chip.startswith('<span class="chip ready" data-state="ready">'), chip
+    assert "Ready" in chip
+    assert "chapter" not in chip
+
+
+def test_after_a_restart_a_book_with_no_playable_chapter_shows_as_before_in_the_library(
+    tmp_path: Path,
+) -> None:
+    book = start_growing(tmp_path, ready=0, gate_text="Things happen and more.")
+    assert book.stop()["state"] == "cancelled"
+
+    row = library_row(restart(book), book.doc)
+    assert f'href="/documents/{book.doc}"' in row
+    chip = chip_of(row)
+    # the audio job was asked for without an analysis first, so no report was written
+    assert chip.startswith('<span class="chip idle" data-state="new">'), chip
+    assert "Not analysed yet" in chip
+
+
 @pytest.mark.parametrize(
     ("how", "overwrite"),
     [("intact", False), ("missing", False), ("truncated", True), ("readalong", True)],
@@ -450,3 +511,44 @@ def test_a_resume_reports_only_chapters_the_listen_page_opens_before_the_voice_l
     ((reported, found),) = seen
     assert set(reported) <= set(found)
     assert reported == ((0, 1) if how == "intact" else ())
+
+
+@pytest.mark.parametrize("record", [True, False], ids=["audio.json", "no audio.json"])
+def test_adding_to_a_finished_book_reports_its_chapters_only_while_the_page_opens_it(
+    tmp_path: Path, record: bool
+) -> None:
+    """A finished book is played from its `audio.json`, not from the chapter record (#1074):
+    without it the Listen page finds no book at all, so a run adding chapter 3 to chapters
+    1 and 2 reports none of them before its first file. The document id is the real one,
+    since the page refuses an `audio.json` made from another source."""
+    run(tmp_path, FakeVoice(), settings=JobSettings(chapters=(0, 1)))
+    work, out = tmp_path / "work", tmp_path / "out"
+    doc = hashlib.sha256((tmp_path / "in" / "book.md").read_bytes()).hexdigest()[:16]
+    if not record:
+        (work / AUDIO_RECORD).unlink()
+    seen: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+
+    def progress(event: AudioProgress) -> None:
+        if event.phase is Phase.LOADING_VOICE:
+            chapters = read_record(work)
+            assert chapters is not None
+            assert chapters.complete  # the earlier book, not yet touched by this run
+            try:
+                book = player.current_audiobook(work, doc, [out])
+            except player.PlayerError:
+                found: tuple[int, ...] = ()
+            else:
+                assert book.growing is None
+                assert book.located.folder == out
+                mp3s = set(book.record.mp3s)
+                found = tuple(
+                    c.index
+                    for c in chapters.chapters
+                    if any(f.name in mp3s for f in c.files if f.name.endswith(".mp3"))
+                )
+            seen.append((event.playable, found))
+
+    run(tmp_path, FakeVoice(), progress=progress, settings=JobSettings(chapters=(0, 1, 2)))
+    ((reported, found),) = seen
+    assert set(reported) <= set(found)
+    assert reported == ((0, 1) if record else ())

@@ -707,7 +707,8 @@ class _Rules:
                 ahead = self.hung_ahead.match(text, end, following)
                 lead = ahead and self.lead_before.search(text, max(last, first - _LOOK_BACK), first)
                 closing = _CLOSE_AHEAD.match(text, past[number], beyond)
-                if lead and pairs.get(lead.start(), -1) >= past[number]:
+                # `lead` is only looked for once `ahead` matched
+                if ahead and lead and pairs.get(lead.start(), -1) >= past[number]:
                     end = ahead.end()  # "(see (527794) and Lee": " and" goes with it
                     if not text[start].isspace():  # "((527794); 2019)": the space after "; "
                         end += len(text[end:following]) - len(text[end:following].lstrip())
@@ -741,12 +742,12 @@ class _Rules:
         """Removals that would leave two marks side by side take one along (#66):
         "Smith et al. (2019). Then" reads "Smith et al. Then"; "noise [12], [3]." reads
         "noise."; "x. [12]. [3]." reads "x."."""
-        result = [list(item) for item in found]
+        result = list(found)
         kept_end = 0  # end of the text kept before the next edit
         last, last_at, first_after = "", -1, 0  # the last mark heard, where, and the edit after
         before_last = ""
-        for index, item in enumerate(result):
-            start, end, kind, replacement = item[0], item[1], item[2], item[3]
+        for index in range(len(result)):
+            start, end, kind, replacement, _reason = result[index]
             mark_at = _last_mark_at(text, kept_end, start)
             if mark_at >= 0:
                 heard = text[max(kept_end, mark_at - _LOOK_BACK) : mark_at].rstrip()
@@ -756,9 +757,10 @@ class _Rules:
             following = result[index + 1][0] if index + 1 < len(result) else len(text) + 1
             if kind is EditKind.REMOVE and last and after and end + 1 <= following:
                 if last in ",;:" and after in ".!?" and last_at >= 0:
-                    result[first_after][0] = last_at  # "noise, [3]." reads "noise."
+                    # "noise, [3]." reads "noise."
+                    result[first_after] = _starting_at(result[first_after], last_at)
                     if before_last == ".":  # "e.g., [3]." reads "e.g."
-                        item[1] = end + 1
+                        result[index] = _ending_at(result[index], end + 1)
                 elif (
                     ((last in ".!?" and after in ".,;:") or (last in ",;" and after in ",;"))
                     and not (after != "." and self._abbreviation_before(text, kept_end, start))
@@ -770,11 +772,12 @@ class _Rules:
                         and reads_full_stop(text, last_at + 1, self.language)
                     )
                 ):
-                    item[1] = end + 1  # "et al. (2019). Then" reads "et al. Then"
-            kept_end = item[1]
+                    # "et al. (2019). Then" reads "et al. Then"
+                    result[index] = _ending_at(result[index], end + 1)
+            kept_end = result[index][1]
             if kind is EditKind.REPLACE:
                 last, last_at = replacement[-1:] or last, -1
-        return [(a, b, kind, replacement, why) for a, b, kind, replacement, why in result]
+        return result
 
     def _abbreviation_before(self, text: str, kept_end: int, start: int) -> bool:
         """True if the kept text before `start` ends with an abbreviation ("et al.")."""
@@ -1047,6 +1050,8 @@ class _Rules:
                 # the listed brackets' own removals give way to the names' edits
                 taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
                 edits = [edit for edit in edits if edit not in taken]
+            # it has inner brackets, so without names of its own it returned or took theirs
+            assert names is not None  # noqa: S101
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
 
@@ -1195,7 +1200,9 @@ class _Rules:
                 if hung := self.hung_ahead.match(read.text, at + 1, read.close):
                     read.blank(hung.start(), hung.end())
                 break
-        kept = re.compile(r"\s*").match(read.text, read.open + 1).end()  # the first kept item
+        space = re.compile(r"\s*").match(read.text, read.open + 1)
+        assert space is not None  # noqa: S101 (\s* matches at any position)
+        kept = space.end()  # the first kept item
         for _start, _end, at in removed:
             # one between two items: "(Jones, 2020; (Smith, 2019); Kim, 2017)" is "(Jones,
             # 2020; Kim, 2017)" then (#372); each look reads only the few characters around
@@ -1842,6 +1849,18 @@ def _pairs(roots: list[_Bracket]) -> dict[int, int]:
         pairs[node.open], pairs[node.close] = node.close, node.open
         stack += node.children
     return pairs
+
+
+def _starting_at(item: _Found, start: int) -> _Found:
+    """The found mark `item`, starting at `start`."""
+    _start, end, kind, replacement, reason = item
+    return start, end, kind, replacement, reason
+
+
+def _ending_at(item: _Found, end: int) -> _Found:
+    """The found mark `item`, ending at `end`."""
+    start, _end, kind, replacement, reason = item
+    return start, end, kind, replacement, reason
 
 
 def _keeps_text(found: list[_Found], node: _Bracket) -> bool:

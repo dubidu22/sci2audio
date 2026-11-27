@@ -56,6 +56,16 @@ def test_a_formula_with_its_number_apart_is_one_formula_block() -> None:
     assert paragraph_texts(doc) == [joined(before), joined(after)]
 
 
+def test_a_number_without_a_position_is_no_formula_and_stays_a_paragraph() -> None:
+    """Formula detection measures only lines with a box (#1100); a line the file gives no
+    position follows the page's text as a paragraph, even one that prints a number."""
+    before, after = paragraph(100, 4), paragraph(200, 3)
+    loose = TextLine("nobox", (TextRun("(2)", "CMMI10", 10.0),))
+    doc = build([*before, math("x = y + z", 250, 160, 330), number("(1)", 160), loose, *after])
+    assert formulas(doc) == [("1", "x = y + z (1)")]
+    assert paragraph_texts(doc) == [joined(before), joined(after), "(2)"]
+
+
 def test_a_number_at_the_end_of_an_indented_line_labels_it() -> None:
     """Extraction may keep the number in the formula's line."""
     doc = build([*paragraph(100, 4), math("a = b + c (2)", 200, 160, RIGHT), *paragraph(200, 3)])
