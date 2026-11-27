@@ -112,7 +112,8 @@ exit codes:
   4    a file type sci2audio can't read
   5    the file is damaged, protected or can't be opened, or its text can't be read
   6    the voice files are not installed (run: sci2audio voices download)
-  7    output files exist (add --overwrite to replace them)
+  7    output files exist (add --overwrite), or the audiobook's chapters were made with
+       other settings (add --keep-settings or --overwrite)
   8    another sci2audio job is working on this file
   130  stopped with Ctrl-C
 """
