@@ -37,7 +37,8 @@ expression, magnitude letter or symbol, with the words of `data/<language>/units
 Edits cover the unit or symbol only, never the number, so they never overlap the number
 steps (#67); the one exception is a raised mass number of one to three digits, which no
 number rule reads (#449). Furniture and placeholder blocks are claimed whole by other steps
-and skipped.
+and skipped. The edits come from the step's readings (`find_readings`), which are also what
+the other steps learn of it through the readings module (#1107).
 """
 # ruff: noqa: RUF002 (the docstrings name the symbols this step reads)
 
@@ -64,6 +65,7 @@ from sci2audio.textprep.notation import (
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
+from sci2audio.textprep.readings import Reading, readings_of
 from sci2audio.textprep.statistics import comparisons_read_alone
 from sci2audio.textprep.statistics_de import OPERATORS_DE
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
@@ -244,17 +246,23 @@ class UnitStep(TextStep):
         for index, block in enumerate(document.blocks):
             if not read_as_prose(block, context):
                 continue
-            # upright maths letters as the plain letters the characters step makes of them last
-            # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
             found = edits_through_unread(
                 index,
                 as_superscripts(block.text, exponents.get(index, ())),  # as printed (#576)
-                lambda read: _without_overlaps(self._edits(index, _upright(read), table)),  # noqa: B023
+                lambda read: self._read(index, read, context.language),  # noqa: B023
                 self.id,
                 marks.get(index, ()),
             )
             edits += self._mass_numbers(block.text, found, raised.get(index, ()), table)
         return edits
+
+    def _read(self, index: int, read: str, language: str) -> list[Edit]:
+        # upright maths letters as the plain letters the characters step makes of them last
+        # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
+        upright = _upright(read)
+        return [
+            self._edit(index, found, upright) for found in readings_of(self.id, upright, language)
+        ]
 
     def _mass_numbers(
         self, text: str, edits: list[Edit], raised: Collection[tuple[int, int]], table: _Table
@@ -288,89 +296,101 @@ class UnitStep(TextStep):
             )
         return kept
 
-    def _edits(self, index: int, text: str, table: _Table) -> Iterator[Edit]:
-        units_found: list[tuple[int, int]] = []
-        kept = [found.span() for found in table.kept.finditer(text)]  # in order, apart
-        k = 0
-        for match in table.number.finditer(text):
-            while k < len(kept) and kept[k][1] <= match.start():
-                k += 1  # numbers come in text order: one walk over the spans (linear)
-            if k < len(kept) and kept[k][0] <= match.start():
-                continue  # "Az. 13 W 17/12": a court's file number, no "13 Watt" (#243)
-            found = _unit_after(text, match, table)
-            if found is None:
-                continue
-            start, end, reads, shown, gender = found
-            units_found.append((start, end))
-            yield self._edit(index, start, end, reads, shown)
-            if gender and (one := _one(text, match, table, gender)) is not None:
-                yield self._edit(index, match.start(), match.end(), one, match.group())
-        words = table.words.words
-        for position, char in enumerate(text):
-            if char == "\u00d7" and _single(text, position, "\u00d7"):
-                yield self._symbol(index, text, position, words["times"])
-            elif char == "\u2248" and _single(text, position, "\u2248"):
-                yield self._symbol(index, text, position, words["approximately"])
-            elif char == MICRO_SIGN and not any(s <= position < e for s, e in units_found):
-                yield Edit(
-                    Span(index, position, position + 1),
-                    EditKind.REPLACE,
-                    reason=f'micro sign "{MICRO_SIGN}" read as the Greek letter "{GREEK_MU}"',
-                    step=self.id,
-                    replacement=GREEK_MU,
-                )
-        for match in table.per_word.finditer(text):
-            found_per = _unit_after_per(text, match.end(), table)
-            if found_per is not None:
-                start, end, reads, shown = found_per
-                yield self._edit(index, start, end, reads, shown)
-        unit_ends = {end for _, end in units_found}
-        for match in _TILDE.finditer(text):
-            # "5~10" stays; after a unit, its power included ("5 m3~5", "Å³~5"), "~" is "about"
-            head = text[max(0, match.start() - 3) : match.start()].rstrip(" \u00a0")
-            after_number = head[-1:].isascii() and head[-1:].isdigit()
-            if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
-                yield self._symbol(index, text, match.start(), words["about"], before_number=True)
-        for match in _LETTER_X.finditer(text):
-            if _times_x(
-                text,
-                match,
-                words["times"],
-                table.said_operators,
-                table.words.decimal,
-                table.compared,
-                english=table.language == "en",
-            ):
-                yield self._symbol(index, text, match.start("x"), words["times"])
-
-    def _symbol(
-        self, index: int, text: str, position: int, word: str, *, before_number: bool = False
-    ) -> Edit:
-        """One symbol read as a word, with a space on each side where it is glued; before a
-        number ("~.5") the space after it is always put in."""
-        before = text[position - 1 : position]
-        after = text[position + 1 : position + 2]
-        lead = " " if before and not before.isspace() and before not in _OPENING else ""
-        closing = "" if before_number else _CLOSING
-        trail = " " if after and not after.isspace() and after not in closing else ""
-        if _HYPHEN_LINE_END.match(text, max(0, position - 2), position):
-            # a symbol after a line-end hyphen ("11-", a break, then the times sign): the line
-            # break goes with it, read as a space, so the line-end hyphen step does not find
-            # "11-\nmal" on a second run and join it
-            return self._edit(index, position - 1, position + 1, f" {word}{trail}", text[position])
-        return self._edit(index, position, position + 1, lead + word + trail, text[position])
-
-    def _edit(self, index: int, start: int, end: int, reads: str, shown: str) -> Edit:
-        said = f'"{shown}" read as "{reads.strip()}"'
-        if reads.strip() == shown:  # "10⁶M": the letter set apart from the power (#576)
+    def _edit(self, index: int, found: Reading, text: str) -> Edit:
+        """The edit of one reading, whose reason names the printed text it replaces, with its
+        white space joined (the space a compound's hyphen takes in is no part of it)."""
+        shown = " ".join(text[found.start : found.end].split())
+        reads = found.words.strip()
+        said = f'"{shown}" read as "{reads}"'
+        if found.words == GREEK_MU and shown == MICRO_SIGN:
+            said = f'micro sign "{MICRO_SIGN}" read as the Greek letter "{GREEK_MU}"'
+        elif reads == shown:  # "10⁶M": the letter set apart from the power (#576)
             said = f'"{shown}" after a power is no magnitude: set apart, kept as printed'
         return Edit(
-            Span(index, start, end),
+            Span(index, found.start, found.end),
             EditKind.REPLACE,
             reason=said,
             step=self.id,
-            replacement=reads,
+            replacement=found.words,
         )
+
+
+def find_readings(text: str, language: str) -> list[Reading]:
+    """The step's readings in `text`, one per edit it makes there, in text order: the rules
+    of this module, which the step's edits and every other step's questions both come from."""
+    table = _compiled(language)
+    if table is None:
+        return []
+    return _without_overlaps(_found(text, table))
+
+
+def _found(text: str, table: _Table) -> Iterator[Reading]:
+    units_found: list[tuple[int, int]] = []
+    kept = [found.span() for found in table.kept.finditer(text)]  # in order, apart
+    k = 0
+    for match in table.number.finditer(text):
+        while k < len(kept) and kept[k][1] <= match.start():
+            k += 1  # numbers come in text order: one walk over the spans (linear)
+        if k < len(kept) and kept[k][0] <= match.start():
+            continue  # "Az. 13 W 17/12": a court's file number, no "13 Watt" (#243)
+        found = _unit_after(text, match, table)
+        if found is None:
+            continue
+        start, end, reads, gender = found
+        units_found.append((start, end))
+        yield _reads(start, end, reads)
+        if gender and (one := _one(text, match, table, gender)) is not None:
+            yield _reads(match.start(), match.end(), one)
+    words = table.words.words
+    for position, char in enumerate(text):
+        if char == "\u00d7" and _single(text, position, "\u00d7"):
+            yield _symbol(text, position, words["times"])
+        elif char == "\u2248" and _single(text, position, "\u2248"):
+            yield _symbol(text, position, words["approximately"])
+        elif char == MICRO_SIGN and not any(s <= position < e for s, e in units_found):
+            yield _reads(position, position + 1, GREEK_MU)
+    for match in table.per_word.finditer(text):
+        found_per = _unit_after_per(text, match.end(), table)
+        if found_per is not None:
+            yield _reads(*found_per)
+    unit_ends = {end for _, end in units_found}
+    for match in _TILDE.finditer(text):
+        # "5~10" stays; after a unit, its power included ("5 m3~5", "Å³~5"), "~" is "about"
+        head = text[max(0, match.start() - 3) : match.start()].rstrip(" \u00a0")
+        after_number = head[-1:].isascii() and head[-1:].isdigit()
+        if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
+            yield _symbol(text, match.start(), words["about"], before_number=True)
+    for match in _LETTER_X.finditer(text):
+        if _times_x(
+            text,
+            match,
+            words["times"],
+            table.said_operators,
+            table.words.decimal,
+            table.compared,
+            english=table.language == "en",
+        ):
+            yield _symbol(text, match.start("x"), words["times"])
+
+
+def _reads(start: int, end: int, words: str) -> Reading:
+    return Reading(start, end, words, UnitStep.category)
+
+
+def _symbol(text: str, position: int, word: str, *, before_number: bool = False) -> Reading:
+    """One symbol read as a word, with a space on each side where it is glued; before a
+    number ("~.5") the space after it is always put in."""
+    before = text[position - 1 : position]
+    after = text[position + 1 : position + 2]
+    lead = " " if before and not before.isspace() and before not in _OPENING else ""
+    closing = "" if before_number else _CLOSING
+    trail = " " if after and not after.isspace() and after not in closing else ""
+    if _HYPHEN_LINE_END.match(text, max(0, position - 2), position):
+        # a symbol after a line-end hyphen ("11-", a break, then the times sign): the line
+        # break goes with it, read as a space, so the line-end hyphen step does not find
+        # "11-\nmal" on a second run and join it
+        return _reads(position - 1, position + 1, f" {word}{trail}")
+    return _reads(position, position + 1, lead + word + trail)
 
 
 _POINT_NUMBER = re.compile(r" \.\d")
@@ -382,13 +402,13 @@ def _single(text: str, position: int, char: str) -> bool:
     return text[position - 1 : position] != char and text[position + 1 : position + 2] != char
 
 
-def _without_overlaps(edits: Iterator[Edit]) -> list[Edit]:
-    """The edits in order, each that overlaps an earlier one left out (a guard: the rules
+def _without_overlaps(found: Iterator[Reading]) -> list[Reading]:
+    """The readings in order, each that overlaps an earlier one left out (a guard: the rules
     above do not overlap, but one bad edit would cost the step every edit of the run)."""
-    kept: list[Edit] = []
-    for edit in sorted(edits, key=lambda e: (e.span.start, e.span.end)):
-        if not kept or kept[-1].span.end <= edit.span.start:
-            kept.append(edit)
+    kept: list[Reading] = []
+    for reading in sorted(found, key=lambda r: (r.start, r.end)):
+        if not kept or kept[-1].end <= reading.start:
+            kept.append(reading)
     return kept
 
 
@@ -445,9 +465,9 @@ def _boundary(text: str, position: int) -> bool:
 
 def _unit_after(
     text: str, number: re.Match[str], table: _Table
-) -> tuple[int, int, str, str, str] | None:
-    """The unit expression right after a number: its span, reading and printed text, and
-    the gender of the unit "1" is read with ("" if "1" stays as printed)."""
+) -> tuple[int, int, str, str] | None:
+    """The unit expression right after a number: its span and reading, and the gender of
+    the unit "1" is read with ("" if "1" stays as printed)."""
     end = number.end()
     gap = end
     while gap < len(text) and gap - end < 2 and text[gap] in _GAP:
@@ -486,7 +506,6 @@ def _unit_after(
                 # Danach" before a sentence opener (#229); "2 Std. Fahrt" is one sentence
                 stop -= 1
             reads = _reading(terms, plural, table)
-            shown = " ".join(text[start:stop].split())
             gender = first.gender if one and not terms[0].per else ""
             compound = text[stop : stop + 1] == "-" and text[stop + 1 : stop + 2].isalpha()
             if hyphen and gender and text[stop : stop + 1] == "-":
@@ -495,14 +514,14 @@ def _unit_after(
             elif gender and compound and start > end:
                 # "1 %-Hürde" as "1-%-Hürde": "Ein-Prozent-Hürde"; the space (a no-break
                 # space too) becomes the compound's hyphen, so the edit starts at it (#233)
-                return end, stop, f"-{reads}", shown, _COMPOUND
-            return start, stop, (" " if glued else "") + reads, shown, gender
+                return end, stop, f"-{reads}", _COMPOUND
+            return start, stop, (" " if glued else "") + reads, gender
     if powered and gap == end:
         magnitude = table.magnitude.match(text, end)
         if magnitude and _boundary(text, magnitude.end()):
             # "10⁶M": after a power the letter is no "million"; set apart, it stays as printed
             # and a second run does not read "6M" as "6 million" (#576)
-            return end, magnitude.end(), f" {magnitude.group()}", magnitude.group(), ""
+            return end, magnitude.end(), f" {magnitude.group()}", ""
     if gap == end and not number["exponent"]:
         magnitude = table.magnitude.match(text, end)
         if (
@@ -511,11 +530,11 @@ def _unit_after(
             and not _starts_with_joint(text, magnitude.end())
         ):
             words = table.words.magnitudes[magnitude.group()]
-            return end, magnitude.end(), f" {words}", magnitude.group(), ""
+            return end, magnitude.end(), f" {words}", ""
     return None
 
 
-def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str, str] | None:
+def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str] | None:
     """A unit right after "per" / "pro" / "je" with no number before it, read in the singular:
     "per m²" is "per square metre", "je kg" "je Kilogramm" (#230, D-646). A single capital
     letter ("pro A") and a unit that starts a hyphenated word ("pro A-Gruppe") stay."""
@@ -530,12 +549,7 @@ def _unit_after_per(text: str, start: int, table: _Table) -> tuple[int, int, str
         not text[stop:].strip() or opens_sentence(text, stop, table.language)
     ):
         stop -= 1  # "pro Std." at a sentence end keeps its full stop
-    return (
-        start,
-        stop,
-        _reading(terms, False, table, after_per=True),
-        " ".join(text[start:stop].split()),
-    )
+    return start, stop, _reading(terms, False, table, after_per=True)
 
 
 _COMPOUND = "compound"  # instead of a gender: "1" starts a hyphenated compound
@@ -739,61 +753,6 @@ def _said(
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
 
 
-def reads_unit_after(text: str, end: int, language: str) -> bool:
-    """True if the step reads a unit after the number that ends at `end` ("2,55 m"; not
-    after a label, "Kapitel 2,55 m"). The numbers step asks before it splits the number's
-    digits into words ("2 Komma 5 5 m"), after which a second run would read the unit."""
-    table = _compiled(language)
-    if table is None:
-        return False
-    return any(
-        match.end() == end and _unit_after(text, match, table) is not None
-        for match in table.number.finditer(text, max(0, end - 64), end)
-    )
-
-
-def reads_one_as_word(text: str, start: int, language: str) -> bool:
-    """True if the step reads the number that starts at `start` as a word before its unit
-    ("1 N" as "ein Newton"). The numbers step asks: a second run sees that word after a date
-    or an ordinal before the "1" ("am 3.4. 1 N", #970). Court file numbers are looked for
-    near `start` only, so long blocks stay linear."""
-    table = _compiled(language)
-    if table is None:
-        return False
-    low = max(0, start - _PER_LOOK_BACK)
-    if any(
-        a <= start < b
-        for a, b in (m.span() for m in table.kept.finditer(text, low, start + _PER_LOOK_BACK))
-    ):
-        return False  # "Az. 1 N 1/12": a court's file number, no unit (#243)
-    number = table.number.match(text, start)
-    if number is None:
-        return False
-    found = _unit_after(text, number, table)
-    return found is not None and bool(found[4]) and _one(text, number, table, found[4]) is not None
-
-
-def symbol_word_at(text: str, position: int, language: str) -> str | None:
-    """The word the step reads for the "×", "≈" or "~" at `position`, or None. The numbers
-    step asks after an ordinal's full stop ("am 3. × 5" is "am 3. mal 5" after the first run,
-    whose "3." a second run reads "dritten", #970). A "~" after a number is left to the step
-    (None): after a full stop it never stands there."""
-    table = _compiled(language)
-    char = text[position : position + 1]
-    if table is None or not char:
-        return None
-    words = table.words.words
-    if char == "\u00d7" and _single(text, position, char):
-        return words["times"]
-    if char == "\u2248" and _single(text, position, char):
-        return words["approximately"]
-    if _TILDE.match(text, position):
-        head = text[max(0, position - 3) : position].rstrip(" \u00a0")
-        if not (head[-1:].isascii() and head[-1:].isdigit()):
-            return words["about"]
-    return None
-
-
 # the maths alphabets set slanted or ornate: their letters are variables, not units (ISO 80000)
 _SLANTED = ("ITALIC", "SCRIPT", "FRAKTUR", "DOUBLE-STRUCK")
 
@@ -814,56 +773,6 @@ def _upright_char(char: str) -> str:
         if len(folded) == 1 and not any(style in name for style in _SLANTED):
             return folded
     return char
-
-
-def unit_spans(text: str, language: str) -> list[tuple[int, int]]:
-    """What the step reads in `text`, as spans: the numbers step writes a raised exponent as
-    printed only where this step does not read it ("5 mL⁻¹" is "per millilitre", #589)."""
-    table = _compiled(language)
-    if table is None:
-        return []
-    found = _without_overlaps(UnitStep()._edits(0, text, table))
-    return [(edit.span.start, edit.span.end) for edit in found]
-
-
-def reads_unit_after_per(text: str, position: int, language: str) -> bool:
-    """True if `position` lies in a unit expression the step reads right after "per" / "pro"
-    / "je" ("per m³" as "per cubic metre", "per m² s⁻¹", #230): the numbers step then leaves
-    its powers, or a second run would read "per metre cubed"."""
-    table = _compiled(language)
-    if table is None:
-        return False
-    for match in table.per_word.finditer(text, max(0, position - _PER_LOOK_BACK), position + 1):
-        found = _unit_after_per(text, match.end(), table)
-        if found is not None and found[0] <= position < found[1]:
-            return True
-    return False
-
-
-_PER_LOOK_BACK = 64  # characters; longer than any unit expression the step reads
-
-
-def reads_x_after(text: str, end: int, language: str) -> bool:
-    """True if the step reads an "x" right after the number that ends at `end` as "times"
-    ("2,5x"). The numbers step asks, so it reads such a number exactly when this step reads
-    the x (#130): a second run, on "2,5 mal", then finds nothing new."""
-    table = _compiled(language)
-    if table is None:
-        return False
-    times = table.words.words["times"]
-    return any(
-        match.end("number") == end
-        and _times_x(
-            text,
-            match,
-            times,
-            table.said_operators,
-            table.words.decimal,
-            table.compared,
-            english=table.language == "en",
-        )
-        for match in _LETTER_X.finditer(text, max(0, end - 64), end + 2)
-    )
 
 
 def _times_x(
