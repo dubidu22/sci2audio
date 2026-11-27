@@ -14,7 +14,8 @@ from notation_texts import notation_documents
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
 from sci2audio.testing import check_text_step, make_document
 from sci2audio.textprep import StatisticsStep, StepContext, run_steps, spoken_text
-from sci2audio.textprep.statistics import MAX_JOINED_INTERVALS, interval_openings
+from sci2audio.textprep.readings import readings_of
+from sci2audio.textprep.statistics import MAX_JOINED_INTERVALS
 
 EN = StepContext("en")
 STEP = StatisticsStep()
@@ -303,7 +304,8 @@ def test_after_the_intervals_a_citation_reads_the_same_on_both_runs(
 
 def test_the_citations_step_leaves_alone_exactly_the_intervals_read_here() -> None:
     text = "CIs " + ", ".join(f"[{n}, {n + 1}]" for n in range(12)) + " and [3]."
-    openings = interval_openings(text)
+    # the readings that start at a square bracket: the intervals' openings, left out
+    openings = {r.start for r in readings_of("statistics", text, "en") if text[r.start] == "["}
     assert len(openings) == MAX_JOINED_INTERVALS
     assert sorted(openings) == [m.start() for m in re.finditer(r"\[", text)][:MAX_JOINED_INTERVALS]
 

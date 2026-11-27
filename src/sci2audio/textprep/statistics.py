@@ -21,6 +21,10 @@ printed; the numbers themselves stay digits for the voice (D-176).
   forms ("=⇒", "⇐=", "⇐=⇒", #590) and the ASCII "=>" and "<=>". An arrow without an operand
   on its line before it, or without one after it (a list bullet, a figure label), is left as
   printed; code blocks are never read here.
+
+The step's edits and its readings (`find_readings`), which the other steps learn of it through
+the readings module (#1107), come from the same rules; so do the words it says for its signs
+and names (`words`).
 """
 
 from __future__ import annotations
@@ -28,7 +32,8 @@ from __future__ import annotations
 import bisect
 import re
 from collections.abc import Iterator, Mapping
-from functools import lru_cache
+from functools import partial
+from types import MappingProxyType
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.abbreviations import reads_full_stop
@@ -46,12 +51,8 @@ from sci2audio.textprep.notation import (
     to_edits,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.statistics_de import (
-    ARROWS_DE,
-    OPERATORS_DE,
-    ci_runs_de,
-    find_statistics_de,
-)
+from sci2audio.textprep.readings import Reading, Words
+from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE, WORDS_DE, find_statistics_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -138,10 +139,12 @@ _SQUARED_NAMES = {
 _PARTIAL = "partial "  # before "eta squared" only
 _CI_WORDS = ("confidence interval", "confidence intervals")
 _ODDS_RATIO_WORDS = "odds ratio"
-# the readings of S3 to S6, which the sentence cutter keeps whole (#482)
-SYMBOL_READINGS = frozenset(
-    {*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"], *_CI_WORDS, _ODDS_RATIO_WORDS}
-    | set(ARROWS.values())
+_SQUARED_WORDS = frozenset({*_SQUARED_NAMES.values(), _PARTIAL + _SQUARED_NAMES["η"]})
+_WORDS = Words(
+    signs=MappingProxyType(OPERATORS),
+    arrows=MappingProxyType(ARROWS),
+    names=_SQUARED_WORDS | {*_CI_WORDS, _ODDS_RATIO_WORDS},
+    squared=_SQUARED_WORDS,
 )
 _SQUARED = re.compile(
     r"(?<![\w′'])(?P<name>[Rrηωεχ])(?P<p1>p)?(?:(?P<sup>²)|(?P<two>2))(?P<p2>p)?(?![\w²])"
@@ -175,7 +178,7 @@ class StatisticsStep(TextStep):
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
-        find = find_statistics_in_german if _is_german(context.language) else find_statistics
+        find = partial(_found, language=context.language)
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
@@ -190,7 +193,26 @@ def _is_german(language: str) -> bool:
     return language.split("-", 1)[0].lower() == "de"
 
 
-def find_statistics_in_german(text: str) -> list[Candidate]:
+def find_readings(text: str, language: str) -> list[Reading]:
+    """The step's readings in `text`, one per edit it makes there, in text order: the rules
+    of this module, which the step's edits and every other step's questions both come from.
+    A reading is the edit's span and words, without the reason the step's report gives."""
+    return [
+        Reading(c.start, c.end, c.replacement, StatisticsStep.category)
+        for c in _found(text, language)
+    ]
+
+
+def words(language: str) -> Words:
+    """The words the step says for its signs, its arrows and the notation it reads by name."""
+    return WORDS_DE if _is_german(language) else _WORDS
+
+
+def _found(text: str, language: str) -> list[Candidate]:
+    return _german(text) if _is_german(language) else _english(text)
+
+
+def _german(text: str) -> list[Candidate]:
     """The German statistics edits (statistics_de.py, #130) for one block's text."""
     plain = fold(text)
     return pick(
@@ -201,7 +223,7 @@ def find_statistics_in_german(text: str) -> list[Candidate]:
     )
 
 
-def find_statistics(text: str) -> list[Candidate]:
+def _english(text: str) -> list[Candidate]:
     """The statistics edits for one block's text, without overlap, in text order."""
     plain = fold(text)
     return pick(
@@ -213,20 +235,6 @@ def find_statistics(text: str) -> list[Candidate]:
             *_operators(text, plain),
         ]
     )
-
-
-@lru_cache(maxsize=16)
-def comparisons_read_alone(text: str) -> frozenset[int]:
-    """Where the English step reads a "<" or ">" alone as "less than" or "greater than" in
-    `text`: the units step asks whether such a sign after "Nx" is the sign on a second run
-    (#1010). Cached, as it is asked once for each "Nx" of a block."""
-    said = {OPERATORS["<"], OPERATORS[">"]}
-    signs = set()
-    for found in find_statistics(text):
-        if found.replacement.strip() in said:
-            span = text[found.start : found.end]
-            signs.add(found.start + len(span) - len(span.lstrip()))
-    return frozenset(signs)
 
 
 def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
@@ -298,24 +306,6 @@ def _ci_runs(plain: str) -> Iterator[tuple[re.Match[str], list[re.Match[str]]]]:
             joined = _JOIN.match(plain, interval.end())
             interval = _INTERVAL.match(plain, joined.end()) if joined else None
         yield match, intervals
-
-
-def interval_openings(text: str, language: str = "en") -> frozenset[int]:
-    """Where, in the printed text, the brackets open that this step reads as confidence
-    intervals. The citations step leaves exactly these alone, so the two steps agree on
-    every joined pair (#151); in German "KI [1,2; 3,4]" too (#101). Found as the step finds
-    them: in the text as read, without unread characters and with math letters folded
-    ("𝐶𝐼s"), then mapped back."""
-    runs = ci_runs_de if _is_german(language) else _ci_runs
-
-    def openings(read: str) -> list[Candidate]:
-        return [
-            Candidate(at, at + 1, "[", "interval")
-            for _, intervals in runs(fold(read))
-            for at in (interval.start("open") for interval in intervals)
-        ]
-
-    return frozenset(found.start for found in through_unread(text, openings))
 
 
 def _interval(text: str, plain: str, interval: re.Match[str]) -> list[Candidate]:
