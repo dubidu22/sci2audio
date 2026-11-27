@@ -4,9 +4,11 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 
 ## Basics
 
-- Fast tests (no marker) run on every PR on Linux, and on macOS and Windows when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580); keep the whole fast suite under about 2 minutes.
+- Fast tests (no marker) run on every PR on Linux in three shards (`.github/scripts/shard.py`), and on macOS and Windows, whole, when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Python 3.13 runs them on Linux on pushes to `main` and `release/*`, on runs by hand and under `ci:full`, not on an ordinary PR (#1131).
+- Budget: an ordinary Linux PR gets "CI passed" in about 6 minutes, judged on the median of the last 20 such runs. The nightly job "pull-request wait (budget 6 min)" goes red above it; then a person opens the speed issue (#1131, #1133). Each fast-suite shard prints its 25 slowest tests.
+- A test that loops over sample documents may take a small fixed set, named where it is defined, under the `ci` and `dev` profiles and every sample under `nightly`; mark it `deep` so the nightly property job runs it. Golden files, the English regression cases and the conformance suite's default (every sample document) are never sampled (#1134).
 - Mark tests that need voices, models, audio or the full sample corpus with `@pytest.mark.slow`; speed measurements with `@pytest.mark.benchmark`. Both run nightly (`.github/workflows/nightly.yml`).
-- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium on every PR, and with Chromium, Firefox and WebKit nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
+- Browser tests live in `tests/browser/` and get the `browser` marker there: they run in their own CI job on Linux with Chromium in three shards on every PR, and with Chromium, Firefox and WebKit nightly (D-259). Run them with `uv run pytest -m browser` after `uv run playwright install chromium`. They fail on any request the page makes outside the test server.
 - Exception: a test that encodes or decodes only a few seconds of generated audio with ffmpeg may stay in the fast suite, so every three-system run (`ci:full`, `main`, `release/*`) proves the bundled ffmpeg works on all three systems (#69).
 - Hypothesis profiles: `dev` (local default), `ci` (every PR, deterministic), `nightly` (many examples). Set with `HYPOTHESIS_PROFILE`.
 - Golden files (syrupy): accept a wanted change with `uv run pytest --snapshot-update` and explain the diff in the PR.
