@@ -2,7 +2,8 @@
 both schemes and in German at the design's widths, the paste box by keyboard, the table
 scrolling in its own region at 320 px, and "Continue listening" opening the player at the
 saved time without playing (#153, D-300). The Captures column and the shelf's flag strips
-(#418): by keyboard, axe, German, the highlighter rule, 320 px and the design's widths."""
+(#418): by keyboard, axe, German, the highlighter rule, 320 px and the design's widths. A
+book with chapters on disk and no `audio.json` after a restart, partly listenable (#1066)."""
 
 from __future__ import annotations
 
@@ -14,14 +15,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
-from playwright.sync_api import Page, expect
+import pytest
+from playwright.sync_api import Page, Route, expect
 from test_keyboard import press_on
+from test_making_progress import PDF as THREE_CHAPTERS
+from test_making_progress import second_chapter_fails  # noqa: F401 - fixture
 from test_player import chunk_id, make_audiobook, paused, wait_for_seek
 from test_remove import opened
 from test_shell import CONTROLS, HIGHLIGHTED, WIDTHS, scrolls_sideways
 from web_helpers import pdf_bytes
 
-from conftest import Live, check_axe, tab_key
+from conftest import Live, SlowFetch, at_rest, check_axe, inside, serve, settled, tab_key
 from sci2audio.app.captures import write_captures
 from sci2audio.core import Anchor, Capture, CaptureFile, CaptureType
 from sci2audio.web.library import About, write_about, write_opened
@@ -447,3 +451,50 @@ def test_with_captures_at_the_designs_widths_nothing_scrolls_sideways(
         assert rail is not None
         assert strip["x"] + strip["width"] <= rail["x"] + rail["width"], width
     page.set_viewport_size({"width": 1280, "height": 720})
+
+
+@pytest.mark.usefixtures("second_chapter_fails")
+def test_after_a_restart_a_part_made_book_is_partly_listenable(
+    signed_in: Page, live: Live, tmp_path: Path
+) -> None:
+    page = signed_in
+    live.install_voice()
+    page.set_input_files("#file", files=[THREE_CHAPTERS])
+    page.locator("#open-file button[type=submit]").click()
+    page.wait_for_url(re.compile(r"/documents/[0-9a-f]{16}"))
+    found = re.search(r"/documents/([0-9a-f]{16})", page.url)
+    assert found is not None
+    document = found.group(1)
+    expect(page.locator("#summary")).to_be_visible()
+    settled(page)
+    at_rest(page)
+    page.locator("#make").click()
+    page.wait_for_url(re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+"))
+    expect(page.locator("#making")).to_contain_text("Making the audiobook stopped")
+
+    # the next run of sci2audio: no job on its board, only the folder says chapter 1 plays
+    with serve(tmp_path, live.voice, SlowFetch()) as second:
+        # the old page leaves while the old fence stands, as in test_making_progress (#1088)
+        page.goto("about:blank")
+        page.unroute("**/*")
+
+        def fence(route: Route) -> None:
+            if inside(route.request.url, second.url):
+                route.continue_()
+            else:
+                live.outside.append(route.request.url)
+                route.abort()
+
+        page.route("**/*", fence)
+        page.goto(second.start_url)
+        row = page.locator(f"#row-{document}")
+        chip = row.locator(".chip")
+        expect(chip).to_have_attribute("data-state", "partly")
+        expect(chip).to_have_text("1 of 3 chapters ready")
+        expect(chip.locator("svg")).to_have_count(1)  # an icon beside the words
+        expect(row.locator("a.title")).to_have_attribute("href", f"/documents/{document}/listen")
+        check_axe(page, "library after a restart, chapter 1 of 3 playable")
+        page.goto(f"{second.url}/language?language=de&back=/")
+        expect(chip).to_have_text("1 von 3 Kapiteln bereit")
+        check_axe(page, "de: library after a restart, chapter 1 of 3 playable")
+        page.goto(f"{second.url}/language?language=en&back=/")

@@ -46,10 +46,10 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
-from sci2audio.textprep.numbers_de import find_numbers_de
+from sci2audio.textprep.numbers_de import find_numbers_de, unit_read_after_per, x_read_after
 from sci2audio.textprep.placeholders import read_as_prose
+from sci2audio.textprep.readings import readings_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
-from sci2audio.textprep.units import reads_unit_after_per, reads_x_after, unit_spans
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
 
@@ -304,7 +304,7 @@ def _written(
     taken = [(c.start, c.end) for c in found]
     left = [(s, e) for s, e in raised if not any(a < e and s < b for a, b in taken)]
     if left:
-        taken = unit_spans(text, language)
+        taken = [(r.start, r.end) for r in readings_of("units", text, language)]
         left = [(s, e) for s, e in left if not any(a < e and s < b for a, b in taken)]
     return [
         Candidate(
@@ -489,7 +489,7 @@ def _powers(text: str, plain: str) -> list[Candidate]:
             if grouped
             else match["braced"] or match["paren"] or match["bare"]
         )
-        if match["base"].isalpha() and reads_unit_after_per(plain, match.start("base"), "en"):
+        if match["base"].isalpha() and unit_read_after_per(plain, match.start("base"), "en"):
             continue  # "per m^2": the units step's ("per square metre", #230)
         words = _letter_power(exponent) if match["base"].isalpha() else None
         words = words or f" to the power of {_exponent_words(exponent)}"
@@ -501,7 +501,7 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         before = _before(plain, match.start("base"))
         if _UNIT_CHAIN.search(before) or _UNIT_CHAIN_AFTER_FRACTION.search(before):
             continue
-        if reads_unit_after_per(plain, match.start("base"), "en"):
+        if unit_read_after_per(plain, match.start("base"), "en"):
             continue  # "per m³": the units step's ("per cubic metre", #230)
         start, end = match.span("exp")
         exponent = "".join(_SUPER_DIGIT.get(c, c) for c in match["exp"])
@@ -569,7 +569,7 @@ def _counts(text: str) -> list[Candidate]:
             continue  # "1000", "1200": read right as a year and as a number
         before = _before(text, match.start())
         x_after = _X_AFTER.match(text, match.end())
-        times_x = x_after is not None and reads_x_after(text, match.end(), "en")
+        times_x = x_after is not None and x_read_after(text, match.end(), "en")
         if x_after is not None and not x_after.group().startswith(" ") and not times_x:
             continue  # "1234xy": no "times", so no number the voice reads apart
         if not _AFTER_OPERATOR.search(before) and not _counted_before_sign(

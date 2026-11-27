@@ -76,6 +76,7 @@ from functools import cache
 from itertools import pairwise
 
 from sci2audio.core import Document, ScriptPiece, Span
+from sci2audio.textprep.readings import words_of
 from sci2audio.textprep.spoken import spoken_text, unspoken
 from sci2audio.textprep.wordlists import abbreviations, clause_openers, opens_sentence, units
 
@@ -699,17 +700,16 @@ def _readings(language: str) -> re.Pattern[str] | None:
     A joining word matches with the white space on its side only (" per ", "square "), so its
     neighbour is never part of a match: a match never starts at a word that a longer word
     around it would have to give back, which keeps the search linear on any text (#616)."""
-    # the statistics and number modules import this module (through the footnotes and links
-    # steps), so their tables are read here, not at import
+    # the number modules import this module (through the footnotes and links steps), so
+    # their tables are read here, not at import
     from sci2audio.textprep.numbers import OUT_OF
     from sci2audio.textprep.numbers_de import FRACTIONS_OF_ONE, MONTHS
-    from sci2audio.textprep.statistics import OPERATORS, SYMBOL_READINGS
-    from sci2audio.textprep.statistics_de import OPERATORS_DE, SYMBOL_READINGS_DE
 
     listed, entries = units(language), abbreviations(language)
     if listed is None and entries is None:
         return None
     german = language == "de"
+    statistics = words_of("statistics", "de" if german else "en")
     phrases = {
         reading.strip()
         for entry in entries or ()
@@ -717,8 +717,7 @@ def _readings(language: str) -> re.Pattern[str] | None:
     }
     for unit in listed.units if listed else ():
         phrases.update((unit.singular, unit.plural))
-    phrases.update(OPERATORS_DE.values() if german else OPERATORS.values())
-    phrases.update(SYMBOL_READINGS_DE if german else SYMBOL_READINGS)
+    phrases.update(statistics.signs.values(), statistics.arrows.values(), statistics.names)
     phrases.update(FRACTIONS_OF_ONE if german else ())
     phrases.update(["hoch minus"] if german else ["to the power of minus", "to the power of"])
     # each a whole match, bounded by what is not a letter or digit

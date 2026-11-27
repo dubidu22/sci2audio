@@ -17,9 +17,10 @@ from conftest import Hold, Live, at_rest, check_axe, settled, tab_key
 JOB_PAGE = re.compile(r"/jobs/[0-9a-f]{16}-audio-\d+$")
 
 
-def first_chapter_only(page: Page, live: Live) -> str:
-    """Open the three-chapter paper and make its audiobook of the first chapter only;
-    returns the document id, with the page on the finished job."""
+def first_chapter_only(page: Page, live: Live, left_out: tuple[int, ...] = (1, 2)) -> str:
+    """Open the three-chapter paper and make its audiobook of the first chapter only (or
+    without the chapters `left_out`); returns the document id, with the page on the
+    finished job."""
     live.install_voice()
     live.voice.samples_per_character = PER_CHARACTER
     page.set_input_files("#file", files=[PDF])
@@ -29,8 +30,8 @@ def first_chapter_only(page: Page, live: Live) -> str:
     settled(page)
     at_rest(page)
     document = page.url.rsplit("/", 1)[1].split("#")[0]
-    page.locator("#chapter-1").uncheck()
-    page.locator("#chapter-2").uncheck()
+    for n in left_out:
+        page.locator(f"#chapter-{n}").uncheck()
     update(page)
     at_rest(page)
     page.get_by_role("button", name="Make the audiobook").click()
@@ -86,6 +87,42 @@ def test_generate_a_chapter_from_the_project_page_and_listen_while_it_is_made(
         expect(page.locator(f"#chapter-state-{n}")).to_have_text("generated")
     expect(page.locator("button.generate")).to_have_count(0)
     expect(page.locator("#generate-rest")).to_have_count(0)
+
+
+def test_the_chapters_around_an_added_one_play_while_it_is_made(
+    signed_in: Page, live: Live
+) -> None:
+    """Introduction and Results are made, Methods is added between them (#1070): while
+    the voice speaks Methods, the Listen page plays both, Results too."""
+    page = signed_in
+    document = first_chapter_only(page, live, left_out=(1,))
+    page.goto(f"{live.url}/documents/{document}")
+    at_rest(page)
+    hold = Hold(after=1)  # Methods' title passes, its sentence waits
+    live.voice.fail_on = hold
+    try:
+        page.get_by_role("button", name="Generate: Methods").click()
+        page.wait_for_url(JOB_PAGE)
+        job = page.url
+        assert hold.reached.wait(60)
+        expect(page.locator("#start-listening")).to_be_visible(timeout=30_000)
+        page.get_by_role("link", name="Start listening").click()
+        page.wait_for_url(f"{live.url}/documents/{document}/listen")
+        at_rest(page)
+        expect(page.locator(".chapter-button .ot")).to_have_text(["Introduction", "Results"])
+        page.locator('.chapter-button[data-chapter="1"]').click()
+        expect(page.locator("#now")).to_contain_text("Results")
+        expect(page.locator("#chapter-1 .s.now")).to_have_count(1)
+        page.wait_for_function("() => !document.getElementById('audio').paused")
+        check_axe(page, "listen page while a chapter between made ones is made")
+    finally:
+        hold.gate.set()
+    page.goto(job)
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
+    at_rest(page)
+    page.goto(f"{live.url}/documents/{document}/listen")
+    at_rest(page)
+    expect(page.locator(".chapter-button .ot")).to_have_text(["Introduction", "Methods", "Results"])
 
 
 def test_generate_one_chapter_from_the_listen_page(signed_in: Page, live: Live) -> None:

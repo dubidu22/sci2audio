@@ -30,7 +30,7 @@ from dataclasses import dataclass, replace
 from enum import IntEnum
 from gettext import gettext as _
 from pathlib import Path
-from typing import IO, Any, TextIO
+from typing import IO, TYPE_CHECKING, Any, TextIO
 from urllib.parse import urlsplit
 
 from sci2audio import __version__
@@ -65,7 +65,12 @@ from sci2audio.app import (
 from sci2audio.app.chunks import CHUNKS, cache_size
 from sci2audio.app.job import read_document
 from sci2audio.app.projects import project_work_folder
-from sci2audio.app.readability import picture_pages, picture_warning
+from sci2audio.app.readability import (
+    picture_pages,
+    picture_warning,
+    recovered_pages,
+    recovered_warning,
+)
 from sci2audio.app.report import PLUGINS_OFF, plugins_line, plugins_off
 from sci2audio.app.settings import LETTER_PACES, MAX_SPEED, MIN_SPEED
 from sci2audio.output import OutputSettings
@@ -84,6 +89,9 @@ from sci2audio.voices import (
     missing_files,
 )
 from sci2audio.voices.download import Fetch
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 PROG = "sci2audio"
 
@@ -232,7 +240,7 @@ class _Parser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
         self.env = env
 
-    def _print_message(self, message: str, file: IO[str] | None = None) -> None:
+    def _print_message(self, message: str, file: SupportsWrite[str] | None = None) -> None:
         if not message:
             return
         if file is None or file is sys.stdout:
@@ -256,11 +264,13 @@ class _Parser(argparse.ArgumentParser):
         return self.add_subparsers(parser_class=_parser_class(self.env), **kwargs)
 
 
-def _parser_class(env: CliEnv) -> Callable[..., _Parser]:
-    def make(**kwargs: Any) -> _Parser:
-        return _Parser(env=env, **kwargs)
+def _parser_class(env: CliEnv) -> type[_Parser]:
+    # argparse takes a class for its subparsers, not a function, and gives it no env
+    class _Subparser(_Parser):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, env=env, **kwargs)
 
-    return make
+    return _Subparser
 
 
 def chapter_numbers(text: str) -> tuple[int, ...] | None:
@@ -604,13 +614,16 @@ def _all_chapters(source: Path, settings: JobSettings) -> JobSettings:
 
 
 def _document_warnings(env: CliEnv, result: ScriptResult) -> None:
-    """Say when a PDF has pages of pictures only (#186), when a text file's encoding was a
-    guess (D-346), and when the text did not tell its language or overruled the file's
-    (D-498; a clear guess is only in the report)."""
+    """Say when a PDF has pages of pictures only (#186) or pages read from their letters'
+    shapes (#618, #1086), when a text file's encoding was a guess (D-346), and when the text
+    did not tell its language or overruled the file's (D-498; a clear guess is only in the
+    report). The PDF warnings are the report's own, in its order."""
     content = result.document.content
     pictures = picture_pages(content)
+    recovered = recovered_pages(content)
     for warning in (
         picture_warning(pictures) if pictures else None,
+        recovered_warning(recovered) if recovered else None,
         encoding_warning(content.source),
         language_warning(result.document),
     ):

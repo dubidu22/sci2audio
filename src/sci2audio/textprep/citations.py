@@ -54,10 +54,10 @@ from sci2audio.textprep.links import (
     only_links_before,
     without_links,
 )
+from sci2audio.textprep.notation import Candidate, through_unread
 from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.statistics import OPERATORS, interval_openings
-from sci2audio.textprep.statistics_de import OPERATORS_DE, READ_WORDS
+from sci2audio.textprep.readings import readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -312,8 +312,6 @@ _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
-# the signs the English statistics step reads with nothing before them (all but "=")
-_SIGNS_READ_ALONE = frozenset({key[0] for key in OPERATORS} - {"=", "\u0338"})
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
 _GLUES = ".,0123456789"  # what a removal must not join to a digit after it (#308)
 _CLOSE_AHEAD = re.compile(r"\s*\)")
@@ -528,9 +526,16 @@ class _Rules:
         self._intervals_of: tuple[str | None, frozenset[int]] = (None, frozenset())
         # a sign as the statistics step reads it counts as the sign: "x equals [12]" is "x =
         # [12]" after the first run, so a second run decides the same (#101)
-        said = OPERATORS_DE if language == "de" else OPERATORS
-        phrases = sorted(set(said.values()), key=len, reverse=True)
+        said = words_of("statistics", "de" if language == "de" else "en")
+        phrases = sorted(set(said.signs.values()), key=len, reverse=True)
         self.said_sign = re.compile(rf"(?<!\w)(?:{'|'.join(map(re.escape, phrases))})\Z")
+        # the signs the English statistics step reads with nothing before them (all but "=")
+        self.signs_read_alone = frozenset({key[0] for key in said.signs} - {"=", "\u0338"})
+        # the capital words of its names of squared statistics: never an author's name before
+        # "(2019)" (#101)
+        self.read_words = frozenset(
+            word for name in said.squared for word in name.split() if word[0].isupper()
+        ) - {"R"}
         self.language = language
 
     def block(self, text: str, links: list[tuple[int, int]] | None = None) -> list[_Found]:
@@ -707,7 +712,8 @@ class _Rules:
                 ahead = self.hung_ahead.match(text, end, following)
                 lead = ahead and self.lead_before.search(text, max(last, first - _LOOK_BACK), first)
                 closing = _CLOSE_AHEAD.match(text, past[number], beyond)
-                if lead and pairs.get(lead.start(), -1) >= past[number]:
+                # `lead` is only looked for once `ahead` matched
+                if ahead and lead and pairs.get(lead.start(), -1) >= past[number]:
                     end = ahead.end()  # "(see (527794) and Lee": " and" goes with it
                     if not text[start].isspace():  # "((527794); 2019)": the space after "; "
                         end += len(text[end:following]) - len(text[end:following].lstrip())
@@ -741,12 +747,12 @@ class _Rules:
         """Removals that would leave two marks side by side take one along (#66):
         "Smith et al. (2019). Then" reads "Smith et al. Then"; "noise [12], [3]." reads
         "noise."; "x. [12]. [3]." reads "x."."""
-        result = [list(item) for item in found]
+        result = list(found)
         kept_end = 0  # end of the text kept before the next edit
         last, last_at, first_after = "", -1, 0  # the last mark heard, where, and the edit after
         before_last = ""
-        for index, item in enumerate(result):
-            start, end, kind, replacement = item[0], item[1], item[2], item[3]
+        for index in range(len(result)):
+            start, end, kind, replacement, _reason = result[index]
             mark_at = _last_mark_at(text, kept_end, start)
             if mark_at >= 0:
                 heard = text[max(kept_end, mark_at - _LOOK_BACK) : mark_at].rstrip()
@@ -756,9 +762,10 @@ class _Rules:
             following = result[index + 1][0] if index + 1 < len(result) else len(text) + 1
             if kind is EditKind.REMOVE and last and after and end + 1 <= following:
                 if last in ",;:" and after in ".!?" and last_at >= 0:
-                    result[first_after][0] = last_at  # "noise, [3]." reads "noise."
+                    # "noise, [3]." reads "noise."
+                    result[first_after] = _starting_at(result[first_after], last_at)
                     if before_last == ".":  # "e.g., [3]." reads "e.g."
-                        item[1] = end + 1
+                        result[index] = _ending_at(result[index], end + 1)
                 elif (
                     ((last in ".!?" and after in ".,;:") or (last in ",;" and after in ",;"))
                     and not (after != "." and self._abbreviation_before(text, kept_end, start))
@@ -770,11 +777,12 @@ class _Rules:
                         and reads_full_stop(text, last_at + 1, self.language)
                     )
                 ):
-                    item[1] = end + 1  # "et al. (2019). Then" reads "et al. Then"
-            kept_end = item[1]
+                    # "et al. (2019). Then" reads "et al. Then"
+                    result[index] = _ending_at(result[index], end + 1)
+            kept_end = result[index][1]
             if kind is EditKind.REPLACE:
                 last, last_at = replacement[-1:] or last, -1
-        return [(a, b, kind, replacement, why) for a, b, kind, replacement, why in result]
+        return result
 
     def _abbreviation_before(self, text: str, kept_end: int, start: int) -> bool:
         """True if the kept text before `start` ends with an abbreviation ("et al.")."""
@@ -1047,6 +1055,8 @@ class _Rules:
                 # the listed brackets' own removals give way to the names' edits
                 taken = {edit for child, _ in listed for edit in decided.get(child.open) or ()}
                 edits = [edit for edit in edits if edit not in taken]
+            # it has inner brackets, so without names of its own it returned or took theirs
+            assert names is not None  # noqa: S101
             return self._with_inner(self._subject(text, node, names, end, role), edits)
         return [self._removed(text, node.open, end, "citation")]
 
@@ -1195,7 +1205,9 @@ class _Rules:
                 if hung := self.hung_ahead.match(read.text, at + 1, read.close):
                     read.blank(hung.start(), hung.end())
                 break
-        kept = re.compile(r"\s*").match(read.text, read.open + 1).end()  # the first kept item
+        space = re.compile(r"\s*").match(read.text, read.open + 1)
+        assert space is not None  # noqa: S101 (\s* matches at any position)
+        kept = space.end()  # the first kept item
         for _start, _end, at in removed:
             # one between two items: "(Jones, 2020; (Smith, 2019); Kim, 2017)" is "(Jones,
             # 2020; Kim, 2017)" then (#372); each look reads only the few characters around
@@ -1478,10 +1490,21 @@ class _Rules:
         return position in self._intervals(text)
 
     def _intervals(self, text: str) -> frozenset[int]:
-        """The statistics step's interval brackets in this block, worked out once."""
+        """The square brackets that open a reading of the statistics step in this block: its
+        intervals', which this step leaves alone, so the two steps agree on every joined pair
+        (#151); in German "KI [1,2; 3,4]" too (#101). Asked of the text as read, without the
+        characters the Unicode step removes, then mapped back (#208). Worked out once."""
         if self._intervals_of[0] != text:
-            self._intervals_of = (text, interval_openings(text, self.language))
+            found = through_unread(text, self._statistics_openings)
+            self._intervals_of = (text, frozenset(c.start for c in found))
         return self._intervals_of[1]
+
+    def _statistics_openings(self, read: str) -> list[Candidate]:
+        return [
+            Candidate(r.start, r.start + 1, "[", "interval")
+            for r in readings_of("statistics", read, self.language)
+            if read[r.start] == "["
+        ]
 
     def _spoken(self, inside: str) -> str:
         """The reading of a needed citation: "references 53 and 58", "Quelle MH17" (a key as
@@ -1654,7 +1677,7 @@ class _Rules:
         bare = "".join(c for c in bare if c not in INVISIBLE and c != SOFT_HYPHEN)
         if not (_is_name(bare) or re.fullmatch(r"[A-Z]{2,6}", bare)):
             return ""
-        if self.language == "de" and bare in READ_WORDS:
+        if self.language == "de" and bare in self.read_words:
             return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
         # "Sag and Hankamer (1984)": the reason names both authors
         pair = self.pair_end.search(before)
@@ -1800,7 +1823,7 @@ class _Rules:
         if self.language == "de":
             return False
         after = _SPACE.match(text, end)
-        return after is not None and text[after.end() : after.end() + 1] in _SIGNS_READ_ALONE
+        return after is not None and text[after.end() : after.end() + 1] in self.signs_read_alone
 
     def _with_space_around(self, text: str, start: int, end: int) -> tuple[int, int]:
         if self._starts_sentence(text, start) or only_links_before(text, start, self.language):
@@ -1842,6 +1865,18 @@ def _pairs(roots: list[_Bracket]) -> dict[int, int]:
         pairs[node.open], pairs[node.close] = node.close, node.open
         stack += node.children
     return pairs
+
+
+def _starting_at(item: _Found, start: int) -> _Found:
+    """The found mark `item`, starting at `start`."""
+    _start, end, kind, replacement, reason = item
+    return start, end, kind, replacement, reason
+
+
+def _ending_at(item: _Found, end: int) -> _Found:
+    """The found mark `item`, ending at `end`."""
+    start, _end, kind, replacement, reason = item
+    return start, end, kind, replacement, reason
 
 
 def _keeps_text(found: list[_Found], node: _Bracket) -> bool:

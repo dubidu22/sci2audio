@@ -85,7 +85,7 @@ def outputs(folder: Path) -> list[str]:
 
 class Clock:
     """One second per call: the job reads it before and after each chunk it speaks, so
-    every spoken chunk takes one second."""
+    every spoken chunk takes one second; it reads it while it writes a chapter too."""
 
     def __init__(self) -> None:
         self.now = 0.0
@@ -174,8 +174,10 @@ def test_progress_goes_through_the_phases_and_estimates_after_the_first_chapter(
     tmp_path: Path,
 ) -> None:
     events: list[AudioProgress] = []
-    voice = FakeVoice()
-    job = run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=Clock())
+    # every spoken chunk takes 1 s and writing the chapters none (that is #1061's test)
+    clock = CostClock(lambda characters: 1.0)
+    voice = FakeVoice(on_speak=clock.speak)
+    job = run(PYMEDPHYS, tmp_path, voice, progress=events.append, clock=clock)
     phases = list(dict.fromkeys(e.phase for e in events))
     assert phases == [
         Phase.READING,
@@ -233,7 +235,10 @@ def test_progress_numbers_the_chapter_and_says_when_it_is_done(tmp_path: Path) -
         progress=events.append,
     )
     spoken = [
-        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None
+        e
+        for e in events
+        # a write slow enough to be told as saving (#1061) repeats the chapter's last chunk
+        if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None and e.saving is None
     ]
     assert [e.chapter_number for e in spoken] == sorted(e.chapter_number for e in spoken)
     assert {e.chapter: e.chapter_number for e in spoken} == {2: 1, 0: 2}
@@ -263,7 +268,10 @@ def test_progress_counts_the_chunks_of_the_chapter_being_spoken(tmp_path: Path) 
         progress=events.append,
     )
     spoken = [
-        e for e in events if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None
+        e
+        for e in events
+        # a write slow enough to be told as saving (#1061) repeats the chapter's last chunk
+        if e.phase is Phase.SPEAKING and e.chunks_done > 0 and e.ready is None and e.saving is None
     ]
     by_chapter: dict[int | None, list[AudioProgress]] = {}
     for event in spoken:
