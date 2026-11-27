@@ -256,6 +256,54 @@ def test_ffmpeg_failing_on_a_chapter_keeps_the_whole_chapters_before_it(tmp_path
     assert len(read_readalong(out / names[1]).chapters) == 1
 
 
+class Fed(Ffmpeg):
+    """The real ffmpeg, counting the samples fed to each run."""
+
+    def __init__(self) -> None:
+        super().__init__(REAL.exe)
+        object.__setattr__(self, "samples", [])
+
+    def run(self, args, feed=()):  # type: ignore[no-untyped-def]
+        self.samples.append(0)
+
+        def counted():  # type: ignore[no-untyped-def]
+            for piece in feed:
+                self.samples[-1] += len(piece) // 2
+                yield piece
+
+        return REAL.run(args, counted())
+
+
+def test_writing_a_chapter_tells_how_many_of_its_samples_are_fed(tmp_path: Path) -> None:
+    """#1061: a long chapter takes a while to encode; `add` tells each piece fed, so the
+    app can show the write moving. The files are the same as without it."""
+    job = make_job(tmp_path / "job")
+    told: list[list[tuple[int, int]]] = []
+    fed = Fed()
+    writer = BookWriter(
+        job.folder, tmp_path / "told", job.book, [c.title for c in job.chapters], ALL, ffmpeg=fed
+    )
+    for number, (first, stop) in enumerate(ranges(job), start=1):
+        told.append([])
+        writer.add(
+            number,
+            job.spoken[first:stop],
+            progress=lambda done, total: told[-1].append((done, total)),
+        )
+    writer.finish()
+    mp3s = fed.samples[: len(told)]  # type: ignore[attr-defined]  (then the M4B's)
+    for chapter, samples in zip(told, mp3s, strict=True):
+        assert chapter[0] == (0, samples)
+        assert chapter[-1] == (samples, samples)
+        assert len(chapter) > 2
+        done = [d for d, _ in chapter]
+        assert done == sorted(done)
+        assert {total for _, total in chapter} == {samples}
+    assert len(told) == len(job.chapters)
+    by_chapter(job, tmp_path / "quiet").finish()
+    assert hashes(tmp_path / "told") == hashes(tmp_path / "quiet")
+
+
 def test_a_reused_chapter_is_not_encoded_again_and_the_book_is_the_same(tmp_path: Path) -> None:
     job = make_job(tmp_path / "job")
     out = tmp_path / "out"

@@ -19,8 +19,9 @@ final read-along file → the job's records.
 - Pauses (D-116, D-157): the app gives every chunk one `Pause` kind; output turns kinds
   into seconds and opens every chapter with the chapter pause.
 - Progress and the time estimate (D-159, D-380 to D-382, D-384, `estimate.py`) are
-  measured on this run's own speech; cancel (D-160) by a `threading.Event`; one job per
-  working folder (D-161).
+  measured on this run's own speech and chapter writes (#1061: a long chapter's files take
+  minutes, told as saving at least every `SAVING_EVERY` seconds); cancel (D-160) by a
+  `threading.Event`; one job per working folder (D-161).
 - It never stops to ask (D-61 (3)): an utterance the voice fails on is left out and
   listed, five failures in a row stop the job (D-162). It fails with a `JobError` a person
   can act on, and nothing half-written, when it cannot go on (D-140): the existing
@@ -129,6 +130,7 @@ COVER_NAMES = ("cover.jpg", "cover.png")  # the cover in the working folder (D-3
 ESTIMATE_MIN_CHARACTERS = 1000  # measured before the first estimate (D-159, D-382)
 WARM_UP_CALLS = 4  # the voice's first calls are slower; they are not measured (D-381)
 FAILURES_IN_A_ROW = 5  # the voice is taken as broken after this many (D-162)
+SAVING_EVERY = 1.0  # seconds between the events told while a chapter's files are written
 # what the job writes unless told otherwise (#723): each chapter's MP3 as soon as it is
 # spoken, and the read-along file; the whole book is built on request (#725)
 JOB_OUTPUT = OutputSettings(m4b=False)
@@ -204,6 +206,10 @@ class AudioProgress:
     # chapter so far, as indices in the job's chapter list, in the job's order
     ready: int | None = None
     playable: tuple[int, ...] = ()
+    # #1061: while the files of the chapter whose last chunk was just spoken are written,
+    # that chunk's event is told again with the share of its audio written so far (0 to 1)
+    # and the time left; None on every other event
+    saving: float | None = None
 
 
 @dataclass(frozen=True)
@@ -399,6 +405,47 @@ def _check_cancel(cancel: threading.Event | None) -> None:
 
 
 @dataclass
+class _Writing:
+    """What writing the chapters' files costs, measured on this run's writes (#1061). A
+    chapter's audio, and so its write, grows with its characters; the time left is the
+    seconds per character written so far times the characters still to write."""
+
+    clock: Callable[[], float]
+    characters: dict[int, int]  # chapter -> the characters of every chunk of it
+    left: set[int]  # chapters whose files are still to write
+    measured_seconds: float = 0.0
+    measured_characters: int = 0
+    chapter: int | None = None  # the chapter being written
+    started: float = 0.0
+    share: float = 0.0  # of its audio fed to the encoder
+
+    def start(self, chapter: int) -> None:
+        self.left.discard(chapter)
+        self.chapter, self.started, self.share = chapter, self.clock(), 0.0
+
+    def finish(self) -> None:
+        # a chapter taken as it is (its files from an earlier run) feeds nothing: it would
+        # make writing look free
+        if self.chapter is not None and self.share > 0:
+            self.measured_seconds += self.clock() - self.started
+            self.measured_characters += self.characters[self.chapter]
+        self.chapter, self.share = None, 0.0
+
+    def seconds_left(self) -> float:
+        """0 until a write has been measured: the first estimate comes before the first
+        chapter is written (D-159)."""
+        seconds, characters = self.measured_seconds, float(self.measured_characters)
+        to_write = float(sum(self.characters[c] for c in self.left))
+        if self.chapter is not None:
+            own = self.characters[self.chapter]
+            to_write += own * (1 - self.share)
+            if self.share > 0:
+                seconds += self.clock() - self.started
+                characters += own * self.share
+        return seconds / characters * to_write if characters > 0 else 0.0
+
+
+@dataclass
 class _Speech:
     """The speaking phase's counters and the speed measurement (D-159)."""
 
@@ -407,6 +454,7 @@ class _Speech:
     characters_total: int
     chapters: int
     last_of_chapter: dict[int, int]  # chapter -> index of its last chunk
+    writing: _Writing
     chapter_chunks: dict[int, int] = field(default_factory=dict)  # chapter -> its chunks
     chapter_chunks_done: dict[int, int] = field(default_factory=dict)  # ... of them done
     chunks_done: int = 0
@@ -425,15 +473,16 @@ class _Speech:
         return self.estimate.speed()
 
     def seconds_left(self) -> float | None:
-        """The cost model summed over the chunks still to speak (D-380, D-384); None
-        while the first chapter is spoken and until enough characters are measured (D-159,
-        D-382)."""
+        """The cost model summed over the chunks still to speak (D-380, D-384), and the
+        chapters' files still to write (#1061); None while the first chapter is spoken and
+        until enough characters are measured (D-159, D-382)."""
         if (
             not self.first_chapter_done
             or self.estimate.measured_characters < ESTIMATE_MIN_CHARACTERS
         ):
             return None
-        return self.estimate.seconds_left()
+        speaking = self.estimate.seconds_left()
+        return None if speaking is None else speaking + self.writing.seconds_left()
 
     def progress(
         self, chunk: PlannedChunk, title: str, index: int, playable: tuple[int, ...]
@@ -458,6 +507,37 @@ class _Speech:
             seconds_left=self.seconds_left(),
             playable=playable,
         )
+
+
+@dataclass
+class _Saving:
+    """Chapter `chapter`'s files being written after its last chunk's `event`: output tells
+    how far the feed is, and the listener hears `event` again with the share written and
+    the time left, at most `SAVING_EVERY` seconds apart (#1061)."""
+
+    speech: _Speech
+    chapter: int
+    event: AudioProgress
+    tell: Callable[[AudioProgress], None]
+    told: float = 0.0
+
+    def start(self) -> None:
+        self.speech.writing.start(self.chapter)
+        self.told = self.speech.clock()
+
+    def fed(self, done: int, total: int) -> None:
+        share = done / total if total else 1.0
+        self.speech.writing.share = share
+        now = self.speech.clock()
+        if now - self.told >= SAVING_EVERY:
+            self.told = now
+            self.tell(self.now(saving=share))
+
+    def finish(self) -> None:
+        self.speech.writing.finish()
+
+    def now(self, saving: float | None = None) -> AudioProgress:
+        return replace(self.event, seconds_left=self.speech.seconds_left(), saving=saving)
 
 
 def _cached_duration(path: Path) -> float:
@@ -982,14 +1062,16 @@ class _Chapters:
             return self.standing
         return tuple(c.index for c in self.record.chapters)
 
-    def done(self, index: int, keys: Collection[str], event: AudioProgress) -> None:
+    def done(self, index: int, keys: Collection[str], saving: _Saving) -> None:
         """Chapter `index` is spoken (`keys`: its chunks with audio): write its files, record
-        them and tell the listener."""
+        them and tell the listener, while writing too (`saving`)."""
+        saving.start()
         try:
             spoken = self.plan.spoken(self.work, index, keys)
         except (OSError, EOFError, wave.Error) as error:
             raise JobError("a cached audio chunk became unreadable") from error
         if not spoken:
+            saving.finish()
             return  # the voice failed on every sentence: the chapter gets no file (D-162)
         self._check_rates(spoken)
         number = self.plan.number(index)
@@ -1000,7 +1082,7 @@ class _Chapters:
             writer = self._writer()
             # the chunk list the whole book is built from later (#725), before the files
             spoken_sha = write_spoken(self.work, index, spoken)
-            writer.add(self.plan.place(index), spoken, written=written)
+            writer.add(self.plan.place(index), spoken, written=written, progress=saving.fed)
         except Exception as error:
             raise _encode_error(error, self.out_folder) from error
         if written and reused is not None:
@@ -1018,7 +1100,8 @@ class _Chapters:
         )
         self._save(self._placed(self.record.with_chapter(chapter)))
         self.added.append(index)
-        self.tell(dataclasses.replace(event, ready=index, playable=self.playable))
+        saving.finish()
+        self.tell(dataclasses.replace(saving.now(), ready=index, playable=self.playable))
 
     def finish(self) -> Written:
         """The M4B and the book's subtitles when asked for, and the final read-along file."""
@@ -1135,12 +1218,17 @@ def _speak(
     except OSError as error:
         raise JobError(f"could not read the working folder: {error.strerror or error}") from error
     last_of_chapter = {chunk.chapter: index for index, chunk in enumerate(plan.chunks)}
+    weights: Counter[int] = Counter()  # chapter -> its characters, cached chunks too
+    for chunk in plan.chunks:
+        weights[chunk.chapter] += len(chunk.utterance.text)
     speech = _Speech(
         clock=clock,
         chunks_total=len(plan.chunks),
         characters_total=sum(needed.values()),
         chapters=len(last_of_chapter),
         last_of_chapter=last_of_chapter,
+        # a chapter taken as it is is not written again
+        writing=_Writing(clock, dict(weights), set(last_of_chapter) - set(chapters.found.reuse)),
         chapter_chunks=dict(Counter(chunk.chapter for chunk in plan.chunks)),
     )
     for characters in needed.values():
@@ -1175,7 +1263,8 @@ def _speak(
             event = speech.progress(chunk, titles[chunk.chapter], index, chapters.playable)
             tell(event)
             if event.chapter_done:
-                chapters.done(chunk.chapter, speech.durations.keys(), event)
+                saving = _Saving(speech, chunk.chapter, event, tell)
+                chapters.done(chunk.chapter, speech.durations.keys(), saving)
     finally:
         if session is not None:
             session.dispose()
