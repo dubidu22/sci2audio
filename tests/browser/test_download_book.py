@@ -18,7 +18,10 @@ from test_player import make_audiobook
 from conftest import Live, at_rest, check_axe
 from sci2audio.output import Ffmpeg, find_ffmpeg
 
-JOB_PAGE = re.compile(r"/jobs/[0-9a-f]{16}-book-\d+$")
+# The page may add a #making or #result fragment to its address (app.js reloadAt), so
+# neither pattern may take one in or stop matching because of it (#1088, #1090).
+JOB_PAGE = re.compile(r"/jobs/[0-9a-f]{16}-book-\d+(?:#[\w-]*)?$")
+JOB_ID = re.compile(r"/jobs/([0-9a-f]{16}-[a-z]+-\d+)(?:#[\w-]*)?$")
 
 
 def save_link_answers(page: Page, live: Live) -> str:
@@ -79,7 +82,9 @@ def test_download_from_the_listen_page_with_missing_chapters_names_them(
 ) -> None:
     page = signed_in
     with making(page, live, FIRST_READY) as hold:
-        job = re.sub(r"^.*/jobs/", "", page.url)
+        found = JOB_ID.search(page.url)
+        assert found, page.url
+        job = found[1]
         expect(page.locator("#start-listening")).to_be_visible()
         at_rest(page)
         page.locator("#job-pause").click()  # the chapters made stay; the others are not
