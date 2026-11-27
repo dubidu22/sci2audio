@@ -11,8 +11,10 @@ a child starts quickly on every system (#345).
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import multiprocessing
+import multiprocessing.connection
 import os
 import signal
 import sys
@@ -447,6 +449,147 @@ def test_a_child_whose_end_another_thread_took_is_not_closed_as_running(
     assert signalled == []  # its pid is free: a signal could reach another process
     assert readers.alive == 0
     assert multiprocessing.active_children() == []
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("code", "reason"), [(isolate.MEMORY_EXIT, "memory"), (isolate.TIME_EXIT, "time")]
+)
+def test_a_limit_ending_whose_end_another_thread_took_names_the_limit(
+    monkeypatch: pytest.MonkeyPatch, code: int, reason: str
+) -> None:
+    """The other thread reaps the child between its end and the read's join, and notes the
+    exit code only after the read's first look at it: before #1079 that look found no code
+    and the read ended as "ended", so the person got a vaguer message than the limit's.
+    No timing: the reap is taken in the join, the code noted after the first look."""
+    wait = isolate._wait
+    taken: dict[str, Any] = {}
+
+    def end_taken_in_the_gap(child: Any, *rest: Any) -> Any:
+        join = child.join
+        popen = child._popen
+        poll = popen.poll
+
+        def noted_after_one_look(flag: int = os.WNOHANG) -> int | None:
+            looked = poll(flag)
+            popen.returncode = taken["code"]
+            return looked
+
+        def taken_then_joined() -> None:
+            if "code" not in taken:
+                _, status = os.waitpid(child.pid, 0)  # what the other thread does first
+                taken["code"] = os.waitstatus_to_exitcode(status)
+                join()  # finds no child left: no exit code
+                monkeypatch.setattr(popen, "poll", noted_after_one_look)
+            else:
+                join()
+
+        monkeypatch.setattr(child, "join", taken_then_joined)
+        return wait(child, *rest)
+
+    monkeypatch.setattr(isolate, "_wait", end_taken_in_the_gap)
+    readers = isolate.Readers(1)
+    stopped = isolate.run(os._exit, (code,), memory=GiB, step_seconds=60, readers=readers)
+    assert taken["code"] == code
+    assert stopped == isolate.Stopped(reason, "opening")
+    assert readers.alive == 0
+    assert multiprocessing.active_children() == []
+
+
+@posix_only
+@pytest.mark.parametrize("ending", ["cancelled", "time"])
+def test_a_child_the_read_ended_is_not_signalled_again_after_another_thread_took_its_end(
+    monkeypatch: pytest.MonkeyPatch, ending: str
+) -> None:
+    """On a cancel and at the time limit the read kills its child; another thread can reap
+    it before the clean-up, which looked at the child (its end not yet seen) and killed it
+    again: a signal to a pid that is free again could reach another process (#1080). No
+    timing: the reap comes after the read's kill, and the look sees the child running, as
+    it does when made just before the kill takes effect."""
+    wait = isolate._wait
+    cancel = threading.Event()
+    if ending == "time":
+        monkeypatch.setattr(isolate, "START_SECONDS", 0)
+    taken: dict[str, Any] = {}
+    kills: list[int] = []
+    real_kill = os.kill
+    real_look = multiprocessing.connection.wait
+
+    def recorded_kill(pid: int, sig: int) -> None:
+        kills.append(pid)
+        real_kill(pid, sig)
+
+    def end_taken_after_the_kill(child: Any, *rest: Any) -> Any:
+        if ending == "cancelled":
+            cancel.set()
+        result = wait(child, *rest)
+        _, status = os.waitpid(child.pid, 0)  # what the other thread does before it notes
+        taken.update(child=child, code=os.waitstatus_to_exitcode(status))
+        return result
+
+    def look_before_the_end(objects: Any, timeout: float | None = None) -> Any:
+        if "child" in taken and list(objects) == [taken["child"].sentinel]:
+            return []
+        return real_look(objects, timeout)
+
+    monkeypatch.setattr(os, "kill", recorded_kill)
+    monkeypatch.setattr(multiprocessing.connection, "wait", look_before_the_end)
+    monkeypatch.setattr(isolate, "_wait", end_taken_after_the_kill)
+    readers = isolate.Readers(1)
+    try:
+        stopped = isolate.run(
+            targets.pages_then_rest,
+            (1, 0.0, 30.0),
+            memory=GiB,
+            step_seconds=60,
+            readers=readers,
+            cancel=cancel,
+        )
+    finally:
+        if "child" in taken and taken["child"]._popen is not None:
+            taken["child"]._popen.returncode = taken["code"]  # ... and then notes it
+    assert stopped == isolate.Stopped(ending, "starting")
+    assert kills == [taken["child"].pid]  # the read's own kill, and no second
+    assert readers.alive == 0
+    assert multiprocessing.active_children() == []
+
+
+@posix_only
+def test_a_start_that_fails_once_the_child_exists_leaves_no_child(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The child is made, then handing it its work fails: before #1080 nobody waited for
+    it, and it stayed behind (a zombie once ended) until the program ended."""
+    from multiprocessing import popen_spawn_posix, util
+
+    made: list[int] = []
+    spawn = util.spawnv_passfds
+
+    def spawned(*args: Any) -> int:
+        made.append(spawn(*args))
+        return made[-1]
+
+    def write_fails(*args: Any, **kwargs: Any) -> Any:
+        raise BrokenPipeError(32, "Broken pipe")
+
+    monkeypatch.setattr(util, "spawnv_passfds", spawned)
+    monkeypatch.setattr(popen_spawn_posix, "open", write_fails, raising=False)
+    readers = isolate.Readers(1)
+    try:
+        with pytest.raises(isolate.NotStarted, match="Broken pipe"):
+            isolate.run(
+                targets.pages_then_rest, (1, 0.0, 0.0), memory=GiB, step_seconds=60, readers=readers
+            )
+        assert len(made) == 1
+        with pytest.raises(ChildProcessError):
+            os.waitpid(made[0], os.WNOHANG)  # already reaped
+    finally:
+        for pid in made:  # a child the read left behind: its pid is not free, so it is ours
+            with contextlib.suppress(ChildProcessError):
+                if os.waitpid(pid, os.WNOHANG) == (0, 0):
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+    assert readers.alive == 0
 
 
 # ---- a child that ends while starting, as a Ctrl-C ends it (#367) ---------------------------

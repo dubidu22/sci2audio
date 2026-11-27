@@ -50,10 +50,12 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from multiprocessing import resource_tracker
 from multiprocessing.connection import Connection
+from multiprocessing.context import SpawnProcess
 from typing import Any
 
 MEMORY_EXIT = 86  # the child's exit code when the watch ended it for memory
 TIME_EXIT = 87  # ... and for a step that took more than twice its time
+_LIMITS: dict[int | None, str] = {MEMORY_EXIT: "memory", TIME_EXIT: "time"}
 _WATCH_SECONDS = 0.02
 START_SECONDS = 30.0  # the longest a child may take to start, before its first step
 _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
@@ -61,6 +63,9 @@ _CANCEL_SECONDS = 0.1  # how often the parent looks at `cancel`
 # within its 0.1 s poll; on loaded CI runners the cancel came up to 0.11 s (Windows) and
 # 0.23 s (macOS) after the reader saw its child's end, 30 tries each (#803).
 _CANCEL_GRACE_SECONDS = 1.0
+# How long the thread that reaped an ended child may take to note its exit code (#1079): a
+# moment, but a busy machine can hold that thread back.
+_NOTED_SECONDS = 1.0
 _log = logging.getLogger(__name__)
 
 _report: Callable[[str], None] | None = None  # set in the child
@@ -153,17 +158,20 @@ def run(
         return Stopped("cancelled")
     try:
         child, receive = _start(context, target, args, memory, step_seconds)
+        result: Any = None
         try:
-            return _wait(child, receive, step_seconds, on_step, cancel)
+            result = _wait(child, receive, step_seconds, on_step, cancel)
+            return result
         finally:
             receive.close()
-            _end(child)
+            _end(child, ended=isinstance(result, Stopped))
     finally:
         readers.give()
 
 
-def _end(child: Any) -> None:
-    """End `child` if it still runs, wait for its end, and free its handles.
+def _end(child: Any, ended: bool) -> None:
+    """End `child` if it still runs, wait for its end, and free its handles. `ended`: `_wait`
+    has killed the child or waited for its end, so it is never signalled again (#1080).
 
     Another thread can take the child's end first: multiprocessing reaps each child it finds
     ended (`os.waitpid`) in `active_children()` and in every `Process.start()`, so a second
@@ -172,7 +180,7 @@ def _end(child: Any) -> None:
     signal a pid that is free again), `join()` returns with no exit code, and `close()`
     raises "still running" (#440). The sentinel, which the child holds open until it ends,
     tells its end whoever reaped it."""
-    if not multiprocessing.connection.wait([child.sentinel], 0):
+    if not ended and not multiprocessing.connection.wait([child.sentinel], 0):
         child.kill()
     child.join()
     if child.exitcode is not None:
@@ -189,7 +197,7 @@ def _start(
     except OSError as error:
         raise NotStarted(str(error)) from error
     try:
-        child = context.Process(
+        child = _Reader(
             target=_child,
             args=(send, target, args, memory, step),
             daemon=True,
@@ -210,6 +218,39 @@ def _start(
     finally:
         send.close()  # the child holds its own copy
     return child, receive
+
+
+if sys.platform != "win32":
+    from multiprocessing import popen_spawn_posix
+
+    class _ReapingPopen(popen_spawn_posix.Popen):
+        """multiprocessing's spawned child, waited for when handing it its work fails: the
+        process then exists, but no `Process` knows it, so nobody else would (#1080)."""
+
+        def _launch(self, process_obj: Any) -> None:
+            try:
+                super()._launch(process_obj)  # pyright: ignore[reportAttributeAccessIssue] (not in the stub)
+            except BaseException:
+                made = getattr(self, "pid", None)
+                if made is not None:
+                    # never in multiprocessing's list of children, so no other thread
+                    # reaps it: the pid is still this child's
+                    with contextlib.suppress(ProcessLookupError):
+                        os.kill(made, signal.SIGKILL)
+                    with contextlib.suppress(ChildProcessError):
+                        os.waitpid(made, 0)
+                raise
+
+
+class _Reader(SpawnProcess):
+    """The reader child. On Windows a failed hand-over closes the child's pipe, so the child
+    ends, and an ended process leaves nothing to wait for."""
+
+    if sys.platform != "win32":
+
+        @staticmethod
+        def _Popen(process_obj: Any) -> Any:
+            return _ReapingPopen(process_obj)
 
 
 @contextlib.contextmanager
@@ -268,7 +309,7 @@ def _wait(
             kind, value = receive.recv()
         except (EOFError, OSError):  # ended without a word: the watch, a hard limit, a crash
             child.join()
-            reason = {MEMORY_EXIT: "memory", TIME_EXIT: "time"}.get(child.exitcode, "ended")
+            reason = _LIMITS.get(_exit_code(child), "ended")
             if reason == "ended" and cancel is not None and cancel.wait(_CANCEL_GRACE_SECONDS):
                 return Stopped("cancelled", step)  # Ctrl-C ended it, then reached `cancel`
             return Stopped(reason, step)
@@ -280,6 +321,15 @@ def _wait(
             return value
         else:  # "raised"
             raise value
+
+
+def _exit_code(child: Any) -> int | None:
+    """The exit code of an ended `child`. When another thread reaped it (see `_end`), the
+    code is there only once that thread has noted it (#1079)."""
+    deadline = time.monotonic() + _NOTED_SECONDS
+    while child.exitcode is None and time.monotonic() < deadline:
+        time.sleep(0.001)
+    return child.exitcode
 
 
 def _tell(on_step: Callable[[str], None] | None, step: str) -> None:

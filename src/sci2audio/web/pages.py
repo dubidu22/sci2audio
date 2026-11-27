@@ -292,6 +292,7 @@ CHIPS = {  # a document's state: its chip's look and icon (DESIGN.md "Chips"), n
     "analysing": ("making", "text"),
     "failed": ("failed", "alert"),
     "ready": ("ready", "check"),
+    "partly": ("ready", "play"),
     "cli": ("ready", "check"),
     "analysed": ("idle", "text"),
     "new": ("idle", "open"),
@@ -306,7 +307,7 @@ def _percent(part: float | None) -> int | None:
     return None if part is None else int(100 * min(1.0, max(0.0, part)))
 
 
-def _state_of(state: ServerState, document: StoredDocument) -> str:
+def _state_of(state: ServerState, document: StoredDocument, got: Heard | None = None) -> str:
     current = state.board.current
     if current is not None and current.document == document.id:
         return "analysing" if current.kind is JobKind.SCRIPT else "making"
@@ -322,7 +323,16 @@ def _state_of(state: ServerState, document: StoredDocument) -> str:
         return "failed"
     if document.has_audio:
         return "ready"
+    if got is not None and got.chapters is not None:
+        return "partly"
     return "analysed" if document.report_file.is_file() else "new"
+
+
+def _state_text(s: Strings, key: str, got: Heard | None) -> str:
+    if key == "partly" and got is not None and got.chapters is not None:
+        ready, planned = got.chapters
+        return s("library.state_partly", done=ready, n=planned)
+    return s(f"library.state_{key}")
 
 
 def _when_text(s: Strings, moment: datetime | None) -> str:
@@ -384,7 +394,7 @@ def _library_row(
     """One document as a row of the library's table."""
     about = read_about(document.folder)
     got = heard(document.folder, document.id, _folders(state, document, saved))
-    key = _state_of(state, document)
+    key = _state_of(state, document, got)
     made = None
     if key in ("making", "analysing") and state.board.current is not None:
         made = _percent(progress_fraction(state.board.current.snapshot().get("progress")))
@@ -400,6 +410,7 @@ def _library_row(
         "href": f"/documents/{document.id}/listen" if got else f"/documents/{document.id}",
         "state": key,
         "chip": CHIPS[key],
+        "said": _state_text(s, key, got),
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": made,
@@ -422,6 +433,7 @@ def _outside_row(s: Strings, job: Any, counted: CaptureCounts) -> dict[str, Any]
         "href": f"/documents/{job.id}/listen",
         "state": "cli",
         "chip": CHIPS["cli"],
+        "said": s("library.state_cli"),
         "audio": got is not None,
         "listened": None if got is None else _percent(got.fraction),
         "made": None,
@@ -830,7 +842,8 @@ def _stopped_in(progress: Mapping[str, Any]) -> tuple[str, int]:
     """Where an audio job stood when it ended (D-695): ("writing", n) once every chapter
     was spoken, ("chapter", n) in its n-th chapter, ("before", 0) before the first chunk.
     The last progress names the last finished chunk; when that chunk ended its chapter,
-    the job was in the next one."""
+    the job was in the next one once that chapter was playable, and before that still in it
+    (#1060), as the running card counts it (`_chapter_now`): its files were not in place."""
     phase = progress.get("phase")
     chapters = int(progress.get("chapters") or 0)
     if phase in ("encoding", "done"):
@@ -841,6 +854,8 @@ def _stopped_in(progress: Mapping[str, Any]) -> tuple[str, int]:
     if progress.get("chapter_done"):
         if number >= chapters:
             return "writing", chapters
+        if progress.get("chapter") not in (progress.get("playable") or ()):
+            return "chapter", number
         return "chapter", number + 1
     return "chapter", number
 
