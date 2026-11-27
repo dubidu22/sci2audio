@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -48,25 +49,96 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
     # (#364); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
-    assert "needs: [lint, licences, security, tests, tests-py313, browser, web-paths]" in job
+    assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
 
 
-def test_every_run_tests_python_3_13_on_linux_too() -> None:
-    """#792: `requires-python = ">=3.12"` lets people install on 3.13, where a chapter once
-    lost its text (#587); the fast suite runs there on every PR, push and run by hand, and
-    "CI passed" waits for it. The 3.12 legs keep their names (rules and the ruleset)."""
-    assert "    name: tests (${{ matrix.os }})" in block(CI, "  tests:")
-    job = block(CI, "  tests-py313:")
-    assert "    name: tests (ubuntu-latest, py3.13)" in job
-    assert "    runs-on: ubuntu-latest" in job
-    assert not re.search(r"^    if:", job, re.M), job  # no event leaves it out
-    assert re.search(r'^      UV_PYTHON: "3\.13"$', job, re.M), job
-    # .python-version (3.12) must not win unseen: the job checks the venv's own Python
-    assert "sys.version_info[:2] == (3, 13)" in job
-    assert 'uv run pytest -m "not slow and not benchmark and not browser" -n auto' in job
-    assert "HYPOTHESIS_PROFILE: ci" in job
+FULL = (
+    "github.event_name != 'pull_request' || "
+    "contains(github.event.pull_request.labels.*.name, 'ci:full')"
+)
+FAST = "not slow and not benchmark and not browser"
+
+
+def legs() -> tuple[list[dict], list[dict]]:
+    """The legs of the job `tests`: of a full run (push to main and release/*, by hand,
+    `ci:full`) and of a PR without `ci:full`."""
+    tests = block(CI, "  tests:")
+    include = re.search(
+        r"^        include: \$\{\{ fromJSON\(\((.+)\) && '([^']+)' \|\| '([^']+)'\) \}\}$",
+        tests,
+        re.M,
+    )
+    assert include, tests
+    assert include[1] == FULL
+    return json.loads(include[2]), json.loads(include[3])
+
+
+def leg_name(leg: dict) -> str:
+    """The job name a leg gets from `name:` below, checked against the literal names."""
+    shard = f", {leg['shard']}/3" if "shard" in leg else ""
+    python = f", py{leg['python']}" if "python" in leg else ""
+    return f"tests ({leg['os']}{shard}{python})"
+
+
+def test_a_pr_runs_the_linux_fast_suite_in_three_shards() -> None:
+    """#1132: the Linux fast suite no longer sets the length of a PR's run. Same job id, so
+    "CI passed" needs every shard; the shard script decides the tests."""
+    tests = block(CI, "  tests:")
+    assert (
+        "    name: tests (${{ matrix.os }}"
+        "${{ matrix.shard && format(', {0}/3', matrix.shard) || '' }}"
+        "${{ matrix.python && format(', py{0}', matrix.python) || '' }})"
+    ) in tests
+    assert "fail-fast: false" in tests
+    _, pr = legs()
+    assert [leg_name(leg) for leg in pr] == [
+        "tests (ubuntu-latest, 1/3)",
+        "tests (ubuntu-latest, 2/3)",
+        "tests (ubuntu-latest, 3/3)",
+    ]
+    shard = block(tests, "      - name: The fast tests of this shard")
+    assert re.search(r"^        if: matrix\.shard$", shard, re.M), shard
+    assert f'shard.py "{FAST}" "$SHARD" 3 "$RUNNER_TEMP/shard.txt"' in shard
+    assert "HYPOTHESIS_PROFILE: ci" in shard  # collected as it is run
+    fast = block(tests, "      - name: Fast tests (unit, property-based, golden files)")
+    assert f'uv run pytest -m "{FAST}" -n auto --durations=25 "$@"' in fast
+    # only a shard leg reads the file; macOS, Windows and 3.13 run the suite whole
+    assert 'if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt"; fi' in fast
+    assert "HYPOTHESIS_PROFILE: ci" in fast
+    # the first shard and the whole-suite legs of 3.12: once per system, never on 3.13
+    smoke = block(tests, "      - name: Smoke test (sci2audio script on a corpus PDF)")
+    assert "        if: matrix.shard == 1 || (!matrix.shard && !matrix.python)" in smoke
+
+
+def test_a_full_run_keeps_macos_and_windows_whole_and_adds_python_3_13() -> None:
+    """D-580 and #69: "tests (macos-latest)" and "tests (windows-latest)" keep their names
+    and the whole fast suite. #1132 moves Python 3.13 (#792) off ordinary PRs to where a
+    break is still caught before a release: pushes to main and release/*, by hand, `ci:full`."""
+    full, pr = legs()
+    assert full[: len(pr)] == pr  # Linux 3.12 in the same three shards
+    assert [leg_name(leg) for leg in full[len(pr) :]] == [
+        "tests (macos-latest)",
+        "tests (windows-latest)",
+        "tests (ubuntu-latest, py3.13)",
+    ]
+    tests = block(CI, "  tests:")
+    # UV_PYTHON wins over .python-version for uv sync and uv run; unset on the other legs
+    assert "          python-version: ${{ matrix.python }}" in tests
+    version = block(tests, "      - name: The tests run on Python 3.13")
+    assert "        if: matrix.python == '3.13'" in version
+    # should a later change let .python-version win, the leg would test 3.12 twice unseen
+    assert "sys.version_info[:2] == (3, 13)" in version
+
+
+def test_python_3_13_is_no_need_of_ci_passed_where_it_does_not_run() -> None:
+    """A leg of `tests` exists only where it runs, so "CI passed" waits for it there and
+    never meets it skipped; a job of its own would read skipped on every ordinary PR."""
+    assert "tests-py313" not in CI
+    full, pr = legs()
+    assert not [leg for leg in pr if "python" in leg]
+    assert [leg for leg in full if "python" in leg] == [{"os": "ubuntu-latest", "python": "3.13"}]
 
 
 def load_ci_passed():
@@ -120,7 +192,8 @@ def test_ci_passed_passes_when_every_job_succeeded(monkeypatch: pytest.MonkeyPat
     "leg",
     [
         job("tests (macos-latest)", conclusion="cancelled"),  # no runner in time (#548)
-        job("browser (Linux, Chromium, 2/2)", conclusion="failure"),
+        job("browser (Linux, Chromium, 2/3)", conclusion="failure"),
+        job("tests (ubuntu-latest, 3/3)", conclusion="failure"),  # one fast-suite shard
         job("tests (windows-latest)", conclusion="skipped"),
         job("tests (macos-latest)", "queued", None),
     ],
@@ -144,15 +217,29 @@ def test_ci_passed_fails_when_it_finds_no_other_job(monkeypatch: pytest.MonkeyPa
         run_ci_passed(monkeypatch, [job("CI passed", "in_progress", None)])
 
 
-def test_the_pr_browser_tests_run_in_two_shards_that_all_must_pass() -> None:
-    """D-759 item 3: same job id, so "CI passed" needs every shard; the shard script
-    decides the tests, so a new browser test file needs no workflow change."""
+def test_the_pr_browser_tests_run_in_three_shards_that_all_must_pass() -> None:
+    """D-759 item 3, three shards since #1132 (two had become the slowest job): same job
+    id, so "CI passed" needs every shard; the shard script decides the tests, so a new
+    browser test file needs no workflow change."""
     browser = block(CI, "  browser:")
-    assert "    name: browser (Linux, Chromium, ${{ matrix.shard }}/2)" in browser
+    assert "    name: browser (Linux, Chromium, ${{ matrix.shard }}/3)" in browser
+    assert not re.search(r"^    if:", browser, re.M), browser  # on every PR
     assert "fail-fast: false" in browser
-    assert "shard: [1, 2]" in browser
-    assert 'browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"' in browser
+    assert "shard: [1, 2, 3]" in browser
+    assert 'shard.py browser "$SHARD" 3 "$RUNNER_TEMP/shard.txt" --browser chromium' in browser
     assert '"@$RUNNER_TEMP/shard.txt"' in browser
+
+
+def test_firefox_webkit_and_the_nightly_keep_two_browser_shards() -> None:
+    """#1132 changes Chromium on PRs only; Firefox and WebKit stay as D-759 left them."""
+    reported = block(CI, "  browser-reported:")
+    assert "    name: browser (Linux, ${{ matrix.browser }}, ${{ matrix.shard }}/2, " in reported
+    assert "shard: [1, 2]" in reported
+    command = 'shard.py browser "$SHARD" 2 "$RUNNER_TEMP/shard.txt" --browser "$BROWSER"'
+    assert command in reported
+    nightly = block(NIGHTLY, "  browsers:")
+    assert "shard: [1, 2]" in nightly
+    assert command in nightly
 
 
 @pytest.mark.parametrize(
@@ -387,10 +474,10 @@ def test_codeql_ignores_the_prototype_and_the_archive_and_nothing_that_ships_or_
     assert not [p for p in scanned if p.startswith(prefixes)]
 
 
-def browser_shard():  # type: ignore[no-untyped-def]
-    """`.github/scripts/browser_shard.py`, imported as a module."""
-    script = ROOT / ".github" / "scripts" / "browser_shard.py"
-    spec = importlib.util.spec_from_file_location("browser_shard", script)
+def shard_script():  # type: ignore[no-untyped-def]
+    """`.github/scripts/shard.py`, imported as a module."""
+    script = ROOT / ".github" / "scripts" / "shard.py"
+    spec = importlib.util.spec_from_file_location("sci2audio_shard", script)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -398,7 +485,14 @@ def browser_shard():  # type: ignore[no-untyped-def]
     return module
 
 
-def test_the_browser_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
+def test_one_shard_script_serves_the_browser_jobs_and_the_fast_suite() -> None:
+    """#1132: one way to shard, so no job keeps an older copy of its rules (#698)."""
+    assert not (ROOT / ".github" / "scripts" / "browser_shard.py").exists()
+    for text in (CI, NIGHTLY):
+        assert "browser_shard.py" not in text
+
+
+def test_the_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
     """The quarantine banner names a test with "::" too; read as a test it made the shard's
     argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698)."""
     listing = "\n".join(
@@ -412,8 +506,69 @@ def test_the_browser_shard_reads_only_test_ids_not_the_quarantine_banner() -> No
             "3 tests collected in 0.42s",
         ]
     )
-    assert browser_shard().browser_tests(listing) == [
+    assert shard_script().test_ids(listing) == [
         "tests/browser/test_flow.py::test_open[firefox]",
         "tests/browser/test_flow.py::test_resume[firefox]",
         "tests/browser/test_axe.py::test_start_page[firefox]",
     ]
+
+
+SLOW_FILE = [f"tests/unit/test_slow.py::test_case[{n}]" for n in range(6)]
+TESTS = ["tests/unit/test_a.py::test_one", *SLOW_FILE, "tests/unit/test_z.py::test_last"]
+
+
+def test_a_files_tests_are_spread_over_the_shards() -> None:
+    """Every third test from the shard's number on, so one slow file never fills one shard."""
+    shards = [shard_script().shard(TESTS, number, 3) for number in (1, 2, 3)]
+    assert shards == [
+        [TESTS[0], SLOW_FILE[2], SLOW_FILE[5]],
+        [SLOW_FILE[0], SLOW_FILE[3], TESTS[-1]],
+        [SLOW_FILE[1], SLOW_FILE[4]],
+    ]
+    assert all(len(set(SLOW_FILE) & set(tests)) == 2 for tests in shards)
+
+
+@pytest.mark.parametrize("total", [1, 2, 3, 4])
+def test_the_shards_together_hold_every_collected_test_exactly_once(total: int) -> None:
+    shards = [shard_script().shard(TESTS, number, total) for number in range(1, total + 1)]
+    together = [test for tests in shards for test in tests]
+    assert sorted(together) == sorted(TESTS)
+
+
+def test_an_empty_shard_fails_with_a_clear_message() -> None:
+    with pytest.raises(SystemExit, match=r"^shard 3 of 3 has no tests \(2 collected\)$"):
+        shard_script().shard(TESTS[:2], 3, 3)
+
+
+@pytest.mark.parametrize("number", [0, 4])
+def test_a_shard_number_out_of_range_fails(number: int) -> None:
+    with pytest.raises(SystemExit, match=f"^shard {number} is not between 1 and 3$"):
+        shard_script().shard(TESTS, number, 3)
+
+
+def test_the_shard_collects_with_the_marker_expression_and_writes_its_tests(
+    tmp_path: Path,
+) -> None:
+    """The marker expression and any further pytest arguments (a browser) go to the
+    collection; the shard's test ids go to the file `pytest @OUT` reads back."""
+    calls: list[list[str]] = []
+
+    def collect(args: list[str]) -> str:
+        calls.append(args)
+        return "\n".join(TESTS) + "\n\n8 tests collected in 0.1s\n"
+
+    out = tmp_path / "shard.txt"
+    shard_script().main("browser", 2, 3, out, ["--browser", "chromium"], collect=collect)
+    assert calls == [["-m", "browser", "--browser", "chromium"]]
+    assert out.read_text(encoding="utf-8").splitlines() == TESTS[1::3]
+
+
+def test_the_shard_collects_tests_with_golden_files(tmp_path: Path) -> None:
+    """A collection runs no test, so syrupy reads every snapshot as unused and fails it;
+    the fast suite's shards collect golden-file tests (#1132), the browser ones never did."""
+    out = tmp_path / "shard.txt"
+    golden = "tests/unit/test_core_objects.py"
+    shard_script().main(FAST, 1, 1, out, [golden])
+    tests = out.read_text(encoding="utf-8").splitlines()
+    assert tests
+    assert all(test.startswith(f"{golden}::") for test in tests)

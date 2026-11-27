@@ -11,7 +11,7 @@ Thank you for helping. sci2audio is built by one maintainer with the help of AI 
 
 ### What CI runs
 
-On a pull request, CI runs everything on Linux: lint, layers, licences, security, the fast tests and the browser tests. The fast tests run on macOS and Windows too once the PR carries the label **`ci:full`**. Adding the label starts that run: a run of CI by hand on the PR's branch (the workflow "CI on all three systems"), which tests all three systems and is never cancelled by a later run. Add the label once; removing and adding it again only starts another run. Other labels start no run, so labelling a PR never cancels the run of its commit (#360, D-620); every later push to a PR with `ci:full` tests all three systems. Every push to `main` or a `release/*` branch, and every run by hand, tests all three systems. A newer push to a PR cancels its older run (D-580). Add `ci:full` when a change could behave differently on another system (paths, files, audio, encoding, the command line), and always before a PR is merged: a PR is merged only on a green run on all three systems of the reviewed head: check that `tests (macos-latest)` and `tests (windows-latest)` succeeded on that head; `CI passed` alone can still show the earlier Linux-only run. The summary of the **CI passed** job says which systems ran.
+On a pull request, CI runs everything on Linux: lint, layers, licences, security, the fast tests and the browser tests (the fast tests and Chromium in three shards each). The fast tests run on macOS and Windows, and on Python 3.13 on Linux, once the PR carries the label **`ci:full`** (#1132). Adding the label starts that run: a run of CI by hand on the PR's branch (the workflow "CI on all three systems"), which tests all three systems and is never cancelled by a later run. Add the label once; removing and adding it again only starts another run. Other labels start no run, so labelling a PR never cancels the run of its commit (#360, D-620); every later push to a PR with `ci:full` tests all three systems. Every push to `main` or a `release/*` branch, and every run by hand, tests all three systems and Python 3.13. A newer push to a PR cancels its older run (D-580). Add `ci:full` when a change could behave differently on another system (paths, files, audio, encoding, the command line), and always before a PR is merged: a PR is merged only on a green run on all three systems of the reviewed head: check that `tests (macos-latest)` and `tests (windows-latest)` succeeded on that head; `CI passed` alone can still show the earlier Linux-only run. The summary of the **CI passed** job says which systems ran.
 
 ## Before you open a pull request
 
@@ -48,7 +48,7 @@ Install the pre-commit hooks once with `uv run pre-commit install`; they run ruf
 - Type: `bug`, `enhancement` (the two categories `/triage` uses), `chore`
 - Priority: `P0`, `P1`, `P2`
 - Risk: `risk:high`
-- CI: `ci:full` runs the fast tests on macOS and Windows as well (see "What CI runs")
+- CI: `ci:full` runs the fast tests on macOS, Windows and Python 3.13 as well (see "What CI runs")
 
 ## Licence of contributions
 

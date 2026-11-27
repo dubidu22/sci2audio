@@ -1,8 +1,9 @@
 name: CI
 
-# PRs run everything on Linux; macOS and Windows join with the label "ci:full", on every
-# push to main and release/*, and on a run by hand (D-580). Tags need no run here: the
-# release workflow installs and runs the built wheel on all three systems first.
+# PRs run everything on Linux but Python 3.13; macOS, Windows and Python 3.13 join with the
+# label "ci:full", on every push to main and release/*, and on a run by hand (D-580, #1132).
+# Tags need no run here: the release workflow installs and runs the built wheel on all three
+# systems first.
 # Labels start no run here: one would cancel the run of the same commit and leave its
 # "CI passed" red (#360). Adding "ci:full" starts a run by hand on the PR's branch
 # instead (ci-full-label.yml, D-620); a push to a PR with the label tests all three.
@@ -147,29 +148,59 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
+  # Linux 3.12 in three shards on every run, a third of the tests each, so the fast suite no
+  # longer sets a PR's wait (#1132): same job id, so "CI passed" needs every shard. macOS and
+  # Windows join with the label "ci:full", on every push to main and release/*, and on a run
+  # by hand (D-580); they run the suite whole under the names rules and the ruleset use.
+  # requires-python (>=3.12) lets people install on 3.13, where a chapter once lost its text
+  # while 3.12 passed (#587, #792). Its leg runs where the full run goes, so a 3.13 break is
+  # caught minutes after a merge and never reaches a release (#1132). As a leg it exists only
+  # where it runs: "CI passed" waits for it there and never meets it skipped.
   tests:
-    name: tests (${{ matrix.os }})
+    name: tests (${{ matrix.os }}${{ matrix.shard && format(', {0}/3', matrix.shard) || '' }}${{ matrix.python && format(', py{0}', matrix.python) || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # all three systems except on a PR without the label "ci:full" (D-580)
-        os: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '["ubuntu-latest", "macos-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
+        include: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[{"os":"ubuntu-latest","shard":1},{"os":"ubuntu-latest","shard":2},{"os":"ubuntu-latest","shard":3},{"os":"macos-latest"},{"os":"windows-latest"},{"os":"ubuntu-latest","python":"3.13"}]' || '[{"os":"ubuntu-latest","shard":1},{"os":"ubuntu-latest","shard":2},{"os":"ubuntu-latest","shard":3}]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
-          cache-python: true  # the uv-managed CPython of .python-version, not downloaded each run
-          cache-suffix: py-${{ hashFiles('.python-version') }}  # a new Python gets a new cache
+          # sets UV_PYTHON, which wins over .python-version for uv sync and uv run; still
+          # uv's own CPython (only-managed). Empty, and so unset, on every leg but 3.13.
+          python-version: ${{ matrix.python }}
+          cache-python: true  # the uv-managed CPython, not downloaded each run
+          # a new Python gets a new cache, and 3.13 never the cache of the .python-version legs
+          cache-suffix: ${{ matrix.python && format('py{0}', matrix.python) || format('py-{0}', hashFiles('.python-version')) }}
       - run: uv sync --locked
+      # Should a later change let .python-version win, this leg would test 3.12 twice unseen.
+      - name: The tests run on Python 3.13
+        if: matrix.python == '3.13'
+        run: uv run python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
+      # Every third collected test from this shard's number on, so a new test file needs no
+      # change here and the slow tests of one file are spread over all shards.
+      - name: The fast tests of this shard
+        if: matrix.shard
+        env:
+          HYPOTHESIS_PROFILE: ci  # the run's own profile, should it ever decide what is collected
+          SHARD: ${{ matrix.shard }}
+        run: uv run --no-sync python .github/scripts/shard.py "not slow and not benchmark and not browser" "$SHARD" 3 "$RUNNER_TEMP/shard.txt"
+      # The 25 slowest tests close the log, so a new slow test shows in the PR that adds it.
       - name: Fast tests (unit, property-based, golden files)
-        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
+        shell: bash
         env:
           HYPOTHESIS_PROFILE: ci
-      # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it.
+          SHARD: ${{ matrix.shard }}
+        run: |
+          if [ -n "$SHARD" ]; then set -- "@$RUNNER_TEMP/shard.txt"; fi
+          uv run pytest -m "not slow and not benchmark and not browser" -n auto --durations=25 "$@"
+      # PE-02 (D-224): the installed command on one corpus PDF, as a person runs it; once per
+      # system on Python 3.12.
       - name: Smoke test (sci2audio script on a corpus PDF)
+        if: matrix.shard == 1 || (!matrix.shard && !matrix.python)
         shell: bash
         run: |
           uv run sci2audio script tests/corpus/papers/joss2021-waskom-seaborn.pdf \
@@ -178,44 +209,18 @@ jobs:
             test -s "$RUNNER_TEMP/smoke/joss2021-waskom-seaborn.$suffix"
           done
 
-  # requires-python (>=3.12) lets people install on 3.13, where a chapter once lost its text
-  # while 3.12 passed (#587). So every run tests 3.13 too, on Linux only: the 3.12 legs above
-  # keep the three systems and their names, which rules and the ruleset name (#792).
-  tests-py313:
-    name: tests (ubuntu-latest, py3.13)
-    runs-on: ubuntu-latest
-    env:
-      # wins over .python-version for uv sync and uv run; still uv's own CPython (only-managed)
-      UV_PYTHON: "3.13"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
-        with:
-          cache-python: true  # the uv-managed CPython 3.13, not downloaded each run
-          cache-suffix: py3.13  # never the cache of the .python-version legs
-      - run: uv sync --locked
-      # Should a later change let .python-version win, this job would test 3.12 twice unseen.
-      - name: The tests run on Python 3.13
-        run: uv run python -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
-      - name: Fast tests (unit, property-based, golden files)
-        run: uv run pytest -m "not slow and not benchmark and not browser" -n auto
-        env:
-          HYPOTHESIS_PROFILE: ci
-
   # The interface in a real browser (#77, #8, D-259): main flow, keyboard-only path and
   # axe-core. Chromium on Linux on every PR; Firefox and WebKit on a PR that changes a web
   # path (browser-reported) and in the nightly.
-  # Two shards on two runners, half the tests each, so the browser tests no longer set the
-  # run's length (D-759, CI speed plan item 3): every shard must pass for "CI passed".
+  # Three shards on three runners, a third of the tests each, so the browser tests no longer
+  # set the run's length (D-759 item 3, #1132): every shard must pass for "CI passed".
   browser:
-    name: browser (Linux, Chromium, ${{ matrix.shard }}/2)
+    name: browser (Linux, Chromium, ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -242,12 +247,12 @@ jobs:
           key: ms-playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for Playwright
         run: uv run playwright install --with-deps chromium
-      # Every second collected test from this shard's number on, so a new test file needs no
-      # change here and the slow tests of one file are spread over both shards.
+      # Every third collected test from this shard's number on, so a new test file needs no
+      # change here and the slow tests of one file are spread over all shards.
       - name: The tests of this shard
         env:
           SHARD: ${{ matrix.shard }}
-        run: uv run --no-sync python .github/scripts/browser_shard.py chromium "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
+        run: uv run --no-sync python .github/scripts/shard.py browser "$SHARD" 3 "$RUNNER_TEMP/shard.txt" --browser chromium
       - name: Browser tests (main flow, keyboard, axe-core)
         run: uv run pytest -m browser --browser chromium -rA "@$RUNNER_TEMP/shard.txt"
         env:
@@ -332,7 +337,7 @@ jobs:
         env:
           BROWSER: ${{ matrix.browser }}
           SHARD: ${{ matrix.shard }}
-        run: uv run --no-sync python .github/scripts/browser_shard.py "$BROWSER" "$SHARD" 2 "$RUNNER_TEMP/shard.txt"
+        run: uv run --no-sync python .github/scripts/shard.py browser "$SHARD" 2 "$RUNNER_TEMP/shard.txt" --browser "$BROWSER"
       - name: Browser tests (main flow, keyboard, axe-core)
         env:
           BROWSER: ${{ matrix.browser }}
@@ -343,7 +348,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, security, tests, tests-py313, browser, web-paths]
+    needs: [lint, licences, security, tests, browser, web-paths]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -376,7 +381,7 @@ jobs:
           FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full') }}
         run: |
           if [ "$FULL" = true ]; then
-            echo "Tests ran on Linux, macOS and Windows." >> "$GITHUB_STEP_SUMMARY"
+            echo "Tests ran on Linux, macOS and Windows, and on Python 3.13 on Linux." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Tests ran on Linux only: add the label ci:full for macOS and Windows (D-580)." >> "$GITHUB_STEP_SUMMARY"
+            echo "Tests ran on Linux only: add the label ci:full for macOS, Windows and Python 3.13 (D-580, #1132)." >> "$GITHUB_STEP_SUMMARY"
           fi
