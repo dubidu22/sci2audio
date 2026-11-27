@@ -300,9 +300,13 @@ def _band(pieces: list[Element], settings: LayoutSettings) -> Box:
     for piece in pieces:
         if piece.line is None:
             continue
-        runs = [r for r in piece.line.runs if r.box is not None and r.text.strip()]
+        runs = [
+            (r.size, r.box, len(r.text.strip()))
+            for r in piece.line.runs
+            if r.box is not None and r.text.strip()
+        ]
         if runs:
-            found += [(r.size, r.box, len(r.text.strip())) for r in runs]
+            found += runs
         else:
             letters = len(piece.line.text.strip()) or 1
             found.append((letter_size(piece.line.runs), piece.box, letters))

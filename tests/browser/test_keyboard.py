@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 from test_flow import PDF
 
@@ -50,6 +51,9 @@ def press_on(page: Page, wanted: str, key: str = "Enter", **kwargs: bool) -> Non
     page.keyboard.press(key)
 
 
+@pytest.mark.quarantined(
+    issue=1147, reason="Tab leaves focus on the job's result", browser="firefox"
+)
 def test_the_main_flow_by_keyboard(signed_in: Page, live: Live) -> None:
     page = signed_in
     # Playwright catches the file chooser only once it has told the browser to, and it

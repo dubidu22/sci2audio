@@ -32,7 +32,7 @@ import re
 from dataclasses import dataclass, field, replace
 
 from sci2audio.core import Block, BlockKind, Box, Content, Page, Part, TextLine
-from sci2audio.layout.geometry import line_size, same_row, union
+from sci2audio.layout.geometry import boxed, line_size, same_row, union
 from sci2audio.layout.maths import math_letters, number_alone, number_at_end
 from sci2audio.layout.settings import LayoutSettings
 from sci2audio.layout.split import kept, read_rows
@@ -89,6 +89,8 @@ def find_formulas(
     found: list[_Formula] = []
     for block in blocks:  # read across both columns by the reading order (#34)
         if block.kind is BlockKind.FORMULA:
+            # the reading order sets only lines with a box across the page, so `_split` can
+            # measure them all
             held = [lines[p.item] for p in block.parts if p.item in lines]
             graphics = [(p.item, boxes[p.item]) for p in block.parts if p.item in boxes]
             numbers = {li.id: n for li in held if (n := number_alone(li) or number_at_end(li))}
@@ -104,6 +106,7 @@ def _on_page(page: Page, state: _State) -> list[_Formula]:
     by_column: dict[Edges, list[TextLine]] = {}
     for line in page.lines:
         known = line.id in state.columns and line.id in state.owner
+        # only lines with a box are measured, so `boxed` never raises in the steps below
         if line.box and known and line.id not in state.taken:
             by_column.setdefault(state.columns[line.id], []).append(line)
     found: list[_Formula] = []
@@ -133,10 +136,10 @@ def _numbers(members: list[TextLine], edges: Edges, state: _State) -> dict[str, 
     indent = state.settings.formula_indent * state.body
     found = {}
     for line in members:
-        if state.kind(line.id) is not BlockKind.PARAGRAPH or line.box.x1 < right - reach:
+        if state.kind(line.id) is not BlockKind.PARAGRAPH or boxed(line).x1 < right - reach:
             continue
         number = number_alone(line)
-        if number is None and line.box.x0 >= left + indent:
+        if number is None and boxed(line).x0 >= left + indent:
             number = number_at_end(line)
         if number is not None:
             found[line.id] = number
@@ -158,8 +161,8 @@ def _chains(
         line.id
         for line in paragraph
         if line.id in numbers
-        or any(same_row(line.box, head.box, settings.row_overlap) for head in heads)
-        or (line.box.x0 >= left + indent and line.box.x1 <= right - slack)
+        or any(same_row(boxed(line), boxed(head), settings.row_overlap) for head in heads)
+        or (boxed(line).x0 >= left + indent and boxed(line).x1 <= right - slack)
     }
     # the rest of a display line's row, unless it is running text: running text starts at
     # the column's edge or one paragraph indent in, and fills the column. A piece that
@@ -170,24 +173,24 @@ def _chains(
     display |= {
         line.id
         for line in paragraph
-        if line.box.x0 > left + start
-        and (line.box.x1 <= right - slack or line.box.x0 >= left + indent)
-        and any(same_row(line.box, other.box, settings.row_overlap) for other in shown)
+        if boxed(line).x0 > left + start
+        and (boxed(line).x1 <= right - slack or boxed(line).x0 >= left + indent)
+        and any(same_row(boxed(line), boxed(other), settings.row_overlap) for other in shown)
     }
     # a piece on a row of running text is inline maths, never a display line
-    running = [li for li in paragraph if li.id not in display and li.box.x0 <= left + start]
+    running = [li for li in paragraph if li.id not in display and boxed(li).x0 <= left + start]
     display -= {
         line.id
         for line in paragraph
         if line.id in display
         and line.id not in numbers
-        and any(same_row(line.box, other.box, settings.row_overlap) for other in running)
+        and any(same_row(boxed(line), boxed(other), settings.row_overlap) for other in running)
     }
     chains: list[list[TextLine]] = []
     current: list[TextLine] = []
     bottom = 0.0
-    for line in sorted(members, key=lambda li: li.box.y0):
-        box = line.box
+    for line in sorted(members, key=lambda li: boxed(li).y0):
+        box = boxed(line)
         if line.id not in display:
             chains += [current] if current else []
             current = []
@@ -228,7 +231,7 @@ def _grown(
         for chain in chains
     ]
     out: list[list[TextLine]] = []
-    rest = [union([li.box for li in chain]) for chain in chains]
+    rest = [union([boxed(li) for li in chain]) for chain in chains]
     waiting = list(range(len(chains)))
     while waiting:
         group, area = list(chains[waiting[0]]), rest[waiting[0]]
@@ -247,7 +250,7 @@ def _grown(
                 group += chains[k]
                 area = union([area, rest[k]])
             waiting = [k for k in waiting if k not in joined]
-        out.append(sorted(group, key=lambda li: li.box.y0) if len(group) > 1 else group)
+        out.append(sorted(group, key=lambda li: boxed(li).y0) if len(group) > 1 else group)
     return out
 
 
@@ -265,7 +268,7 @@ def _graphics(
     """The graphics a formula holds: those drawn inside it, from the blocks they joined, and
     a figure no caption names standing on one of its numbers' rows."""
     gap = state.settings.float_gap * state.body
-    area = union([li.box for li in group])
+    area = union([boxed(li) for li in group])
     area = Box(area.x0 - gap, area.y0 - gap, area.x1 + gap, area.y1 + gap)
     heads = [li for li in group if li.id in numbers]
     found: list[tuple[str, Box]] = []
@@ -284,7 +287,7 @@ def _graphics(
             continue
         box = union([state.boxes[i] for i in items])
         in_column = edges[0] - gap <= box.x0 and box.x1 <= edges[1] + gap
-        on_row = any(same_row(box, h.box, state.settings.row_overlap) for h in heads)
+        on_row = any(same_row(box, boxed(h), state.settings.row_overlap) for h in heads)
         if in_column and (_inside(box, area) or on_row):
             found += [(i, state.boxes[i]) for i in items]
     return found
@@ -299,7 +302,7 @@ def _split(
 ) -> list[_Formula]:
     """One formula per number, each line and graphic going to the number nearest it (by
     the middle of its height); none if no line prints a number."""
-    heads = sorted((li for li in lines if li.id in numbers), key=lambda li: li.box.y0)
+    heads = sorted((li for li in lines if li.id in numbers), key=lambda li: boxed(li).y0)
     formulas = [_Formula(numbers[head.id], [head]) for head in heads]
     if not heads:
         return []
@@ -307,13 +310,14 @@ def _split(
     def nearest(box: Box) -> _Formula:
         middle = (box.y0 + box.y1) / 2
         k = min(
-            range(len(heads)), key=lambda n: abs(middle - (heads[n].box.y0 + heads[n].box.y1) / 2)
+            range(len(heads)),
+            key=lambda n: abs(middle - (boxed(heads[n]).y0 + boxed(heads[n]).y1) / 2),
         )
         return formulas[k]
 
     for line in lines:
         if line.id not in numbers:
-            nearest(line.box).lines.append(line)
+            nearest(boxed(line)).lines.append(line)
     for graphic in graphics:
         nearest(graphic[1]).graphics.append(graphic)
     return formulas
@@ -331,15 +335,15 @@ def _unnumbered(group: list[TextLine], members: list[TextLine], state: _State) -
         return False
     if any(_LIST_MARK.match(line.text) for line in group):
         return False
-    box = union([line.box for line in group])
+    box = union([boxed(line) for line in group])
     ids = {line.id for line in group}
     others = [line for line in members if line.id not in ids]
-    if any(line.box.y0 < box.y1 and line.box.y1 > box.y0 for line in others):
+    if any(boxed(line).y0 < box.y1 and boxed(line).y1 > box.y0 for line in others):
         return False  # inline: running text on its rows
-    above = [line for line in others if line.box.y1 <= box.y0]
+    above = [line for line in others if boxed(line).y1 <= box.y0]
     if above:
-        last = max(above, key=lambda line: line.box.y1)
-        return box.x0 >= last.box.x0 + settings.indent * state.body
+        last = max(above, key=lambda line: boxed(line).y1)
+        return box.x0 >= boxed(last).x0 + settings.indent * state.body
     return True
 
 
