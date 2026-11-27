@@ -15,12 +15,23 @@ from sci2audio.textprep import (
     NumbersStep,
     StepContext,
     UnitStep,
+    readings,
     run_steps,
     spoken_text,
 )
 from sci2audio.textprep.readings import Reading, readings_of
 from sci2audio.textprep.steps import Category
+from sci2audio.textprep.units import _compiled
 from sci2audio.textprep.wordlists import abbreviations, parse_abbreviations, units
+
+
+@pytest.fixture(autouse=True)
+def _read_afresh() -> None:
+    """Each test reads with the code it tests: the compiled lists and the units readings are
+    kept for the process, and a mutation run forks its workers from a process whose test run
+    filled them, so a mutant would otherwise meet only the answers of the unmutated code."""
+    _compiled.cache_clear()
+    readings._read.cache_clear()
 
 
 def read_all(text: str, language: str = "en") -> str:
@@ -367,6 +378,70 @@ def test_units_after_per_take_linear_time(language: str) -> None:
         )
 
     assert_linear(edits, lambda n: unit * n, 2000)
+
+
+# ---- the readings the 1.5.0 mutation run found unpinned (#1124) -------------------------
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a symbol after a line-end hyphen takes the line break, so a second run finds no
+        # "11-\ntimes" to join
+        ("en", "It is 11-\n\u00d7 5 here.", "It is 11- times 5 here."),
+        # after an ordinal or a date, the numbers step asks which word a second run sees:
+        # "ein" for a "1" read before a unit, the word for a symbol
+        ("de", "am 3. 1 N", "am dritten ein Newton"),
+        ("de", "am 3.4. 1 N 1/12", "am 3.4. 1 N 1/12"),  # a court's file number
+        ("de", "am 3.4. 1 und 2", "am 3.4. 1 und 2"),
+        ("de", "am 3.4. 1 s\u207b\u00b9", "am 3.4. 1 pro Sekunde"),
+        ("de", "am 3. ~ 5", "am dritten etwa 5"),
+        ("de", "am 3.\u00d75", "am dritten mal 5"),
+        ("de", "am 3. \u00d7 5", "am dritten mal 5"),
+        ("de", "am 3. \u2248 5", "am dritten ungefähr 5"),
+        ("de", "am 3. \u00d7\u00d7 5", "am 3. \u00d7\u00d7 5"),
+        ("de", "am 3. \u2248\u2248 5", "am 3. \u2248\u2248 5"),
+        ("de", "1 \u20ac.452,5", "ein Euro.452 Komma 5"),
+        # a number is split into words only where the units step reads its unit or its x
+        ("de", "2,5\u00c5", "2 Komma 5 \u00c5ngström"),
+        ("de", "Es galt 0,05%x als Wert.", "Es galt 0,05%x als Wert."),
+        ("de", "1:1x", "1 zu 1 mal"),
+        ("de", "10^2x1", "10 hoch 2 mal 1"),
+        ("de", "10\u2076 x1", "10 hoch 6 mal 1"),
+        ("de", "am 12.03.2019 x .45", "am zwölften März 2019 mal 0 Komma 4 5"),
+        ("de", "Es ist 3x so schnell, y = 2,5x.", "Es ist 3 mal so schnell, y gleich 2,5x."),
+        ("de", "y gleich 2,5x", "y gleich 2,5x"),
+        ("en", "It is minus 1234x here.", "It is minus 1234x here."),
+        ("en", "y less than 1234x", "y less than 1234x"),
+    ],
+)
+def test_the_numbers_step_reads_as_the_units_step_reads_beside_it(
+    language: str, printed: str, said: str
+) -> None:
+    assert read_all(printed, language) == said
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        ("en", "It is 5 mL\u22121 here.", "It is 5 per millilitre here."),
+        ("de", "Es sind 5 mL\u22121 hier.", "Es sind 5 pro Milliliter hier."),
+    ],
+)
+def test_a_raised_exponent_the_units_step_reads_is_not_written_as_printed(
+    language: str, printed: str, said: str
+) -> None:
+    """The minus one is raised only by its run: the units step reads it as "per", so the
+    numbers step does not write it in superscripts (#589); a second run reads the same."""
+    raised = printed.index("\u2212")
+    document = make_document(
+        [(BlockKind.PARAGRAPH, printed)], language, tags={0: [(raised, raised + 2, "sup")]}
+    )
+    context = StepContext(language)
+    script = run_steps(document, context, strict=True).script()
+    again = rebuilt_from_script(document, script)
+    second = spoken_text(run_steps(again, context, strict=True).script())
+    assert (spoken_text(script), second) == (said, said)
 
 
 def test_ordinals_after_abbreviations_take_linear_time() -> None:
