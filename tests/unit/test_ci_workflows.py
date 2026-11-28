@@ -37,6 +37,27 @@ def block(text: str, header: str) -> str:
     return "\n".join(out)
 
 
+def test_the_whitespace_hooks_leave_the_golden_files_and_the_corpus_alone() -> None:
+    """#176: both are stored byte for byte; a hook that strips a trailing space or adds a
+    last newline changes a golden file silently, and its snapshot tests then fail.
+    pre-commit matches `exclude` with re.search against each file's path."""
+    config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    kept = [
+        p.relative_to(ROOT).as_posix()
+        for p in sorted((ROOT / "tests").rglob("*"))
+        if p.is_file() and ("__snapshots__" in p.parts or "corpus" in p.parts)
+    ]
+    assert any("__snapshots__" in p for p in kept)
+    assert any(p.startswith("tests/corpus/") for p in kept)
+    for hook in ("end-of-file-fixer", "trailing-whitespace"):
+        found = re.search(rf"^      - id: {hook}\n        exclude: (.+)$", config, re.M)
+        assert found, hook
+        exclude = re.compile(found[1].strip())
+        assert [p for p in kept if not exclude.search(p)] == [], hook
+        for checked in ("tests/unit/test_ci_workflows.py", "src/sci2audio/cli.py", "README.md"):
+            assert not exclude.search(checked), (hook, checked)
+
+
 def test_ci_passed_needs_the_type_check() -> None:
     """#1104: src/ has no type errors since #1100-#1103, so a PR that adds one cannot
     merge. "CI passed" skips a job named "reported only", so the name no longer says so."""
