@@ -3473,6 +3473,29 @@ expected = [
 ]
 
 [[case]]
+id = "de-two-shapes-that-read-the-same-on-a-second-run-1032"
+audit = 0
+issue = 1032
+goal = "Each reads the same on the first and the second run: a caret power with a unit glued after it is read with the unit ('10 hoch 2 Kilogramm'); a unit after a number glued to a removed citation is read on the first run ('[1]1 K' is 'ein Kelvin'), not set aside, while '[1]2 K' keeps its bracket as before; a figure dash after 'Nx' stays as German read it ('3 mal ‒2', #1032)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es wiegt 10^2kg hier." },
+    { kind = "heading", text = "Gewichte von 10^2kg" },
+    { kind = "paragraph", text = "Es misst [1]1 K hier." },
+    { kind = "heading", text = "Es misst [1]1 K" },
+    { kind = "paragraph", text = "Es misst [1]2 K hier." },
+    { kind = "paragraph", text = "Es ist 3x‒2 hier." },
+]
+expected = [
+    "Es wiegt 10 hoch 2 Kilogramm hier.",
+    "Gewichte von 10 hoch 2 Kilogramm",
+    "Es misst ein Kelvin hier.",
+    "Es misst ein Kelvin",
+    "Es misst [1]2 Kelvin hier.",
+    "Es ist 3 mal ‒2 hier.",
+]
+
+[[case]]
 id = "de-a-unit-power-before-a-unit-letter"
 audit = 0
 issue = 816
