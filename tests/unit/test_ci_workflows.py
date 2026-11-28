@@ -6,12 +6,14 @@ ever leaves the required check green or skipped."""
 from __future__ import annotations
 
 import ast
+import fnmatch
 import importlib.util
 import json
 import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -951,6 +953,37 @@ def test_a_repeated_isolation_request_cancels_the_older_and_another_runs_beside_
         text = workflow.read_text(encoding="utf-8")
         for group in re.findall(r"^\s+group: (.+)$", text, re.M):
             assert "inputs.tests" not in group, (workflow.name, group)
+
+
+def test_mutation_leaves_out_the_copied_html_parser_and_nothing_else() -> None:
+    """#633: htmlparser.py is CPython's HTML parser copied verbatim (#175, D-777), never
+    edited here, so its mutants only cost a run's time. mutmut matches `do_not_mutate`
+    with fnmatch against each file as it walks `source_paths`; every other file of the
+    package keeps its mutants."""
+    mutmut = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mutmut"]
+    walked = sorted(
+        path.relative_to(ROOT).as_posix()
+        for source in mutmut["source_paths"]
+        for path in (ROOT / source).rglob("*.py")
+    )
+    left_out = [p for p in walked if any(fnmatch.fnmatch(p, g) for g in mutmut["do_not_mutate"])]
+    assert left_out == ["src/sci2audio/extraction/htmlparser.py"]
+    assert len(walked) > 100
+
+
+def test_mutmut_copies_every_root_file_the_unit_tests_open() -> None:
+    """mutmut copies only src/, tests/ and `also_copy` into its tree, so a unit test that
+    opens another root file fails its unmutated run there and no mutant is checked (#1093;
+    `.pre-commit-config.yaml` since #1177, #633)."""
+    mutmut = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mutmut"]
+    copied = {path.rstrip("/") for path in mutmut["also_copy"]} | {"src", "tests"}
+    opened = {
+        name
+        for path in (ROOT / "tests" / "unit").glob("*.py")
+        for name in re.findall(r'ROOT / "([\w.-]+)"', path.read_text(encoding="utf-8"))
+    }
+    assert {".github", "pyproject.toml"} <= opened
+    assert sorted(opened - copied) == []
 
 
 def test_a_folder_that_is_no_checkout_of_its_own_is_told_apart(tmp_path: Path) -> None:
