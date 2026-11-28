@@ -273,6 +273,9 @@ def test_pause_then_resume_speaks_only_what_is_missing(signed_in: Page, live: Li
     assert not set(again) & set(before), "Resume spoke a kept sentence again"
 
 
+@pytest.mark.quarantined(
+    issue=1173, reason="the resumed job's wait times out in the WebKit shard", browser="webkit"
+)
 def test_resume_of_a_paused_replace_never_asks_to_replace_again(
     signed_in: Page, live: Live
 ) -> None:
