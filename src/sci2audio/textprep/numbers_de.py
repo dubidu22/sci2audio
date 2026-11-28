@@ -406,6 +406,13 @@ def x_read_after(text: str, end: int, language: str) -> bool:
     return found is not None and (found.start, found.end) == (at, at + 1) and text[at] in "xX"
 
 
+def unit_glued(text: str, at: int, language: str) -> bool:
+    """True if the units step reads a unit that starts right at `at`, glued to a power before
+    it: "10^2kg" is "10^2 kilograms" after a first run, whose power a second run reads (#1032)."""
+    found = first_from(readings_of("units", text, language), at)
+    return found is not None and found.start == at
+
+
 def unit_read_after_per(text: str, position: int, language: str) -> bool:
     """True if `position` lies in a unit the units step reads with no number before it,
     right after "per", "pro" or "je" ("per m³" as "per cubic metre", "pro m³", #230): the
@@ -1409,8 +1416,9 @@ _CARET = re.compile(
     + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
     # but an x and a digit, which the units step may read "mal" ("10^2x1"; `_x_left_alone`
-    # keeps the power as printed where it does not, #253)
-    r"(?!(?![xX]\d)[\w.,⁺⁻])"
+    # keeps the power as printed where it does not, #253), and a letter glued on where the
+    # units step reads a unit (`unit_glued`)
+    r"(?:(?!(?![xX]\d)[\w.,⁺⁻])|(?P<unit>(?=[^\W\d_])))"
 )
 # a signed power of a bracketed term, "(I − P)⁻¹" (an inverse), its raise printed or in its
 # run (#815, as numbers.py for #589); not before a letter or digit, which may go on the power
@@ -1490,6 +1498,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         found.append((_power(text, match, words), None))
     for match in _CARET.finditer(plain):
         exponent = match["braced"] or match["paren"] or match["bare"]
+        if match["unit"] is not None and not unit_glued(plain, match.end(), "de"):
+            continue  # "10^2m": the letter may go on the power, so it is left as printed
         letter = match["base"].isalpha()
         before = _before(plain, match.start("base"))
         # the minutes of a clock time are no number before it, as for a raised power: "um

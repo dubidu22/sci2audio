@@ -953,10 +953,13 @@ def _in_algebra(
     ):
         return True
     # ... and, in English, a bare "<" or ">" after "Nx" counts only where its words do on a
-    # second run (`_COMPARED_AFTER_EN`): "3x > 2" is "3 times greater than 2", as "2 < 3x" is
+    # second run (`_COMPARED_AFTER_EN`): "3x > 2" is "3 times greater than 2", as "2 < 3x" is.
+    # In English a figure dash (U+2012) after it counts as a minus sign does: the numbers step
+    # reads it before a number after "times" as "minus" (#1032); before "Nx" it is a range
+    # dash ("2 to 3x"), and German reads it as printed
     return (
         after != ""
-        and after in _OPERATORS + "("
+        and after in _OPERATORS + ("(\u2012" if english else "(")
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
         and not _PIECED_RIGHT_ARROW.match(text, after_at)
         and not (english and _bare_comparison_after(text, after, after_at))
@@ -998,7 +1001,18 @@ def _bare_comparison(text: str, sign: str, at: int, compared: re.Pattern[str] | 
     joined = at > 0 and text[at - 1] in _JOINED_TO_SIGN
     if joined and not LEFT_ARROW_TAIL.search(text, max(0, at - 16), at):
         return False  # "A << 3x", "A -> 3x": left as printed, a sign on both runs
-    said_before = text[max(0, at - 32) : at].rstrip(" ") + " less than "
+    before = text[:at].rstrip(" ")
+    if before.endswith(")"):
+        # a citation the citations step removes there is gone on a second run: "x (Smith,
+        # 2019) > 3x" reads "x greater than 3 times" then, no bracket compared (#1032).
+        # Imported here: the citations step asks the readings, which ask this step
+        from sci2audio.textprep.citations import citation_removals
+
+        for start, end in citation_removals(text, "en"):
+            if start < len(before) <= end:
+                before = text[:start].rstrip(" ")
+                break
+    said_before = before[-32:] + " less than "
     return compared.search(said_before) is None
 
 
