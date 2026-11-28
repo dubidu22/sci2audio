@@ -25,6 +25,8 @@ uv run playwright install chromium   # once, for the browser tests
 uv run pytest -m browser
 ```
 
+On macOS, keep your clone outside the folders iCloud syncs; the README's [Development](README.md#development) section says why and how to recover.
+
 Which tests a change needs is described in `.claude/rules/tests.md` (it applies to people too). Before a release, follow `docs/release-checklist.md`.
 
 To add a text rule without changing sci2audio, write a text-step plugin: `docs/plugins.md` shows how, and how to run the conformance suite (`sci2audio.testing`) against your step or voice engine.
