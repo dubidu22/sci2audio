@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import re
 from pathlib import Path
 
@@ -11,17 +12,37 @@ ROOT = Path(__file__).resolve().parents[2]
 ARCHIVE = ROOT / "docs" / "decisions.md"
 FOLDER = ROOT / "docs" / "decisions"
 # the last day a ruling went into docs/decisions.md; later ones go into docs/decisions/
-LAST_ARCHIVED = "2026-11-28"
-DATED = re.compile(r"(\d{4}-\d{2}-\d{2}) \(#\d+")
+LAST_ARCHIVED = datetime.date(2026, 11, 28)
+# any date in a line, as the log writes it or in words: a late ruling may open a line, sit
+# in a list item or be appended to an old ruling's line (#1261)
+ISO_DATE = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
+WORDS_DATE = re.compile(
+    r"\b(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{4})\b"
+)
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 NAME = re.compile(r"(?P<date>\d{4}-\d{2}-\d{2})-(?P<issue>\d+)(?:-\d+)?\.md")
 
 
+def dates_in(line: str) -> list[datetime.date]:
+    """The real dates `line` names; a shape that is no day (2026-13-45) is none."""
+    found = [(int(y), int(m), int(d)) for y, m, d in ISO_DATE.findall(line)]
+    found += [(int(y), MONTHS.index(m) + 1, int(d)) for d, m, y in WORDS_DATE.findall(line)]
+    dates = []
+    for year, month, day in found:
+        try:
+            dates.append(datetime.date(year, month, day))
+        except ValueError:
+            continue
+    return dates
+
+
 def late_rulings(archive: str) -> list[str]:
-    """The lines of `archive` that hold a ruling dated after `LAST_ARCHIVED`."""
+    """The lines of `archive` that name a day after `LAST_ARCHIVED`, its first line (the
+    pointer to docs/decisions/, which names the day the folder starts) apart."""
     return [
-        line[:40]
-        for line in archive.splitlines()
-        if (dated := DATED.match(line)) and dated[1] > LAST_ARCHIVED
+        line[:60]
+        for line in archive.splitlines()[1:]
+        if any(day > LAST_ARCHIVED for day in dates_in(line))
     ]
 
 
@@ -30,10 +51,16 @@ def misfiled(name: str, text: str) -> str | None:
     named = NAME.fullmatch(name)
     if named is None:
         return f"{name}: name it <YYYY-MM-DD>-<issue>.md"
+    try:
+        day = datetime.date.fromisoformat(named["date"])
+    except ValueError:
+        return f"{name}: {named['date']} is no day"
+    if day < LAST_ARCHIVED:
+        return f"{name}: a ruling before {LAST_ARCHIVED} is in docs/decisions.md"
     lines = text.splitlines()
     if len(lines) != 1:
         return f"{name}: one ruling, one line"
-    if not lines[0].startswith(f"{named['date']} (#{named['issue']}"):
+    if re.match(rf"{named['date']} \(#{named['issue']}(?!\d)", lines[0]) is None:
         return f"{name}: the line starts with its date and issue, as the name does"
     return None
 
