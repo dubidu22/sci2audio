@@ -251,6 +251,7 @@ def audiobook(work: Path, folder: Path, document: str = DOC, duration: float = 1
     (work / "audio.json").write_text(json.dumps(record), encoding="utf-8")
     readalong = folder / "Book.readalong.json"
     readalong.write_text(readalong_text(duration), encoding="utf-8")
+    (folder / "Book.m4b").write_bytes(b"")  # the file the record names: the book plays (#1260)
     return audiobook_stamp(readalong)
 
 
@@ -725,6 +726,33 @@ def test_an_audiobook_row_links_to_listen_and_shows_how_far(server: tuple[FastAP
     row = row_of(client.get("/").text, doc["id"])
     assert f"38{NBSP}% listened" in row
     assert '<progress class="meter listened" max="100" value="38"' in row
+
+
+def test_a_finished_book_whose_files_are_gone_reads_as_its_document_page_does(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """#1260: the record stays when the audiobook's files are deleted, but nothing plays:
+    the library row says not "Ready", gives no length and no listening, and leads to the
+    document page, whose Listen tab reads "No audio yet" (#1069); the rail's shelf says
+    the same."""
+    client = client_of(server)
+    doc = upload(client, pdf_bytes(), "paper.pdf")
+    _app, config = server
+    work = config.work_root / doc["id"]
+    audiobook(work, config.output_folder, doc["id"], duration=68 * 60)
+    client.get(f"/documents/{doc['id']}/listen")  # opened: it goes on the shelf
+    row = row_of(client.get("/").text, doc["id"])
+    assert '<span class="chip ready" data-state="ready">' in row
+    (config.output_folder / "Book.m4b").unlink()
+    page = client.get("/").text
+    row = row_of(page, doc["id"])
+    assert 'data-state="ready"' not in row
+    assert "Ready" not in row
+    assert f"1{NBSP}h 08{NBSP}min" not in row
+    assert "Not started" not in row
+    assert f'href="/documents/{doc["id"]}/listen"' not in row
+    assert f'href="/documents/{doc["id"]}"' in row
+    assert "Not started" not in rail_of(page)
 
 
 def test_a_german_library(server: tuple[FastAPI, Any]) -> None:

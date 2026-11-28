@@ -143,6 +143,39 @@ def test_a_deleted_chapter_mp3_reads_as_not_generated_and_the_others_as_generate
     assert states(client, doc) == [(title, "generated") for title in TITLES]
 
 
+@pytest.mark.parametrize(
+    ("language", "said"),
+    [
+        ("en", "Generate them again"),
+        ("de", "Erstellen Sie sie neu"),
+    ],
+)
+def test_the_listen_page_offers_a_deleted_chapter_again_and_the_tab_leads_there(
+    tmp_path: Path, language: str, said: str
+) -> None:
+    """#1244 (#770's Listen-page half): with one made chapter's MP3 deleted the book does
+    not play as a whole, but the Listen page names each chapter's state, offers Generate
+    for that one and includes it in "Generate the remaining chapters"; the document page's
+    Listen tab leads there instead of reading "No audio yet"."""
+    client, config, doc, _gate = project(tmp_path, [0, 1, 2])
+    client.cookies.set("sci2audio-language", language)
+    (book_folder(config.output_folder) / "paper - 02 Methods.mp3").unlink()
+    listen = client.get(f"/documents/{doc}/listen").text
+    problem = re.search(r'<p class="note" id="listen-problem">([^<]*)</p>', listen)
+    assert problem is not None
+    assert said in problem[1]
+    assert listen.count('class="sm generate"') == 1
+    assert re.search(r'<button type="button" class="sm generate" data-chapter="1"', listen)
+    rest = re.search(r'<button[^>]*id="generate-rest"[^>]*>', listen)
+    assert rest is not None
+    assert 'data-chapters="[1]"' in rest[0]
+    assert re.findall(r'data-index="(\d)"', listen) == ["0", "1", "2"]
+    head = client.get(f"/documents/{doc}").text.split('<header class="paper-head">')[1]
+    head = head.split("</header>")[0]
+    assert f'<a href="/documents/{doc}/listen" id="tab-listen">' in head
+    assert 'class="tab-off"' not in head
+
+
 def test_with_every_chapter_mp3_deleted_the_project_has_no_audiobook(tmp_path: Path) -> None:
     """#770: with no chapter's files left, there is nothing to add to, as before."""
     client, config, doc, _gate = project(tmp_path, [0, 1])
