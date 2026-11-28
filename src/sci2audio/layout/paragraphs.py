@@ -366,7 +366,8 @@ def split_cells(
     pieces of the printed line above or below (in the same column, close by) are cells of a
     table or a list: each stays a line of its own. A wide gap in running text has letters
     above and below it. A list's dash or bullet printed apart from its words is no cell
-    but opens its item (#856), unless a line of its column is no such item (#985)."""
+    but opens its item (#856), unless a line of its column is no such item (#985) or the
+    column's lines do not mostly open with words (#1005)."""
     text = [g for g in groups if g[0].line is not None]
     position = {id(g): k for k, g in enumerate(text)}
     cuts: dict[int, list[int]] = {}
@@ -392,9 +393,9 @@ def split_cells(
                 if k == 1:
                     after_first[index] = lined_up
             reach = max(reach, piece.box.x1)
-    items = _dash_items(
-        {index for index in after_first if _dash_item(text[index], cuts[index])}, after_first
-    )
+    led = {index for index in after_first if _dash_led(text[index], cuts[index])}
+    worded = {index for index in led if not _NUMBER.fullmatch(_words(text[index]))}
+    items = _dash_items(led, worded, after_first)
     out: list[list[Element]] = []
     for group in groups:
         index = position.get(id(group), -1)
@@ -403,29 +404,36 @@ def split_cells(
     return out
 
 
-def _dash_item(group: list[Element], cuts: list[int]) -> bool:
+def _dash_led(group: list[Element], cuts: list[int]) -> bool:
     """True if the printed line is a list dash or bullet, white, and its item's words as one
-    cell that opens with a letter, a quote, a bracket or a digit (#856, #985): a dash before
-    a bare number, or before more than one cell, is a table's."""
+    cell that opens with a letter, a quote, a bracket or a digit (#856, #985); a dash before
+    more than one cell is a table's. A dash before a bare number ("- 3 ms") is led too, but
+    is a list's only among lines that mostly open with words (`_dash_items`, #1005)."""
     mark = group[0].line
-    words = " ".join(e.line.text for e in group[1:] if e.line is not None).strip()
+    words = _words(group)
     return (
         cuts == [1]
         and mark is not None
         and mark.text.strip() in _ITEM_MARKS
         and (words[:1].isalpha() or words[:1] in _ITEM_OPENS)
-        and not _NUMBER.fullmatch(words)
     )
 
 
-def _dash_items(dashed: set[int], lined_up: dict[int, list[int]]) -> set[int]:
-    """The lines of `dashed` whose dash opens their item: the lines whose white after the
-    first piece lines up, read from row to row, make a column, and the column is a list's
-    only if each of its lines is dash-led. One line that is not (a table's head, a "+" among
-    the dashes) makes it a table's, and every dash in it a cell (#985)."""
+def _words(group: list[Element]) -> str:
+    """The printed text after a line's first piece."""
+    return " ".join(e.line.text for e in group[1:] if e.line is not None).strip()
+
+
+def _dash_items(led: set[int], worded: set[int], lined_up: dict[int, list[int]]) -> set[int]:
+    """The lines of `led` whose dash opens their item: the lines whose white after the first
+    piece lines up, read from row to row, make a column, and the column is a list's only if
+    each of its lines is dash-led and most of them open with words (`worded`). One line that
+    is not dash-led (a table's head, a "+" among the dashes) makes it a table's, and so do
+    dashes before numbers alone ("- 3 ms", "- 0.5"): every dash in it is a cell (#985). One
+    or two number items among worded ones ("- 10 min") are items of the list (#1005)."""
     items: set[int] = set()
     seen: set[int] = set()
-    for start in sorted(dashed):
+    for start in sorted(led):
         if start in seen:
             continue
         column: set[int] = set()
@@ -434,9 +442,9 @@ def _dash_items(dashed: set[int], lined_up: dict[int, list[int]]) -> set[int]:
             index = stack.pop()
             if index not in column:
                 column.add(index)
-                stack += lined_up.get(index, []) if index in dashed else []
+                stack += lined_up.get(index, []) if index in led else []
         seen |= column
-        if column <= dashed:
+        if column <= led and 2 * len(column & worded) > len(column):
             items |= column
     return items
 
