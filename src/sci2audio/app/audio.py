@@ -630,12 +630,7 @@ def run_audio_job(
                 "run the voice download for that language"
             )
         book = book_info(document)
-        made = {
-            "settings": {k: v for k, v in settings_data(settings).items() if k != "chapters"},
-            "voice": [voice.engine, voice.version_of(voice_id), voice_id],
-            "output": dataclasses.asdict(output_settings),
-            "book": [book.title, list(book.authors), book.language],
-        }
+        made = _made(settings, voice, voice_id, output_settings, book)
         # the chapter choice is not part of the key: adding chapters keeps the settings (#726)
         key = settings_key(made)
         chosen, ignored = selected(find_chapters(document), settings.chapters)
@@ -864,6 +859,65 @@ def kept_settings(work: Path, settings: JobSettings) -> JobSettings:
         return settings
     kept, _, _ = _kept(record, settings, None, ())
     return kept
+
+
+def finished_audiobook(
+    source: Path,
+    settings: JobSettings,
+    work: Path,
+    *,
+    voice: VoiceSource,
+    output_settings: OutputSettings | None = None,
+    keep_settings: bool = False,
+    progress: Callable[[Phase], None] = lambda phase: None,
+) -> tuple[int, ...] | None:
+    """The chapters of the finished audiobook in place, in the order it reads them, when it
+    is what this run would make: the record finished, this book's, made with the same
+    settings, voice and output, every chosen chapter in it, and every file it vouches for
+    unchanged. Otherwise None. Nothing is spoken or written: `convert --with-script` asks
+    this after its script phase was stopped, to write only the script (#115)."""
+    record = read_record(work)
+    if record is None or not record.complete or record.made is None:
+        return None
+    if keep_settings:
+        settings, output_settings, _ = _kept(record, settings, output_settings, ())
+    out_folder = (settings.output_folder or source.absolute().parent).absolute()
+    document = read_document(source, settings, progress)
+    book = book_info(document)
+    if not _same_book(record, book, out_folder):
+        return None
+    output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
+    voice_id = voice.voice_for(settings.voice, document.language)
+    if record.settings != settings_key(_made(settings, voice, voice_id, output_settings, book)):
+        return None
+    vouched = {
+        *(f.name for f in record.book),
+        *(f.name for c in record.chapters for f in c.files),
+        *(b.file.name for b in record.built),
+    }
+    if not vouched or not vouched <= record.owned(out_folder):
+        return None  # a file was changed, moved or removed: not the audiobook recorded
+    chosen, _ = selected(find_chapters(document), settings.chapters)
+    made = {c.index for c in record.chapters if c.files}
+    if record.order == "chosen" or list(chosen) != sorted(chosen):
+        return record.planned if tuple(chosen) == record.planned else None
+    return record.planned if set(chosen) <= made else None
+
+
+def _made(
+    settings: JobSettings,
+    voice: VoiceSource,
+    voice_id: str,
+    output_settings: OutputSettings,
+    book: BookInfo,
+) -> dict[str, Any]:
+    """What a job's chapters are made with, as their record keeps it."""
+    return {
+        "settings": {k: v for k, v in settings_data(settings).items() if k != "chapters"},
+        "voice": [voice.engine, voice.version_of(voice_id), voice_id],
+        "output": dataclasses.asdict(output_settings),
+        "book": [book.title, list(book.authors), book.language],
+    }
 
 
 def _kept(
