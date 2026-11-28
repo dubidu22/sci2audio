@@ -356,6 +356,7 @@ found = "Text found in the file"
 back = "Back to the document to make the audiobook"
 no_audiobook = "There is no audiobook of this document yet."
 missing = "The audiobook files are no longer in {folder}. Make the audiobook again."
+chapters_missing = "Some chapters' files are no longer in {folder}. Generate them again to listen to the audiobook."  # #1244
 changed = "The files in {folder} now belong to another audiobook. Make the audiobook again."
 mismatch = "The read-along file does not fit this document. Make the audiobook again."
 broken = "The record of this audiobook can't be read. Make the audiobook again."

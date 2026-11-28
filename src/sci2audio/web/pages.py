@@ -307,7 +307,11 @@ def _percent(part: float | None) -> int | None:
     return None if part is None else int(100 * min(1.0, max(0.0, part)))
 
 
-def _state_of(state: ServerState, document: StoredDocument, got: Heard | None = None) -> str:
+def _state_of(
+    state: ServerState, document: StoredDocument, got: Heard | None = None, *, plays: bool = True
+) -> str:
+    """The document's state for its chip; `plays` is False while the Listen page plays
+    nothing (`_playing`): a record whose files are gone is not ready (#1260)."""
     current = state.board.current
     if current is not None and current.document == document.id:
         return "analysing" if current.kind is JobKind.SCRIPT else "making"
@@ -321,7 +325,7 @@ def _state_of(state: ServerState, document: StoredDocument, got: Heard | None = 
     )
     if latest is not None and latest.state is JobState.FAILED:
         return "failed"
-    if document.has_audio:
+    if document.has_audio and plays:
         return "ready"
     if got is not None and got.chapters is not None:
         return "partly"
@@ -393,8 +397,8 @@ def _library_row(
 ) -> dict[str, Any]:
     """One document as a row of the library's table."""
     about = read_about(document.folder)
-    got = heard(document.folder, document.id, _folders(state, document, saved))
-    key = _state_of(state, document, got)
+    got = _playing(document.folder, document.id, _folders(state, document, saved))
+    key = _state_of(state, document, got, plays=got is not None)
     made = None
     if key in ("making", "analysing") and state.board.current is not None:
         made = _percent(progress_fraction(state.board.current.snapshot().get("progress")))
@@ -464,7 +468,7 @@ def _shelf(
     for work, document, key, folders in sorted(places, key=lambda p: -position_age(p[0])):
         if not position_age(work):
             break
-        got = heard(work, document, folders)
+        got = _playing(work, document, folders)
         part = None if got is None else got.fraction
         if got is not None and got.resume and got.time is not None and part is not None:
             keep = {
@@ -493,8 +497,8 @@ def _shelf(
             break
         if document.id in shown:
             continue
-        key = _state_of(state, document)
-        got = heard(document.folder, document.id, _folders(state, document, saved.output_folder))
+        got = _playing(document.folder, document.id, _folders(state, document, saved.output_folder))
+        key = _state_of(state, document, got, plays=got is not None)
         part = None if got is None else got.fraction
         if got is not None:
             text = s("library.listened", n=_percent(part)) if part else s("library.not_started")
@@ -798,6 +802,14 @@ def _plays(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> bo
     return True
 
 
+def _playing(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> Heard | None:
+    """`heard`, or None while the Listen page plays nothing: a record whose chapter files
+    are gone has no length to show, no listening to continue and is not ready (#1069,
+    #1259, #1260)."""
+    got = heard(work, document_id, folders)
+    return got if got is not None and _plays(work, document_id, folders) else None
+
+
 def paper_head(
     s: Strings,
     *,
@@ -1085,9 +1097,7 @@ def _prepare(
     installed = _installed(state)
     about = read_about(found.folder)
     folders = _folders(state, found, saved.output_folder)
-    got = heard(found.folder, found.id, folders)
-    if got is not None and not _plays(found.folder, found.id, folders):
-        got = None  # a record whose chapter files are gone plays nothing: no length (#1069)
+    got = _playing(found.folder, found.id, folders)
     # the language the report was made with ("" = automatic); a job made from this page
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
@@ -1119,7 +1129,10 @@ def _prepare(
             # on disk open the tab when no job of this run says so (#1059)
             # ... and a finished book whose chapter files were deleted keeps its record but
             # plays nothing, so the tab is a link only when the Listen page plays (#1069)
+            # and one with only some chapter files gone leads to the Listen page, which lists
+            # the chapters made and offers the others again (#1244)
             has_audio=got is not None
+            or made is not None
             or bool(card and card["playable"] and card["state"] == "running"),
             prepare=True,
         ),
@@ -1314,16 +1327,20 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
     if not found.outside:  # a command-line job's folders are read-only to the server (#154)
         write_opened(found.work, datetime.now(UTC))
     stored = None if found.outside else state.store.get(found.id)
-    head = paper_head(
-        s,
-        key=found.id,
-        name=found.name,
-        about=None if found.outside else read_about(found.work),
-        report=None if stored is None else _report(stored),
-        got=heard(found.work, found.document, found.folders),
-        has_audio=True,  # Listen is the page shown: its tab is the current one
-        prepare=not found.outside,
-    )
+    report = None if stored is None else _report(stored)
+
+    def head(got: Heard | None) -> dict[str, Any]:
+        return paper_head(
+            s,
+            key=found.id,
+            name=found.name,
+            about=None if found.outside else read_about(found.work),
+            report=report,
+            got=got,
+            has_audio=True,  # Listen is the page shown: its tab is the current one
+            prepare=not found.outside,
+        )
+
     try:
         view, located, made_from = player_for(
             found.work,
@@ -1333,6 +1350,10 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             steps=state.runner.steps,
         )
     except PlayerError as error:
+        # a book with a chapter's files gone plays nothing (#1069), but the chapters still
+        # made are listed and the others offered again, as on the project page (#1244)
+        made = None if stored is None else _made_chapters(state, found.id, _chapters_of(stored))
+        key = "listen.chapters_missing" if made and error.key == "listen.missing" else error.key
         return _page(
             request,
             state,
@@ -1340,9 +1361,12 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             "listen.html",
             shelf_here=found.id,
             document=found,
-            head=head,
+            head=head(None),  # nothing plays: no length (#1259)
             view=None,
-            problem=s(error.key, **error.values),
+            problem=s(key, **error.values),
+            made=made,
+            made_rows=None if made is None or stored is None else _made_rows(stored, made),
+            text_language=_text_language(report),
         )
     try:
         stamp = located.stamp
@@ -1367,7 +1391,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         "listen.html",
         shelf_here=found.id,
         document=found,
-        head=head,
+        head=head(heard(found.work, found.document, found.folders)),
         view=view,
         voice=_voice_name(view.voice),
         speeds=_speeds(s),
@@ -1397,6 +1421,20 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         made=made,
         total=clock(view.duration),
     )
+
+
+def _made_rows(stored: StoredDocument, made: dict[str, Any]) -> list[dict[str, Any]]:
+    """The report's chapters in printed order with their state, for a Listen page whose book
+    does not play as a whole (#1244): those made or being made, and those Generate offers."""
+    rows = []
+    for chapter in sorted(_chapters_of(stored), key=lambda c: c.get("index", 0)):
+        if "index" not in chapter:
+            continue
+        index = int(chapter["index"])
+        now = made["states"].get(index)
+        if now in ("generated", "generating") or index in made["missing"]:
+            rows.append({"index": index, "title": chapter.get("title", ""), "state": now})
+    return rows
 
 
 def _indexed(data: dict[str, Any], work: Path) -> dict[str, Any]:

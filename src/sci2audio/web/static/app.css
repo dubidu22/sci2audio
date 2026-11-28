@@ -506,6 +506,8 @@ button.speed { min-height: 34px; padding: 4px 10px; font-weight: 700; font-varia
 /* a chapter not generated, with Generate under its title (#726); not an outline button */
 .outline .chapter-later button.generate { grid-column: 1 / -1; justify-self: start; display: inline-flex; width: auto; min-height: 30px; padding: 4px 10px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font-weight: 600; }
 .generate-rest { margin: 12px 0 4px; }
+/* the chapters of a book that does not play as a whole (#1244), as wide as the note above */
+.made-chapters .outline { max-width: 72ch; }
 .waiting { flex: 1 1 100%; margin: 0; color: var(--ink); font-size: 13.5px; }
 .follow { margin: 16px 0 0; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
 .chg-list { list-style: none; padding: 0; margin: 0; border-bottom: 1px solid var(--rule); }
