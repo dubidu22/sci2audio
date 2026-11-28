@@ -7,6 +7,7 @@ the chapters were made with end the job with both choices, which the keyboard re
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from playwright.sync_api import Page, expect
 from test_flow import update
@@ -143,6 +144,36 @@ def test_generate_one_chapter_from_the_listen_page(signed_in: Page, live: Live) 
     expect(page.locator(".chapter-button .ot")).to_have_text(["Introduction", "Results"])
     expect(page.locator("li.chapter-later")).to_have_count(1)
     expect(page.locator("li.chapter-later")).to_contain_text("Methods")
+
+
+def test_a_chapter_whose_file_was_deleted_is_generated_again_from_the_listen_page(
+    signed_in: Page, live: Live
+) -> None:
+    """#1244: with one chapter's MP3 deleted the book does not play as a whole; the
+    project page's Listen tab leads to the Listen page, which lists the chapters with their
+    state and offers that one again; generated, the book plays whole."""
+    page = signed_in
+    document = first_chapter_only(page, live, left_out=())
+    (methods,) = Path(live.config.output_folder).rglob("* - 02 Methods.mp3")
+    methods.unlink()
+    page.goto(f"{live.url}/documents/{document}")
+    at_rest(page)
+    page.locator("#tab-listen").click()
+    page.wait_for_url(f"{live.url}/documents/{document}/listen")
+    at_rest(page)
+    expect(page.locator("#listen-problem")).to_contain_text("Generate them again")
+    rows = page.locator("li.chapter-later")
+    expect(rows.locator(".ot")).to_have_text(["Introduction", "Methods", "Results"])
+    expect(rows.locator(".chapter-state")).to_have_text(["generated", "not generated", "generated"])
+    expect(page.locator("button.generate")).to_have_count(1)
+    check_axe(page, "listen page with a chapter's file deleted")  # light and dark
+    page.get_by_role("button", name="Generate: Methods").click()
+    page.wait_for_url(JOB_PAGE)
+    expect(page.locator("#result")).to_have_text("Your audiobook is ready", timeout=60_000)
+    at_rest(page)
+    page.goto(f"{live.url}/documents/{document}/listen")
+    at_rest(page)
+    expect(page.locator(".chapter-button .ot")).to_have_text(["Introduction", "Methods", "Results"])
 
 
 def test_the_settings_changed_dialog_offers_both_choices(signed_in: Page, live: Live) -> None:
