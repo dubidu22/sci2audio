@@ -3738,6 +3738,24 @@ expected = [
 ]
 
 [[case]]
+id = "four-digit-count-before-an-irregular-plural-split-at-a-line-end-hyphen"
+audit = 0
+issue = 1238
+goal = "A four-digit number before an irregular plural split at a line end ('chil-' and 'dren'), or before a word split twice ('x-', 's-', 'es'), is a count on both runs: '1,234 children', as a second run reads the joined word (D-577, #1218, #1238)."
+blocks = [
+    { kind = "paragraph", text = "It holds 1234 chil-\ndren here." },
+    { kind = "paragraph", text = "Some 1234 peo-\nple came." },
+    { kind = "heading", text = "Some 1234 wo-\nmen" },
+    { kind = "paragraph", text = "It holds 1234 x-\ns-\nes here." },
+]
+expected = [
+    "It holds 1,234 children here.",
+    "Some 1,234 people came.",
+    "Some 1,234 women",
+    "It holds 1,234 x-s-es here.",
+]
+
+[[case]]
 id = "four-digit-year-like-count-before-times"
 audit = 0
 issue = 871
@@ -3893,6 +3911,24 @@ expected = [
     "It holds 10 to the power of 4 to 10 to the power of 6 cells here.",
     "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
     "It holds 10 to the power of 6 kelvin and 10 to 20 kelvin here.",
+]
+
+[[case]]
+id = "a-range-of-two-powers-of-ten-with-a-hyphen-is-read-whole"
+audit = 0
+issue = 1243
+goal = "A range of two powers of ten joined by a hyphen-minus with no space, as PDF text often prints the dash, reads whole as the en dash form does: '10⁴-10⁶ K' is '10 to the power of 4 to 10 to the power of 6 kelvin', not '10⁴-10 to the power of 6' (#822, #1243); split at a line end too, as a second run sees it joined."
+blocks = [
+    { kind = "paragraph", text = "It holds 10⁴-10⁶ K here." },
+    { kind = "paragraph", text = "It holds 10⁻⁴-10⁻⁶ K here." },
+    { kind = "heading", text = "From 10⁴-10⁶ K" },
+    { kind = "paragraph", text = "It holds 10⁴-\n10⁶ cells here." },
+]
+expected = [
+    "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
+    "It holds 10 to the power of minus 4 to 10 to the power of minus 6 kelvin here.",
+    "From 10 to the power of 4 to 10 to the power of 6 kelvin",
+    "It holds 10 to the power of 4 to 10 to the power of 6 cells here.",
 ]
 
 [[case]]
