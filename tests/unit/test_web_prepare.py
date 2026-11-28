@@ -14,7 +14,16 @@ from typing import Any
 import pytest
 from audio_fakes import FakeVoice
 from fastapi.testclient import TestClient
-from web_helpers import ORIGIN, browser, make_config, offline, paper_bytes, upload, wait  # noqa: F401
+from web_helpers import (  # noqa: F401
+    ORIGIN,
+    book_folder,
+    browser,
+    make_config,
+    offline,
+    paper_bytes,
+    upload,
+    wait,
+)
 
 from sci2audio.app import JobError, audio
 from sci2audio.voices import EngineError, ModelNotFoundError
@@ -354,6 +363,39 @@ def test_prepare_after_the_audiobook_links_listen_and_says_its_length(tmp_path: 
     listen = client.get(f"/documents/{doc['id']}/listen").text
     assert 'id="tab-listen" aria-current="page"' in listen
     assert 'id="tab-prepare"' in listen
+
+
+def paper_head_of(client: TestClient, doc: str) -> str:
+    page = client.get(f"/documents/{doc}").text
+    return page.split('<header class="paper-head">')[1].split("</header>")[0]
+
+
+@pytest.mark.parametrize(
+    ("language", "none"), [("en", "Listen · No audio yet"), ("de", "Anhören · Noch kein Audio")]
+)
+def test_a_finished_audiobook_whose_chapter_files_are_gone_offers_no_listen_link(
+    tmp_path: Path, language: str, none: str
+) -> None:
+    """#1069: the record of a finished book stays when its MP3s are deleted, but the Listen
+    page has nothing to play, so the tab reads "No audio yet" and the header says no length;
+    in this server run (its job done) and after a restart (no job on the board)."""
+    app, client = server(tmp_path, FakeVoice())
+    client.cookies.set("sci2audio-language", language)
+    doc = upload(client, paper_bytes())["id"]
+    assert wait(client, start(client, doc))["state"] == "done"
+    assert f'<a href="/documents/{doc}/listen" id="tab-listen">' in paper_head_of(client, doc)
+    config = app.state.sci2audio.config
+    for mp3 in book_folder(config.output_folder).glob("*.mp3"):
+        mp3.unlink()
+    restarted = browser(create_app(config, voice=lambda models_dir: FakeVoice().source()), config)
+    restarted.cookies.set("sci2audio-language", language)
+    for each in (client, restarted):
+        head = paper_head_of(each, doc)
+        assert '<span class="tab-off" id="tab-listen">' in head
+        assert none in head
+        assert f'href="/documents/{doc}/listen"' not in head
+        meta = head.split("<nav")[0]  # the meta line, above the tabs
+        assert not re.search(r"<span>[^<]* (?:of audio|Audio)</span>", meta), meta
 
 
 # --- the card -----------------------------------------------------------------------------
