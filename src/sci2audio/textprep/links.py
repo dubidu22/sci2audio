@@ -382,7 +382,25 @@ _PATH_LIKE = re.compile(r"[/._\-=?#&%~\d]")  # a next-line word with one of thes
 _TRAILING = ".,;:!?'\"’”*"  # punctuation at a URL's end belongs to the sentence
 _PAIRS = {")": "(", "]": "[", ">": "<"}
 _OPENERS = {opener: closer for closer, opener in _PAIRS.items()}
-_QUOTES = {'"': '"', "“": "”", "„": "“"}  # an opening quotation mark and its closing one
+# an opening mark and its closing one: quotation marks, single ones, guillemets in English
+# and German order, emphasis (#629, #835, #899, #837); the longest first where one holds another
+_QUOTES = {
+    "**": "**",
+    '"': '"',
+    "“": "”",
+    "„": "“",
+    "'": "'",
+    "‘": "’",
+    "‚": "‘",
+    "«": "»",
+    "»": "«",
+    "*": "*",
+}
+_GUILLEMETS = {"«": "»", "»": "«"}
+_OPENING_MARK = "|".join(re.escape(mark) for mark in _QUOTES)
+# a full stop right after a link that a lower-case word follows ends no sentence: it goes
+# with the link ("available at https://a.org/x. for everyone", #899)
+_STOP_BEFORE_LOWER = re.compile(r"\.(?=\s+[^\W\d_])")
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
@@ -493,12 +511,13 @@ class LinkStep(TextStep):
                 glued = text[end : end + 1]
                 if (
                     text[start].isspace()
-                    and text[end - 1] in ')]>"”“'
+                    and text[end - 1] in ")]>\"”“'’‘«»*"
                     and (glued in ("(", "[") or glued.isalnum())
                 ):
                     # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
                     # after the link's keeps the space before (#371); so does a word glued
-                    # after it, "Text <https://a.org>Smith" reads "Text Smith" (#629)
+                    # after it, "Text <https://a.org>Smith" reads "Text Smith" (#629), and
+                    # after the single quotes, guillemets and emphasis marks of #899 and #837
                     start += 1
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
@@ -742,6 +761,7 @@ def find_links(text: str, after: int = 0, words: LinkWords | None = None) -> lis
         else:
             end = _token_end(text, match.end(), sentence_words)
             end = _trimmed(text, match.start(), _closed_before(text, match.start(), end))
+            end = _trimmed(text, match.start(), _guillemet_closed(text, match.start(), end))
         if end > match.start():
             links.append(_Link(match.start(), end, kind))
     return [link for link in links if _plausible(text, link)]
@@ -790,6 +810,17 @@ def _continues(before: str, word: str, sentence_words: frozenset[str]) -> bool:
             "/" in word or bool(re.fullmatch(r"\d+[.,;:)\]]*", word))
         )
     return False
+
+
+def _guillemet_closed(text: str, start: int, end: int) -> int:
+    """`end`, or the closing guillemet that matches one opened right before the address, in
+    either order ("»https://a.org«Smith", "«https://a.org»Smith", #837): a guillemet may stand
+    in a path, so it ends the address only when one opens it."""
+    closer = _GUILLEMETS.get(text[start - 1 : start]) if start else None
+    if closer is None:
+        return end
+    cut = text.find(closer, start, end)
+    return end if cut == -1 else cut
 
 
 def _closed_before(text: str, start: int, end: int) -> int:
@@ -892,8 +923,29 @@ def _repair(
     text: str, run: list[_Link], words: LinkWords, claimed: int, sentence_at: int = -1
 ) -> tuple[int, int, str]:
     """The span to remove for a run, and what the reason says about the repair."""
-    start, end = run[0].start, run[-1].end
+    end = run[-1].end
+    lower = _STOP_BEFORE_LOWER.match(text, end)
+    if lower:
+        word = lower.end() + len(text[lower.end() :]) - len(text[lower.end() :].lstrip())
+        # a lower-case word of the sentence, not the next link ("x.org/a. https://b.org")
+        if text[word : word + 1].islower() and not _START.match(text, word):
+            end = lower.end()
+    return _repair_span(text, run[0].start, end, words, claimed, sentence_at)
+
+
+def _repair_span(
+    text: str,
+    start: int,
+    end: int,
+    words: LinkWords,
+    claimed: int,
+    sentence_at: int = -1,
+    marks: bool = True,
+) -> tuple[int, int, str]:
+    """The span to remove for what runs from `start` to `end`, and what the reason says;
+    `marks` false once the marks around it are part of it."""
     before = text[max(claimed, start - _LOOK_BACK) : start]
+    first_claimed = claimed
     claimed = max(claimed, start - _LOOK_BACK)  # positions in `before` count from here
     # 1. a bracket that holds only the run and lead words
     leads = "|".join(re.escape(lead) for lead in sorted(words.lead, key=len, reverse=True))
@@ -920,11 +972,27 @@ def _repair(
                     f'; the brackets around it and "{word.group(1)}" before them go too',
                 )
             return claimed + opened.start(), stop, "; the brackets around it go too"
-    # ... and quotation marks that hold only the run and lead words, set close to them:
-    # '"https://a.org"Smith' reads "Smith", not '""Smith' (#629)
-    quoted = re.search(rf"(?<![\w\"“”„])([\"“„])(?:{introduced}\s+)?\Z", before, re.IGNORECASE)
-    if quoted and text[end : end + 1] == _QUOTES[quoted.group(1)]:
-        return claimed + quoted.start(), end + 1, "; the quotation marks around it go too"
+    # ... and marks that hold only the run and lead words, set close to them, go with it:
+    # '"https://a.org"Smith' reads "Smith", not '""Smith' (#629); with no word glued after
+    # them the sentence is repaired as for a bare link: "available at 'https://a.org' for
+    # everyone" is "available for everyone" (#899, ruled by Colin on 26 Nov 2026)
+    quoted = (
+        re.search(
+            rf"(?<![\w\"“”„*'‘’‚«»])({_OPENING_MARK})(?:{introduced}\s+)?\Z", before, re.IGNORECASE
+        )
+        if marks
+        else None
+    )
+    closer = _QUOTES[quoted.group(1)] if quoted else ""
+    if quoted and text[end : end + len(closer)] == closer:
+        opened_at, closed_at = claimed + quoted.start(), end + len(closer)
+        note = "; the quotation marks around it go too"
+        if text[closed_at : closed_at + 1].isalnum():
+            return opened_at, closed_at, note
+        found = _repair_span(
+            text, opened_at, closed_at, words, first_claimed, sentence_at, marks=False
+        )
+        return found[0], found[1], note + found[2]
     # 2. a label before it, maybe with a pointer: "Code: https://...", "Code: see https://..."
     labels = "|".join(re.escape(label) for label in sorted(words.labels, key=len, reverse=True))
     pointers = "|".join(re.escape(word) for word in sorted(words.pointers, key=len, reverse=True))
