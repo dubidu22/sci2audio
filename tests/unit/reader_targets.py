@@ -134,3 +134,14 @@ def cancel_once_ended(folder: Path, cancel: threading.Event) -> threading.Thread
     thread = threading.Thread(target=watch, daemon=True)
     thread.start()
     return thread
+
+
+def logs_then_returns(value: int) -> int:
+    """Log what a reader child logs (#1258): sci2audio's own warning, a library's warning
+    and a library's error, then give back `value`."""
+    import logging
+
+    logging.getLogger("sci2audio.extraction.pdf").warning("own warning in the reader child")
+    logging.getLogger("pypdfium2._helpers").warning("library warning in the reader child")
+    logging.getLogger("pypdfium2._helpers").error("library error in the reader child")
+    return value
