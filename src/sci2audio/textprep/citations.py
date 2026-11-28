@@ -484,8 +484,11 @@ class _Rules:
         # what joins two square brackets of a list: "[1], [2]", "[2] and [3]", "[2], and [3]"
         # (#257, #414); "or" joins none, and a list joined on to a bracket by it is no list
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
+        # ... or "or" before the last of a list of numbers: "[1], [2] or [3]" (#622)
+        self.or_gap = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
+        self._or_lists: set[int] = set()  # the lists joined by "or" (#622)
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         # a join word before and after a removal, which would read side by side (#628)
@@ -1289,6 +1292,9 @@ class _Rules:
         if listed is not None:
             end = listed[-1].close + 1
             inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed])
+            if node.open in self._or_lists:  # "1, 2 or 3": `_spoken` says the "or"
+                *rest, final = inside.rsplit(", ", 1)
+                inside = f"{rest[0]} {self.words.or_word} {final}"
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1376,13 +1382,21 @@ class _Rules:
         squares.sort(key=lambda node: node.open)
         lists: dict[int, list[_Bracket]] = {}
         self._following = {}
+        self._or_lists = set()
         first = 0
         while first < len(squares):
             head, last = squares[first], first
             kind = self._item_kind(text, head)
+            joins: set[str] = set()  # "and", "or": a run that mixes them makes no list
             while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
+                if gap is None and kind == "numbers" and "or" not in joins:
+                    gap = self.or_gap.fullmatch(text, squares[last].close + 1, ahead.open)
+                    if gap is not None:
+                        joins.add("or")
+                elif gap is not None and gap["join"] is not None:
+                    joins.add("and")
                 if (
                     gap is None
                     or self._item_kind(text, ahead) != kind
@@ -1391,8 +1405,14 @@ class _Rules:
                     break
                 self._following[squares[last].open] = ahead
                 last += 1
-            if last > first and not self.or_after.match(text, squares[last].close + 1):
+            if (
+                last > first
+                and len(joins) < 2
+                and not self.or_after.match(text, squares[last].close + 1)
+            ):
                 lists[head.open] = squares[first + 1 : last + 1]
+                if joins == {"or"}:
+                    self._or_lists.add(head.open)
             first = last + 1
         return lists
 
@@ -1431,7 +1451,11 @@ class _Rules:
     def _needed_pair(self, text: str, node: _Bracket, listed: list[_Bracket]) -> bool:
         """True for a list of two brackets joined by "and", when "and" makes a citation after
         it needed: then the first is needed too (#257, D-668)."""
-        if len(listed) != 1 or self.words.and_word not in self.words.before:
+        if len(listed) != 1:
+            return False
+        if node.open in self._or_lists:  # "or" as "and" does: "in [1] or [3]" (#622)
+            return self.words.or_word in self.words.before
+        if self.words.and_word not in self.words.before:
             return False
         gap = self.list_gap.fullmatch(text, node.close + 1, listed[0].open)
         return gap is not None and gap["join"] is not None
@@ -1530,9 +1554,10 @@ class _Rules:
         noun = self.wording.reference if single else self.wording.references
         if len(items) == 1:
             return f"{noun} {items[0]}"
-        return (
-            f"{noun} {self.wording.list_comma.join(items[:-1])}{self.wording.list_and}{items[-1]}"
-        )
+        last = self.wording.list_and
+        if re.search(rf"\s{re.escape(self.words.or_word)}\s", inside):
+            last = f" {self.words.or_word} "  # a list joined by "or" (#622)
+        return f"{noun} {self.wording.list_comma.join(items[:-1])}{last}{items[-1]}"
 
     # author-year citations
 

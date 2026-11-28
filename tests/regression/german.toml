@@ -1941,7 +1941,7 @@ expected = [
 id = "de-citations-a-pair-of-numeric-citations-the-sentence-needs"
 audit = 0
 issue = 257
-goal = "Eine Klammer, die mit 'und' an eine gebrauchte gebunden ist, wird mitgelesen: 'zwischen [1] und [3]' liest 'zwischen Quellen 1 und 3' (D-668)."
+goal = "Eine Klammer, die mit 'und' an eine gebrauchte gebunden ist, wird mitgelesen: 'zwischen [1] und [3]' liest 'zwischen Quellen 1 und 3' (D-668); mit 'oder' ebenso: 'Quellen 1 oder 3' (#622)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Zwischen [1] und [3] liegt es." },
@@ -1951,7 +1951,7 @@ blocks = [
 expected = [
     "Zwischen Quellen 1 und 3 liegt es.",
     "Es liegt zwischen Quellen 1 und 3.",
-    "Es gilt oder Quelle 3 hier.",
+    "Es gilt Quellen 1 oder 3 hier.",
 ]
 
 [[case]]
@@ -2857,6 +2857,23 @@ utterances = [
 ]
 
 # ---- B9 Zitatlisten und Bindewörter (#414, #415, #402; D-791) -----------------------------------
+
+[[case]]
+id = "de-citations-a-list-of-citation-brackets-joined-by-oder"
+audit = 0
+issue = 622
+goal = "Eine Liste oder ein Paar von Zahlenklammern, die 'oder' verbindet, ist eine Quellenangabe wie eine mit 'und' (#414): nebenbei entfällt sie ganz, im Satz gebraucht liest sie einmal ('Quellen 1, 2 oder 3') (#622)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt [1], [2] oder [3] hier." },
+    { kind = "paragraph", text = "Wie in [1] oder [3] gezeigt." },
+    { kind = "paragraph", text = "Wie in [1], [2] oder [3] gezeigt." },
+]
+expected = [
+    "Es gilt hier.",
+    "Wie in Quellen 1 oder 3 gezeigt.",
+    "Wie in Quellen 1, 2 oder 3 gezeigt.",
+]
 
 [[case]]
 id = "de-citations-a-list-of-citation-brackets-is-one-citation"
