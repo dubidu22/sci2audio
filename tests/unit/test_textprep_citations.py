@@ -1307,3 +1307,20 @@ def test_a_pair_after_a_rejected_head_names_both_its_brackets_in_the_reason() ->
     assert pair.reason == (
         'citations "[2] and [3]" are part of the sentence: read as "references 2 and 3" (TP-04)'
     )
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # a range of two brackets is one citation, as one bracket holding the range is (#623)
+        ("It holds [1]–[3] here.", "It holds here."),
+        ("As shown in [1]–[3].", "As shown in references 1 to 3."),
+        # each as on main: no citation after a label word or a sign, or of intervals
+        ("Table [1]–[3] shows it.", "Table [1]– shows it."),
+        ("It is in CI [1]–[3].", "It is in confidence interval [1]–."),
+        ("CIs [1.2]–[3.4] hold.", "confidence intervals [1.2]–[3.4] hold."),
+        ("It holds [1, 2]–[3] here.", "It holds– here."),
+    ],
+)
+def test_two_numeric_brackets_joined_by_a_dash(text: str, spoken: str) -> None:
+    assert read_all(text) == spoken
