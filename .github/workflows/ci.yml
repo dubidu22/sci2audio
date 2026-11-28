@@ -58,9 +58,11 @@ jobs:
           SKIP: ruff-check,ruff-format,lint-imports
         run: uv run pre-commit run --all-files --show-diff-on-failure
       # D-374, D-739: a flaky test is skipped with a linked issue and fixed before the next release.
+      # A browser test quarantined in one browser is collected only with that browser, so
+      # the collection names every browser the nightly runs (#1241).
       - name: Quarantined tests (listed in the job summary)
         run: |
-          uv run pytest -m quarantined --collect-only -q -p no:cacheprovider | tee quarantined.txt
+          uv run pytest -m quarantined --collect-only -q -p no:cacheprovider --browser chromium --browser firefox --browser webkit | tee quarantined.txt
           {
             echo "## Quarantined tests (D-374)"
             echo
