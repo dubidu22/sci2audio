@@ -141,6 +141,26 @@ def test_python_3_13_is_no_need_of_ci_passed_where_it_does_not_run() -> None:
     assert [leg for leg in full if "python" in leg] == [{"os": "ubuntu-latest", "python": "3.13"}]
 
 
+def test_the_nightly_runs_the_fast_suite_on_python_3_13() -> None:
+    """#1138: a 3.13-only break that comes in on a quiet day (a dependency moving on) waits
+    for no push or `ci:full` run. The job runs as CI's 3.13 leg does, whole, and fails should
+    .python-version ever win over the 3.13 it asks for."""
+    job = block(NIGHTLY, "  fast-py313:")
+    assert "    name: fast tests (ubuntu-latest, py3.13)" in job
+    assert "    runs-on: ubuntu-latest" in job
+    assert '          python-version: "3.13"' in job
+    assert "          cache-suffix: py3.13" in job
+    version = block(job, "      - name: The tests run on Python 3.13")
+    assert "sys.version_info[:2] == (3, 13)" in version
+    fast = block(job, "      - name: Fast tests on Python 3.13")
+    assert f'uv run pytest -m "{FAST}" -n auto --durations=25' in fast
+    assert "@" not in fast  # whole, never a shard: nobody waits on it at night
+    assert "HYPOTHESIS_PROFILE: ci" in fast
+    switch = r"^    if: github\.event_name != 'workflow_dispatch' \|\| inputs\.py313$"
+    assert re.search(switch, job, re.M), job
+    assert "      py313:" in block(NIGHTLY, "on:")
+
+
 def load_ci_passed():
     path = ROOT / ".github" / "scripts" / "ci_passed.py"
     spec = importlib.util.spec_from_file_location("sci2audio_ci_passed", path)
