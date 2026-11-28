@@ -40,7 +40,7 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 ## Older decisions
 
 - ADR-001 to ADR-008 (before this layout) are in `governance/kb/01-audit-and-roadmap/adr-*.md`; read the ones touching your area. New ADRs go in `docs/adr/`, numbered from 0009.
-- `docs/decisions.md` holds dated one-line rulings too small for an ADR (how a text reads, D-1 to D-915 archived in `governance/kb/decision-log.md`). Treat them like ADRs: surface a conflict, don't silently override.
+- `docs/decisions/` holds dated one-line rulings too small for an ADR (how a text reads), one file each, `<YYYY-MM-DD>-<issue>.md`, so no two PRs write the same file; `docs/decisions.md` holds those up to 2026-11-28, and D-1 to D-915 are archived in `governance/kb/decision-log.md`. Treat them like ADRs: surface a conflict, don't silently override. A new ruling never goes into `docs/decisions.md` (`tests/unit/test_decisions_log.py`).
 
 ## File structure
 
