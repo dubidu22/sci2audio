@@ -352,7 +352,10 @@ def test_a_minus_after_a_sign_is_a_negative_number_not_an_arrow() -> None:
         # operand: a second run sees "A ⇒ ¬." (#1246)
         ("So A ⇒ ¬[1].", "So A ⇒ ¬[1]."),
         ("So A ⇒ ¬ [1, 2].", "So A ⇒ ¬ [1, 2]."),
-        ("So A ⇒ ¬[3–5a] here.", "So A ⇒ ¬[3–5a] here."),
+        ("So A ⇒ ¬[3–5a].", "So A ⇒ ¬[3–5a]."),
+        ("So A ⇒ ¬[1][2]", "So A ⇒ ¬[1][2]"),
+        # ... and what follows it is the operand, as a second run sees it
+        ("So A ⇒ ¬[1]B.", "So A implies ¬[1]B."),
         ("So A ⇒¬¬[12; 14].", "So A ⇒¬¬[12; 14]."),
         # ... while a bracket of a letter or a zero is an operand, as before
         ("So A ⇒ ¬[B].", "So A implies ¬[B]."),
