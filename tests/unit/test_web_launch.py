@@ -7,6 +7,7 @@ import asyncio
 import http.cookiejar
 import json
 import logging
+import os
 import secrets
 import signal
 import socket
@@ -42,6 +43,15 @@ config = ServerConfig(
 )
 serve(sock, config, open_browser=False)
 """
+# the same, with the browser launch replaced by a line, so the start page gets written
+PAGED_SERVER = SERVER.replace(
+    "root = Path(sys.argv[1])\n",
+    "root = Path(sys.argv[1])\n"
+    "import webbrowser\n"
+    "from sci2audio.web import startpage\n"
+    'startpage.default_folder = lambda: root / "run"\n'
+    'webbrowser.open = lambda address: print("opened", address, flush=True)\n',
+).replace("open_browser=False", "open_browser=True")
 TOKEN = "t" * 43
 
 
@@ -140,6 +150,29 @@ def test_a_start_link_with_quotes_is_escaped_in_the_page(tmp_path: Path) -> None
     text = page_file(page.write('http://127.0.0.1:1/start?token="><x')).read_text("utf-8")
     assert '"><x' not in text
     assert "&quot;&gt;&lt;x" in text
+
+
+def test_a_new_start_page_takes_away_those_stopped_servers_left_behind(tmp_path: Path) -> None:
+    """A server ended by a signal it could not take (Windows closing the console, a kill)
+    leaves its page behind; the next start takes away pages older than any browser needs
+    to open one, and only sci2audio's own start pages (#1251)."""
+    folder = tmp_path / "run"
+    folder.mkdir()
+    old = time.time() - startpage.STALE_AFTER - 60
+    left = folder / "start-0123456789abcdef.html"
+    left.write_text("a stopped server's page", encoding="utf-8")
+    fresh = folder / "start-fedcba9876543210.html"  # another server's, its browser opening
+    fresh.write_text("a running server's page", encoding="utf-8")
+    others = [folder / "start-notes.html", folder / "start-0123456789abcdef.txt"]
+    for other in others:
+        other.write_text("not a start page", encoding="utf-8")
+    for path in [left, *others]:
+        os.utime(path, (old, old))
+    address = StartPage(folder).write("http://127.0.0.1:8000/start?token=" + TOKEN)
+    assert not left.exists()
+    assert fresh.exists()
+    assert all(other.exists() for other in others)
+    assert page_file(address).exists()
 
 
 def test_no_browser_opens_when_the_start_page_cannot_be_written(
@@ -269,11 +302,11 @@ def no_proxy() -> urllib.request.OpenerDirector:
 
 
 class Running:
-    def __init__(self, root: Path, token: str = TOKEN) -> None:
+    def __init__(self, root: Path, token: str = TOKEN, script: str = SERVER) -> None:
         self.token = token
         flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
         self.process = subprocess.Popen(
-            [sys.executable, "-u", "-c", SERVER, str(root), token],
+            [sys.executable, "-u", "-c", script, str(root), token],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -455,6 +488,37 @@ def still_served(port: int, token: str) -> bool:
         except TimeoutError:
             return True
     return answer.startswith(b"HTTP/1.1 200")
+
+
+# `kill` and a logout (SIGTERM), closing the terminal window (SIGHUP); on Windows Ctrl-Break
+STOPS = (
+    [pytest.param(getattr(signal, "CTRL_BREAK_EVENT", 1), id="CTRL_BREAK")]
+    if sys.platform == "win32"
+    else [
+        pytest.param(signal.SIGTERM, id="SIGTERM"),
+        pytest.param(getattr(signal, "SIGHUP", 1), id="SIGHUP"),
+    ]
+)
+
+
+@pytest.mark.parametrize("stop", STOPS)
+def test_a_signal_stops_the_server_as_ctrl_c_does(tmp_path: Path, stop: int) -> None:
+    """The start page goes and the rest of the wind-down runs, as on Ctrl-C (#1251): uvicorn
+    raises SIGTERM again once it has shut down, and leaves SIGHUP to Python, and either
+    ended the process before the wind-down."""
+    server = Running(tmp_path, script=PAGED_SERVER)
+    assert server.process.stdout is not None
+    try:
+        opened = next(line for line in server.process.stdout if line.startswith("opened "))
+        assert page_file(opened.split(" ", 1)[1].strip()).exists()
+        server.process.send_signal(stop)
+        code = server.process.wait(30)
+    finally:
+        if server.process.poll() is None:
+            server.kill()
+    assert list((tmp_path / "run").iterdir()) == []
+    assert "sci2audio has stopped." in server.process.stdout.read()
+    assert code == 0
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX signal")

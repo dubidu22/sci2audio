@@ -7,12 +7,15 @@ nothing else can take it in between. There is no option for another address.
 
 from __future__ import annotations
 
+import contextlib
 import logging
+import signal
 import socket
 import threading
 import time
 import webbrowser
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from types import FrameType
 
 import uvicorn
 from starlette.types import ASGIApp
@@ -138,6 +141,34 @@ def _wind_down(state: ServerState) -> None:
         state.kept.dispose()
 
 
+# uvicorn takes SIGTERM (and SIGBREAK on Windows) only while it runs and raises it again once
+# it has shut down, and leaves SIGHUP (the terminal window closed) to Python: each ended the
+# process before the wind-down, which takes the start page away (#1251). Windows has no
+# SIGHUP; closing its console comes as SIGBREAK, but Windows ends the process at once, so the
+# next start takes the page away (`StartPage.write`).
+STOP_SIGNALS = tuple(
+    getattr(signal, name) for name in ("SIGTERM", "SIGHUP", "SIGBREAK") if hasattr(signal, name)
+)
+
+
+@contextlib.contextmanager
+def _stop_on_signals(server: uvicorn.Server) -> Iterator[None]:
+    """While inside, the stop signals end `server` as Ctrl-C does instead of the process."""
+    if threading.current_thread() is not threading.main_thread():
+        yield  # only the main thread takes signals
+        return
+
+    def stop(signum: int, frame: FrameType | None) -> None:
+        server.should_exit = True
+
+    before = {sig: signal.signal(sig, stop) for sig in STOP_SIGNALS}
+    try:
+        yield
+    finally:
+        for sig, handler in before.items():
+            signal.signal(sig, signal.SIG_DFL if handler is None else handler)
+
+
 def serve(
     sock: socket.socket,
     config: ServerConfig,
@@ -145,7 +176,8 @@ def serve(
     open_browser: bool = True,
     say: Callable[[str], None] = print,
 ) -> None:
-    """Run the server on `sock` until Ctrl-C; the running job is cancelled on the way out.
+    """Run the server on `sock` until Ctrl-C or a `STOP_SIGNALS` one; the running job is
+    cancelled on the way out.
     The link is printed, and the browser opened, once the server has started (#161): at the
     start page, so no command line holds the token (#117). Launched as "browser", a `Watch`
     also ends it on Quit or when idle (#215)."""
@@ -169,14 +201,16 @@ def serve(
     if config.launched_as == "browser":
         watch = Watch(state, lambda: setattr(server, "should_exit", True))
         threading.Thread(target=watch.run, args=(ended,), name="watch", daemon=True).start()
-    try:
-        server.run(sockets=[sock])
-    except KeyboardInterrupt:  # uvicorn raises Ctrl-C again once it has shut down
-        pass
-    finally:
-        ended.set()
-        _wind_down(state)
-    say("sci2audio has stopped.")
+    with _stop_on_signals(server):  # until the wind-down is over, so a second one waits too
+        try:
+            server.run(sockets=[sock])
+        except KeyboardInterrupt:  # uvicorn raises Ctrl-C again once it has shut down
+            pass
+        finally:
+            ended.set()
+            _wind_down(state)
+    with contextlib.suppress(OSError):  # after SIGHUP the terminal may be gone
+        say("sci2audio has stopped.")
 
 
 class Background:
