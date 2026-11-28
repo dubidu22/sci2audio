@@ -1236,3 +1236,59 @@ def test_with_links_switched_off_no_join_word_goes_past_a_link_that_is_read(
     run = run_steps(document, EN, switched_off={Category.LINKS}, strict=True)
     assert render(run) == [spoken]
     assert all("before it goes too" not in edit.reason for edit in run.edits(Status.ACCEPTED))
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a part a join word opens after lead words is a citation only after one (#621)
+        (
+            "en",
+            "(RNNGs; see and Dyer et al., 2016) help.",
+            "(RNNGs; see and Dyer et al., 2016) help.",
+        ),
+        (
+            "en",
+            "(RNNGs; e.g. and Dyer et al., 2016) help.",
+            "(RNNGs; for example and Dyer et al., 2016) help.",
+        ),
+        (
+            "de",
+            "(RNNGs; siehe und Dyer et al., 2016) helfen.",
+            "(RNNGs; siehe und Dyer et al., 2016) helfen.",
+        ),
+        # the join word in any case: "And" opens such a part too
+        ("en", "(RNNGs; And Dyer et al., 2016) help.", "(RNNGs; And Dyer et al., 2016) help."),
+        (
+            "en",
+            "(see (Smith, 2019); And Jones, 2020) is cited.",
+            "(see Smith; And Jones, 2020) is cited.",
+        ),
+        ("de", "(RNNGs; Und Dyer et al., 2016) helfen.", "(RNNGs; Und Dyer et al., 2016) helfen."),
+        # "&" after lead words joins as "and" does
+        ("en", "(e.g. (Smith, 2019); & Jones, 2020) is cited.", "Smith and Jones is cited."),
+        (
+            "de",
+            "(z. B. (Smith, 2019); & Jones, 2020) wird zitiert.",
+            "Smith und Jones wird zitiert.",
+        ),
+    ],
+)
+def test_join_words_after_lead_words_in_any_case_and_as_an_ampersand(
+    language: str, printed: str, said: str
+) -> None:
+    """#646: the B9 round 2 hand mutants of #621, each a row the head reads right."""
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+def test_a_pair_after_a_rejected_head_names_both_its_brackets_in_the_reason() -> None:
+    """#646: "Table [1]" is no citation, so "[2] and [3]" is a D-668 pair, read as one and
+    named whole in the reason."""
+    assert read("Table [1], [2] and [3] show it.") == "Table [1], references 2 and 3 show it."
+    [pair] = edits("Table [1], [2] and [3] show it.")
+    assert pair.replacement == "references 2 and 3"
+    assert pair.reason == (
+        'citations "[2] and [3]" are part of the sentence: read as "references 2 and 3" (TP-04)'
+    )
