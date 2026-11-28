@@ -3667,3 +3667,28 @@ expected = [
     "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
     "It holds 10 to the power of 6 kelvin and 10 to 20 kelvin here.",
 ]
+
+[[case]]
+id = "an-arrow-before-a-lone-negation-sign-stays-as-printed"
+audit = 0
+issue = 853
+goal = "A negation sign counts as the operand after an arrow of logic only with an operand after it: 'A ⇒ ¬B' is read, 'A ⇒ ¬', 'A ⇒ ¬.' and 'A ⇒ ¬ .' leave the arrow as printed, for ⇒, ⇐ and ⇔, on both runs (#853)."
+blocks = [
+    { kind = "paragraph", text = "So A ⇒ ¬" },
+    { kind = "paragraph", text = "So A ⇒ ¬." },
+    { kind = "paragraph", text = "So A ⇒ ¬ ." },
+    { kind = "paragraph", text = "So A ⇐ ¬." },
+    { kind = "paragraph", text = "So A ⇔ ¬" },
+    { kind = "paragraph", text = "So A ⇒ ¬B." },
+    { kind = "paragraph", text = "So A ⇒ ¬¬B." },
+]
+expected = [
+    "So A ⇒ ¬",
+    "So A ⇒ ¬.",
+    "So A ⇒ ¬ .",
+    "So A ⇐ ¬.",
+    "So A ⇔ ¬",
+    "So A implies ¬B.",
+    "So A implies ¬¬B.",
+]
+

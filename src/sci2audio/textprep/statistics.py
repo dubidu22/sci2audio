@@ -90,6 +90,7 @@ _OPERAND = re.compile(
     r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
     r"|[" + "".join(ACCENTS) + r"][^\W\d_]"
 )
+_NEGATIONS = re.compile(r"(?:¬\s*)+")  # before an operand after an arrow: "⇒ ¬B", "⇒ ¬ ¬B"
 _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
@@ -361,10 +362,10 @@ def _operators(
         if match["arrow"]:
             if in_ascii_run(plain, start, op):
                 continue  # "==>", ">=>": no arrow of logic
-            # a negated operand too: "A ⇒ ¬B"
-            if not (
-                _OPERAND.match(plain, right_start) or plain[right_start : right_start + 1] == "¬"
-            ):
+            # a negated operand too: "A ⇒ ¬B", but a negation sign with nothing to negate is
+            # no operand ("A ⇒ ¬.", #853)
+            negated = _NEGATIONS.match(plain, right_start)
+            if not _OPERAND.match(plain, negated.end() if negated else right_start):
                 continue
             # an abbreviation read as words ends an operand, as one prose word
             read_abbreviation = _LINE_BREAKS.isdisjoint(
