@@ -4,7 +4,7 @@ Testing strategy: D-58. One runner (pytest) for everything except the browser, w
 
 ## Basics
 
-- Fast tests (no marker) run on every PR on Linux in three shards (`.github/scripts/shard.py`), and on macOS and Windows, whole, when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Python 3.13 runs them on Linux on pushes to `main` and `release/*`, on runs by hand and under `ci:full`, not on an ordinary PR (#1131).
+- Fast tests (no marker) run on every PR on Linux in three shards (`.github/scripts/shard.py`), and on macOS and Windows, whole, when the PR carries the label `ci:full` and on every push to `main` and `release/*` (D-580). Python 3.13 runs them on Linux on pushes to `main` and `release/*`, on runs by hand and under `ci:full`, and every night, whole (`fast-py313` in `.github/workflows/nightly.yml`, #1138), not on an ordinary PR (#1131).
 - Budget: an ordinary Linux PR gets "CI passed" in about 6 minutes, judged on the median of the last 20 such runs. The nightly job "pull-request wait (budget 6 min)" goes red above it; then a person opens the speed issue (#1131, #1133). Each fast-suite shard prints its 25 slowest tests.
 - A test that loops over sample documents may take a small fixed set, named where it is defined, under the `ci` and `dev` profiles and every sample under `nightly`; mark it `deep` so the nightly property job runs it. Golden files, the English regression cases and the conformance suite's default (every sample document) are never sampled (#1134).
 - Mark tests that need voices, models, audio or the full sample corpus with `@pytest.mark.slow`; speed measurements with `@pytest.mark.benchmark`. Both run nightly (`.github/workflows/nightly.yml`).
