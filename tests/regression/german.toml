@@ -3496,6 +3496,27 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-part-number-before-a-full-stop-and-a-unit-sign"
+audit = 0
+issue = 1034
+goal = "A part keyword's Roman numeral before a full stop glued to a sign the units step reads ('≈', '~', '×') is read as before a statistics sign (#1010), since a second run sees 'Kapitel IV. ungefähr 1': 'Kapitel 4. ungefähr 1' on both runs, in a paragraph and in a heading. A figure dash glued between '=' and a number reads as a minus sign there does ('A=‒3' as 'A=−3'). A point decimal after '~', which the units step reads 'etwa ' with a space, is read as a second run reads it, while one glued to 'Prozent' stays (#1083)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Siehe Kapitel IV.≈1 hier." },
+    { kind = "paragraph", text = "Siehe Kapitel IV.~1 und Teil II.×2 hier." },
+    { kind = "heading", text = "Kapitel IV.≈1" },
+    { kind = "paragraph", text = "Also A=‒3 und A=−3 hier." },
+    { kind = "paragraph", text = "Also A~.5 und 1 %.452 hier." },
+]
+expected = [
+    "Siehe Kapitel 4. ungefähr 1 hier.",
+    "Siehe Kapitel 4. etwa 1 und Teil 2. mal 2 hier.",
+    "Kapitel 4. ungefähr 1",
+    "Also A gleich ‒3 und A gleich −3 hier.",
+    "Also A etwa 0 Komma 5 und ein Prozent.452 hier.",
+]
+
+[[case]]
 id = "de-a-range-of-part-numbers-in-roman-numerals"
 audit = 0
 issue = 1010

@@ -89,10 +89,11 @@ _QUANTITY_SIGNS = "∆∇∞"
 # signs the units step (#68) reads as words ("times", "approximately"), so they are words to
 # this step on a second run too
 _UNIT_SIGNS = "×≈~"
-# an accent printed apart before its letter is that letter once the Unicode step joins them
+# an accent printed apart before its letter is that letter once the Unicode step joins them;
+# a figure dash before a number is a minus sign, which the numbers step reads "minus" (#1034)
 _OPERAND = re.compile(
     r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
-    r"|[" + "".join(ACCENTS) + r"][^\W\d_]"
+    r"|[" + "".join(ACCENTS) + r"][^\W\d_]|\u2012(?=\.?\d)"
 )
 _NEGATIONS = re.compile(r"(?:¬\s*)+")  # before an operand after an arrow: "⇒ ¬B", "⇒ ¬ ¬B"
 _LEFT_OF_EQUALS = re.compile(

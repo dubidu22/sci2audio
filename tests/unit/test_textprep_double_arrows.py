@@ -214,7 +214,7 @@ _BEFORE_GLUED_SIGN = ["A", "So A", "[1]", "Kapitel IV.", "Teil II.", "Typ II.", 
                       "Kapitel I", "plus", "plus or"]  # fmt: skip
 _GLUED_SIGNS = ["=", "<", ">", "≤", "⇒", "==", "=−", "=− ", "=−\n",
                 "=‒ ", "=- ", "<− ", " < ", " > ", " = ", "–", "—",
-                "‐", " bis III", " bis ", " und II"]  # fmt: skip
+                "‐", " bis III", " bis ", " und II", "≈", "~", "×", "=‒", ". < "]  # fmt: skip
 
 
 @st.composite
@@ -233,6 +233,11 @@ def glued_signs(draw: st.DrawFn) -> str:
 @example("Kapitel IV.=1", "de")  # #1010
 @example("Kapitel I bis III", "de")  # #1010
 @example("plus–minus 3x", "en")  # #1021
+@example("Kapitel IV.≈1", "de")  # #1034: signs the units step reads
+@example("Kapitel IV.~1", "de")  # #1034
+@example("Kapitel IV.×2", "de")  # #1034
+@example("A=‒3", "en")  # #1034: a figure dash glued to the number
+@example("[1]. < 3", "en")  # #1034
 def test_a_glued_sign_reads_the_same_on_a_second_run(text: str, language: str) -> None:
     """D-577 for #1010 and #1021: an "=" glued before a minus sign, a sign after a removed
     citation or after a part's numeral and its full stop, a range of Roman numerals and
