@@ -3627,3 +3627,21 @@ expected = [
     "with 5 N samples",
     "where 2 m + 1",
 ]
+
+[[case]]
+id = "a-range-of-two-powers-of-ten-is-read-whole"
+audit = 0
+issue = 822
+goal = "A range of two powers of ten reads each power and the range word, before a unit or a noun, printed in superscripts or as raised runs, on both runs: '10⁴–10⁶ K' is '10 to the power of 4 to 10 to the power of 6 kelvin', as German reads it (#822). A single power and a plain range read as before."
+blocks = [
+    { kind = "paragraph", text = "It holds 10⁴–10⁶ K here." },
+    { kind = "paragraph", text = "It holds 10⁴–10⁶ cells here." },
+    { kind = "paragraph", runs = ["It holds 10", { sup = "4" }, "–10", { sup = "6" }, " K here."] },
+    { kind = "paragraph", text = "It holds 10⁶ K and 10–20 K here." },
+]
+expected = [
+    "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
+    "It holds 10 to the power of 4 to 10 to the power of 6 cells here.",
+    "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
+    "It holds 10 to the power of 6 kelvin and 10 to 20 kelvin here.",
+]

@@ -3820,3 +3820,18 @@ expected = [
     "mit 5 N Proben",
     "Es gilt x gleich 2 s + 1",
 ]
+
+[[case]]
+id = "de-a-range-of-two-powers-of-ten-is-read-whole"
+audit = 0
+issue = 822
+goal = "German reads a range of two powers of ten whole already, in superscripts and as raised runs: '10⁴–10⁶ K' is '10 hoch 4 bis 10 hoch 6 Kelvin' (#822, pinned as the English rule's model)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es hält 10⁴–10⁶ K hier." },
+    { kind = "paragraph", runs = ["Es hält 10", { sup = "4" }, "–10", { sup = "6" }, " Zellen hier."] },
+]
+expected = [
+    "Es hält 10 hoch 4 bis 10 hoch 6 Kelvin hier.",
+    "Es hält 10 hoch 4 bis 10 hoch 6 Zellen hier.",
+]
