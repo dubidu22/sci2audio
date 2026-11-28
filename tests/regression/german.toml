@@ -4060,6 +4060,23 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-range-of-two-powers-of-ten-with-a-hyphen-is-read-whole"
+audit = 0
+issue = 1243
+goal = "A range of two powers of ten joined by a hyphen-minus with no space reads whole as the en dash form does: '10⁴-10⁶ K' is '10 hoch 4 bis 10 hoch 6 Kelvin', not '10⁴-10 hoch 6' (#822, #1243); split at a line end too."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es hält 10⁴-10⁶ K hier." },
+    { kind = "heading", text = "Von 10⁻⁴-10⁻⁶ K" },
+    { kind = "paragraph", text = "Es hält 10⁴-\n10⁶ Zellen hier." },
+]
+expected = [
+    "Es hält 10 hoch 4 bis 10 hoch 6 Kelvin hier.",
+    "Von 10 hoch minus 4 bis 10 hoch minus 6 Kelvin",
+    "Es hält 10 hoch 4 bis 10 hoch 6 Zellen hier.",
+]
+
+[[case]]
 id = "de-links-the-marks-around-a-removed-link-go-with-it"
 audit = 0
 issue = 899
