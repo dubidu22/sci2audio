@@ -1828,11 +1828,14 @@ class _Rules:
         2019). Then" reads "It holds. Then", not "It holds.. Then".
         """
         spaced_start, spaced_end = self._with_space_around(text, start, end)
-        if spaced_end > end and self._sign_after(text, end):
-            # "[1] < 3x": the English statistics step's reading of the sign takes the white
-            # space before it, and would be set aside if the removal took it too; a second
-            # run, where the sign starts the block, reads it (#1010)
-            return spaced_start, end
+        kept = spaced_end
+        while kept > end and text[kept - 1].isspace():
+            kept -= 1
+        if kept < spaced_end and self._sign_after(text, kept):
+            # "[1] < 3x", "[1]. < 3": the English statistics step's reading of the sign takes
+            # the white space before it, and would be set aside if the removal took it too; a
+            # second run, where the sign starts the block, reads it (#1010, #1034)
+            return spaced_start, kept
         return spaced_start, spaced_end
 
     def _sign_after(self, text: str, end: int) -> bool:

@@ -365,10 +365,11 @@ def _decimals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
         if _x_left_alone(text, match.end()) or _unit_left_alone(text, match.end()):
             continue
         whole, fraction = match["whole"], match["fraction"]
-        if not whole and after.unit_ends_at(match.start()):
+        if not whole and after.word_ends_at(match.start()):
             # "1 %.452 Komma 5", read from "1 %.452,5" (above), and "1 %.1234", from "1
             # %.1.234": ".452" follows "Prozent" once the units step has read the "%", so it
-            # stays, as on a second run (#1082, #1083)
+            # stays, as on a second run (#1082, #1083); after "~", which it reads "etwa " with
+            # a space, a second run reads the decimal, so this run does too (#1034)
             continue
         before = _before(text, match.start())
         if whole and not _sign_before().search(before):
@@ -1116,6 +1117,12 @@ class _AfterNumber:
             return date[0] if date else None
         return None
 
+    def word_ends_at(self, end: int) -> bool:
+        """True if what the units step reads as words ends at `end` with a letter, glued to
+        what follows ("%" before ".452" is "Prozent.452"), not with a space ("etwa .5")."""
+        found = holding(readings_of("units", self.printed, "de"), end - 1)
+        return found is not None and found.end == end and not found.words[-1:].isspace()
+
     def unit_ends_at(self, end: int) -> bool:
         """True if what the units step reads as words ends at `end` ("%" after a number is
         "Prozent", "m^2" "Quadratmeter"): a second run sees a word there (#1082)."""
@@ -1629,9 +1636,11 @@ def _roman_run() -> re.Pattern[str]:
         # nor before " %": "Kapitel I %CI" ("1 %CI" would read the CI on a second run)
         # ... but a full stop glued to a sign may stand before the sign's words on a second
         # run ("Kapitel IV.=1" is "Kapitel IV. gleich 1" then): the statistics step decides
-        # (#1010)
+        # (#1010), or the units step for its signs ("Kapitel IV.≈1", #1034)
         + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
         + _sign_start()
+        + "|"
+        + _UNIT_SIGN
         + r")|\s+%|\s+(?:Quadrat|hoch)\b"
         + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:"
         + _LIST_WORDS
@@ -1678,7 +1687,8 @@ def _roman_numerals(plain: str) -> list[Candidate]:
         glued_after_stop = plain[stop + 1 : stop + 2]
         if plain[stop : stop + 1] == "." and glued_after_stop and not glued_after_stop.isspace():
             sign = first_from(readings_of("statistics", plain, "de"), stop + 1)
-            if sign is None or sign.start != stop + 1:
+            unit = first_from(readings_of("units", plain, "de"), stop + 1)
+            if all(r is None or r.start != stop + 1 for r in (sign, unit)):
                 continue  # "Kapitel IV.==1": the sign stays as printed, so does the numeral
         offset = match.start("run")
         parts = list(_ROMAN_PART.finditer(match["run"]))
