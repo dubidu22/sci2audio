@@ -74,6 +74,11 @@ LEFT_ARROW_TAIL = re.compile("←\u2212+\\Z")
 # ASCII, but not as part of a longer ASCII run ("=>>"). The units step shares it: an "=" of
 # an arrow is no operator around "2x" (#843)
 DOUBLE_ARROW = r"⇐=*⇒|⇐=+|=+⇒|[⇒⇐⇔]|(?:<=>|=>)(?![<>=])"
+# characters that make an ASCII "<", ">" or "=" part of an arrow or a doubled sign ("<<",
+# "=<", "->"); "⇐=" is a long double arrow the numbers step reads as "⇐" (#590). The
+# statistics step leaves such a sign as printed, and the units step must agree that it stays
+# a sign on a second run, so both share this one set (#1013)
+ARROW_JOINS = frozenset("<>=-\u2212!:~|\u21d0")
 _PIECED_LEFT_DOUBLE_END = re.compile("⇐=+\\Z")
 
 

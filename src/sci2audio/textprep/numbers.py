@@ -52,6 +52,7 @@ from sci2audio.textprep.numbers_de import (
     FRACTIONS_OF_ONE,
     MONTHS,
     find_numbers_de,
+    unit_glued,
     unit_read_after_per,
     x_read_after,
 )
@@ -154,7 +155,8 @@ _CARET = re.compile(
     r"(?:\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3}){2,}|\d{1,3}(?:[\u00a0\u2009\u202f]\d{3})+))"
     r"(?![ \u00a0\u2009\u202f]?\d)"
     r"|(?P<bare>[+\u2212-]?\d+)))"
-    r"(?![\w.⁺⁻])"
+    # nor before a letter glued on, unless the units step reads a unit there (`unit_glued`)
+    r"(?:(?![\w.⁺⁻])|(?P<unit>(?=[^\W\d_])))"
 )
 # not before a caret: "10−410^2" runs into a power, which a second run would read apart (#340)
 _TIMES_TEN = re.compile(r"(?<=\d)\s*[×x]\s*(?P<base>10)(?P<exp>[\u2212-]\d{1,3})(?![\w.,⁺⁻^])")
@@ -538,6 +540,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         )
         if match["base"].isalpha() and unit_read_after_per(plain, match.start("base"), "en"):
             continue  # "per m^2": the units step's ("per square metre", #230)
+        if match["unit"] is not None and not unit_glued(plain, match.end(), "en"):
+            continue  # "10^2m": the letter may go on the power, so it is left as printed
         words = _letter_power(exponent) if match["base"].isalpha() else None
         words = words or f" to the power of {_exponent_words(exponent)}"
         base = None if match["base"].isalpha() else match.start("base")

@@ -3590,6 +3590,38 @@ expected = [
 ]
 
 [[case]]
+id = "four-shapes-that-read-the-same-on-a-second-run-1032"
+audit = 0
+issue = 1032
+goal = "Each reads the same on the first and the second run: a round citation removed before a bare '<' or '>' makes no compared term of the 'Nx' after the sign ('greater than 3 times', as a second run reads it with the citation gone); a figure dash glued after 'Nx' is a sign beside a variable, as '-' and '−' are ('3x‒2' as printed); a caret power with a unit glued after it is read with the unit ('10 to the power of 2 kilograms'), and one with a glued letter that is no unit stays as printed ('10^2m'). A spaced figure dash after 'Nx' reads as a spaced '−' does ('3x minus 2')."
+blocks = [
+    { kind = "paragraph", text = "It holds (Smith, 2019) > 3x here." },
+    { kind = "paragraph", text = "It holds (Smith, 2019) < 3x here." },
+    { kind = "heading", text = "When (Smith, 2019) > 3x" },
+    { kind = "paragraph", text = "It holds (a + b) > 3x here." },
+    { kind = "paragraph", text = "It is 3x‒2 here." },
+    { kind = "heading", text = "A 3x‒2 grid" },
+    { kind = "paragraph", text = "It weighs 10^2kg here." },
+    { kind = "heading", text = "Weights of 10^2kg" },
+    { kind = "paragraph", text = "It weighs 10^2m here." },
+    { kind = "paragraph", text = "It is 3x ‒ 2 here." },
+    { kind = "paragraph", text = "It weighs 10^{2}kg and 10^-3kg, and 10^2x1 is more." },
+]
+expected = [
+    "It holds greater than 3 times here.",
+    "It holds less than 3 times here.",
+    "When greater than 3 times",
+    "It holds (a + b) greater than 3x here.",
+    "It is 3x‒2 here.",
+    "A 3x‒2 grid",
+    "It weighs 10 to the power of 2 kilograms here.",
+    "Weights of 10 to the power of 2 kilograms",
+    "It weighs 10^2m here.",
+    "It is 3x minus 2 here.",
+    "It weighs 10 to the power of 2 kilograms and 10 to the power of minus 3 kilograms, and 10 to the power of 2 times 1 is more.",
+]
+
+[[case]]
 id = "four-digit-count-before-a-spaced-or-capital-x"
 audit = 0
 issue = 870

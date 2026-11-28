@@ -406,6 +406,13 @@ def x_read_after(text: str, end: int, language: str) -> bool:
     return found is not None and (found.start, found.end) == (at, at + 1) and text[at] in "xX"
 
 
+def unit_glued(text: str, at: int, language: str) -> bool:
+    """True if the units step reads a unit that starts right at `at`, glued to a power before
+    it: "10^2kg" is "10^2 kilograms" after a first run, whose power a second run reads (#1032)."""
+    found = first_from(readings_of("units", text, language), at)
+    return found is not None and found.start == at
+
+
 def unit_read_after_per(text: str, position: int, language: str) -> bool:
     """True if `position` lies in a unit the units step reads with no number before it,
     right after "per", "pro" or "je" ("per m³" as "per cubic metre", "pro m³", #230): the
@@ -1409,8 +1416,9 @@ _CARET = re.compile(
     + r"])"
     r"(?P<exp>\^(?:\{(?P<braced>[+\u2212-]?\d+)\}|\((?P<paren>[+\u2212-]?\d+)\)|(?P<bare>[+\u2212-]?\d+)))"
     # but an x and a digit, which the units step may read "mal" ("10^2x1"; `_x_left_alone`
-    # keeps the power as printed where it does not, #253)
-    r"(?!(?![xX]\d)[\w.,⁺⁻])"
+    # keeps the power as printed where it does not, #253), and a letter glued on where the
+    # units step reads a unit (`unit_glued`)
+    r"(?:(?!(?![xX]\d)[\w.,⁺⁻])|(?P<unit>(?=[^\W\d_])))"
 )
 # a signed power of a bracketed term, "(I − P)⁻¹" (an inverse), its raise printed or in its
 # run (#815, as numbers.py for #589); not before a letter or digit, which may go on the power
@@ -1490,6 +1498,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
         found.append((_power(text, match, words), None))
     for match in _CARET.finditer(plain):
         exponent = match["braced"] or match["paren"] or match["bare"]
+        if match["unit"] is not None and not unit_glued(plain, match.end(), "de"):
+            continue  # "10^2m": the letter may go on the power, so it is left as printed
         letter = match["base"].isalpha()
         before = _before(plain, match.start("base"))
         # the minutes of a clock time are no number before it, as for a raised power: "um
@@ -1576,6 +1586,9 @@ _PART_KEYWORDS = frozenset(
     | {"kap", "abschn", "anh", "bd"}
 )
 _ROMAN = r"[IVX]{1,6}"
+# the words that join two numerals of a list; "bzw." is "beziehungsweise" once the
+# abbreviations step has read it (#1013)
+_LIST_WORDS = r"und|oder|&|sowie|u\.|bzw\.|beziehungsweise"
 # a number joined after a Roman numeral or a label's number; unlike `_JOINED_AFTER` not by a
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
 # date as words)
@@ -1587,7 +1600,9 @@ def _roman_run() -> re.Pattern[str]:
     return re.compile(
         r"(?<![\w-])(?P<keyword>[^\W\d_]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
         + _ROMAN
-        + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:"
+        + _LIST_WORDS
+        + r")\s+)"
         + _ROMAN
         # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a
         # full stop and white space or the end, only one numeral after a part's keyword is
@@ -1601,7 +1616,9 @@ def _roman_run() -> re.Pattern[str]:
         + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
         + _sign_start()
         + r")|\s+%|\s+(?:Quadrat|hoch)\b"
-        + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:"
+        + _LIST_WORDS
+        + r")\s+)"
         + _ROMAN
         + r"|\s+bis\s+"
         + _ROMAN
@@ -1611,10 +1628,10 @@ def _roman_run() -> re.Pattern[str]:
 
 
 # a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis
-# III."): the first numeral is no part number on its own, so the list stays as printed as a
-# whole, as "Teil II und III." does (#996)
+# III.", "Kapitel I. bzw. II.", "Kapitel I. — II."): the first numeral is no part number on
+# its own, so the list stays as printed as a whole, as "Teil II und III." does (#996, #1013)
 _LIST_AFTER_STOP = re.compile(
-    r"\.(?:,\s*|\s+(?:und|oder|&|bis)\s+|\s*[/\u2013-]\s*)" + _ROMAN + r"(?!\w)"
+    r"\.(?:,\s*|\s+(?:bis|" + _LIST_WORDS + r")\s+|\s*[/\u2013\u2014-]\s*)" + _ROMAN + r"(?!\w)"
 )
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
