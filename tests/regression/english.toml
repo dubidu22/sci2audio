@@ -3018,6 +3018,40 @@ expected = [
 ]
 
 [[case]]
+id = "a-rate-after-a-slash-stays"
+audit = 0
+issue = 1237
+goal = "A rate after a slash stays as printed, as 'dollars/month' does: an abbreviated time word ('words/min', 'requests/sec') and a quantity after a number per anything ('3 dollars/user') (#653's exclusion of unit-like pairs; #1237)."
+blocks = [
+    { kind = "paragraph", text = "It reads 120 words/min and serves 50 requests/sec." },
+    { kind = "paragraph", text = "It costs 3 dollars/user." },
+    { kind = "paragraph", text = "The rate in words/min is the people/groups measure." },
+]
+expected = [
+    "It reads 120 words/min and serves 50 requests/sec.",
+    "It costs 3 dollars/user.",
+    "The rate in words/min is the people and groups measure.",
+]
+
+[[case]]
+id = "slash-joined-names-before-a-citation-bracket-read-the-same-twice"
+audit = 0
+issue = 1236
+goal = "Slash-joined names before a bracket the citations step takes as a narrative citation's ('(2019)', '(in press)', '(n.d.)', '(forthcoming)', after a possessive too) read the same on a second run (D-577): glued, the slash stays, as the citations step keeps the bracket of 'Smith/Jones' (#455); spaced, the name before the bracket is a name alone, so the bracket goes and the slash reads 'and' (#1236)."
+blocks = [
+    { kind = "paragraph", text = "As Smith/Jones (in press) show, it works." },
+    { kind = "paragraph", text = "As Smith/Jones (n.d.) and Lee/Park (forthcoming) show." },
+    { kind = "paragraph", text = "As Smith/Jones's (2019) work shows." },
+    { kind = "paragraph", text = "As Smith / Jones (2019) show it." },
+]
+expected = [
+    "As Smith/Jones (in press) show, it works.",
+    "As Smith/Jones (n.d.) and Lee/Park (forthcoming) show.",
+    "As Smith/Jones's (2019) work shows.",
+    "As Smith and Jones show it.",
+]
+
+[[case]]
 id = "hidden-runs-in-a-table-read-when-its-notice-is-off"
 audit = 0
 issue = 463

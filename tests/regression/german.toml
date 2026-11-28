@@ -2790,6 +2790,51 @@ expected = [
 ]
 
 [[case]]
+id = "de-gender-forms-with-a-capital-or-a-double-suffix-stay"
+audit = 0
+issue = 1250
+goal = "A gender form stays as printed with a capital suffix ('Lehrer/Innen', 'Mitarbeiter/In') and with a double one ('Kolleg/inn/en'), as 'Lehrer/innen' does (D-816, #1250)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Lehrer/Innen und Mitarbeiter/In." },
+    { kind = "paragraph", text = "Die Kolleg/inn/en." },
+]
+expected = [
+    "Die Lehrer/Innen und Mitarbeiter/In.",
+    "Die Kolleg/inn/en.",
+]
+
+[[case]]
+id = "de-a-rate-after-a-slash-stays"
+audit = 0
+issue = 1237
+goal = "A rate after a slash stays as printed, as 'Euro/Monat' does: an abbreviated time word ('Wörter/min', 'Meter/Sek.') and a quantity after a number per anything ('5 Euro/Nutzer') (#1237)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es liest 120 Wörter/min und läuft 3 Meter/Sek." },
+    { kind = "paragraph", text = "Es kostet 5 Euro/Nutzer und 3,5 Euro/Nutzer." },
+]
+expected = [
+    "Es liest 120 Wörter/min und läuft 3 Meter/Sek.",
+    "Es kostet 5 Euro/Nutzer und 3 Komma 5 Euro/Nutzer.",
+]
+
+[[case]]
+id = "de-slash-joined-names-before-a-citation-bracket-read-the-same-twice"
+audit = 0
+issue = 1236
+goal = "As in English: slash-joined names before an undated citation bracket ('(im Druck)', '(o. J.)') read the same on a second run; glued, the slash stays (#455, #1236)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie Heydorn/Koneffke (im Druck) zeigen." },
+    { kind = "paragraph", text = "Wie Heydorn/Koneffke (o. J.) zeigen." },
+]
+expected = [
+    "Wie Heydorn/Koneffke (im Druck) zeigen.",
+    "Wie Heydorn/Koneffke (o. J.) zeigen.",
+]
+
+[[case]]
 id = "de-a-dating-bracket-of-period-words-and-months-stays-read"
 audit = 0
 issue = 925
