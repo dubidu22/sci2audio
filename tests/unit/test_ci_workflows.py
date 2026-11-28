@@ -971,6 +971,21 @@ def test_mutation_leaves_out_the_copied_html_parser_and_nothing_else() -> None:
     assert len(walked) > 100
 
 
+def test_mutmut_copies_every_root_file_the_unit_tests_open() -> None:
+    """mutmut copies only src/, tests/ and `also_copy` into its tree, so a unit test that
+    opens another root file fails its unmutated run there and no mutant is checked (#1093;
+    `.pre-commit-config.yaml` since #1177, #633)."""
+    mutmut = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mutmut"]
+    copied = {path.rstrip("/") for path in mutmut["also_copy"]} | {"src", "tests"}
+    opened = {
+        name
+        for path in (ROOT / "tests" / "unit").glob("*.py")
+        for name in re.findall(r'ROOT / "([\w.-]+)"', path.read_text(encoding="utf-8"))
+    }
+    assert {".github", "pyproject.toml"} <= opened
+    assert sorted(opened - copied) == []
+
+
 def test_a_folder_that_is_no_checkout_of_its_own_is_told_apart(tmp_path: Path) -> None:
     """mutmut runs the tests in its copy of the tree, where git lists the repository's files
     and not the copy's (#1093); the tests that read the tracked files skip there. A made-up

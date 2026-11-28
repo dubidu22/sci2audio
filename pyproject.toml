@@ -188,11 +188,13 @@ pytest_add_cli_args = [
 # CI workflows they read (test_ci_workflows.py, #360), the licence table whose font
 # hashes test_web_design.py checks (#549), and every other root file tests/unit reads
 # (the docs, the archived KB, the packaging files, the changelog, the licence and the
-# project file), so the whole of tests/unit runs there (#1093).
+# project file), so the whole of tests/unit runs there (#1093), and the pre-commit hooks
+# whose excludes test_ci_workflows.py checks (#176, #633).
 also_copy = [
     "scripts/",
     "README.md",
     ".github/",
+    ".pre-commit-config.yaml",
     "THIRD_PARTY_LICENSES.md",
     "docs/",
     "governance/",
