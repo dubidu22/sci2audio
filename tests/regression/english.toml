@@ -3219,6 +3219,34 @@ expected = [
 # ---- #854, #878, #880 inline code ----------------------------------------------------------
 
 [[case]]
+id = "a-dating-bracket-of-period-words-and-months-stays-read"
+audit = 0
+issue = 925
+goal = "A dating bracket of season or period words and months, joined by 'and' in any case, '&', a hyphen, an en dash, a slash or a space, and a year stays as printed: '(Spring and May 2019)', '(Spring & Summer 2019)', '(Fall-Winter 2019)'. A real citation with a period word or a month among its authors is still removed ('(Summer & Lee 2019)', '(Lee and May 2019)'); '(May and Lee 2019)' stays as printed, as a month is never the first author (D-173)."
+blocks = [
+    { kind = "paragraph", text = "It grew (Spring and May 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring And Summer 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring & Summer 2019) here." },
+    { kind = "paragraph", text = "It grew (Fall-Winter 2019) here." },
+    { kind = "paragraph", text = "It grew (May and June 2019) here." },
+    { kind = "paragraph", text = "It grew (May–June 2019) here." },
+    { kind = "paragraph", text = "It grew (Summer & Lee 2019) here." },
+    { kind = "paragraph", text = "It grew (Lee and May 2019) here." },
+    { kind = "paragraph", text = "It grew (May and Lee 2019) here." },
+]
+expected = [
+    "It grew (Spring and May 2019) here.",
+    "It grew (Spring And Summer 2019) here.",
+    "It grew (Spring & Summer 2019) here.",
+    "It grew (Fall-Winter 2019) here.",
+    "It grew (May and June 2019) here.",
+    "It grew (May–June 2019) here.",
+    "It grew here.",
+    "It grew here.",
+    "It grew (May and Lee 2019) here.",
+]
+
+[[case]]
 id = "inline-code-is-read-as-printed"
 audit = 0
 issue = 854
@@ -3726,32 +3754,4 @@ expected = [
     "So A ⇔ ¬",
     "So A implies ¬B.",
     "So A implies ¬¬B.",
-]
-
-[[case]]
-id = "a-dating-bracket-of-period-words-and-months-stays-read"
-audit = 0
-issue = 925
-goal = "A dating bracket of season or period words and months, joined by 'and' in any case, '&', a hyphen, an en dash, a slash or a space, and a year stays as printed: '(Spring and May 2019)', '(Spring & Summer 2019)', '(Fall-Winter 2019)'. A real citation with a period word or a month among its authors is still removed ('(Summer & Lee 2019)', '(Lee and May 2019)'); '(May and Lee 2019)' stays as printed, as a month is never the first author (D-173)."
-blocks = [
-    { kind = "paragraph", text = "It grew (Spring and May 2019) here." },
-    { kind = "paragraph", text = "It grew (Spring And Summer 2019) here." },
-    { kind = "paragraph", text = "It grew (Spring & Summer 2019) here." },
-    { kind = "paragraph", text = "It grew (Fall-Winter 2019) here." },
-    { kind = "paragraph", text = "It grew (May and June 2019) here." },
-    { kind = "paragraph", text = "It grew (May–June 2019) here." },
-    { kind = "paragraph", text = "It grew (Summer & Lee 2019) here." },
-    { kind = "paragraph", text = "It grew (Lee and May 2019) here." },
-    { kind = "paragraph", text = "It grew (May and Lee 2019) here." },
-]
-expected = [
-    "It grew (Spring and May 2019) here.",
-    "It grew (Spring And Summer 2019) here.",
-    "It grew (Spring & Summer 2019) here.",
-    "It grew (Fall-Winter 2019) here.",
-    "It grew (May and June 2019) here.",
-    "It grew (May–June 2019) here.",
-    "It grew here.",
-    "It grew here.",
-    "It grew (May and Lee 2019) here.",
 ]

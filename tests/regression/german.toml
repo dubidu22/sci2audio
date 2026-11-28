@@ -2729,6 +2729,27 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-dating-bracket-of-period-words-and-months-stays-read"
+audit = 0
+issue = 925
+goal = "As in English: a dating bracket of period words and months joined by 'und', '&', a hyphen or a slash and a year stays as printed; a real citation stays removed (#925)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es wuchs (Frühjahr & Sommer 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Frühjahr und Mai 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Mai und Juni 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Herbst-Winter 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Sommer & Lee 2019) hier." },
+]
+expected = [
+    "Es wuchs (Frühjahr & Sommer 2019) hier.",
+    "Es wuchs (Frühjahr und Mai 2019) hier.",
+    "Es wuchs (Mai und Juni 2019) hier.",
+    "Es wuchs (Herbst-Winter 2019) hier.",
+    "Es wuchs hier.",
+]
+
+[[case]]
 id = "de-arrow-printed-as-two-glyphs"
 audit = 0
 issue = 527
@@ -3885,25 +3906,4 @@ expected = [
     "Also A ⇒ ¬.",
     "Also A ⇔ ¬.",
     "Also A daraus folgt ¬B.",
-]
-
-[[case]]
-id = "de-a-dating-bracket-of-period-words-and-months-stays-read"
-audit = 0
-issue = 925
-goal = "As in English: a dating bracket of period words and months joined by 'und', '&', a hyphen or a slash and a year stays as printed; a real citation stays removed (#925)."
-language = "de"
-blocks = [
-    { kind = "paragraph", text = "Es wuchs (Frühjahr & Sommer 2019) hier." },
-    { kind = "paragraph", text = "Es wuchs (Frühjahr und Mai 2019) hier." },
-    { kind = "paragraph", text = "Es wuchs (Mai und Juni 2019) hier." },
-    { kind = "paragraph", text = "Es wuchs (Herbst-Winter 2019) hier." },
-    { kind = "paragraph", text = "Es wuchs (Sommer & Lee 2019) hier." },
-]
-expected = [
-    "Es wuchs (Frühjahr & Sommer 2019) hier.",
-    "Es wuchs (Frühjahr und Mai 2019) hier.",
-    "Es wuchs (Mai und Juni 2019) hier.",
-    "Es wuchs (Herbst-Winter 2019) hier.",
-    "Es wuchs hier.",
 ]
