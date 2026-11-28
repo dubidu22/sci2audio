@@ -312,6 +312,23 @@ blocks = [{ kind = "paragraph", text = "Siehe Abb. 3a, Tab. 2, Gl. (4), Kap. 5, 
 expected = ["Siehe Abbildung 3a, Tabelle 2, Gleichung (4), Kapitel 5, Abschnitt 2 Punkt 1, Anhang B und Nummer 7."]
 
 [[case]]
+id = "de-abbreviations-label-before-a-bracketed-year-or-nest"
+audit = 0
+issue = 627
+goal = "A label abbreviation before a nest of brackets is read in full, and a label word before a bracketed year numbers what it labels, no name and year of a citation, so 'Abb.' and 'Gl.' read the same on a second run (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Abb. ((Müller, 2019), Müller, 2017; und (Kim, 2019) 2021) zeigt es." },
+    { kind = "paragraph", text = "Abb. (2021) und Gl. ((4)) gelten." },
+    { kind = "paragraph", text = "Wie Müller (2021) zeigt." },
+]
+expected = [
+    "Abbildung (2021) zeigt es.",
+    "Abbildung (2021) und Gleichung ((4)) gelten.",
+    "Wie Müller zeigt.",
+]
+
+[[case]]
 id = "de-abbreviations-titles"
 audit = 0
 issue = 113

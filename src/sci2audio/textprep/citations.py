@@ -1682,6 +1682,10 @@ class _Rules:
             return ""
         if self.language == "de" and bare in self.read_words:
             return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
+        if _is_label_word(bare, self.words.numbered) or bare in self.words.ref_words:
+            # "Equation (2021)" numbers an equation, as "Eq. (2021)" does before the
+            # abbreviations step reads it, so a second run decides the same (#627)
+            return ""
         # "Sag and Hankamer (1984)": the reason names both authors
         pair = self.pair_end.search(before)
         if pair and _is_name(pair.group(1)):

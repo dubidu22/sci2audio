@@ -41,7 +41,7 @@ from sci2audio.textprep.wordlists import Abbreviation, abbreviations
 
 # what may follow an abbreviation read only before a label, a number or a word
 _SPACE = r"[^\S\r]{0,2}"
-_LABEL = re.compile(_SPACE + r"(?:\d|[(\[]\w|[A-Z](?![a-z]|\.[A-Za-z]))")
+_LABEL = re.compile(_SPACE + r"(?:\d|[(\[]+\w|[A-Z](?![a-z]|\.[A-Za-z]))")
 _NUMBER = re.compile(_SPACE + r"\d")
 _WORD = re.compile(r"[^\S\r]{1,2}(?:[A-Z]|\d)")
 # a date: a day and its full stop, then a month's number or German name ("v. 12.03.2015")
@@ -62,7 +62,7 @@ _LOWER = "".join(c for c in map(chr, range(0x250)) if c.islower())
 # 4 5" in the same run (#130)
 _FOLLOWS_ANY_CAPITAL = {
     "label": re.compile(
-        _SPACE + rf"(?:\.?\d|[(\[]\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"
+        _SPACE + rf"(?:\.?\d|[(\[]+\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"
     ),
     "number": re.compile(_SPACE + r"\.?\d"),
     "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\.?\d)"),
