@@ -2811,6 +2811,25 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-dating-bracket-of-several-period-words-with-a-comma-stays-read"
+audit = 0
+issue = 1247
+goal = "Eine Datumsklammer aus zwei oder mehr Zeitwörtern oder Monaten mit Komma vor dem Jahr bleibt wie gedruckt, wie ohne Komma; ein Zeitwort allein mit Komma zitiert weiter ('(Sommer, 2019)', #483), ebenso ein Name darunter (#1247)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es wuchs (Frühjahr und Sommer, 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Frühjahr und Mai, 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Sommer, 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Sommer & Lee, 2019) hier." },
+]
+expected = [
+    "Es wuchs (Frühjahr und Sommer, 2019) hier.",
+    "Es wuchs (Frühjahr und Mai, 2019) hier.",
+    "Es wuchs hier.",
+    "Es wuchs hier.",
+]
+
+[[case]]
 id = "de-arrow-printed-as-two-glyphs"
 audit = 0
 issue = 527
@@ -3183,6 +3202,27 @@ expected = [
     "Dann die Daten und mehr.",
     "Dann es und mehr.",
     "Dann es und mehr.",
+]
+
+[[case]]
+id = "de-links-citations-no-two-join-words-bzw-or-sowie-side-by-side"
+audit = 0
+issue = 1248
+goal = "'bzw.', 'sowie' und '&' vor und nach einer entfernten Quellenangabe, mit oder ohne entfernten Link danach, werden einmal gelesen, wie in der umgekehrten Reihenfolge und wie 'und' (#628, #847, #1248)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Dann es bzw. (Müller, 2019) https://x.org bzw. mehr." },
+    { kind = "paragraph", text = "Dann es sowie (Müller, 2019) https://x.org sowie mehr." },
+    { kind = "paragraph", text = "Dann es bzw. https://x.org (Müller, 2019) bzw. mehr." },
+    { kind = "paragraph", text = "Dann es sowie (Müller, 2019) sowie mehr." },
+    { kind = "paragraph", text = "Dann es & (Müller, 2019) & mehr." },
+]
+expected = [
+    "Dann es beziehungsweise mehr.",
+    "Dann es sowie mehr.",
+    "Dann es beziehungsweise mehr.",
+    "Dann es sowie mehr.",
+    "Dann es & mehr.",
 ]
 
 [[case]]
@@ -3607,6 +3647,27 @@ expected = [
     "Es misst ein Kelvin",
     "Es misst [1]2 Kelvin hier.",
     "Es ist 3 mal ‒2 hier.",
+]
+
+[[case]]
+id = "de-a-citation-glued-to-a-number-said-as-a-word-is-never-read"
+audit = 0
+issue = 1232
+goal = "A citation glued to a number the units step reads as a word ('[2]1 K', 'ein Kelvin') goes even where a join word or 'in' before it would make it needed: 'und [2]1 K' reads 'und ein Kelvin', not 'und Quelle 2ein Kelvin' (#1032, #1232)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es misst 3 K und [2]1 K hier." },
+    { kind = "paragraph", text = "Es misst 3 K und [2]1 kg hier." },
+    { kind = "paragraph", text = "Es misst 3 K sowie [2]1 K hier." },
+    { kind = "heading", text = "Es misst 3 K und [2]1 K" },
+    { kind = "paragraph", text = "Es misst 3 K und [2]2 K hier." },
+]
+expected = [
+    "Es misst 3 Kelvin und ein Kelvin hier.",
+    "Es misst 3 Kelvin und ein Kilogramm hier.",
+    "Es misst 3 Kelvin sowie ein Kelvin hier.",
+    "Es misst 3 Kelvin und ein Kelvin",
+    "Es misst 3 Kelvin und [2]2 Kelvin hier.",
 ]
 
 [[case]]
