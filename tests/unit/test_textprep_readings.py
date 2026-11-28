@@ -439,6 +439,42 @@ def test_a_step_follows_the_words_another_step_says(monkeypatch: pytest.MonkeyPa
         cleared()
 
 
+def test_the_units_step_follows_the_numbers_steps_words(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#1193: "minus 3x" is the reading of a minus sign before "3x", so its x is a variable
+    (#997). Were the numbers step to read a minus sign "negative", "negative 3x" would be."""
+    from sci2audio.textprep import units
+
+    real = readings._finders()["numbers"]
+    said = real.words("en")
+    double = readings.Finder(
+        real.read,
+        real.asks,
+        words=lambda language: readings.Words(
+            signs={**said.signs, "\u2212": "negative"}, joined=said.joined, months=said.months
+        ),
+    )
+    caches = (units._minus_said_en, units._plus_or_before_en, units._minus_said_after_en)
+
+    def cleared() -> None:
+        for cached in caches:
+            cached.cache_clear()
+        readings._read.cache_clear()
+
+    def times(text: str) -> bool:
+        return any(r.words.strip() == "times" for r in readings_of("units", text, "en"))
+
+    assert not times("So y minus 3x here.")
+    assert times("So y negative 3x here.")
+    cleared()
+    monkeypatch.setitem(readings._finders(), "numbers", double)
+    try:
+        assert not times("So y negative 3x here.")
+        assert times("So y minus 3x here.")
+    finally:
+        monkeypatch.undo()
+        cleared()
+
+
 def render_numbers(text: str) -> str:
     """The text with the English numbers step's candidates applied, as one run reads it."""
     from sci2audio.textprep.numbers import find_numbers
