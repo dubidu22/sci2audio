@@ -892,24 +892,25 @@ def _in_algebra(
     head = text[max(0, start - len(times) - 3) : start].rstrip(" ")
     if head.endswith(times) and not head[: -len(times)][-1:].isalnum():
         return True
-    tail = text[end : end + len(times) + 3].lstrip(" ")
+    # a citation the citations step removes after "Nx" is gone on a second run: "3x (Smith,
+    # 2019) > 2x" is "3x > 2x" then, so what follows the citation decides, here and below
+    # (#1233)
+    past = _past_citation(text, end, "en" if english else "de")
+    tail = text[past : past + len(times) + 3].lstrip(" ")
     if tail.startswith(times) and not tail[len(times) : len(times) + 1].isalnum():
         return True
-    if said is not None and _said_around(text, start, end, said):
+    if said is not None and _said_around(text, start, past, said):
         return True
     if compared is not None and compared.search(text, max(0, start - 24), start):
         return True  # "y less than 2x" (#358, D-646)
     if english and _minus_said_before(text, start):
         return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
     if english and (
-        _minus_said_after_en().match(text, end) or _compared_after_en().match(text, end)
+        _minus_said_after_en().match(text, past) or _compared_after_en().match(text, past)
     ):
         return True  # "3x minus 2", "3x greater than y": the readings of signs after "3x"
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
-    # a citation the citations step removes after "Nx" is gone on a second run: "3x (Smith,
-    # 2019) > 2x" is "3x > 2x" then, so what follows the citation decides (#1233)
-    past = _past_citation(text, end) if english else end
     ahead = text[past : past + 3]
     after = ahead.lstrip(" ")[:1]
     after_at = past + len(ahead) - len(ahead.lstrip(" "))
@@ -954,29 +955,34 @@ def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
         return False
     # ... past a citation the citations step removes after the sign: "3x > (Smith, 2019) 2x"
     # is "3x > 2x" on a second run (#1233)
-    past = _past_citation(text, at + 1)
+    past = _past_citation(text, at + 1, "en")
     said_after = " less than " + text[past : past + 32].lstrip()
     return _compared_after_en().match(said_after) is None
 
 
-def _past_citation(text: str, at: int) -> int:
-    """Where the round or square citation that the English citations step removes right at
-    `at` (white space before it included) ends, or `at` if none starts there."""
-    bracket = at + len(text[at : at + 3]) - len(text[at : at + 3].lstrip(" "))
-    if text[bracket : bracket + 1] not in ("(", "["):
-        return at
-    for start, end in _citation_removals(text):
-        if at <= start <= bracket < end:
-            return end
-    return at
+def _past_citation(text: str, at: int, language: str) -> int:
+    """Where the round or square citations that the citations step removes right at `at`
+    end (white space before each included, one after another: "(Smith, 2019) (Jones,
+    2020)"), or `at` if none starts there."""
+    removals: tuple[tuple[int, int], ...] | None = None
+    while True:
+        bracket = at + len(text[at : at + 3]) - len(text[at : at + 3].lstrip(" "))
+        if text[bracket : bracket + 1] not in ("(", "["):
+            return at
+        if removals is None:
+            removals = _citation_removals(text, language)
+        found = next((end for start, end in removals if at <= start <= bracket < end), None)
+        if found is None:
+            return at
+        at = found
 
 
 @lru_cache(maxsize=64)
-def _citation_removals(text: str) -> tuple[tuple[int, int], ...]:
+def _citation_removals(text: str, language: str) -> tuple[tuple[int, int], ...]:
     # imported here: the citations step asks the readings, which ask this step
     from sci2audio.textprep.citations import citation_removals
 
-    return tuple(citation_removals(text, "en"))
+    return tuple(citation_removals(text, language))
 
 
 def _read_alone(text: str, at: int) -> bool:
