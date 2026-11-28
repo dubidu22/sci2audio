@@ -40,9 +40,9 @@ def read_all(text: str, language: str = "en") -> str:
         ("en", "Between [1, 2] and [3] it lies.", "Between references 1, 2 and 3 it lies."),
         ("en", "Between [1] and [3\u20135] it lies.", "Between references 1 and 3 to 5 it lies."),
         ("de", "Zwischen [1] und [3] liegt es.", "Zwischen Quellen 1 und 3 liegt es."),
-        # only "and" / "und" join a pair
-        ("en", "It holds [1] or [3] here.", "It holds or reference 3 here."),
-        ("de", "Zwischen [1] oder [3] liegt es.", "Zwischen oder Quelle 3 liegt es."),
+        # "or" / "oder" join a pair as "and" does (#622)
+        ("en", "It holds [1] or [3] here.", "It holds references 1 or 3 here."),
+        ("de", "Zwischen [1] oder [3] liegt es.", "Zwischen Quellen 1 oder 3 liegt es."),
         # two brackets the sentence needs read once over both, as a needed list does (#414,
         # D-791; read "reference 1 and reference 3" before)
         ("en", "It was shown in [1] and [3].", "It was shown in references 1 and 3."),
@@ -230,9 +230,10 @@ def test_no_two_full_stops_after_an_abbreviation(language: str, printed: str, sa
             "Wie in Quellen 1, 2 und 3 gezeigt, gilt es.",
         ),
         ("de", "[1], [2] und [3] zeigen es.", "Quellen 1, 2 und 3 zeigen es."),
-        # "or" joins no list: as before (#414's second criterion; follow-up F1)
-        ("en", "Between [1], [2] or [3] it lies.", "Between, or reference 3 it lies."),
-        ("de", "Es gilt [1], [2] oder [3] hier.", "Es gilt, oder Quelle 3 hier."),
+        # "or" joins a list as "and" does (#622): an aside one goes whole
+        ("en", "Between [1], [2] or [3] it lies.", "Between it lies."),
+        ("de", "Es gilt [1], [2] oder [3] hier.", "Es gilt hier."),
+        ("en", "As shown in [1], [2] or [3].", "As shown in references 1, 2 or 3."),
         # what is no item: a page, a bracket glued to a word, a number glued after, maths
         ("en", "It holds [12, p. 3], [4] and [5] here.", "It holds, references 4 and 5 here."),
         # a letter glued after the list is read as its own word, as after one bracket ("[3]x",
@@ -272,13 +273,13 @@ def test_a_list_is_named_whole_in_its_reason(printed: str, named: str) -> None:
     assert named in edit.reason
 
 
-def test_an_or_list_is_not_read_as_one_citation() -> None:
-    """#414 keeps "or" lists as they read before; this pins only that they are not joined into
-    one citation, not today's reading of them (follow-up F1)."""
-    said = read_all("It holds [1], [2] or [3] here.")
-    assert "references 1" not in said
-    assert said != "It holds here."
-    assert " or " in said
+def test_an_or_list_is_one_citation_but_not_one_that_mixes_and_and_or() -> None:
+    """#622 (follow-up F1 of #414): a list joined by "or" is one citation, read with its
+    "or"; a run that mixes "and" and "or" is no list and reads as before."""
+    assert read_all("It holds [1], [2] or [3] here.") == "It holds here."
+    assert read_all("As shown in [1] or [3].") == "As shown in references 1 or 3."
+    mixed = read_all("It holds [1] and [2] or [3] here.")
+    assert mixed == "It holds references 1 and 2 or reference 3 here."
 
 
 @pytest.mark.parametrize(
