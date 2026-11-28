@@ -15,6 +15,7 @@ from test_layout_code import MONO, PITCH, build, code, listing, prose, running, 
 
 from sci2audio.core import BlockKind, Content, Document, TextRun
 from sci2audio.layout import build_document
+from sci2audio.testing import rebuilt_from_script
 from sci2audio.textprep import BUILT_IN_STEPS, StepContext, run_steps, spoken_text
 
 CODE = "code"
@@ -247,3 +248,49 @@ def test_only_typewriter_runs_are_tagged_and_building_twice_tags_the_same(
     again = build_document(first.content)
     assert again.content == first.content
     assert again.blocks == first.blocks
+
+
+def split_word(first: str, second: str) -> Document:
+    """A paragraph whose typewriter word is split over a line end, each piece a code run."""
+    above = text_line(
+        runs(("We set the software up with care for", "Times"), (f" {first}", MONO)), 300, end=RIGHT
+    )
+    below = text_line(
+        runs((second, MONO), (" package here, as the paper says.", "Times")), 300 + PITCH, end=RIGHT
+    )
+    return build(above, below)
+
+
+def read_twice(document: Document) -> tuple[str, str]:
+    first = run_steps(document, StepContext("en"), BUILT_IN_STEPS, strict=True)
+    second = run_steps(
+        rebuilt_from_script(document, first.script()), StepContext("en"), strict=True
+    )
+    return spoken_text(first.script()), spoken_text(second.script())
+
+
+def test_a_typewriter_word_split_over_a_line_end_is_joined_on_both_runs() -> None:
+    """#913: the join takes away a hyphen and a line break that the page's layout put there,
+    no character of the code, so it applies inside inline code too: "matplotlib"."""
+    document = split_word("matplot-", "lib")
+    assert tagged(document) == [" matplot-", "lib"]
+    first, second = read_twice(document)
+    assert "care for matplotlib package here" in first
+    assert second == first
+
+
+def test_a_compound_split_inside_code_keeps_its_hyphen() -> None:
+    """#913: the hyphens step's lists decide inside code as outside: a real compound keeps
+    its hyphen ("self-contained")."""
+    first, second = read_twice(split_word("self-", "contained"))
+    assert "care for self-contained package here" in first
+    assert second == first
+
+
+def test_another_steps_edit_inside_code_is_still_dropped() -> None:
+    """#913: only the line-end join reaches inside code; an arrow typed in it stays."""
+    line = runs(
+        ("Write the rule", "Times"), (" x => x + 1", "Courier"), (" and A => B as shown.", "Times")
+    )
+    first, _ = read_twice(build(text_line(line, 300, end=RIGHT)))
+    assert "Write the rule x => x + 1 and A implies B as shown." in first
