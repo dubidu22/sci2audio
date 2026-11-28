@@ -10,8 +10,12 @@ Order of checks for every HTTP request:
 
 1. `Host` must be `127.0.0.1:<port>` or `localhost:<port>`, else 421 (DNS rebinding).
 2. `Origin`, when present, must be the server's own, else 403.
-3. `Sec-Fetch-Site`, when present, must be `same-origin` or `none`, else 403.
-4. `/start?token=…` trades the token for the cookie and redirects to `/`.
+3. `Sec-Fetch-Site`, when present, must be `same-origin` or `none`, else 403; but for
+   `/start`, `cross-site` too: the start page on disk (#117) comes from a `file:` page,
+   which every browser sends as cross-site, and the token is the check there.
+4. `/start?token=…` trades the token for the cookie and redirects to `/`. From the start
+   page it answers with a page that goes on to `/` itself: after a redirect the request
+   would stay cross-site, and the browser would not send the Strict cookie with it.
 5. Every other path needs the token: the cookie or `Authorization: Bearer <token>`,
    else 401. A cookie-authenticated request that is not GET or HEAD must carry a
    matching `Origin` (browsers always send one there), else 403.
@@ -25,7 +29,7 @@ from __future__ import annotations
 import html
 import json
 import secrets
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from urllib.parse import parse_qs
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -34,6 +38,12 @@ from sci2audio.web.config import ServerConfig
 from sci2audio.web.i18n import COOKIE, language_from, strings
 
 SAFE_METHODS = frozenset({"GET", "HEAD"})
+# what `/start` answers the start page with: on to "/" from the server's own page (#117)
+_STEP_PAGE = (
+    b'<!doctype html>\n<html><head><meta charset="utf-8">'
+    b'<meta http-equiv="refresh" content="0;url=/"><title>sci2audio</title></head>'
+    b'<body><a href="/">sci2audio</a></body></html>\n'
+)
 FETCH_SITES = frozenset({"same-origin", "none"})
 
 CSP = (
@@ -120,11 +130,16 @@ def _same(given: str | None, token: str) -> bool:
 
 
 class LocalOnly:
-    """The middleware; `config` gives the port, the token and the cookie name."""
+    """The middleware; `config` gives the port, the token and the cookie name, and
+    `on_start` is called once the token has been traded for the cookie (the start page
+    goes then, #117)."""
 
-    def __init__(self, app: ASGIApp, config: ServerConfig) -> None:
+    def __init__(
+        self, app: ASGIApp, config: ServerConfig, on_start: Callable[[], None] = lambda: None
+    ) -> None:
         self.app = app
         self.config = config
+        self.on_start = on_start
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":  # the server has none; never accept one
@@ -161,12 +176,13 @@ class LocalOnly:
         if origin is not None and origin not in config.origins:
             return _error(403, "wrong-origin", "requests from other pages are refused")
         site = _one(headers, "sec-fetch-site")
-        if site is not None and site not in FETCH_SITES:
-            return _error(403, "wrong-origin", "requests from other pages are refused")
         path = scope.get("path", "")
+        from_start_page = path == "/start" and site == "cross-site"
+        if site is not None and site not in FETCH_SITES and not from_start_page:
+            return _error(403, "wrong-origin", "requests from other pages are refused")
         method = scope.get("method", "GET")
         if path == "/start":
-            return self._start(scope, method)
+            return self._start(scope, method, step=from_start_page)
         authorization = _one(headers, "authorization") or ""
         scheme, _, bearer = authorization.partition(" ")
         if scheme.lower() == "bearer" and _same(bearer.strip(), config.token):
@@ -177,14 +193,17 @@ class LocalOnly:
             return None
         return _unauthorised(path, headers)
 
-    def _start(self, scope: Scope, method: str) -> ASGIApp:
+    def _start(self, scope: Scope, method: str, *, step: bool = False) -> ASGIApp:
         if method not in SAFE_METHODS:
             return _error(405, "method-not-allowed", "open the link shown in the terminal")
         query = parse_qs(scope.get("query_string", b"").decode("latin-1"))
         tokens = query.get("token", [])
         if len(tokens) != 1 or not _same(tokens[0], self.config.token):
             return _unauthorised("/start", _headers(scope))
+        self.on_start()
         cookie = f"{self.config.cookie_name}={self.config.token}; HttpOnly; SameSite=Strict; Path=/"
+        if step:
+            return _respond(200, _STEP_PAGE, "text/html; charset=utf-8", [("set-cookie", cookie)])
         return _respond(
             303, b"", "text/plain; charset=utf-8", [("location", "/"), ("set-cookie", cookie)]
         )

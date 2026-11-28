@@ -15,6 +15,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -25,8 +26,9 @@ from pdf_maker import Text, make_pdf
 from web_helpers import make_config
 
 from sci2audio import cli
-from sci2audio.web import bind, create_app, launch
+from sci2audio.web import bind, create_app, launch, startpage
 from sci2audio.web.jobs import JobKind
+from sci2audio.web.startpage import StartPage
 
 SERVER = """
 import sys
@@ -41,6 +43,11 @@ config = ServerConfig(
 serve(sock, config, open_browser=False)
 """
 TOKEN = "t" * 43
+
+
+def page_file(address: str) -> Path:
+    """The path of a `file:` address (`Path.from_uri` is Python 3.13's)."""
+    return Path(urllib.request.url2pathname(urllib.parse.urlparse(address).path))
 
 
 def test_bind_listens_on_127_0_0_1_at_a_port_the_system_picks() -> None:
@@ -71,9 +78,16 @@ def test_serve_prints_the_link_opens_the_browser_and_cancels_on_the_way_out(
         ran.append(self)
         asyncio.run(self.startup(sockets))
 
-    monkeypatch.setattr(launch.webbrowser, "open", opened.append)
+    pages: list[str] = []
+
+    def open_page(address: str) -> None:  # what the start page holds while it is there
+        opened.append(address)
+        pages.append(page_file(address).read_text(encoding="utf-8"))
+
+    monkeypatch.setattr(launch.webbrowser, "open", open_page)
     monkeypatch.setattr(launch.uvicorn.Server, "startup", startup)
     monkeypatch.setattr(launch.uvicorn.Server, "run", run)
+    monkeypatch.setattr(startpage, "default_folder", lambda: tmp_path / "run")
     sock = bind()
     try:
         from web_helpers import make_config
@@ -83,13 +97,78 @@ def test_serve_prints_the_link_opens_the_browser_and_cancels_on_the_way_out(
     finally:
         sock.close()
     assert before_start == [(0, 0)]  # nothing is said or opened before uvicorn started (#161)
-    assert opened == [config.start_url]
+    # the browser is opened at the start page, so no command line holds the token (#117)
+    (address,) = opened
+    assert address.startswith("file:")
+    assert TOKEN not in address
+    assert page_file(address).parent == tmp_path / "run"
+    assert f'content="0;url={config.start_url}"' in pages[0]
+    assert not page_file(address).exists()  # gone once the server stopped
     assert config.start_url == f"http://127.0.0.1:{config.port}/start?token={TOKEN}"
     assert said[0] == f"sci2audio is running at {config.start_url}"
     server_config = ran[0].config
     assert server_config.access_log is False  # it would print the token
     assert server_config.server_header is False
     assert server_config.timeout_graceful_shutdown == launch.SHUTDOWN_WAIT
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes; Windows keeps it in the profile")
+def test_the_start_page_is_for_its_owner_alone(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    folder.mkdir(mode=0o755)  # an older folder made with more is narrowed
+    page = StartPage(folder)
+    address = page.write("http://127.0.0.1:8000/start?token=" + TOKEN)
+    path = page_file(address)
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert folder.stat().st_mode & 0o777 == 0o700
+    page.remove()
+    assert not path.exists()
+    page.remove()  # nothing to remove: no error
+
+
+def test_the_start_page_is_in_the_persons_own_folder() -> None:
+    # platformdirs' runtime folder: under /run/user or the home folder, in the profile on
+    # Windows, never a folder every user writes to
+    folder = startpage.default_folder()
+    assert folder.name == "sci2audio"
+    if sys.platform == "win32":
+        assert Path.home() in folder.parents
+
+
+def test_a_start_link_with_quotes_is_escaped_in_the_page(tmp_path: Path) -> None:
+    page = StartPage(tmp_path)
+    text = page_file(page.write('http://127.0.0.1:1/start?token="><x')).read_text("utf-8")
+    assert '"><x' not in text
+    assert "&quot;&gt;&lt;x" in text
+
+
+def test_no_browser_opens_when_the_start_page_cannot_be_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    opened: list[str] = []
+    said: list[str] = []
+
+    async def startup(self: Any, sockets: Any = None) -> None:
+        self.started = True
+
+    def run(self: Any, sockets: Any) -> None:
+        asyncio.run(self.startup(sockets))
+
+    blocked = tmp_path / "file"
+    blocked.write_text("a file, not a folder", encoding="utf-8")
+    monkeypatch.setattr(launch.webbrowser, "open", opened.append)
+    monkeypatch.setattr(launch.uvicorn.Server, "startup", startup)
+    monkeypatch.setattr(launch.uvicorn.Server, "run", run)
+    monkeypatch.setattr(startpage, "default_folder", lambda: blocked / "run")
+    sock = bind()
+    try:
+        config = make_config(tmp_path, port=sock.getsockname()[1], token=TOKEN)
+        launch.serve(sock, config, say=said.append)
+    finally:
+        sock.close()
+    assert opened == []  # never the start link itself, with the token on a command line
+    assert said[0] == f"sci2audio is running at {config.start_url}"
+    assert any(line.startswith("Open the link above in your browser") for line in said)
 
 
 @pytest.mark.parametrize("still_speaking", [False, True])
