@@ -108,10 +108,10 @@ jobs:
       - name: Workflow security (zizmor)
         run: uv run zizmor --offline .github/workflows
 
-  # Reported only until #1104 makes it required (#1099): src/ still has type errors, which
-  # #1100-#1103 fix layer by layer, and "CI passed" skips a name with "reported only" in it.
+  # Required since #1104: src/ has no type errors (#1100-#1103), so a PR that adds one
+  # cannot merge; tests/ and strict mode stay out (#1099).
   types:
-    name: types (pyright, reported only)
+    name: types (pyright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,10 +132,10 @@ jobs:
           sed -i "s|$GITHUB_WORKSPACE/||" pyright.txt
           cat pyright.txt
           {
-            echo "## Type check (pyright, reported only until #1104)"
+            echo "## Type check (pyright)"
             echo
-            # exit 1 is type errors; anything higher is pyright itself failing, which a red
-            # reported-only job would otherwise hide among the errors
+            # exit 1 is type errors; anything higher is pyright itself failing, said apart so
+            # it is not taken for an error in the code
             if [ "$status" -gt 1 ]; then
               echo "**pyright did not finish (exit $status): fix the check, not the code.**"
             else
@@ -351,7 +351,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [lint, licences, security, tests, browser, web-paths]
+    needs: [lint, licences, security, types, tests, browser, web-paths]
     runs-on: ubuntu-latest
     permissions:
       contents: read
