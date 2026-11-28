@@ -1345,6 +1345,26 @@ blocks = [{ kind = "paragraph", text = "Eq. [3] and Eq.[4] hold." }]
 expected = ["Equation [3] and Equation [4] hold."]
 
 [[case]]
+id = "abbreviations-label-before-a-bracketed-year-or-nest"
+audit = 0
+issue = 627
+goal = "A label abbreviation before a nest of brackets is read in full, and a label word before a bracketed year numbers what it labels, no name and year of a citation, so 'Refs.' and 'Eq.' read the same on a second run, after the abbreviations step has read them (D-577)."
+blocks = [
+    { kind = "paragraph", text = "Refs. ((Müller, 2019), Müller, 2017; and (Kim, 2019) 2021) show it." },
+    { kind = "paragraph", text = "Refs. (2021) show it." },
+    { kind = "paragraph", text = "Eq. (2021) and Table (2021) hold." },
+    { kind = "paragraph", text = "Eq. ((8)) holds." },
+    { kind = "paragraph", text = "Smith (2021) shows it." },
+]
+expected = [
+    "References (2021) show it.",
+    "References (2021) show it.",
+    "Equation (2021) and Table (2021) hold.",
+    "Equation ((8)) holds.",
+    "Smith shows it.",
+]
+
+[[case]]
 id = "links-url-cut-before-a-sentence-word"
 audit = 0
 issue = 109
