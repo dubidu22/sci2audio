@@ -139,6 +139,12 @@ _LETTER_X = re.compile(
     r"(?:(?<![\w.,/-])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹][xX])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹] [xX]))"
     r"(?P<number>\d+(?:[.,]\d+)*(?:[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)(?P<space> ?)(?P<x>[xX])"
 )
+# a size: two whole numbers of two or more digits joined by a glued x or times sign, in no
+# chain and no decimal ("1920x1080", "32x32"); English reads it "by" (#1037), German "mal"
+_GLUED_SIZE = re.compile(
+    r"(?<![\w\u00d7])(?<!\d[.,])\d{2,}(?P<x>[xX\u00d7])\d{2,}(?![\w\u00d7]|[.,]\d)"
+)
+_BY = "by"
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
@@ -340,9 +346,11 @@ def _found(text: str, table: _Table) -> Iterator[Reading]:
         if gender and (one := _one(text, match, table, gender)) is not None:
             yield _reads(match.start(), match.end(), one)
     words = table.words.words
+    english = table.language == "en"
+    sizes = {m.start("x") for m in _GLUED_SIZE.finditer(text)} if english else set()
     for position, char in enumerate(text):
         if char == "\u00d7" and _single(text, position, "\u00d7"):
-            yield _symbol(text, position, words["times"])
+            yield _symbol(text, position, _BY if position in sizes else words["times"])
         elif char == "\u2248" and _single(text, position, "\u2248"):
             yield _symbol(text, position, words["approximately"])
         elif char == MICRO_SIGN and not any(s <= position < e for s, e in units_found):
@@ -359,14 +367,16 @@ def _found(text: str, table: _Table) -> Iterator[Reading]:
         if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
             yield _symbol(text, match.start(), words["about"], before_number=True)
     for match in _LETTER_X.finditer(text):
-        if _times_x(
+        if match.start("x") in sizes:
+            yield _symbol(text, match.start("x"), _BY)
+        elif _times_x(
             text,
             match,
             words["times"],
             table.said_operators,
             table.words.decimal,
             table.compared,
-            english=table.language == "en",
+            english=english,
         ):
             yield _symbol(text, match.start("x"), words["times"])
 

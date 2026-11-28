@@ -48,7 +48,7 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.numbers_de import find_numbers_de, unit_read_after_per, x_read_after
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import readings_of
+from sci2audio.textprep.readings import holding, readings_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
@@ -568,6 +568,8 @@ def _counts(text: str) -> list[Candidate]:
         if value % 100 == 0:
             continue  # "1000", "1200": read right as a year and as a number
         before = _before(text, match.start())
+        if _size_by(text, match.end()):
+            continue  # "1920x1080", "1024X768": a size, its digits read as printed (#1037)
         x_after = _X_AFTER.match(text, match.end())
         times_x = x_after is not None and x_read_after(text, match.end(), "en")
         if x_after is not None and not x_after.group().startswith(" ") and not times_x:
@@ -579,6 +581,13 @@ def _counts(text: str) -> list[Candidate]:
         words = f"{number[0]},{number[1:]}"
         found.append(Candidate(*match.span(), words, f'"{number}" read as a number, not a year'))
     return found
+
+
+def _size_by(text: str, end: int) -> bool:
+    """True if the units step reads the sign glued right after the number ending at `end`
+    "by", as a size ("1920x1080"): a second run sees "1920 by 1080", no count there."""
+    found = holding(readings_of("units", text, "en"), end)
+    return found is not None and found.start == end and found.words.strip() == "by"
 
 
 def _counted_before_sign(

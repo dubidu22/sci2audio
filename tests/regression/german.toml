@@ -3820,3 +3820,12 @@ expected = [
     "mit 5 N Proben",
     "Es gilt x gleich 2 s + 1",
 ]
+
+[[case]]
+id = "de-a-glued-size-keeps-mal"
+audit = 0
+issue = 1037
+goal = "Two whole numbers joined by a glued 'x' or 'X' keep 'mal' in German, which is how a resolution is said there; only English reads such a size 'by' (#1037)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Der Bildschirm hat 1920x1080 Pixel und 1024X768." }]
+expected = ["Der Bildschirm hat 1920 mal 1080 Pixel und 1024 mal 768."]
