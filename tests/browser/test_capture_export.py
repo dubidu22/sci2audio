@@ -513,6 +513,56 @@ def test_a_refused_clipboard_is_said_and_nothing_else_changes(signed_in: Page, l
     check_axe(page, "captures, copy refused")
 
 
+# The clipboard as each browser's page sees it, refusing or taking the write: headless
+# Firefox and WebKit grant no clipboard permission to refuse or give (#1242).
+CLIPBOARDS = {
+    "refused": 'Promise.reject(new DOMException("refused", "NotAllowedError"))',
+    "written": "Promise.resolve()",
+}
+
+
+@pytest.mark.parametrize(
+    ("clipboard", "said"),
+    [
+        ("refused", "Not copied: the clipboard was refused. Try again, or save the Markdown file."),
+        ("written", "Copied 3 captures."),
+    ],
+)
+def test_copy_leaves_the_open_replace_question_as_it_is(
+    signed_in: Page, live: Live, clipboard: str, said: str
+) -> None:
+    """#1242: a Copy, refused or not, answers no question about the file: "Replace it?"
+    stays open, and "Replace it" then still replaces the file it named."""
+    page = signed_in
+    captured(page, live)
+    open_captures(page)
+    folder = folder_of(live)
+    page.locator("#export-folder-md").fill(str(folder))
+    page.locator("#export-save-md").click()
+    expect(state(page, "md")).to_contain_text("Saved as")
+    page.locator("#export-save-md").click()
+    ask = page.locator("#export-ask-md")
+    expect(ask).to_be_visible()
+    question = page.locator("#export-ask-md-title").inner_text()
+    page.evaluate(
+        f"""() => {{
+            const answer = () => {CLIPBOARDS[clipboard]};
+            for (const name of ["write", "writeText"]) {{
+                Object.defineProperty(navigator.clipboard, name, {{ value: answer }});
+            }}
+        }}"""
+    )
+    page.locator("#export-copy-md").click()
+    expect(state(page, "md")).to_have_text(said)
+    expect(ask).to_be_visible()
+    expect(page.locator("#export-ask-md-title")).to_have_text(question)
+    (folder / "Captures.md").write_text("changed by hand", encoding="utf-8")
+    ask.locator("button[data-replace]").click()
+    expect(state(page, "md")).to_have_text(f"Saved as Captures.md in {folder}.")
+    expect(ask).to_be_hidden()
+    assert (folder / "Captures.md").read_text(encoding="utf-8") != "changed by hand"
+
+
 @pytest.mark.only_browser("chromium")
 def test_copy_is_off_while_nothing_is_shown_and_works_by_keyboard(
     signed_in: Page, live: Live
