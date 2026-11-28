@@ -48,7 +48,7 @@ import re
 import unicodedata
 from collections.abc import Collection, Iterator
 from dataclasses import dataclass
-from functools import cache
+from functools import cache, lru_cache
 from types import MappingProxyType
 
 from sci2audio.core import Document, Edit, EditKind, Span
@@ -907,9 +907,12 @@ def _in_algebra(
         return True  # "3x minus 2", "3x greater than y": the readings of signs after "3x"
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
-    ahead = text[end : end + 3]
+    # a citation the citations step removes after "Nx" is gone on a second run: "3x (Smith,
+    # 2019) > 2x" is "3x > 2x" then, so what follows the citation decides (#1233)
+    past = _past_citation(text, end) if english else end
+    ahead = text[past : past + 3]
     after = ahead.lstrip(" ")[:1]
-    after_at = end + len(ahead) - len(ahead.lstrip(" "))
+    after_at = past + len(ahead) - len(ahead.lstrip(" "))
     # the "=" or ">" of an arrow of logic is no operator: the statistics step reads "=>" as
     # "implies", and "3x" before that word is "3 times" on a second run, as "3x ⇒" is (#843)
     # ... nor, in English, a "<" or ">" right after such an arrow: its reading follows the
@@ -949,8 +952,31 @@ def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
     second run (`_COMPARED_AFTER_EN`)."""
     if sign not in ("<", ">") or not _read_alone(text, at):
         return False
-    said_after = " less than " + text[at + 1 : at + 33].lstrip()
+    # ... past a citation the citations step removes after the sign: "3x > (Smith, 2019) 2x"
+    # is "3x > 2x" on a second run (#1233)
+    past = _past_citation(text, at + 1)
+    said_after = " less than " + text[past : past + 32].lstrip()
     return _compared_after_en().match(said_after) is None
+
+
+def _past_citation(text: str, at: int) -> int:
+    """Where the round or square citation that the English citations step removes right at
+    `at` (white space before it included) ends, or `at` if none starts there."""
+    bracket = at + len(text[at : at + 3]) - len(text[at : at + 3].lstrip(" "))
+    if text[bracket : bracket + 1] not in ("(", "["):
+        return at
+    for start, end in _citation_removals(text):
+        if at <= start <= bracket < end:
+            return end
+    return at
+
+
+@lru_cache(maxsize=64)
+def _citation_removals(text: str) -> tuple[tuple[int, int], ...]:
+    # imported here: the citations step asks the readings, which ask this step
+    from sci2audio.textprep.citations import citation_removals
+
+    return tuple(citation_removals(text, "en"))
 
 
 def _read_alone(text: str, at: int) -> bool:
