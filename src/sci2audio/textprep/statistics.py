@@ -36,10 +36,10 @@ from functools import partial
 from types import MappingProxyType
 
 from sci2audio.core import Document, Edit
-from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
+    ARROW_JOINS,
     DOUBLE_ARROW,
     LEFT_ARROW_TAIL,
     Candidate,
@@ -51,8 +51,14 @@ from sci2audio.textprep.notation import (
     to_edits,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, Words
-from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE, WORDS_DE, find_statistics_de
+from sci2audio.textprep.readings import Reading, Words, ending_at, readings_of
+from sci2audio.textprep.statistics_de import (
+    ARROWS_DE,
+    LATIN_CHI,
+    OPERATORS_DE,
+    WORDS_DE,
+    find_statistics_de,
+)
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -74,9 +80,6 @@ OPERATORS = {
     "≫": "much greater than",
 }
 _OPERATOR = re.compile("|".join(sorted(map(re.escape, OPERATORS), key=len, reverse=True)))
-# characters that make an ASCII "<", ">" or "=" part of an arrow or a doubled sign; "⇐="
-# is a long double arrow the numbers step reads as "⇐" (#590)
-_ARROW = frozenset("<>=-−!:~|⇐")
 # a sign this step reads counts as a word next to another sign, since after the first run it
 # is one ("x = ≤ 3" reads both, so a second run on the script finds nothing more)
 _SIGNS = "".join(sorted({key[0] for key in OPERATORS} | {"\u0338"}))
@@ -86,11 +89,13 @@ _QUANTITY_SIGNS = "∆∇∞"
 # signs the units step (#68) reads as words ("times", "approximately"), so they are words to
 # this step on a second run too
 _UNIT_SIGNS = "×≈~"
-# an accent printed apart before its letter is that letter once the Unicode step joins them
+# an accent printed apart before its letter is that letter once the Unicode step joins them;
+# a figure dash before a number is a minus sign, which the numbers step reads "minus" (#1034)
 _OPERAND = re.compile(
     r"[\w(\[{|√+\-−⟨" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + r"]|\.\d"
-    r"|[" + "".join(ACCENTS) + r"][^\W\d_]"
+    r"|[" + "".join(ACCENTS) + r"][^\W\d_]|\u2012(?=\.?\d)"
 )
+_NEGATIONS = re.compile(r"(?:¬\s*)+")  # before an operand after an arrow: "⇒ ¬B", "⇒ ¬ ¬B"
 _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
@@ -121,11 +126,17 @@ _THEN_OPERATOR = f"(?={_OPERATOR_AHEAD})"
 
 # S2: a test statistic, its df in a parenthesis (two numbers at most, or a chi-square's
 # "1, N = 100"), then an operator
-_DF = re.compile(
-    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)"
+_DF_BRACKET = (
     r"(?P<paren>\(\s*(?P<a>" + _NUMBER + r")\s*"
-    r"(?:,\s*(?:(?P<n>[Nn]\s*=\s*\d[\d,]*)|(?P<b>" + _NUMBER + r")))?\s*\))" + _THEN_OPERATOR
+    r"(?:,\s*(?:(?P<n>[Nn]\s*=\s*\d[\d,]*)|(?P<b>" + _NUMBER + r")))?\s*\))"
 )
+_DF = re.compile(r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)" + _DF_BRACKET + _THEN_OPERATOR)
+# ... and set apart by a space, only before "=", so prose such as "t (34 s)" is not read
+# (#1120, ruled by Colin on 26 Nov 2026)
+_DF_SPACED = re.compile(
+    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)(?P<gap> )" + _DF_BRACKET + r"(?=\s*=)"
+)
+
 
 # S3: squared statistics; the letter may carry a "p" for partial (ηp², η²p)
 _SQUARED_NAMES = {
@@ -239,8 +250,10 @@ def _english(text: str) -> list[Candidate]:
 
 def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
     found = []
-    for match in _DF.finditer(plain):
+    for match in (*_DF.finditer(plain), *_DF_SPACED.finditer(plain)):
         start, end = match.span("paren")
+        if match.groupdict().get("gap"):
+            start = match.start("gap")  # "t (34)" reads "t of 34", one space
         if match["n"]:
             n = re.sub(r"\s*=\s*", " equals ", match["n"])
             words = f" of {match['a']}, {n}"
@@ -261,7 +274,10 @@ def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
 
 
 def _squared(text: str, plain: str) -> list[Candidate]:
-    found = []
+    found = [
+        Candidate(*m.span(), _SQUARED_NAMES["χ"], f'"{m.group()}" read as "{_SQUARED_NAMES["χ"]}"')
+        for m in LATIN_CHI.finditer(plain)
+    ]
     for match in _SQUARED.finditer(plain):
         if match["two"] and not _THEN_OPERATOR_OR_DF.match(plain, match.end()):
             continue
@@ -362,10 +378,10 @@ def _operators(
         if match["arrow"]:
             if in_ascii_run(plain, start, op):
                 continue  # "==>", ">=>": no arrow of logic
-            # a negated operand too: "A ⇒ ¬B"
-            if not (
-                _OPERAND.match(plain, right_start) or plain[right_start : right_start + 1] == "¬"
-            ):
+            # a negated operand too: "A ⇒ ¬B", but a negation sign with nothing to negate is
+            # no operand ("A ⇒ ¬.", #853)
+            negated = _NEGATIONS.match(plain, right_start)
+            if not _OPERAND.match(plain, negated.end() if negated else right_start):
                 continue
             # an abbreviation read as words ends an operand, as one prose word
             read_abbreviation = _LINE_BREAKS.isdisjoint(
@@ -398,7 +414,7 @@ def _operators(
         if not (_OPERAND.match(plain, right_start) or minus_read):
             continue
         if op in "<>=" and (
-            (before in _ARROW and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
+            (before in ARROW_JOINS and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
             or (after and after in "<>=")
             or (_arrow_after(plain, end) and not minus_read)
         ):
@@ -474,7 +490,11 @@ def _read_abbreviation_before(plain: str, left: int, language: str) -> bool:
     """True if an abbreviation the abbreviations step reads with its full stop ends at `left`:
     it is an operand before an arrow or "=", since a second run sees its words there ("Jh.⇒1"
     is "Jahrhundert⇒1" then, #924; "e.g.=1" is "for example=1", #972)."""
-    return left > 0 and plain[left - 1] == "." and reads_full_stop(plain, left, language)
+    return (
+        left > 0
+        and plain[left - 1] == "."
+        and ending_at(readings_of("abbreviations", plain, language), left) is not None
+    )
 
 
 def _named_in_prose(

@@ -14,7 +14,7 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
-from sci2audio.app.audio import AudioJob, AudioProgress, run_audio_job
+from sci2audio.app.audio import AudioJob, AudioProgress, finished_audiobook, run_audio_job
 from sci2audio.app.book import BookProgress, BuiltBook, build_book
 from sci2audio.app.job import JobBusyError, Phase, ScriptJob, run_script_job
 from sci2audio.app.settings import JobSettings
@@ -112,6 +112,30 @@ class JobRunner:
                 cancel=cancel,
                 steps=chosen if keep_settings else self.steps_for(settings, steps),
                 max_chars=max_chars,
+            )
+
+    def finished_audio(
+        self,
+        source: Path,
+        settings: JobSettings,
+        work: Path,
+        *,
+        voice: VoiceSource,
+        output_settings: OutputSettings | None = None,
+        keep_settings: bool = False,
+        progress: Callable[[Phase], None] = lambda phase: None,
+    ) -> tuple[int, ...] | None:
+        """`finished_audiobook` on this runner: the chapters of the finished audiobook in
+        place when this run would make it as it is (#115); JobBusyError if a job runs."""
+        with self._one_job():
+            return finished_audiobook(
+                source,
+                settings,
+                work,
+                voice=voice,
+                output_settings=output_settings,
+                keep_settings=keep_settings,
+                progress=progress,
             )
 
     def run_book(

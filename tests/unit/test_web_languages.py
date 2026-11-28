@@ -83,6 +83,21 @@ SAME_IN_GERMAN = {
 }
 
 
+def plain(source: str) -> bool:
+    """Whether `source` is a module as written: mutmut's copy rewrites every function into a
+    trampoline beside its mutant copies, so a call site's text is there many times (#1185)."""
+    return "_mutmut_mutated" not in source
+
+
+def test_mutmuts_rewritten_source_is_told_apart() -> None:
+    assert plain("def open():\n    write_opened(found.folder, 1)\n")
+    rewritten = (
+        "from mutmut.mutation.trampoline import wrap_in_trampoline as _mutmut_mutated\n"
+        "@_mutmut_mutated(mutants_x_open__mutmut)\ndef open(): write_opened(found.folder, 1)\n"
+    )
+    assert not plain(rewritten)
+
+
 def base(key: str) -> str:
     """A plural form's key without its form."""
     return re.sub(r"\.(one|other)$", "", key)
@@ -768,7 +783,9 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     assert (i18n.KEYS_COOKIE, i18n.KEYS) == ("sci2audio-keys", ("on", "off"))
     assert (i18n.SOUNDS_COOKIE, i18n.SOUNDS) == ("sci2audio-sounds", ("on", "off"))
     pages_source = Path(pages.__file__).read_text(encoding="utf-8")
-    assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' loop
+    # the call sites are counted in the source as written, never in mutmut's copy (#1185)
+    if plain(pages_source):
+        assert pages_source.count("response.set_cookie(") == 2  # the language's; Settings' loop
     assert "at most six cookies" in EN["privacy.cookies"]
     assert "höchstens sechs Cookies" in DE["privacy.cookies"]
     # 7: the working folder's small records for the library and the rail (#389): when each
@@ -788,11 +805,12 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     sources = {
         name: (SOURCE / name).read_text(encoding="utf-8") for name in ("pages.py", "tasks.py")
     }
-    assert sources["pages.py"].count("write_opened(found.folder,") == 1  # the document page
-    assert sources["pages.py"].count("write_opened(found.work,") == 1  # Listen, not outside
-    assert sources["tasks.py"].count("write_about(document.folder,") == 1  # after an analysis
-    assert "".join(sources.values()).count("write_opened(") == 2
-    assert "".join(sources.values()).count("write_about(") == 1
+    if all(plain(text) for text in sources.values()):
+        assert sources["pages.py"].count("write_opened(found.folder,") == 1  # the document page
+        assert sources["pages.py"].count("write_opened(found.work,") == 1  # Listen, not outside
+        assert sources["tasks.py"].count("write_about(document.folder,") == 1  # after analysis
+        assert "".join(sources.values()).count("write_opened(") == 2
+        assert "".join(sources.values()).count("write_about(") == 1
     for table in (EN, DE):
         for name in ("opened.json", "about.json", "position.json"):
             assert f"({name})" in table["privacy.work"], name
@@ -804,6 +822,12 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     for table in (EN, DE):
         assert f"({CAPTURES})" in table["privacy.work"]
         assert f"({MARKERS})" in table["privacy.work"]
+    # 9: the pictures of figures, tables and formulas the player shows (#582), made from the
+    # file on this computer into the project's own folder and removed with it (#596)
+    from sci2audio.web.figures import CACHE_FOLDER
+
+    for table in (EN, DE):
+        assert f"({CACHE_FOLDER}/)" in table["privacy.work"]
 
 
 def test_the_privacy_page_names_the_update_checks_host_from_the_code(

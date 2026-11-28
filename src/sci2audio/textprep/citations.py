@@ -44,8 +44,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.abbreviations import reads_full_stop
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.links import (
@@ -57,7 +56,7 @@ from sci2audio.textprep.links import (
 from sci2audio.textprep.notation import Candidate, through_unread
 from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import readings_of, words_of
+from sci2audio.textprep.readings import ending_at, first_from, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -310,6 +309,8 @@ _DECIMAL_COMMA = re.compile(r"\d,\d")
 _SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
 _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
+_RANGE_GAP = re.compile(r"\s*[\u2013\u2014-]\s*")  # between "[1]" and "[3]" of a range
+_ONE_NUMBER = re.compile(r"\s*\d+\s*")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
@@ -485,8 +486,12 @@ class _Rules:
         # what joins two square brackets of a list: "[1], [2]", "[2] and [3]", "[2], and [3]"
         # (#257, #414); "or" joins none, and a list joined on to a bracket by it is no list
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
+        # ... or "or" before the last of a list of numbers: "[1], [2] or [3]" (#622)
+        self.or_gap = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
+        self._or_lists: set[int] = set()  # the lists joined by "or" (#622)
+        self._ranges: set[int] = set()  # the lists that are a range of two brackets
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         # a join word before and after a removal, which would read side by side (#628)
@@ -643,11 +648,15 @@ class _Rules:
         """A removal between two join words takes the one before along: "Then it and (Lee,
         2019) and more" reads "Then it and more", not "Then it and and more"; so does "Then it
         and https://x.org (Lee, 2019) and more", the join word then an edit of its own before
-        the link's removal (#628). Not where the join word starts the sentence."""
+        the link's removal (#628), and "Then it and (Lee, 2019) https://x.org and more", the
+        join word after the link (#847). Not where the join word starts the sentence."""
         result: list[_Found] = []
         kept_end = 0
         for start, end, kind, replacement, reason in found:
-            if kind is EditKind.REMOVE and self.join_after.match(text, end):
+            after = end  # past the removed links right after it
+            while not self.links_read and after in self._link_ends:
+                after = self._link_ends[after]
+            if kind is EditKind.REMOVE and self.join_after.match(text, after):
                 before = start  # past the removed links right before it
                 while (
                     not self.links_read
@@ -740,7 +749,7 @@ class _Rules:
             and text[start - 1] in _GLUES
             and end < len(text)
             and text[end].isdigit()
-            and not (text[start - 1] == "." and reads_full_stop(text, start, self.language))
+            and not (text[start - 1] == "." and self._reads_full_stop(text, start))
         )
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
@@ -772,9 +781,7 @@ class _Rules:
                     # "Kap." is read "Kapitel", its full stop with it: the sentence keeps its
                     # own ("Siehe Kap. (Müller, 2019). Dann", #227)
                     and not (
-                        last == "."
-                        and last_at >= 0
-                        and reads_full_stop(text, last_at + 1, self.language)
+                        last == "." and last_at >= 0 and self._reads_full_stop(text, last_at + 1)
                     )
                 ):
                     # "et al. (2019). Then" reads "et al. Then"
@@ -1271,7 +1278,9 @@ class _Rules:
         )
         if glued and (glued.isalnum() or glued in ")]"):
             return None
-        if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
+        if _NUMBER_GLUED_AFTER.match(text, node.close + 1) and not self._said_as_a_word(
+            text, node.close + 1
+        ):
             return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
         if self._decimal_interval(inside):
             return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
@@ -1286,6 +1295,12 @@ class _Rules:
         if listed is not None:
             end = listed[-1].close + 1
             inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed])
+            if node.open in self._ranges:  # "[1]–[3]" reads as "[1–3]" does
+                inside = "–".join(text[item.open + 1 : item.close].strip() for item in listed)
+                inside = f"{text[node.open + 1 : node.close].strip()}–{inside}"
+            elif node.open in self._or_lists:  # "1, 2 or 3": `_spoken` says the "or"
+                *rest, final = inside.rsplit(", ", 1)
+                inside = f"{rest[0]} {self.words.or_word} {final}"
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1373,13 +1388,36 @@ class _Rules:
         squares.sort(key=lambda node: node.open)
         lists: dict[int, list[_Bracket]] = {}
         self._following = {}
+        self._or_lists = set()
+        self._ranges = set()
         first = 0
         while first < len(squares):
             head, last = squares[first], first
             kind = self._item_kind(text, head)
+            if kind == "numbers" and first + 1 < len(squares):
+                # "[1]–[3]": two brackets of one number joined by a dash are one range, as
+                # "[1–3]" is (#623)
+                ahead = squares[first + 1]
+                if (
+                    _RANGE_GAP.fullmatch(text, head.close + 1, ahead.open)
+                    and _ONE_NUMBER.fullmatch(text, head.open + 1, head.close)
+                    and _ONE_NUMBER.fullmatch(text, ahead.open + 1, ahead.close)
+                    and not _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
+                ):
+                    lists[head.open] = [ahead]
+                    self._ranges.add(head.open)
+                    first += 2
+                    continue
+            joins: set[str] = set()  # "and", "or": a run that mixes them makes no list
             while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
+                if gap is None and kind == "numbers" and "or" not in joins:
+                    gap = self.or_gap.fullmatch(text, squares[last].close + 1, ahead.open)
+                    if gap is not None:
+                        joins.add("or")
+                elif gap is not None and gap["join"] is not None:
+                    joins.add("and")
                 if (
                     gap is None
                     or self._item_kind(text, ahead) != kind
@@ -1388,8 +1426,14 @@ class _Rules:
                     break
                 self._following[squares[last].open] = ahead
                 last += 1
-            if last > first and not self.or_after.match(text, squares[last].close + 1):
+            if (
+                last > first
+                and len(joins) < 2
+                and not self.or_after.match(text, squares[last].close + 1)
+            ):
                 lists[head.open] = squares[first + 1 : last + 1]
+                if joins == {"or"}:
+                    self._or_lists.add(head.open)
             first = last + 1
         return lists
 
@@ -1428,7 +1472,11 @@ class _Rules:
     def _needed_pair(self, text: str, node: _Bracket, listed: list[_Bracket]) -> bool:
         """True for a list of two brackets joined by "and", when "and" makes a citation after
         it needed: then the first is needed too (#257, D-668)."""
-        if len(listed) != 1 or self.words.and_word not in self.words.before:
+        if len(listed) != 1:
+            return False
+        if node.open in self._or_lists:  # "or" as "and" does: "in [1] or [3]" (#622)
+            return self.words.or_word in self.words.before
+        if self.words.and_word not in self.words.before:
             return False
         gap = self.list_gap.fullmatch(text, node.close + 1, listed[0].open)
         return gap is not None and gap["join"] is not None
@@ -1527,9 +1575,10 @@ class _Rules:
         noun = self.wording.reference if single else self.wording.references
         if len(items) == 1:
             return f"{noun} {items[0]}"
-        return (
-            f"{noun} {self.wording.list_comma.join(items[:-1])}{self.wording.list_and}{items[-1]}"
-        )
+        last = self.wording.list_and
+        if re.search(rf"\s{re.escape(self.words.or_word)}\s", inside):
+            last = f" {self.words.or_word} "  # a list joined by "or" (#622)
+        return f"{noun} {self.wording.list_comma.join(items[:-1])}{last}{items[-1]}"
 
     # author-year citations
 
@@ -1602,6 +1651,12 @@ class _Rules:
                 named.append(part)
         return named
 
+    def _reads_full_stop(self, text: str, end: int) -> bool:
+        """True if the abbreviations step reads an abbreviation that ends at `end` with its
+        full stop ("Kap." as "Kapitel"): a citation after it then leaves the full stop, or
+        the sentence would lose its end ("Siehe Kap. (Müller, 2019). Dann", #227)."""
+        return ending_at(readings_of("abbreviations", text, self.language), end) is not None
+
     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
         piece = text[part[0] : part[1]]
         match = self.part.match(piece)
@@ -1630,13 +1685,18 @@ class _Rules:
         )
 
     def _only_periods(self, authors: str) -> bool:
-        """True when every word is a period word, joined by `and_word`, a slash or a space:
-        "Sommer", "Frühjahr und Sommer", "Herbst/Winter", "Stand März" (#595)."""
-        and_word = re.escape(self.words.and_word)
-        if not re.fullmatch(rf"{_WORD}(?:(?:\s+{and_word}\s+|[ \t]+|/){_WORD})*", authors):
+        """True when every word is a period word or a month, joined by `and_word` in any
+        case, "&", a slash, a hyphen, an en dash or a space: "Sommer", "Frühjahr und
+        Sommer", "Herbst/Winter", "Stand März" (#595), "Spring and May", "Spring & Summer",
+        "Fall-Winter" (#925). A name among them makes it a citation ("Summer & Lee")."""
+        joins = rf"(?i:\s+{re.escape(self.words.and_word)}\s+)|\s*&\s*|[ \t]+|/|[-\u2013]"
+        words = [word for word in re.split(joins, authors) if word]
+        if not words or not all(re.fullmatch(_WORD, word) for word in words):
             return False
-        words = re.split(rf"\s+{and_word}\s+|[ \t]+|/", authors)
-        return all(word.lower() in self.words.periods for word in words)
+        return all(
+            word.lower() in self.words.periods or word.lower() in self.words.months
+            for word in words
+        )
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [
@@ -1679,6 +1739,10 @@ class _Rules:
             return ""
         if self.language == "de" and bare in self.read_words:
             return ""  # "χ² (1998)" reads "Chi-Quadrat (1998)": no author's name
+        if _is_label_word(bare, self.words.numbered) or bare in self.words.ref_words:
+            # "Equation (2021)" numbers an equation, as "Eq. (2021)" does before the
+            # abbreviations step reads it, so a second run decides the same (#627)
+            return ""
         # "Sag and Hankamer (1984)": the reason names both authors
         pair = self.pair_end.search(before)
         if pair and _is_name(pair.group(1)):
@@ -1810,11 +1874,14 @@ class _Rules:
         2019). Then" reads "It holds. Then", not "It holds.. Then".
         """
         spaced_start, spaced_end = self._with_space_around(text, start, end)
-        if spaced_end > end and self._sign_after(text, end):
-            # "[1] < 3x": the English statistics step's reading of the sign takes the white
-            # space before it, and would be set aside if the removal took it too; a second
-            # run, where the sign starts the block, reads it (#1010)
-            return spaced_start, end
+        kept = spaced_end
+        while kept > end and text[kept - 1].isspace():
+            kept -= 1
+        if kept < spaced_end and self._sign_after(text, kept):
+            # "[1] < 3x", "[1]. < 3": the English statistics step's reading of the sign takes
+            # the white space before it, and would be set aside if the removal took it too; a
+            # second run, where the sign starts the block, reads it (#1010, #1034)
+            return spaced_start, kept
         return spaced_start, spaced_end
 
     def _sign_after(self, text: str, end: int) -> bool:
@@ -1846,6 +1913,13 @@ class _Rules:
             # [1](https://a.org)Smith" too, once the links step took the link (#629)
             return start, end
         return _with_space(text, start, end)
+
+    def _said_as_a_word(self, text: str, position: int) -> bool:
+        """True if the units step reads the number at `position` as a word: German "[1]1 kg"
+        is "[1]ein Kilogramm" after a first run, whose "[1]" a second run removes before the
+        glued word, so this run removes it too (#1032)."""
+        found = first_from(readings_of("units", text, self.language), position)
+        return found is not None and found.start == position and found.words[:1].isalpha()
 
     def _glued_word(self, text: str, position: int) -> bool:
         """True if a word stands right at `position`, past the removed links that start there."""
@@ -2210,6 +2284,23 @@ _KEY_ENTRY = re.compile(
     rf"^\[({_KEY})\][ \t]+(?:[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\.)",
     re.MULTILINE,
 )
+
+
+def citation_removals(text: str, language: str = "en") -> list[tuple[int, int]]:
+    """Where this step removes text in a paragraph holding `text` alone, in order: what a
+    second run no longer sees there. Keys are judged as if no reference list printed them."""
+    words = WORDS.get(language, WORDS["en"])
+    rules = _Rules(
+        words,
+        wording_for(language),
+        ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
+        language,
+        frozenset(),
+    )
+    links = link_removals(text, BlockKind.PARAGRAPH, "", language)
+    return [
+        (start, end) for start, end, kind, *_ in rules.block(text, links) if kind is EditKind.REMOVE
+    ]
 
 
 def listed_keys(document: Document) -> frozenset[str]:

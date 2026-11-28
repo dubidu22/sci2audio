@@ -43,6 +43,7 @@ from typing import Any
 import platformdirs
 
 from sci2audio import __version__
+from sci2audio.app import own_warnings_only
 from sci2audio.web.config import ServerConfig, app_log_file, server_config
 from sci2audio.web.i18n import DEFAULT_LANGUAGE, LANGUAGES, Strings, strings
 from sci2audio.web.launch import Background, bind, run
@@ -352,6 +353,7 @@ def could_not_start(reason: str) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    own_warnings_only()  # sci2audio's own warnings, never a library's (#143)
     # A packaged build starts itself again for each PDF reader process (D-581).
     multiprocessing.freeze_support()
     _quiet_streams()

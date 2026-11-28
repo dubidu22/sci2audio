@@ -275,9 +275,13 @@ def _decode(data: bytes) -> Decoded:
             text = data[len(mark) :].decode(codec, errors="replace")
             return Decoded(text, label, guessed=False)
     try:
-        return Decoded(data.decode("utf-8"), "utf-8", guessed=False)
+        # Neither the codec nor the error handler is named: UTF-8 is the default, and the table
+        # maps every byte, so no handler is ever asked. Named, each gave mutation runs only
+        # equivalent mutants (#1203).
+        return Decoded(data.decode(), "utf-8", guessed=False)
     except UnicodeDecodeError:
-        text, _ = codecs.charmap_decode(data, "strict", _WINDOWS_1252)
+        # typeshed knows only the dict and encoding-map forms; CPython takes this table too
+        text, _ = codecs.charmap_decode(data, None, _WINDOWS_1252)  # pyright: ignore[reportArgumentType]
         return Decoded(text, "windows-1252", guessed=True)
 
 

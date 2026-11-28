@@ -48,7 +48,7 @@ import time
 import types
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from multiprocessing import resource_tracker
+from multiprocessing import connection, resource_tracker
 from multiprocessing.connection import Connection
 from multiprocessing.context import SpawnProcess
 from typing import Any
@@ -180,7 +180,7 @@ def _end(child: Any, ended: bool) -> None:
     signal a pid that is free again), `join()` returns with no exit code, and `close()`
     raises "still running" (#440). The sentinel, which the child holds open until it ends,
     tells its end whoever reaped it."""
-    if not ended and not multiprocessing.connection.wait([child.sentinel], 0):
+    if not ended and not connection.wait([child.sentinel], 0):
         child.kill()
     child.join()
     if child.exitcode is not None:
@@ -356,6 +356,9 @@ def _child(
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C is the parent's to act on (D-628)
     if hasattr(signal, "pthread_sigmask"):  # a SIGINT held back since the start is dropped
         signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+    # The child answers through `send` alone: a library's log line (pypdfium2 on a looped
+    # outline) would reach the person's terminal unasked, past the program's choice (#143).
+    logging.getLogger().addHandler(logging.NullHandler())
     send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()

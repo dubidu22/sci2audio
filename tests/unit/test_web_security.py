@@ -191,8 +191,67 @@ def test_cross_site_fetches_are_refused(server: tuple[FastAPI, Any], site: str) 
     app, config = server
     client = browser(app, config)
     assert client.get("/api/v1/settings", headers={"Sec-Fetch-Site": site}).status_code == 403
-    response = client.get(f"/start?token={config.token}", headers={"Sec-Fetch-Site": site})
+    assert client.get("/", headers={"Sec-Fetch-Site": site}).status_code == 403
+
+
+@pytest.mark.parametrize("site", ["same-site", "other"])
+def test_a_start_link_from_a_page_of_the_same_site_is_refused(
+    server: tuple[FastAPI, Any], site: str
+) -> None:
+    # another program's page on 127.0.0.1 is the same site: it gets nothing, not even with
+    # the token; only the start page on disk comes cross-site (#117)
+    app, config = server
+    response = anonymous(app).get(
+        f"/start?token={config.token}", headers={"Sec-Fetch-Site": site}, follow_redirects=False
+    )
     assert response.status_code == 403
+    assert "set-cookie" not in response.headers
+
+
+def test_the_start_page_trades_the_token_on_a_page_that_goes_on_by_itself(
+    server: tuple[FastAPI, Any],
+) -> None:
+    """The start page on disk is a `file:` page, so every browser sends its way to the start
+    link as cross-site (#117). A redirect would keep the next request cross-site, and the
+    browser would not send the Strict cookie with it; the server's own page going on to "/"
+    makes that request same-origin."""
+    app, config = server
+    client = anonymous(app)
+    cross = {"Sec-Fetch-Site": "cross-site"}
+    response = client.get(f"/start?token={config.token}", headers=cross, follow_redirects=False)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    assert '<meta http-equiv="refresh" content="0;url=/">' in response.text
+    assert config.token not in response.text
+    cookie = response.headers["set-cookie"]
+    assert cookie.startswith(f"sci2audio-{PORT}={config.token};")
+    attributes = {part.strip().lower() for part in cookie.split(";")[1:]}
+    assert attributes == {"httponly", "samesite=strict", "path=/"}
+    assert client.get("/", headers={"Sec-Fetch-Site": "same-origin"}).status_code == 200
+    # the token is still the check: a wrong one, or a write, gets no cookie
+    for query in ("", "?token=wrong"):
+        refused = anonymous(app).get("/start" + query, headers=cross, follow_redirects=False)
+        assert refused.status_code == 401
+        assert "set-cookie" not in refused.headers
+    written = anonymous(app).post(f"/start?token={config.token}", headers=cross)
+    assert written.status_code == 405
+    assert "set-cookie" not in written.headers
+
+
+def test_the_start_page_goes_once_the_token_is_traded(
+    server: tuple[FastAPI, Any], tmp_path: Path
+) -> None:
+    app, config = server
+    page = app.state.sci2audio.start_page
+    page.folder = tmp_path / "run"
+    page.write(config.start_url)
+    written = page.path
+    assert written is not None
+    assert written.exists()
+    anonymous(app).get("/start?token=wrong", follow_redirects=False)
+    assert written.exists()  # a wrong token is no reason
+    anonymous(app).get(f"/start?token={config.token}", follow_redirects=False)
+    assert not written.exists()
 
 
 @pytest.mark.parametrize("site", ["same-origin", "none"])

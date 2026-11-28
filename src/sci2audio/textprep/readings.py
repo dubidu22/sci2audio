@@ -48,6 +48,9 @@ class Words:
     arrows: Mapping[str, str] = field(default_factory=dict)  # of logic, "⇒": "implies"
     names: frozenset[str] = frozenset()  # notation read by name: "R squared", "odds ratio"
     squared: frozenset[str] = frozenset()  # of those, a squared statistic's: "R squared"
+    # readings of more than one word the step says whole: "to the power of", "ein Drittel"
+    joined: frozenset[str] = frozenset()
+    months: tuple[str, ...] = ()  # the month names its dates are read with
 
 
 @dataclass(frozen=True)
@@ -111,6 +114,22 @@ def holding(found: Sequence[Reading], position: int) -> Reading | None:
     return None
 
 
+def ending_at(found: Sequence[Reading], end: int) -> Reading | None:
+    """The one of one step's readings that ends exactly at `end`, or None."""
+    reading = last_before(found, end)
+    return reading if reading is not None and reading.end == end else None
+
+
+def last_before(found: Sequence[Reading], position: int) -> Reading | None:
+    """The last of one step's readings that ends at `position` or before it, or None."""
+    index = bisect.bisect_right(found, position, key=_end) - 1
+    return found[index] if index >= 0 else None
+
+
+def _end(reading: Reading) -> int:
+    return reading.end
+
+
 def first_from(found: Sequence[Reading], position: int) -> Reading | None:
     """The first of one step's readings that starts at `position` or after it, or None."""
     index = bisect.bisect_left(found, position, key=_start)
@@ -137,11 +156,19 @@ def _read(step: str, text: str, language: str) -> tuple[Reading, ...]:
 def _finders() -> dict[str, Finder]:
     # the steps import this module to ask for readings, so their finders can only be
     # reached once every step module is loaded: the one local import of step modules here
-    from sci2audio.textprep import statistics, units
+    from sci2audio.textprep import abbreviations, numbers, statistics, units
 
     return {
-        "units": Finder(units.find_readings, asks=("statistics",)),
-        "statistics": Finder(statistics.find_readings, words=statistics.words),
+        "units": Finder(units.find_readings, asks=("statistics",), words=units.words),
+        "statistics": Finder(
+            statistics.find_readings, asks=("abbreviations",), words=statistics.words
+        ),
+        "abbreviations": Finder(abbreviations.find_readings),
+        "numbers": Finder(
+            numbers.find_readings,
+            asks=("units", "statistics", "abbreviations"),
+            words=numbers.words,
+        ),
     }
 
 

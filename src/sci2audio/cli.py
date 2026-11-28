@@ -60,6 +60,7 @@ from sci2audio.app import (
     kokoro_voice,
     language_warning,
     load_settings,
+    own_warnings_only,
     script_files,
 )
 from sci2audio.app.chunks import CHUNKS, cache_size
@@ -832,6 +833,20 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
                 f"these files exist already: {', '.join(existing)}; choose to replace them"
             )
     progress = Progress(env, args.quiet)
+    if args.with_script and not args.overwrite:
+        # a run stopped in its script phase leaves its finished audiobook (#723): when it is
+        # what this run would make, only the script is written (#115)
+        held = env.job_runner(settings).finished_audio(
+            source,
+            settings,
+            work,
+            voice=voice,
+            output_settings=output,
+            keep_settings=args.keep_settings,
+            progress=progress.phase,
+        )
+        if held is not None:
+            return _script_for_the_audiobook(args, env, progress, (source, settings, work), held)
     script: ScriptJob | None = None
     try:
         job = _audio_in_thread(
@@ -869,6 +884,33 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
     finally:
         progress.end()
     _print_audio(env, job, script, work)
+    return Exit.OK
+
+
+def _script_for_the_audiobook(
+    args: argparse.Namespace,
+    env: CliEnv,
+    progress: Progress,
+    job: tuple[Path, JobSettings, Path],  # source, settings, working folder
+    held: tuple[int, ...],
+) -> Exit:
+    """Write the script and report of the finished audiobook in place, which this run would
+    make as it is: of the chapters it holds, with the settings they were made with."""
+    source, settings, work = job
+    if args.keep_settings:
+        settings = kept_settings(work, settings)
+    settings = replace(settings, chapters=held)
+    try:
+        script = env.job_runner(settings).run_script(
+            source, settings, work, progress=progress.phase, pages=progress.pages
+        )
+    finally:
+        progress.end()
+    env.out.write(
+        "The audiobook in place was made with these settings, so only its script and report "
+        "were written.\n"
+    )
+    _print_script(env, script)
     return Exit.OK
 
 
@@ -1263,6 +1305,7 @@ def _fail(env: CliEnv, message: str, code: Exit) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    own_warnings_only()  # sci2audio's own warnings, never a library's (#143)
     # A packaged build starts itself again for each PDF reader process (D-581); this hands
     # such a start to the reader. In a plain Python install it does nothing.
     multiprocessing.freeze_support()

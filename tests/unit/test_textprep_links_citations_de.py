@@ -600,6 +600,9 @@ def test_link_removals_of_the_u_a_row() -> None:
         ),
         ("Dann es oder https://x.org/8 und mehr.", "Dann es und mehr."),
         ("Dann es und (Müller, 2019) und mehr.", "Dann es und mehr."),
+        # ... and a citation before the link (#847)
+        ("Dann es und (Müller, 2019) https://x.org und mehr.", "Dann es und mehr."),
+        ("Dann es oder (Müller, 2019) https://x.org oder mehr.", "Dann es oder mehr."),
         # a word glued after a removed link's or citation's closing mark stays a word (#629)
         ("Text (siehe https://a.org)Müller hier.", "Text Müller hier."),
         ("Text <https://a.org>Müller hier.", "Text Müller hier."),

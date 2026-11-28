@@ -260,3 +260,28 @@ def test_convert_with_script_on_a_new_project_keeps_the_chosen_order(
     assert report["settings"]["chapters"] == [2, 0]
     script = (out / "book.script.txt").read_text(encoding="utf-8")
     assert script.index("# 3. Gamma") < script.index("# 1. Alpha")
+
+
+def test_convert_warns_of_a_chapter_the_book_lacks_fresh_and_when_adding(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """#830: `--chapters 2,9` on a book of three chapters names 9 as ignored on stderr, in
+    the document's own numbers, on a fresh run and when adding to an earlier one. The
+    language is given, so its own warning stays out."""
+    warning = (
+        "sci2audio: warning: there is no chapter 9 (the document has chapters 1 to 3); ignored\n"
+    )
+    fresh = cli(
+        "convert", source, "-o", tmp_path / "fresh", "-q", "--language", "en", "--chapters", "2,9"
+    )
+    assert fresh.code == 0, fresh.err
+    assert fresh.err == warning
+    out = tmp_path / "out"
+    assert cli("convert", source, "-o", out, "-q", "--language", "en", "--chapters", "1").code == 0
+    added = cli("convert", source, "-o", out, "-q", "--language", "en", "--chapters", "1,2,9")
+    assert added.code == 0, added.err
+    assert added.err == warning
+    assert [n for n in files_in(out) if n.endswith(".mp3")] == [
+        "book - 01 Alpha.mp3",
+        "book - 02 Beta.mp3",
+    ]

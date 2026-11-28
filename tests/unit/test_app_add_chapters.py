@@ -61,6 +61,15 @@ def files(folder: Path) -> dict[str, bytes]:
     return {p.name: p.read_bytes() for p in sorted((folder / "out").iterdir())}
 
 
+def tree(folder: Path) -> dict[str, bytes]:
+    """Every file under `folder`, by its path inside it."""
+    return {
+        p.relative_to(folder).as_posix(): p.read_bytes()
+        for p in sorted(folder.rglob("*"))
+        if p.is_file()
+    }
+
+
 def test_adding_a_chapter_speaks_only_it(tmp_path: Path) -> None:
     run(tmp_path, FakeVoice(), (0,))
     voice = FakeVoice()
@@ -409,8 +418,10 @@ def test_adding_chapters_reports_an_unknown_chapter_as_a_fresh_run_does(tmp_path
     run(tmp_path, FakeVoice(), (0,))
     added = run(tmp_path, FakeVoice(), (2, 9))
     assert added.result.ignored_chapters == (9,)
-    # the unknown number changes nothing else: the same files as without it
+    # the unknown number changes nothing else: the same files as without it, and the same
+    # work folder, the chapter record included (#830)
     assert files(tmp_path) == files(tmp_path / "plain")
+    assert tree(tmp_path / "work") == tree(tmp_path / "plain" / "work")
 
 
 def while_beta_is_spoken(

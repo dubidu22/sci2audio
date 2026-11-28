@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from audio_fakes import FakeVoice
@@ -317,17 +318,109 @@ def test_an_unknown_voice_with_every_chapter_is_refused_before_reading(
     assert read == [source]  # `all` still reads the chapters, after the checks
 
 
-def test_with_script_refuses_an_existing_audiobook_and_writes_no_script(
+SCRIPT = ["note.report.json", "note.report.md", "note.script.txt"]
+
+
+def times(folder: Path) -> dict[str, int]:
+    return {p.name: p.stat().st_mtime_ns for p in folder.iterdir()}
+
+
+def test_with_script_on_the_finished_audiobook_of_this_run_writes_only_the_script(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
-    """All or nothing: the audiobook exists, the script doesn't."""
+    """The audiobook is finished and no script was written, as a run stopped in its script
+    phase leaves it: the same command writes the script and report and touches no audio
+    (#115, fix A ruled at triage on 26 Nov 2026)."""
     out = tmp_path / "b"
     assert cli("convert", source, "-o", out, "-q").code == 0
-    before = {p.name: p.stat().st_mtime_ns for p in out.iterdir()}
+    before, spoken = times(out), list(cli.voice.spoken)
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 0, result.err
+    assert files_in(out) == sorted([*BOOK, *SCRIPT])
+    assert {name: time for name, time in times(out).items() if name in before} == before
+    assert cli.voice.spoken == spoken  # nothing spoken, nothing encoded again
+    assert "The audiobook in place was made with these settings" in result.out
+    again = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert again.code == 7  # both are there now: replacing them needs --overwrite
+    assert "note.script.txt" in again.err
+
+
+@pytest.mark.parametrize("change", [("--speed", "1.2"), ("--voice", "bm_george")])
+def test_with_script_refuses_an_audiobook_made_otherwise_and_writes_no_script(
+    cli: Cli, source: Path, tmp_path: Path, change: tuple[str, str]
+) -> None:
+    """All or nothing: the audiobook exists, made with another speed or voice, the script
+    doesn't (D-163)."""
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q").code == 0
+    before = times(out)
+    result = cli("convert", source, "-o", out, "-q", "--with-script", *change)
+    assert result.code == 7
+    assert times(out) == before  # no script either
+
+
+def test_with_script_and_keep_settings_writes_the_script_of_the_kept_settings(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q", "--speed", "1.2").code == 0
+    before, spoken = times(out), list(cli.voice.spoken)
+    result = cli("convert", source, "-o", out, "-q", "--with-script", "--keep-settings")
+    assert result.code == 0, result.err
+    assert files_in(out) == sorted([*BOOK, *SCRIPT])
+    assert {name: time for name, time in times(out).items() if name in before} == before
+    assert cli.voice.spoken == spoken
+    report = json.loads((out / "note.report.json").read_text(encoding="utf-8"))
+    assert report["settings"]["speed"] == 1.2
+
+
+def test_with_script_refuses_a_changed_audiobook(cli: Cli, source: Path, tmp_path: Path) -> None:
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q").code == 0
+    (out / "note.m4b").write_bytes(b"another file now")
     result = cli("convert", source, "-o", out, "-q", "--with-script")
     assert result.code == 7
-    assert "note.m4b" in result.err
-    assert {p.name: p.stat().st_mtime_ns for p in out.iterdir()} == before
+    assert not (out / "note.script.txt").exists()
+
+
+def test_plain_convert_still_refuses_the_finished_audiobook(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q").code == 0
+    before = times(out)
+    result = cli("convert", source, "-o", out, "-q")
+    assert result.code == 7
+    assert times(out) == before
+
+
+def test_a_script_phase_that_fails_while_writing_is_finished_by_the_rerun(
+    cli: Cli, source: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fault injection: the disk is full as the script and report are written, after the
+    audiobook was; the rerun of the same command writes them and nothing else (#115)."""
+    from sci2audio.app import job as job_module
+
+    real = job_module.write_texts
+    calls: list[int] = []
+
+    def full_disk(texts: Any, *, overwrite: bool) -> None:
+        calls.append(1)
+        if len(calls) == 1:
+            raise OSError(28, "No space left on device")
+        real(texts, overwrite=overwrite)
+
+    monkeypatch.setattr(job_module, "write_texts", full_disk)
+    out = tmp_path / "b"
+    failed = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert failed.code != 0
+    assert files_in(out) == sorted(BOOK)  # the audiobook is in place, no script
+    before, spoken = times(out), list(cli.voice.spoken)
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 0, result.err
+    assert files_in(out) == sorted([*BOOK, *SCRIPT])
+    assert {name: time for name, time in times(out).items() if name in before} == before
+    assert cli.voice.spoken == spoken
 
 
 def test_with_script_refuses_an_existing_script_before_any_speech(

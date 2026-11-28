@@ -100,13 +100,14 @@ class InterruptedStep(_Plugin):
 
 
 class SlowStep(_Plugin):
-    """Waits until `release` is set; the guard gives up first."""
+    """Waits until `release` is set, or 30 s, far beyond the test's 10 s bound; the guard
+    gives up first. Finite, so a broken guard fails the test instead of hanging the suite."""
 
     id = "slow"
     release: ClassVar[threading.Event] = threading.Event()
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
-        self.release.wait(10)
+        self.release.wait(30)
         return []
 
 

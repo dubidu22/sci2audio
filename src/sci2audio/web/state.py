@@ -33,6 +33,7 @@ from sci2audio.web.player import (
     candidate_folders,
     chapter_states,
 )
+from sci2audio.web.startpage import StartPage
 from sci2audio.web.tasks import (
     PREVIEW_FOLDER,
     Fetch,
@@ -123,6 +124,8 @@ class ServerState:
     # the opt-in update check (#217), its file next to the settings file; tests pass a fake
     updates: UpdateCheck = field(init=False)
     book_ffmpeg: Ffmpeg | None = None  # the whole-book build's ffmpeg (#725); tests pass one
+    # the file the browser is opened at, so no command line holds the token (#117)
+    start_page: StartPage = field(default_factory=StartPage)
 
     def __post_init__(self) -> None:
         if self.config.legacy_root is not None:

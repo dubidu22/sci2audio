@@ -53,6 +53,7 @@ from sci2audio.app.job import (
     run_script_job,
     script_files,
 )
+from sci2audio.app.logs import own_warnings_only
 from sci2audio.app.playable import (
     ChapterState,
     PlayableChapter,
@@ -123,6 +124,7 @@ __all__ = [
     "kokoro_voice",
     "language_warning",
     "load_settings",
+    "own_warnings_only",
     "plan_audio",
     "playable_chapters",
     "prepare_script",

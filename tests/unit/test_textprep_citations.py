@@ -1214,6 +1214,17 @@ def test_the_reason_names_the_join_word_that_goes_with_a_citation() -> None:
     assert edit.reason == 'citation "(Lee, 2019)" is not read; "and" before it goes too (TP-03)'
 
 
+def test_a_citation_before_a_link_takes_the_join_word_before_it() -> None:
+    # the second join word stands after the link the links step removes (#847)
+    text = "Then it and (Lee, 2019) https://x.org and more."
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    run = run_steps(document, EN, strict=True)
+    assert render(run) == ["Then it and more."]
+    (edit,) = (e for e in run.edits(Status.ACCEPTED) if e.step == "citations")
+    assert text[edit.span.start : edit.span.end] == " and (Lee, 2019)"
+    assert edit.reason == 'citation "(Lee, 2019)" is not read; "and" before it goes too (TP-03)'
+
+
 @pytest.mark.parametrize(
     ("text", "spoken"),
     [
@@ -1224,6 +1235,10 @@ def test_the_reason_names_the_join_word_that_goes_with_a_citation() -> None:
         (
             "Then it or https://x.org/8 (Lee, 2019) and more.",
             "Then it or https://x.org/8 and more.",
+        ),
+        (
+            "Then it and (Lee, 2019) https://x.org/8 and more.",
+            "Then it and https://x.org/8 and more.",
         ),
     ],
 )
@@ -1236,3 +1251,76 @@ def test_with_links_switched_off_no_join_word_goes_past_a_link_that_is_read(
     run = run_steps(document, EN, switched_off={Category.LINKS}, strict=True)
     assert render(run) == [spoken]
     assert all("before it goes too" not in edit.reason for edit in run.edits(Status.ACCEPTED))
+
+
+@pytest.mark.parametrize(
+    ("language", "printed", "said"),
+    [
+        # a part a join word opens after lead words is a citation only after one (#621)
+        (
+            "en",
+            "(RNNGs; see and Dyer et al., 2016) help.",
+            "(RNNGs; see and Dyer et al., 2016) help.",
+        ),
+        (
+            "en",
+            "(RNNGs; e.g. and Dyer et al., 2016) help.",
+            "(RNNGs; for example and Dyer et al., 2016) help.",
+        ),
+        (
+            "de",
+            "(RNNGs; siehe und Dyer et al., 2016) helfen.",
+            "(RNNGs; siehe und Dyer et al., 2016) helfen.",
+        ),
+        # the join word in any case: "And" opens such a part too
+        ("en", "(RNNGs; And Dyer et al., 2016) help.", "(RNNGs; And Dyer et al., 2016) help."),
+        (
+            "en",
+            "(see (Smith, 2019); And Jones, 2020) is cited.",
+            "(see Smith; And Jones, 2020) is cited.",
+        ),
+        ("de", "(RNNGs; Und Dyer et al., 2016) helfen.", "(RNNGs; Und Dyer et al., 2016) helfen."),
+        # "&" after lead words joins as "and" does
+        ("en", "(e.g. (Smith, 2019); & Jones, 2020) is cited.", "Smith and Jones is cited."),
+        (
+            "de",
+            "(z. B. (Smith, 2019); & Jones, 2020) wird zitiert.",
+            "Smith und Jones wird zitiert.",
+        ),
+    ],
+)
+def test_join_words_after_lead_words_in_any_case_and_as_an_ampersand(
+    language: str, printed: str, said: str
+) -> None:
+    """#646: the B9 round 2 hand mutants of #621, each a row the head reads right."""
+    once = read_all(printed, language)
+    assert once == said
+    assert read_all(once, language) == once
+
+
+def test_a_pair_after_a_rejected_head_names_both_its_brackets_in_the_reason() -> None:
+    """#646: "Table [1]" is no citation, so "[2] and [3]" is a D-668 pair, read as one and
+    named whole in the reason."""
+    assert read("Table [1], [2] and [3] show it.") == "Table [1], references 2 and 3 show it."
+    [pair] = edits("Table [1], [2] and [3] show it.")
+    assert pair.replacement == "references 2 and 3"
+    assert pair.reason == (
+        'citations "[2] and [3]" are part of the sentence: read as "references 2 and 3" (TP-04)'
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "spoken"),
+    [
+        # a range of two brackets is one citation, as one bracket holding the range is (#623)
+        ("It holds [1]–[3] here.", "It holds here."),
+        ("As shown in [1]–[3].", "As shown in references 1 to 3."),
+        # each as on main: no citation after a label word or a sign, or of intervals
+        ("Table [1]–[3] shows it.", "Table [1]– shows it."),
+        ("It is in CI [1]–[3].", "It is in confidence interval [1]–."),
+        ("CIs [1.2]–[3.4] hold.", "confidence intervals [1.2]–[3.4] hold."),
+        ("It holds [1, 2]–[3] here.", "It holds– here."),
+    ],
+)
+def test_two_numeric_brackets_joined_by_a_dash(text: str, spoken: str) -> None:
+    assert read_all(text) == spoken

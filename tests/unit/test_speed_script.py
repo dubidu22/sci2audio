@@ -203,6 +203,102 @@ def test_an_unknown_paper_or_voice_names_the_choices() -> None:
     assert len(speed.resolve_voices(speed.parse(["--all-voices"]))) == 28
 
 
+def test_the_german_voice_is_accepted_beside_the_english_ones() -> None:
+    """#404: the release speed run gives German rows too; --all-voices stays English."""
+    assert speed.resolve_voices(speed.parse(["--voice", "dm_thorsten"])) == ["dm_thorsten"]
+    mixed = ["--voice", "af_heart", "--voice", "dm_thorsten", "--voice", "af_heart"]
+    assert speed.resolve_voices(speed.parse(mixed)) == ["af_heart", "dm_thorsten"]
+    with pytest.raises(speed.SpeedError, match="dm_thorsten"):
+        speed.resolve_voices(speed.parse(["--voice", "de_nobody"]))
+    assert "dm_thorsten" not in speed.resolve_voices(speed.parse(["--all-voices"]))
+    assert [speed.language_of(v) for v in ("af_heart", "bm_george", "dm_thorsten")] == [
+        "en",
+        "en",
+        "de",
+    ]
+
+
+def test_the_job_part_takes_each_languages_own_paper_unless_one_is_given() -> None:
+    papers = speed.job_papers(speed.parse([]), ["af_heart", "dm_thorsten"])
+    assert {language: path.stem for language, path in papers.items()} == {
+        "en": "acl2023-hardt-ellipsis",
+        "de": "arxiv2017-maass-privacyscore",
+    }
+    quick = speed.job_papers(speed.parse(["--quick"]), ["dm_thorsten", "af_heart"])
+    assert [(language, path.stem) for language, path in quick.items()] == [
+        ("de", "arxiv2017-maass-privacyscore"),  # the corpus has no shorter German paper
+        ("en", "joss2022-biggs-pymedphys"),
+    ]
+    given = speed.job_papers(speed.parse(["--paper", "joss2021-waskom-seaborn"]), ["dm_thorsten"])
+    assert {language: path.stem for language, path in given.items()} == {
+        "de": "joss2021-waskom-seaborn"
+    }
+
+
+def test_the_german_voice_speaks_a_german_paragraph_and_its_rows_say_so(tmp_path: Path) -> None:
+    out = tmp_path / "speed.json"
+    code = speed.main(
+        ["--voice", "dm_thorsten", "--voice", "af_heart", "--skip-job", "--json", str(out)],
+        voice_for=lambda models, device: FakeVoice().source(),
+        devices=lambda: ["cpu"],
+        clock=clock_of(ticking()),
+        say=lambda line: None,
+    )
+    assert code == 0
+    result = json.loads(out.read_text(encoding="utf-8"))
+    german, english = result["voice"][0]["voices"]
+    assert (german["voice"], german["language"]) == ("dm_thorsten", "de")
+    assert german["characters"] == sum(len(s) for s in speed.PARAGRAPHS["de"])
+    assert (english["language"], english["characters"]) == ("en", sum(map(len, speed.PARAGRAPH)))
+    assert "| dm_thorsten (de) |" in result["markdown"]["voice"][0]
+
+
+def test_each_language_asked_gets_its_own_job_on_its_own_paper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ran: list[tuple[str, str, str]] = []
+
+    def job(voice, paper, folder, clock, say, language="en"):  # type: ignore[no-untyped-def]
+        ran.append((folder.parent.name, paper.stem, language))
+        return {"paper": paper.stem, "language": language, "voice": language}
+
+    monkeypatch.setattr(speed, "measure_job", job)
+    monkeypatch.setattr(speed, "measure_voices", lambda *a: {"model_load_seconds": 0, "voices": []})
+    monkeypatch.setattr(speed, "budget", lambda jobs, device: [])
+    monkeypatch.setattr(speed, "markdown_rows", lambda result: {})
+    args = speed.parse(["--voice", "af_heart", "--voice", "dm_thorsten", "--voice", "bm_george"])
+    result = speed.measure(
+        args,
+        voice_for=lambda m, d: FakeVoice().source(),
+        devices=["cpu"],
+        clock=lambda: 0.0,
+        say=lambda line: None,
+    )
+    assert ran == [
+        ("cpu", "acl2023-hardt-ellipsis", "en"),
+        ("cpu", "arxiv2017-maass-privacyscore", "de"),
+    ]
+    assert result["options"]["papers"] == {
+        "en": "acl2023-hardt-ellipsis",
+        "de": "arxiv2017-maass-privacyscore",
+    }
+
+
+def test_a_german_job_is_reported_and_never_judged() -> None:
+    job = {
+        "device": "cpu",
+        "language": "de",
+        "pages": 20,
+        "preparation_seconds": 100.0,
+        "realtime_factor_speaking": 0.5,
+        "estimate": {"largest_abs_error_with_a_minute_left": 0.9},
+        "encoding_times_realtime": 1.0,
+    }
+    lines = speed.budget([job], "cpu")
+    assert [line["met"] for line in lines] == [None, None, None, None]
+    assert all(line["measured"].endswith("(German: reported, not judged)") for line in lines)
+
+
 def test_missing_voice_files_stop_before_any_work(tmp_path: Path) -> None:
     said: list[str] = []
     asked: list[int] = []

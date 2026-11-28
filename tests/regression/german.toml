@@ -312,6 +312,23 @@ blocks = [{ kind = "paragraph", text = "Siehe Abb. 3a, Tab. 2, Gl. (4), Kap. 5, 
 expected = ["Siehe Abbildung 3a, Tabelle 2, Gleichung (4), Kapitel 5, Abschnitt 2 Punkt 1, Anhang B und Nummer 7."]
 
 [[case]]
+id = "de-abbreviations-label-before-a-bracketed-year-or-nest"
+audit = 0
+issue = 627
+goal = "A label abbreviation before a nest of brackets is read in full, and a label word before a bracketed year numbers what it labels, no name and year of a citation, so 'Abb.' and 'Gl.' read the same on a second run (D-577)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Abb. ((Müller, 2019), Müller, 2017; und (Kim, 2019) 2021) zeigt es." },
+    { kind = "paragraph", text = "Abb. (2021) und Gl. ((4)) gelten." },
+    { kind = "paragraph", text = "Wie Müller (2021) zeigt." },
+]
+expected = [
+    "Abbildung (2021) zeigt es.",
+    "Abbildung (2021) und Gleichung ((4)) gelten.",
+    "Wie Müller zeigt.",
+]
+
+[[case]]
 id = "de-abbreviations-titles"
 audit = 0
 issue = 113
@@ -1924,7 +1941,7 @@ expected = [
 id = "de-citations-a-pair-of-numeric-citations-the-sentence-needs"
 audit = 0
 issue = 257
-goal = "Eine Klammer, die mit 'und' an eine gebrauchte gebunden ist, wird mitgelesen: 'zwischen [1] und [3]' liest 'zwischen Quellen 1 und 3' (D-668)."
+goal = "Eine Klammer, die mit 'und' an eine gebrauchte gebunden ist, wird mitgelesen: 'zwischen [1] und [3]' liest 'zwischen Quellen 1 und 3' (D-668); mit 'oder' ebenso: 'Quellen 1 oder 3' (#622)."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Zwischen [1] und [3] liegt es." },
@@ -1934,7 +1951,7 @@ blocks = [
 expected = [
     "Zwischen Quellen 1 und 3 liegt es.",
     "Es liegt zwischen Quellen 1 und 3.",
-    "Es gilt oder Quelle 3 hier.",
+    "Es gilt Quellen 1 oder 3 hier.",
 ]
 
 [[case]]
@@ -2717,15 +2734,80 @@ expected = ["Das zeigen frühere Arbeiten."]
 id = "de-dating-bracket-of-several-period-words-kept"
 audit = 0
 issue = 595
-goal = "Eine Klammer, die mit mehreren Wörtern datiert ('(Frühjahr und Sommer 2019)', '(Herbst/Winter 2019)', '(Stand März 2020)'), ist keine Quellenangabe und bleibt wie gedruckt; mit einem Namen ('(Sommer und Koch 2019)') bleibt sie eine und wird entfernt."
+goal = "Eine Klammer, die mit mehreren Wörtern datiert ('(Frühjahr und Sommer 2019)', '(Herbst/Winter 2019)', '(Stand März 2020)'), ist keine Quellenangabe und bleibt stehen, der Schrägstrich zwischen zwei Wörtern gelesen als 'und' (#653); mit einem Namen ('(Sommer und Koch 2019)') bleibt sie eine und wird entfernt."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020)." },
     { kind = "paragraph", text = "Das zeigen frühere Arbeiten (Sommer und Koch 2019)." },
 ]
 expected = [
-    "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020).",
+    "Die Daten (Frühjahr und Sommer 2019) und (Herbst und Winter 2019) gelten, ebenso der Bericht (Stand März 2020).",
     "Das zeigen frühere Arbeiten.",
+]
+
+[[case]]
+id = "de-a-slash-between-words-reads-und"
+audit = 0
+issue = 653
+goal = "A slash between two words, glued or spaced, reads 'und', between three or more words a list ('Schulen, Vereine und Einrichtungen'); a pair of opposites reads 'oder' ('ja oder nein'), and a hyphen fragment keeps its hyphen ('Sozial- und Kulturpädagogik'), ruled by Colin at triage on 26 Nov 2026 (D-816). The first block has the shape of the lecture handout's sentence in #653, in our own words: third-party text never enters the repository. An abbreviation counts by its reading: 'z. B./u. a.' is 'zum Beispiel und unter anderem'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "So wächst nicht nur die Distanz zu diesem Platz, sondern auch zu den Menschen/Gruppen, die ihn heute nutzen (können) – was sich oft in Streit äußert." },
+    { kind = "paragraph", text = "Es geht um Theorie/Praxis und um Theorie / Praxis." },
+    { kind = "paragraph", text = "Gemeint sind Schulen/Vereine/Einrichtungen." },
+    { kind = "paragraph", text = "Die Antwort ist ja/nein, richtig/falsch oder wahr/falsch." },
+    { kind = "heading", text = "Die Sozial-/Kulturpädagogik am Ein-/Ausgang" },
+    { kind = "paragraph", text = "Siehe z. B./u. a. hier." },
+]
+expected = [
+    "So wächst nicht nur die Distanz zu diesem Platz, sondern auch zu den Menschen und Gruppen, die ihn heute nutzen (können) – was sich oft in Streit äußert.",
+    "Es geht um Theorie und Praxis und um Theorie und Praxis.",
+    "Gemeint sind Schulen, Vereine und Einrichtungen.",
+    "Die Antwort ist ja oder nein, richtig oder falsch oder wahr oder falsch.",
+    "Die Sozial- und Kulturpädagogik am Ein- und Ausgang",
+    "Siehe zum Beispiel und unter anderem hier.",
+]
+
+[[case]]
+id = "de-a-slash-the-slash-rule-leaves"
+audit = 0
+issue = 653
+goal = "A slash that is no slash between words stays as the steps before read it: gender forms ('Lehrer/innen', 'Lehrer/-innen', 'ein/e', 'jede/r', 'Studierende/r', D-816), a rate ('Euro/Monat', 'pro Kopf/Jahr'), join words ('und/oder', 'bzw./oder'), an acronym ('TCP/IP'), numbers and a fraction ('1998/2019', '3/4'), names before a year ('Heydorn/Koneffke (1964)', #455) (#653)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Lehrer/innen, Lehrer/-innen, ein/e und jede/r Studierende/r." },
+    { kind = "paragraph", text = "Es kostet 5 Euro/Monat und 3 Euro pro Kopf/Jahr." },
+    { kind = "paragraph", text = "Es gilt und/oder, bzw./oder und TCP/IP." },
+    { kind = "paragraph", text = "Die Ausgaben 1998/2019 und 3/4 der Befragten." },
+    { kind = "paragraph", text = "Wie Heydorn/Koneffke (1964) zeigen." },
+]
+expected = [
+    "Die Lehrer/innen, Lehrer/-innen, ein/e und jede/r Studierende/r.",
+    "Es kostet 5 Euro/Monat und 3 Euro pro Kopf/Jahr.",
+    "Es gilt und/oder, beziehungsweise/oder und TCP/IP.",
+    "Die Ausgaben 1998/2019 und 3 Viertel der Befragten.",
+    "Wie Heydorn/Koneffke (1964) zeigen.",
+]
+
+[[case]]
+id = "de-a-dating-bracket-of-period-words-and-months-stays-read"
+audit = 0
+issue = 925
+goal = "As in English: a dating bracket of period words and months joined by 'und', '&', a hyphen or a slash and a year stays as printed; a real citation stays removed (#925)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es wuchs (Frühjahr & Sommer 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Frühjahr und Mai 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Mai und Juni 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Herbst-Winter 2019) hier." },
+    { kind = "paragraph", text = "Es wuchs (Sommer & Lee 2019) hier." },
+]
+expected = [
+    "Es wuchs (Frühjahr & Sommer 2019) hier.",
+    "Es wuchs (Frühjahr und Mai 2019) hier.",
+    "Es wuchs (Mai und Juni 2019) hier.",
+    "Es wuchs (Herbst-Winter 2019) hier.",
+    "Es wuchs hier.",
 ]
 
 [[case]]
@@ -2775,6 +2857,38 @@ utterances = [
 ]
 
 # ---- B9 Zitatlisten und Bindewörter (#414, #415, #402; D-791) -----------------------------------
+
+[[case]]
+id = "de-citations-a-list-of-citation-brackets-joined-by-oder"
+audit = 0
+issue = 622
+goal = "Eine Liste oder ein Paar von Zahlenklammern, die 'oder' verbindet, ist eine Quellenangabe wie eine mit 'und' (#414): nebenbei entfällt sie ganz, im Satz gebraucht liest sie einmal ('Quellen 1, 2 oder 3') (#622)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt [1], [2] oder [3] hier." },
+    { kind = "paragraph", text = "Wie in [1] oder [3] gezeigt." },
+    { kind = "paragraph", text = "Wie in [1], [2] oder [3] gezeigt." },
+]
+expected = [
+    "Es gilt hier.",
+    "Wie in Quellen 1 oder 3 gezeigt.",
+    "Wie in Quellen 1, 2 oder 3 gezeigt.",
+]
+
+[[case]]
+id = "de-citations-two-numeric-brackets-joined-by-a-dash"
+audit = 0
+issue = 623
+goal = "Zwei Zahlenklammern, die ein Strich verbindet, sind eine Quellenangabe wie '[1–3]': nebenbei entfällt sie ganz, im Satz gebraucht liest sie 'Quellen 1 bis 3'; kein Strich bleibt stehen (#623)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Das gilt [1]–[3] hier." },
+    { kind = "paragraph", text = "Wie in [1]–[3] gezeigt." },
+]
+expected = [
+    "Das gilt hier.",
+    "Wie in Quellen 1 bis 3 gezeigt.",
+]
 
 [[case]]
 id = "de-citations-a-list-of-citation-brackets-is-one-citation"
@@ -3345,6 +3459,33 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-roman-part-list-with-other-list-words"
+audit = 0
+issue = 1013
+goal = "A list of Roman numerals after a part keyword, a full stop after each, joined by 'u.', 'bzw.', 'sowie' or a spaced dash, is left as printed as a whole, as 'Kapitel I. und II.' is (#996); without the full stops 'u.', 'bzw.' and 'sowie' join a list read whole, as 'und' does: never only its first numeral. Each reads the same on a second run."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I. u. II." },
+    { kind = "paragraph", text = "Kapitel I. bzw. II." },
+    { kind = "paragraph", text = "Kapitel I. sowie II." },
+    { kind = "paragraph", text = "Kapitel I. — II." },
+    { kind = "heading", text = "Teile I. bzw. II. folgen" },
+    { kind = "paragraph", text = "Kapitel I u. II folgen." },
+    { kind = "paragraph", text = "Kapitel I bzw. II folgen." },
+    { kind = "paragraph", text = "Kapitel I, II sowie III folgen." },
+]
+expected = [
+    "Kapitel I. und II.",
+    "Kapitel I. beziehungsweise II.",
+    "Kapitel I. sowie II.",
+    "Kapitel I. — II.",
+    "Teile I. beziehungsweise II. folgen",
+    "Kapitel 1 und 2 folgen.",
+    "Kapitel 1 beziehungsweise 2 folgen.",
+    "Kapitel 1, 2 sowie 3 folgen.",
+]
+
+[[case]]
 id = "de-a-sign-before-nx"
 audit = 0
 issue = 988
@@ -3387,6 +3528,27 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-part-number-before-a-full-stop-and-a-unit-sign"
+audit = 0
+issue = 1034
+goal = "A part keyword's Roman numeral before a full stop glued to a sign the units step reads ('≈', '~', '×') is read as before a statistics sign (#1010), since a second run sees 'Kapitel IV. ungefähr 1': 'Kapitel 4. ungefähr 1' on both runs, in a paragraph and in a heading. A figure dash glued between '=' and a number reads as a minus sign there does ('A=‒3' as 'A=−3'). A point decimal after '~', which the units step reads 'etwa ' with a space, is read as a second run reads it, while one glued to 'Prozent' stays (#1083)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Siehe Kapitel IV.≈1 hier." },
+    { kind = "paragraph", text = "Siehe Kapitel IV.~1 und Teil II.×2 hier." },
+    { kind = "heading", text = "Kapitel IV.≈1" },
+    { kind = "paragraph", text = "Also A=‒3 und A=−3 hier." },
+    { kind = "paragraph", text = "Also A~.5 und 1 %.452 hier." },
+]
+expected = [
+    "Siehe Kapitel 4. ungefähr 1 hier.",
+    "Siehe Kapitel 4. etwa 1 und Teil 2. mal 2 hier.",
+    "Kapitel 4. ungefähr 1",
+    "Also A gleich ‒3 und A gleich −3 hier.",
+    "Also A etwa 0 Komma 5 und ein Prozent.452 hier.",
+]
+
+[[case]]
 id = "de-a-range-of-part-numbers-in-roman-numerals"
 audit = 0
 issue = 1010
@@ -3422,6 +3584,29 @@ expected = [
     "Also 3x größer als 2 und 3x − 2 hier.",
     "Also A⁻¹ K hier.",
     "Also 2 hoch minus 1 mal hier.",
+]
+
+[[case]]
+id = "de-two-shapes-that-read-the-same-on-a-second-run-1032"
+audit = 0
+issue = 1032
+goal = "Each reads the same on the first and the second run: a caret power with a unit glued after it is read with the unit ('10 hoch 2 Kilogramm'); a unit after a number glued to a removed citation is read on the first run ('[1]1 K' is 'ein Kelvin'), not set aside, while '[1]2 K' keeps its bracket as before; a figure dash after 'Nx' stays as German read it ('3 mal ‒2', #1032)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es wiegt 10^2kg hier." },
+    { kind = "heading", text = "Gewichte von 10^2kg" },
+    { kind = "paragraph", text = "Es misst [1]1 K hier." },
+    { kind = "heading", text = "Es misst [1]1 K" },
+    { kind = "paragraph", text = "Es misst [1]2 K hier." },
+    { kind = "paragraph", text = "Es ist 3x‒2 hier." },
+]
+expected = [
+    "Es wiegt 10 hoch 2 Kilogramm hier.",
+    "Gewichte von 10 hoch 2 Kilogramm",
+    "Es misst ein Kelvin hier.",
+    "Es misst ein Kelvin",
+    "Es misst [1]2 Kelvin hier.",
+    "Es ist 3 mal ‒2 hier.",
 ]
 
 [[case]]
@@ -3739,7 +3924,7 @@ expected = [
 id = "de-a-number-after-a-unit-symbol-and-a-full-stop"
 audit = 0
 issue = 1082
-goal = "A comma decimal after a full stop glued to a symbol the units step reads as a word ('1 %.452,5' is 'ein Prozent.452,5' after it) is read as after a word, as a second run reads it: 'ein Prozent.452 Komma 5' on both runs, in a paragraph and a heading. Where the units step leaves the symbol ('%.452,5') the number stays as printed (#1082)."
+goal = "A comma decimal after a full stop glued to a symbol the units step reads as a word ('1 %.452,5' is 'ein Prozent.452,5' after it) is read as after a word, as a second run reads it: 'ein Prozent.452 Komma 5' on both runs, in a paragraph and a heading. Where the units step leaves the symbol ('%.452,5') the number stays as printed (#1082). A point decimal there stays as printed too: '1 %.452' is 'ein Prozent.452', as after 'Prozent.' on a second run (#1083; it was 'ein Prozent0 Komma 4 5 2')."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "1–1 %.452,5" },
@@ -3753,7 +3938,7 @@ expected = [
     "1 bis 1 Prozent.452 Komma 5",
     "ein Euro.452 Komma 5",
     "5 Prozent.452 Komma 5",
-    "ein Prozent0 Komma 4 5 2",
+    "ein Prozent.452",
     "%.452,5",
     "1 bis 1 Prozent.452 Komma 5",
 ]
@@ -3819,4 +4004,120 @@ blocks = [
 expected = [
     "mit 5 N Proben",
     "Es gilt x gleich 2 s + 1",
+]
+
+[[case]]
+id = "de-shapes-left-from-1082-read-the-same-on-a-second-run"
+audit = 0
+issue = 1083
+goal = "After a full stop glued to a '%' the units step reads 'Prozent', a thousands number, a fraction, a ratio and a hyphen range are read as after 'Prozent.' on a second run, and a point decimal there stays as printed ('ein Prozent.452'); with no number before the '%' all stay. A bold maths unit after a number the numbers step would read is the unit it shows ('Kapitel 2,55 𝐦' stays as 'Kapitel 2,55 m' does), and each reads the same on a second run (#1083)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es sind 1 %.1.234 hier." },
+    { kind = "paragraph", text = "Es sind 1 %.3/4 und 1 %.1:2 hier." },
+    { kind = "paragraph", text = "Es sind 1 %.3-5 hier." },
+    { kind = "paragraph", text = "Es sind 1 %.452 hier." },
+    { kind = "paragraph", text = "Es sind %.1.234 und %.3/4 hier." },
+    { kind = "paragraph", text = "Siehe Kapitel 2,55 𝐦 hier." },
+    { kind = "heading", text = "Es sind 17/20 𝐠" },
+    { kind = "paragraph", text = "Es ist um 13:30 𝐍 hier." },
+    { kind = "paragraph", text = "Es sind 2,55 𝐦 hier." },
+]
+expected = [
+    "Es sind ein Prozent.1234 hier.",
+    "Es sind ein Prozent.3 Viertel und ein Prozent.1 zu 2 hier.",
+    "Es sind ein Prozent.3 bis 5 hier.",
+    "Es sind ein Prozent.452 hier.",
+    "Es sind %.1.234 und %.3/4 hier.",
+    "Siehe Kapitel 2,55 m hier.",
+    "Es sind 17/20 g",
+    "Es ist um 13:30 N hier.",
+    "Es sind 2 Komma 5 5 Meter hier.",
+]
+
+[[case]]
+id = "de-a-glued-size-keeps-mal"
+audit = 0
+issue = 1037
+goal = "Two whole numbers joined by a glued 'x' or 'X' keep 'mal' in German, which is how a resolution is said there; only English reads such a size 'by' (#1037)."
+language = "de"
+blocks = [{ kind = "paragraph", text = "Der Bildschirm hat 1920x1080 Pixel und 1024X768." }]
+expected = ["Der Bildschirm hat 1920 mal 1080 Pixel und 1024 mal 768."]
+
+[[case]]
+id = "de-a-range-of-two-powers-of-ten-is-read-whole"
+audit = 0
+issue = 822
+goal = "German reads a range of two powers of ten whole already, in superscripts and as raised runs: '10⁴–10⁶ K' is '10 hoch 4 bis 10 hoch 6 Kelvin' (#822, pinned as the English rule's model)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es hält 10⁴–10⁶ K hier." },
+    { kind = "paragraph", runs = ["Es hält 10", { sup = "4" }, "–10", { sup = "6" }, " Zellen hier."] },
+]
+expected = [
+    "Es hält 10 hoch 4 bis 10 hoch 6 Kelvin hier.",
+    "Es hält 10 hoch 4 bis 10 hoch 6 Zellen hier.",
+]
+
+[[case]]
+id = "de-links-the-marks-around-a-removed-link-go-with-it"
+audit = 0
+issue = 899
+goal = "As in English: quotes, typographic quotes, guillemets in both orders and emphasis marks that hold only a removed link go with it, and the sentence is repaired as for a bare link; a full stop before a lower-case word goes with the link; a word glued after the closing guillemet stays a word (#899, #837)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es ist unter ‚https://example.org/a‘ für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter „https://example.org/a“ für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter »https://example.org/a« für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter *https://example.org/a* für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter https://example.org/a. für alle verfügbar." },
+    { kind = "paragraph", text = "Siehe »https://a.org«Smith." },
+]
+expected = [
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Siehe Smith.",
+]
+
+[[case]]
+id = "de-an-arrow-before-a-lone-negation-sign-stays-as-printed"
+audit = 0
+issue = 853
+goal = "As in English: a lone negation sign after an arrow of logic is no operand, so the arrow stays as printed; 'A ⇒ ¬B' is read (#853)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A ⇒ ¬" },
+    { kind = "paragraph", text = "Also A ⇒ ¬." },
+    { kind = "paragraph", text = "Also A ⇔ ¬." },
+    { kind = "paragraph", text = "Also A ⇒ ¬B." },
+]
+expected = [
+    "Also A ⇒ ¬",
+    "Also A ⇒ ¬.",
+    "Also A ⇔ ¬.",
+    "Also A daraus folgt ¬B.",
+]
+
+[[case]]
+id = "de-a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
+audit = 0
+issue = 1120
+goal = "As in English: a spaced df bracket followed by '=' reads as the glued form, and a Latin 'X2' before such a bracket reads 'Chi-Quadrat'; 'X2' elsewhere stays as printed (#1120)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt t (34) = 2,1 hier." },
+    { kind = "paragraph", text = "Es gilt X2(1) = 3,84 hier." },
+    { kind = "paragraph", text = "Es gilt X2 (1) = 3,84 hier." },
+    { kind = "paragraph", text = "Es gilt t(34) = 2,1 hier." },
+    { kind = "paragraph", text = "Das X2 steigt hier." },
+]
+expected = [
+    "Es gilt t mit 34 Freiheitsgraden gleich 2 Komma 1 hier.",
+    "Es gilt Chi-Quadrat mit 1 Freiheitsgrad gleich 3 Komma 8 4 hier.",
+    "Es gilt Chi-Quadrat mit 1 Freiheitsgrad gleich 3 Komma 8 4 hier.",
+    "Es gilt t mit 34 Freiheitsgraden gleich 2 Komma 1 hier.",
+    "Das X2 steigt hier.",
 ]

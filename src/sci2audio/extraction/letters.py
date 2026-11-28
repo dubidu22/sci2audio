@@ -42,6 +42,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from importlib import resources
+from typing import cast
 
 import numpy as np
 
@@ -150,8 +151,11 @@ def prepare(pictures: np.ndarray) -> np.ndarray:
     found = pictures.reshape(-1, rows, columns).astype(np.float32)
     reach = len(_KERNEL) // 2
     padded = np.pad(found, ((0, 0), (reach, reach), (reach, reach)))
-    across = sum(w * padded[:, :, k : k + columns] for k, w in enumerate(_KERNEL))
-    blurred = sum(w * across[:, k : k + rows, :] for k, w in enumerate(_KERNEL))
+    # sum() of arrays is an array, which its stub cannot tell from its int start
+    across = cast(
+        "np.ndarray", sum(w * padded[:, :, k : k + columns] for k, w in enumerate(_KERNEL))
+    )
+    blurred = cast("np.ndarray", sum(w * across[:, k : k + rows, :] for k, w in enumerate(_KERNEL)))
     flat = blurred.reshape(len(found), rows * columns)
     total = flat.sum(axis=1, keepdims=True)
     return flat / np.where(total > 0, total, 1)
@@ -413,8 +417,9 @@ def _by_words(
         score = 0
         for word, count in words.items():
             found = [assigned.get(rows.get(glyph, -1)) for glyph in word]
-            if None not in found:
-                score += count * _known("".join(letters[c] for c in found))
+            known = [c for c in found if c is not None]
+            if len(known) == len(found):
+                score += count * _known("".join(letters[c] for c in known))
         scores.append(score)
     ranked = sorted(range(len(readings)), key=lambda k: -scores[k])
     if scores[ranked[0]] - scores[ranked[1]] < WORD_MARGIN:

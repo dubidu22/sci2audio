@@ -30,6 +30,7 @@ from sci2audio.textprep import (
 from sci2audio.textprep.utterances import (
     _BEFORE_NUMBERS,
     _PAIRS_DE,
+    _PAIRS_EN,
     MIN_PIECE,
     _counts,
     _cut_point,
@@ -398,6 +399,42 @@ def test_a_sentence_all_inside_a_bracket_is_still_cut() -> None:
     assert len(parts) > 1
     assert all(len(part) <= DEFAULT_MAX_CHARS for part in parts)
     assert " ".join(parts) == text
+
+
+def test_a_cut_that_leaves_a_rest_of_39_characters_is_no_fair_part() -> None:
+    """#619: a part under MIN_PIECE (40) spoken characters is no fair part, on either side of
+    the cut. The cut nearest the even share would leave 39 behind, so the one that leaves 41
+    is taken (`left - counts[i] - 1 >= MIN_PIECE`)."""
+    text = "and ( it xxxxxxxxxx it ) xxxxxxxxxx , it ( the word"
+    counts, left = _counts(text), 82
+    assert (counts[41], left - counts[41] - 1) == (40, 41)
+    assert (counts[43], left - counts[43] - 1) == (42, MIN_PIECE - 1)
+    assert _cut_point(text, counts, 50, left, clause_openers("en")) == 41
+
+
+@pytest.mark.parametrize(
+    ("text", "max_chars", "left", "pairs", "cut_at"),
+    [
+        # the place right after the first character is a place too
+        pytest.param(", the ( and", 10, 66, _PAIRS_EN, 1, id="after-the-first-character"),
+        # ... and so is one after a single spoken character
+        pytest.param(") ( ( ( and", 10, 11, _PAIRS_EN, 2, id="after-one-spoken-character"),
+        # a place inside leading white space would leave a part with nothing spoken
+        pytest.param("  ( ( and and", 10, 10, _PAIRS_EN, 10, id="never-in-leading-white-space"),
+        # with no `left` given, what is left is the whole text's spoken length
+        pytest.param("the and ) )", 10, None, ("", ""), 8, id="left-defaults-to-the-whole"),
+        # a `left` below the window's spoken length counts as that length
+        pytest.param("the ) ) the", 10, 3, ("", ""), 6, id="left-at-least-the-window"),
+        pytest.param("word ) it ,", 10, 1, _PAIRS_EN, 7, id="left-at-least-the-window-2"),
+    ],
+)
+def test_the_cut_choice_at_the_edges_of_its_window(
+    text: str, max_chars: int, left: int | None, pairs: tuple[str, str], cut_at: int
+) -> None:
+    """#619: the surviving mutants of `_cut_point` (34, 38, 39, 52, 58, 59), each a row the
+    head decides right."""
+    counts = _counts(text)
+    assert _cut_point(text, counts, max_chars, left, clause_openers("en"), pairs) == cut_at
 
 
 def test_the_cut_never_falls_past_the_limit_and_takes_the_last_fit_without_a_place() -> None:

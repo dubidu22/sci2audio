@@ -251,6 +251,17 @@ blocks = [
 expected = ["Table 2: Mean scores by group.", "Table 2 is skipped.", "Group A scored higher."]
 
 [[case]]
+id = "a-listing-caption-names-its-code-block"
+audit = 0
+issue = 604
+goal = "A 'Listing N: ...' caption that layout points at its code block names the block in the skip notice: 'Listing 3 is skipped.' (#281, AC-281.2, PR #600)."
+blocks = [
+    { kind = "caption", text = "Listing 3: Drawing a line plot.", label = "Listing 3", describes = 1 },
+    { kind = "code", text = "import seaborn as sns" },
+]
+expected = ["Listing 3: Drawing a line plot.", "Listing 3 is skipped."]
+
+[[case]]
 id = "figure-without-caption"
 audit = 0
 issue = 64
@@ -1334,6 +1345,26 @@ blocks = [{ kind = "paragraph", text = "Eq. [3] and Eq.[4] hold." }]
 expected = ["Equation [3] and Equation [4] hold."]
 
 [[case]]
+id = "abbreviations-label-before-a-bracketed-year-or-nest"
+audit = 0
+issue = 627
+goal = "A label abbreviation before a nest of brackets is read in full, and a label word before a bracketed year numbers what it labels, no name and year of a citation, so 'Refs.' and 'Eq.' read the same on a second run, after the abbreviations step has read them (D-577)."
+blocks = [
+    { kind = "paragraph", text = "Refs. ((Müller, 2019), Müller, 2017; and (Kim, 2019) 2021) show it." },
+    { kind = "paragraph", text = "Refs. (2021) show it." },
+    { kind = "paragraph", text = "Eq. (2021) and Table (2021) hold." },
+    { kind = "paragraph", text = "Eq. ((8)) holds." },
+    { kind = "paragraph", text = "Smith (2021) shows it." },
+]
+expected = [
+    "References (2021) show it.",
+    "References (2021) show it.",
+    "Equation (2021) and Table (2021) hold.",
+    "Equation ((8)) holds.",
+    "Smith shows it.",
+]
+
+[[case]]
 id = "links-url-cut-before-a-sentence-word"
 audit = 0
 issue = 109
@@ -2048,10 +2079,52 @@ expected = [
 # ---- PR 3 of the second textprep batch: words left without their partner (D-668) ----
 
 [[case]]
+id = "citations-a-list-of-numeric-citations-joined-by-or"
+audit = 0
+issue = 622
+goal = "A list or pair of numeric citation brackets joined by 'or' is one citation, as one joined by 'and' is (#414, D-791): an aside list goes whole, also after 'between' ('Between [1], [2] and [3] it lies.' is 'Between it lies.'), a needed one reads once ('references 1, 2 or 3'), and a pair is needed as an 'and' pair is ('references 1 or 3'); a run that mixes 'and' and 'or' reads bracket by bracket as before (#622)."
+blocks = [
+    { kind = "paragraph", text = "It holds [1], [2] or [3] here." },
+    { kind = "paragraph", text = "Between [1], [2] or [3] it lies." },
+    { kind = "paragraph", text = "It holds [1] or [3] here." },
+    { kind = "paragraph", text = "As shown in [1], [2] or [3]." },
+    { kind = "paragraph", text = "As shown in [1] or [3]." },
+    { kind = "heading", text = "As shown in [2] or [5]" },
+]
+expected = [
+    "It holds here.",
+    "Between it lies.",
+    "It holds references 1 or 3 here.",
+    "As shown in references 1, 2 or 3.",
+    "As shown in references 1 or 3.",
+    "As shown in references 2 or 5",
+]
+
+[[case]]
+id = "citations-two-numeric-brackets-joined-by-a-dash"
+audit = 0
+issue = 623
+goal = "Two numeric citation brackets joined by a dash ('–', '-', '—') are one citation, as '[1–3]' is: an aside goes whole ('It holds here.'), a needed one reads 'references 1 to 3'; no dash is left behind (#623)."
+blocks = [
+    { kind = "paragraph", text = "It holds [1]–[3] here." },
+    { kind = "paragraph", text = "It holds [1]-[3] here." },
+    { kind = "paragraph", text = "It holds [4]—[6] here." },
+    { kind = "paragraph", text = "As shown in [1]–[3]." },
+    { kind = "heading", text = "As shown in [2]–[5]" },
+]
+expected = [
+    "It holds here.",
+    "It holds here.",
+    "It holds here.",
+    "As shown in references 1 to 3.",
+    "As shown in references 2 to 5",
+]
+
+[[case]]
 id = "citations-a-pair-of-numeric-citations-the-sentence-needs"
 audit = 0
 issue = 257
-goal = "An aside bracket joined by 'and' to a needed one is needed too: 'between [1] and [3]' reads 'between references 1 and 3', not 'between and reference 3' (D-668); a needed pair reads once over both: 'in [1] and [3]' reads 'in references 1 and 3' (#414, D-791)."
+goal = "An aside bracket joined by 'and' to a needed one is needed too: 'between [1] and [3]' reads 'between references 1 and 3', not 'between and reference 3' (D-668); a needed pair reads once over both: 'in [1] and [3]' reads 'in references 1 and 3' (#414, D-791); a pair joined by 'or' reads as one joined by 'and' does: 'It holds [1] or [3] here.' is 'It holds references 1 or 3 here.' (#622)."
 blocks = [
     { kind = "paragraph", text = "Between [1] and [3] it lies." },
     { kind = "paragraph", text = "It lies between [1] and [3]." },
@@ -2067,7 +2140,7 @@ expected = [
     "It lies between references 1 and 3.",
     "Between references MH17 and Fa14 it lies.",
     "It was shown in references 1 and 3.",
-    "It holds or reference 3 here.",
+    "It holds references 1 or 3 here.",
 ]
 
 [[case]]
@@ -2123,6 +2196,26 @@ expected = [
     "Then Müller, , and more.",
     "Then it and more.",
     "Then it and more.",
+    "Then it and more.",
+]
+
+[[case]]
+id = "links-no-two-join-words-around-a-citation-before-a-link"
+audit = 0
+issue = 847
+goal = "A join word right before a removed citation goes with it when a removed link follows the citation and another join word follows the link, so no two join words are read side by side; one that starts the sentence, or has no second join word after the link, is read."
+blocks = [
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org and more." },
+    { kind = "paragraph", text = "Then it or (Lee, 2019) https://x.org or more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org/8 or more." },
+    { kind = "paragraph", text = "And (Lee, 2019) https://x.org and more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org more." },
+]
+expected = [
+    "Then it and more.",
+    "Then it or more.",
+    "Then it or more.",
+    "And and more.",
     "Then it and more.",
 ]
 
@@ -2881,10 +2974,48 @@ utterances = ["This was shown before.", "Then more."]
 id = "slash-words-in-brackets-are-no-citation"
 audit = 0
 issue = 455
-goal = "A slash between ordinary words in brackets is no citation, even with a year (D-719 PR 4)."
+goal = "A slash between ordinary words in brackets is no citation, even with a year (D-719 PR 4); since #653 the slash between them reads 'and', and 'and/or' stays."
 blocks = [{ kind = "paragraph", text = "We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)." }]
-expected = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]
-utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]
+expected = ["We repeat it (and/or 3 times) here, as in 2001 (input and output 2001)."]
+utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input and output 2001)."]
+
+[[case]]
+id = "a-slash-between-words-reads-and"
+audit = 0
+issue = 653
+goal = "A slash between two words, glued or spaced, reads 'and', and between three or more words a list ('schools, clubs and centres'); a pair of opposites reads 'or' ('yes or no', 'true or false'), ruled by Colin at triage on 26 Nov 2026 (D-816)."
+blocks = [
+    { kind = "paragraph", text = "It is about people/groups and about people / groups." },
+    { kind = "paragraph", text = "We mean schools/clubs/centres." },
+    { kind = "paragraph", text = "The answer is yes/no or true/false." },
+    { kind = "heading", text = "The input/output layer" },
+]
+expected = [
+    "It is about people and groups and about people and groups.",
+    "We mean schools, clubs and centres.",
+    "The answer is yes or no or true or false.",
+    "The input and output layer",
+]
+
+[[case]]
+id = "a-slash-the-slash-rule-leaves"
+audit = 0
+issue = 653
+goal = "A slash that is no slash between words stays as the steps before read it: fixed slash words ('and/or', 'w/o', 'c/o', 'n/a', 's/he'), acronyms ('TCP/IP', 'I/O', 'A/B'), a sign's name ('plus/minus'), a rate ('dollars/month'), a unit ('km/h') and a path ('docs/kb', '/usr/bin') (#653)."
+blocks = [
+    { kind = "paragraph", text = "It is and/or, w/o, c/o, n/a and s/he." },
+    { kind = "paragraph", text = "It is TCP/IP, I/O and an A/B test." },
+    { kind = "paragraph", text = "It was plus/minus 3 here." },
+    { kind = "paragraph", text = "It costs 5 dollars/month at 5 km/h." },
+    { kind = "paragraph", text = "See docs/kb and /usr/bin." },
+]
+expected = [
+    "It is and/or, w/o, c/o, n/a and s/he.",
+    "It is TCP/IP, I/O and an A/B test.",
+    "It was plus/minus 3 here.",
+    "It costs 5 dollars/month at 5 kilometres per hour.",
+    "See docs/kb and /usr/bin.",
+]
 
 [[case]]
 id = "hidden-runs-in-a-table-read-when-its-notice-is-off"
@@ -3219,6 +3350,34 @@ expected = [
 # ---- #854, #878, #880 inline code ----------------------------------------------------------
 
 [[case]]
+id = "a-dating-bracket-of-period-words-and-months-stays-read"
+audit = 0
+issue = 925
+goal = "A dating bracket of season or period words and months, joined by 'and' in any case, '&', a hyphen, an en dash, a slash or a space, and a year stays as printed: '(Spring and May 2019)', '(Spring & Summer 2019)', '(Fall-Winter 2019)'. A real citation with a period word or a month among its authors is still removed ('(Summer & Lee 2019)', '(Lee and May 2019)'); '(May and Lee 2019)' stays as printed, as a month is never the first author (D-173)."
+blocks = [
+    { kind = "paragraph", text = "It grew (Spring and May 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring And Summer 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring & Summer 2019) here." },
+    { kind = "paragraph", text = "It grew (Fall-Winter 2019) here." },
+    { kind = "paragraph", text = "It grew (May and June 2019) here." },
+    { kind = "paragraph", text = "It grew (May–June 2019) here." },
+    { kind = "paragraph", text = "It grew (Summer & Lee 2019) here." },
+    { kind = "paragraph", text = "It grew (Lee and May 2019) here." },
+    { kind = "paragraph", text = "It grew (May and Lee 2019) here." },
+]
+expected = [
+    "It grew (Spring and May 2019) here.",
+    "It grew (Spring And Summer 2019) here.",
+    "It grew (Spring & Summer 2019) here.",
+    "It grew (Fall-Winter 2019) here.",
+    "It grew (May and June 2019) here.",
+    "It grew (May–June 2019) here.",
+    "It grew here.",
+    "It grew here.",
+    "It grew (May and Lee 2019) here.",
+]
+
+[[case]]
 id = "inline-code-is-read-as-printed"
 audit = 0
 issue = 854
@@ -3477,6 +3636,24 @@ expected = [
 ]
 
 [[case]]
+id = "an-equals-sign-before-a-figure-dash-and-a-number"
+audit = 0
+issue = 1034
+goal = "A figure dash glued between '=' and a number reads as a minus sign there does ('A=‒3' as 'A=−3': 'A equals minus 3'), on both runs, in a paragraph and a heading; a removed citation and a full stop before a sign ('[1]. < 3') and a spaced figure dash after 'Nx' ('3x ‒ 2') read the same on both runs as well (#1034)."
+blocks = [
+    { kind = "paragraph", text = "Also A=‒3 here." },
+    { kind = "heading", text = "When A=‒3" },
+    { kind = "paragraph", text = "It holds [1]. < 3 here." },
+    { kind = "paragraph", text = "It is 3x ‒ 2 here." },
+]
+expected = [
+    "Also A equals minus 3 here.",
+    "When A equals minus 3",
+    "It holds. less than 3 here.",
+    "It is 3x minus 2 here.",
+]
+
+[[case]]
 id = "a-sign-after-a-removed-citation-at-the-block-start"
 audit = 0
 issue = 1010
@@ -3493,10 +3670,42 @@ expected = [
 ]
 
 [[case]]
+id = "four-shapes-that-read-the-same-on-a-second-run-1032"
+audit = 0
+issue = 1032
+goal = "Each reads the same on the first and the second run: a round citation removed before a bare '<' or '>' makes no compared term of the 'Nx' after the sign ('greater than 3 times', as a second run reads it with the citation gone); a figure dash glued after 'Nx' is a sign beside a variable, as '-' and '−' are ('3x‒2' as printed); a caret power with a unit glued after it is read with the unit ('10 to the power of 2 kilograms'), and one with a glued letter that is no unit stays as printed ('10^2m'). A spaced figure dash after 'Nx' reads as a spaced '−' does ('3x minus 2')."
+blocks = [
+    { kind = "paragraph", text = "It holds (Smith, 2019) > 3x here." },
+    { kind = "paragraph", text = "It holds (Smith, 2019) < 3x here." },
+    { kind = "heading", text = "When (Smith, 2019) > 3x" },
+    { kind = "paragraph", text = "It holds (a + b) > 3x here." },
+    { kind = "paragraph", text = "It is 3x‒2 here." },
+    { kind = "heading", text = "A 3x‒2 grid" },
+    { kind = "paragraph", text = "It weighs 10^2kg here." },
+    { kind = "heading", text = "Weights of 10^2kg" },
+    { kind = "paragraph", text = "It weighs 10^2m here." },
+    { kind = "paragraph", text = "It is 3x ‒ 2 here." },
+    { kind = "paragraph", text = "It weighs 10^{2}kg and 10^-3kg, and 10^2x1 is more." },
+]
+expected = [
+    "It holds greater than 3 times here.",
+    "It holds less than 3 times here.",
+    "When greater than 3 times",
+    "It holds (a + b) greater than 3x here.",
+    "It is 3x‒2 here.",
+    "A 3x‒2 grid",
+    "It weighs 10 to the power of 2 kilograms here.",
+    "Weights of 10 to the power of 2 kilograms",
+    "It weighs 10^2m here.",
+    "It is 3x minus 2 here.",
+    "It weighs 10 to the power of 2 kilograms and 10 to the power of minus 3 kilograms, and 10 to the power of 2 times 1 is more.",
+]
+
+[[case]]
 id = "four-digit-count-before-a-spaced-or-capital-x"
 audit = 0
 issue = 870
-goal = "A four-digit number before a spaced 'x', a capital 'X' or an 'x' glued before a digit, each read 'times', is a count read with its comma on the first run, as on a second run, which sees 'times'; '1920x1080' and '1234x,' read as before (#870)."
+goal = "A four-digit number before a spaced 'x', a capital 'X' or an 'x' glued before a digit, each read 'times', is a count read with its comma on the first run, as on a second run, which sees 'times'; '1234x,' reads as before (#870), and the size '1920x1080' reads 'by' (#1037)."
 blocks = [
     { kind = "paragraph", text = "It grew 1234 x 5." },
     { kind = "paragraph", text = "It grew 1234x5 and 1234 X 5 here." },
@@ -3507,7 +3716,25 @@ expected = [
     "It grew 1,234 times 5.",
     "It grew 1,234 times 5 and 1,234 times 5 here.",
     "It is 1,234 times larger.",
-    "It is 1920 times 1080 and 1,234 times, here.",
+    "It is 1920 by 1080 and 1,234 times, here.",
+]
+
+[[case]]
+id = "four-digit-count-before-a-word-split-at-a-line-end-hyphen"
+audit = 0
+issue = 1218
+goal = "A four-digit number before a plural word split at a line-end hyphen is a count as the joined word makes it: '1234 x-' and 's' on the next line read '1,234 x-s', as a second run reads the joined 'x-s' (D-577); a word that is no plural either way leaves the number as printed."
+blocks = [
+    { kind = "paragraph", text = "It holds 1234 x-\ns here." },
+    { kind = "heading", text = "Some 1234 x-\ns" },
+    { kind = "paragraph", text = "It holds 1234 de-\nvelopments here." },
+    { kind = "paragraph", text = "In 1234 x-\nray light." },
+]
+expected = [
+    "It holds 1,234 x-s here.",
+    "Some 1,234 x-s",
+    "It holds 1,234 developments here.",
+    "In 1234 x-ray light.",
 ]
 
 [[case]]
@@ -3524,7 +3751,7 @@ blocks = [
 expected = [
     "It grew 2,019 times and 2,019 times larger, then 2,019 times and 2,019 times again.",
     "We set 2019 equals A and 2019 equals B.",
-    "A 1920 times 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
+    "A 1920 by 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
     "In 2019 times were hard.",
 ]
 
@@ -3626,4 +3853,128 @@ blocks = [
 expected = [
     "with 5 N samples",
     "where 2 m + 1",
+]
+
+[[case]]
+id = "a-glued-size-of-two-whole-numbers-reads-by"
+audit = 0
+issue = 1037
+goal = "Two whole numbers of two or more digits joined by a glued 'x', 'X' or '×' are a size, read 'by' with their printed digits (no comma, no year), on both runs, in a paragraph and a heading (ruled by Colin, 26 Nov 2026). A one-digit factor, a chain, a decimal, a spaced sign and a number with nothing after the sign keep 'times'; formulas keep their x (D-242)."
+blocks = [
+    { kind = "paragraph", text = "The screen is 1920x1080, 1920×1080 or 1024X768, an icon 32x32." },
+    { kind = "heading", text = "A 1920x1080 screen" },
+    { kind = "paragraph", text = "It is 3x5, 2x3x4 and 32x32x32 in all." },
+    { kind = "paragraph", text = "It grew 1234 x 5 and 3 × 5, then 3x and 2019× here." },
+    { kind = "paragraph", text = "It is 1.5x20 and 20x1.5 here." },
+    { kind = "paragraph", text = "So y = 2x + 1, 0x1F and x86 here." },
+]
+expected = [
+    "The screen is 1920 by 1080, 1920 by 1080 or 1024 by 768, an icon 32 by 32.",
+    "A 1920 by 1080 screen",
+    "It is 3 times 5, 2 times 3 times 4 and 32 times 32 times 32 in all.",
+    "It grew 1,234 times 5 and 3 times 5, then 3 times and 2,019 times here.",
+    "It is 1.5 times 20 and 20 times 1.5 here.",
+    "So y equals 2x + 1, 0x1F and x86 here.",
+]
+
+[[case]]
+id = "a-range-of-two-powers-of-ten-is-read-whole"
+audit = 0
+issue = 822
+goal = "A range of two powers of ten reads each power and the range word, before a unit or a noun, printed in superscripts or as raised runs, on both runs: '10⁴–10⁶ K' is '10 to the power of 4 to 10 to the power of 6 kelvin', as German reads it (#822). A single power and a plain range read as before."
+blocks = [
+    { kind = "paragraph", text = "It holds 10⁴–10⁶ K here." },
+    { kind = "paragraph", text = "It holds 10⁴–10⁶ cells here." },
+    { kind = "paragraph", runs = ["It holds 10", { sup = "4" }, "–10", { sup = "6" }, " K here."] },
+    { kind = "paragraph", text = "It holds 10⁶ K and 10–20 K here." },
+]
+expected = [
+    "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
+    "It holds 10 to the power of 4 to 10 to the power of 6 cells here.",
+    "It holds 10 to the power of 4 to 10 to the power of 6 kelvin here.",
+    "It holds 10 to the power of 6 kelvin and 10 to 20 kelvin here.",
+]
+
+[[case]]
+id = "links-the-marks-around-a-removed-link-go-with-it"
+audit = 0
+issue = 899
+goal = "Quotes, typographic quotes, guillemets and emphasis marks that hold only a removed link go with it, and the sentence is repaired as for a bare link (ruled by Colin, 26 Nov 2026): 'available at 'https://…' for everyone' is 'available for everyone'. A full stop right after the link goes with it before a lower-case word and stays where the sentence ends. A word glued after the closing mark stays a word (#629, #837); a guillemet or an apostrophe inside a link's path, with no mark before the link, is no end of it."
+blocks = [
+    { kind = "paragraph", text = "It is available at 'https://example.org/a' for everyone." },
+    { kind = "paragraph", text = "It is available at ‘https://example.org/a’ for everyone." },
+    { kind = "paragraph", text = "It is available at \"https://example.org/a\" for everyone." },
+    { kind = "paragraph", text = "It is available at *https://example.org/a* for everyone." },
+    { kind = "paragraph", text = "It is available at **https://example.org/a** for everyone." },
+    { kind = "paragraph", text = "It is available at «https://example.org/a» for everyone." },
+    { kind = "paragraph", text = "It is available at https://example.org/a. for everyone." },
+    { kind = "paragraph", text = "It is available at https://example.org/a. Then more." },
+    { kind = "paragraph", text = "See «https://a.org»Smith." },
+    { kind = "paragraph", text = "The page »https://a.org«Smith wrote it." },
+    { kind = "paragraph", text = "It is at https://a.org/x»y today." },
+    { kind = "paragraph", text = "It is at https://a.org/it's today." },
+    { kind = "paragraph", text = "It is at https://a.org/a*b today." },
+]
+expected = [
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available. Then more.",
+    "See Smith.",
+    "The page Smith wrote it.",
+    "It is today.",
+    "It is today.",
+    "It is today.",
+]
+
+[[case]]
+id = "an-arrow-before-a-lone-negation-sign-stays-as-printed"
+audit = 0
+issue = 853
+goal = "A negation sign counts as the operand after an arrow of logic only with an operand after it: 'A ⇒ ¬B' is read, 'A ⇒ ¬', 'A ⇒ ¬.' and 'A ⇒ ¬ .' leave the arrow as printed, for ⇒, ⇐ and ⇔, on both runs (#853)."
+blocks = [
+    { kind = "paragraph", text = "So A ⇒ ¬" },
+    { kind = "paragraph", text = "So A ⇒ ¬." },
+    { kind = "paragraph", text = "So A ⇒ ¬ ." },
+    { kind = "paragraph", text = "So A ⇐ ¬." },
+    { kind = "paragraph", text = "So A ⇔ ¬" },
+    { kind = "paragraph", text = "So A ⇒ ¬B." },
+    { kind = "paragraph", text = "So A ⇒ ¬¬B." },
+]
+expected = [
+    "So A ⇒ ¬",
+    "So A ⇒ ¬.",
+    "So A ⇒ ¬ .",
+    "So A ⇐ ¬.",
+    "So A ⇔ ¬",
+    "So A implies ¬B.",
+    "So A implies ¬¬B.",
+]
+
+[[case]]
+id = "a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
+audit = 0
+issue = 1120
+goal = "A statistic letter, a space and a df bracket followed by '=' read as the glued form ('t (34) = 2.1' is 't of 34 equals 2.1'), and a Latin 'X2' before such a bracket reads 'chi-square', as 'χ2' does, glued or spaced (ruled by Colin, 26 Nov 2026). Without '=' after the bracket a spaced one stays as printed ('t (34 s)'); the glued form and 'X2' elsewhere read as before."
+blocks = [
+    { kind = "paragraph", text = "It held, t (34) = 2.1, here." },
+    { kind = "paragraph", text = "It held, F (2, 57) = 4.1, here." },
+    { kind = "paragraph", text = "It held, X2(1) = 3.84, here." },
+    { kind = "paragraph", text = "It held, X2 (1) = 3.84, here." },
+    { kind = "paragraph", text = "It took t (34 s) here." },
+    { kind = "paragraph", text = "It held, t(34) = 2.1, here." },
+    { kind = "paragraph", text = "The X2 increases here." },
+]
+expected = [
+    "It held, t of 34 equals 2.1, here.",
+    "It held, F of 2 and 57 equals 4.1, here.",
+    "It held, chi-square of 1 equals 3.84, here.",
+    "It held, chi-square of 1 equals 3.84, here.",
+    "It took t (34 seconds) here.",
+    "It held, t of 34 equals 2.1, here.",
+    "The X2 increases here.",
 ]

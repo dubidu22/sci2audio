@@ -6,19 +6,21 @@
 
 Two measurements, offline (the network is blocked once the voice files are found):
 
-A. The voice alone, per voice and device: a fixed English paragraph spoken sentence by
-   sentence; characters per second and the real-time factor (seconds of audio per second
-   of work; above 1 is faster than real time). The first sentence warms the voice up and
-   is not counted.
-B. The audio job on a corpus paper, per device, from a cold cache: the time of every
-   phase, characters per second, the real-time factor, and how close the job's time
-   estimate (D-159, D-380) came to the real remaining time (D-284), and the characters and
-   seconds of every spoken chunk (#136).
+A. The voice alone, per voice and device: a fixed paragraph in the voice's language
+   (English or German, #404) spoken sentence by sentence; characters per second and the
+   real-time factor (seconds of audio per second of work; above 1 is faster than real
+   time). The first sentence warms the voice up and is not counted.
+B. The audio job on a corpus paper, per device and per language the voices speak (that
+   language's default voice, on its default paper unless --paper names one), from a cold
+   cache: the time of every phase, characters per second, the real-time factor, and how
+   close the job's time estimate (D-159, D-380) came to the real remaining time (D-284),
+   and the characters and seconds of every spoken chunk (#136).
 
-It prints a summary, checks the performance budget in `docs/baseline.md` (D-286) and
-always writes a JSON file (format "sci2audio-speed", version 1) with every number and
-ready-to-paste Markdown rows for `docs/baseline.md` (D-285). The machine is named by its
-model, processor, cores and memory; never by its host name.
+It prints a summary, checks the performance budget in `docs/baseline.md` (D-286; English
+rows only, German ones are reported) and always writes a JSON file (format
+"sci2audio-speed", version 1) with every number and ready-to-paste Markdown rows for
+`docs/baseline.md` (D-285). The machine is named by its model, processor, cores and
+memory; never by its host name.
 """
 
 from __future__ import annotations
@@ -59,7 +61,9 @@ from sci2audio.app.job import check_readable
 from sci2audio.testing import no_network
 from sci2audio.voices import (
     DEFAULT_VOICE,
+    DEFAULT_VOICES,
     ENGLISH_VOICES,
+    VOICES,
     EngineConfig,
     EngineError,
     create_kokoro_engine,
@@ -73,6 +77,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 PAPERS = REPOSITORY / "tests" / "corpus" / "papers"
 DEFAULT_PAPER = "acl2023-hardt-ellipsis"  # D-283
 QUICK_PAPER = "joss2022-biggs-pymedphys"
+GERMAN_PAPER = "arxiv2017-maass-privacyscore"  # the corpus's German paper, also for --quick
 DEVICE_ORDER = ("mps", "cuda", "cpu")  # the order the Kokoro engine picks by itself
 STATS_MIN_LEFT = 10.0  # seconds; the last seconds divide by almost nothing (D-284)
 BUDGET_MIN_LEFT = 60.0  # the estimate budget holds while at least a minute is left (D-286)
@@ -91,6 +96,18 @@ PARAGRAPH = (
     "Further work should test whether the effect holds for older adults "
     "and for more demanding tasks.",
 )
+# The same kind of paragraph in German, also our own words (#404).
+GERMAN_PARAGRAPH = (
+    "Wir haben die Reaktionszeit von vierzig Freiwilligen in drei Sitzungen gemessen.",
+    "Jede Sitzung dauerte etwa zwanzig Minuten und begann mit einem kurzen Übungsblock.",
+    "Die mittlere Antwort war in der zweiten Sitzung schneller als in der ersten, "
+    "auch wenn der Unterschied klein war.",
+    "Wer weniger als sechs Stunden geschlafen hatte, antwortete langsamer und machte mehr Fehler.",
+    "Diese Ergebnisse legen nahe, dass Übung und Ruhe die Leistung bei einfachen Aufgaben prägen.",
+    "Weitere Arbeiten sollten prüfen, ob der Effekt auch für ältere Menschen "
+    "und für schwierigere Aufgaben gilt.",
+)
+PARAGRAPHS = {"en": PARAGRAPH, "de": GERMAN_PARAGRAPH}
 
 Clock = Callable[[], float]
 VoiceFor = Callable[[Path, str], VoiceSource]  # models folder, device -> voice
@@ -309,9 +326,11 @@ def measure_voices(
     results = []
     try:
         for voice_id in voices:
-            speak_to_wav(session, PARAGRAPH[0], voice_id, folder / "warm-up.wav")
+            language = language_of(voice_id)
+            paragraph = PARAGRAPHS[language]
+            speak_to_wav(session, paragraph[0], voice_id, folder / "warm-up.wav")
             characters, audio, work = 0, 0.0, 0.0
-            for n, sentence in enumerate(PARAGRAPH):
+            for n, sentence in enumerate(paragraph):
                 started = clock()
                 audio += speak_to_wav(session, sentence, voice_id, folder / f"{voice_id}-{n}.wav")
                 work += clock() - started
@@ -319,6 +338,7 @@ def measure_voices(
             results.append(
                 {
                     "voice": voice_id,
+                    "language": language,
                     "characters": characters,
                     "seconds": round(work, 3),
                     "audio_seconds": round(audio, 3),
@@ -366,11 +386,19 @@ class _Watcher:
 
 
 def measure_job(
-    voice: VoiceSource, paper: Path, folder: Path, clock: Clock, say: Callable[[str], None]
+    voice: VoiceSource,
+    paper: Path,
+    folder: Path,
+    clock: Clock,
+    say: Callable[[str], None],
+    language: str = "en",
 ) -> dict[str, Any]:
-    """Part B on one device: the audio job on `paper` from a cold cache."""
+    """Part B on one device: the audio job on `paper` from a cold cache, in `language` with
+    that language's default voice; English as before, with the app's default settings."""
     watcher = _Watcher(clock, say)
     settings = JobSettings(output_folder=folder / "out")
+    if language != "en":
+        settings = dataclasses.replace(settings, language=language, voice=DEFAULT_VOICES[language])
     started = clock()
     job = run_audio_job(
         paper, settings, folder / "work", voice=voice, progress=watcher, clock=clock
@@ -386,6 +414,8 @@ def measure_job(
     encoding = times.get(Phase.ENCODING, 0.0)
     return {
         "paper": paper.stem,
+        "language": language,
+        "voice": DEFAULT_VOICES[language],
         "pages": len(job.result.document.content.pages),
         "characters": characters,
         "chunks": job.spoken + job.reused,
@@ -413,52 +443,57 @@ def measure_job(
 
 
 def budget(jobs: Sequence[dict[str, Any]], app_device: str) -> list[dict[str, Any]]:
-    """The performance budget (D-286), checked on this run; None = not judged here."""
+    """The performance budget (D-286), checked on this run; None = not judged here. It
+    was set on English speech, so a German job's lines are reported, never judged (#404)."""
     lines = []
     for job in jobs:
-        device = job["device"]
-        prep = job["preparation_seconds"] / max(job["pages"], 1)
-        lines.append(
-            {
-                "device": device,
-                "target": "a 20-page paper prepared in under 30 s (enforced nightly)",
-                "measured": f"{prep:.2f} s per page ({prep * 20:.1f} s for 20 pages)",
-                "met": prep <= PREPARATION_BUDGET,
-            }
-        )
-        rtf = job["realtime_factor_speaking"]
-        own = device == app_device  # D-286 holds the app's own device to it, no other
-        lines.append(
-            {
-                "device": device,
-                "target": "speech faster than real time on the MacBook Pro M4, app's device",
-                "measured": f"real-time factor {rtf}"
-                + ("" if own else f" (the app uses {app_device} here)"),
-                "met": None if rtf is None or not own else rtf >= 1,
-                "reference": own,
-            }
-        )
-        worst = job["estimate"].get("largest_abs_error_with_a_minute_left")
-        lines.append(
-            {
-                "device": device,
-                "target": "the time estimate within ±25 % while a minute or more is left",
-                "measured": "less than a minute of speech after the first estimate"
-                if worst is None
-                else f"largest error {worst:+.0%}".replace("+", "±"),
-                "met": None if worst is None else worst <= ESTIMATE_BUDGET,
-            }
-        )
-        times = job["encoding_times_realtime"]
-        lines.append(
-            {
-                "device": device,
-                "target": "encoding at least 50 times faster than real time",
-                "measured": f"{times} times",
-                "met": None if times is None else times >= ENCODING_BUDGET,
-            }
-        )
+        english = job.get("language", "en") == "en"
+        for line in _budget_lines(job, app_device):
+            if not english:
+                line["measured"] += " (German: reported, not judged)"
+                line["met"] = None
+            lines.append(line)
     return lines
+
+
+def _budget_lines(job: dict[str, Any], app_device: str) -> list[dict[str, Any]]:
+    """One job's four budget lines, judged."""
+    device = job["device"]
+    prep = job["preparation_seconds"] / max(job["pages"], 1)
+    rtf = job["realtime_factor_speaking"]
+    own = device == app_device  # D-286 holds the app's own device to it, no other
+    worst = job["estimate"].get("largest_abs_error_with_a_minute_left")
+    times = job["encoding_times_realtime"]
+    return [
+        {
+            "device": device,
+            "target": "a 20-page paper prepared in under 30 s (enforced nightly)",
+            "measured": f"{prep:.2f} s per page ({prep * 20:.1f} s for 20 pages)",
+            "met": prep <= PREPARATION_BUDGET,
+        },
+        {
+            "device": device,
+            "target": "speech faster than real time on the MacBook Pro M4, app's device",
+            "measured": f"real-time factor {rtf}"
+            + ("" if own else f" (the app uses {app_device} here)"),
+            "met": None if rtf is None or not own else rtf >= 1,
+            "reference": own,
+        },
+        {
+            "device": device,
+            "target": "the time estimate within ±25 % while a minute or more is left",
+            "measured": "less than a minute of speech after the first estimate"
+            if worst is None
+            else f"largest error {worst:+.0%}".replace("+", "±"),
+            "met": None if worst is None else worst <= ESTIMATE_BUDGET,
+        },
+        {
+            "device": device,
+            "target": "encoding at least 50 times faster than real time",
+            "measured": f"{times} times",
+            "met": None if times is None else times >= ENCODING_BUDGET,
+        },
+    ]
 
 
 def _percent(value: float | None) -> str:
@@ -490,7 +525,7 @@ def markdown_rows(result: dict[str, Any]) -> dict[str, list[str]]:
     torch = result["versions"]["torch"]
     commit = result["versions"]["commit"]
     voices = [
-        f"| {machine} | {part['device']}, torch {torch} | {v['voice']} | "
+        f"| {machine} | {part['device']}, torch {torch} | {v['voice']} ({v['language']}) | "
         f"{v['characters_per_second']} | {v['realtime_factor']} | "
         f"{part['model_load_seconds']} s | {date} | {commit} |"
         for part in result["voice"]
@@ -498,7 +533,8 @@ def markdown_rows(result: dict[str, Any]) -> dict[str, list[str]]:
     ]
     jobs = [
         f"| {machine} | {job['device']}, torch {torch} | {job['paper']} ({job['pages']} pages, "
-        f"{job['characters']:,} characters) | {job['whole_seconds']} s | "
+        f"{job['characters']:,} characters; {job['voice']}, {job['language']}) | "
+        f"{job['whole_seconds']} s | "
         f"{job['preparation_seconds']:.2f} s | {job['voice_load_seconds']:.1f} s | "
         f"{job['speaking_seconds']} s ({job['characters_per_second_job']} characters per "
         f"second) | {job['encoding_seconds']:.1f} s | {job['audio_seconds']} s | "
@@ -531,14 +567,14 @@ def parse(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--voice",
         action="append",
-        help=f"a voice id; repeat for several (default: {DEFAULT_VOICE})",
+        help=f"a voice id, English or German; repeat for several (default: {DEFAULT_VOICE})",
     )
     parser.add_argument(
         "--all-voices", action="store_true", help="every English voice (the voice part only)"
     )
     parser.add_argument(
         "--paper",
-        help=f"a corpus paper name or a file (default: {DEFAULT_PAPER})",
+        help=f"a corpus paper name or a file (default: {DEFAULT_PAPER}; German: {GERMAN_PAPER})",
     )
     parser.add_argument(
         "--quick",
@@ -600,14 +636,34 @@ def resolve_devices(asked: Sequence[str] | None, available: Sequence[str]) -> li
     return devices
 
 
+def language_of(voice_id: str) -> str:
+    """The primary language subtag of a known voice: "en" or "de"."""
+    return next(v.language for v in VOICES if v.id == voice_id).split("-")[0]
+
+
 def resolve_voices(args: argparse.Namespace) -> list[str]:
-    known = [voice.id for voice in ENGLISH_VOICES]
     if args.all_voices:
-        return known
+        return [voice.id for voice in ENGLISH_VOICES]
+    known = [voice.id for voice in VOICES]
     asked = args.voice or [DEFAULT_VOICE]
     if unknown := [v for v in asked if v not in known]:
         raise SpeedError(f"unknown voice {unknown[0]!r}; the voices are: {', '.join(known)}")
     return list(dict.fromkeys(asked))
+
+
+def job_papers(args: argparse.Namespace, voices: Sequence[str]) -> dict[str, Path]:
+    """The paper of the audio job for each language the voices speak, in their order: the
+    one given, else the language's own default (German has only one corpus paper)."""
+    papers = {}
+    for language in dict.fromkeys(language_of(v) for v in voices):
+        if args.paper:
+            name = args.paper
+        elif language == "de":
+            name = GERMAN_PAPER
+        else:
+            name = QUICK_PAPER if args.quick else DEFAULT_PAPER
+        papers[language] = resolve_paper(name)
+    return papers
 
 
 @contextlib.contextmanager
@@ -630,7 +686,7 @@ def measure(
     """Both parts on every device; the result as written to the JSON file."""
     models = args.models_folder or default_models_folder()
     voices = resolve_voices(args)
-    paper = resolve_paper(args.paper or (QUICK_PAPER if args.quick else DEFAULT_PAPER))
+    papers = job_papers(args, voices)
     app_device = devices[0]
     result: dict[str, Any] = {
         "format": FORMAT,
@@ -642,7 +698,8 @@ def measure(
         "options": {
             "devices": list(devices),
             "voices": voices,
-            "paper": None if args.skip_job else paper.stem,
+            "paper": None if args.skip_job else next(iter(papers.values())).stem,
+            "papers": {} if args.skip_job else {lang: p.stem for lang, p in papers.items()},
         },
         "voice": [],
         "job": [],
@@ -662,9 +719,17 @@ def measure(
                 )
             if args.skip_job:
                 continue
-            say(f"{device}: the audio job on {paper.stem}")
-            job = measure_job(voice_for(models, device), paper, folder / "job", clock, say)
-            result["job"].append({"device": device, **job})
+            for language, paper in papers.items():
+                say(f"{device}: the audio job on {paper.stem} ({language})")
+                job = measure_job(
+                    voice_for(models, device),
+                    paper,
+                    folder / f"job-{language}",
+                    clock,
+                    say,
+                    language,
+                )
+                result["job"].append({"device": device, **job})
     result["network_attempts"] = attempts
     result["budget"] = budget(result["job"], app_device)
     result["markdown"] = markdown_rows(result)

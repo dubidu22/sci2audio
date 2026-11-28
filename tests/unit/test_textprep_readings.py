@@ -1,17 +1,27 @@
 """The readings module: what the built-in text steps read for a block's printed text (#1107,
-#1110, #1111). Readings are checked here through the readings interface; the second-run tests
+#1110, #1111, #1112). Readings are checked here through the readings interface; the second-run tests
 check the listening script through the runner."""
 # ruff: noqa: RUF001 (the rows hold the signs the units and statistics steps read)
 
+import re
 from collections.abc import Callable, Iterator
+from pathlib import Path
 
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
+from sci2audio import textprep
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
-from sci2audio.textprep import StatisticsStep, StepContext, UnitStep, readings
+from sci2audio.textprep import (
+    AbbreviationStep,
+    NumbersStep,
+    StatisticsStep,
+    StepContext,
+    UnitStep,
+    readings,
+)
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import (
@@ -257,7 +267,221 @@ def test_the_statistics_step_edits_are_its_readings(block: tuple[str, str]) -> N
     assert {r.category for r in found} <= {StatisticsStep.category}
 
 
+# ---- the abbreviations step's readings, printed text -> (span, words) -------------------
+
+ABBREVIATIONS = AbbreviationStep.category
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("See Fig. 3 here.", [(4, 8, "Figure")]),
+        ("It holds, e.g. here.", [(10, 14, "for example")]),
+        ("See eq.(1) now.", [(4, 7, "equation ")]),  # glued: a space after the reading
+        # the full stop is read with it, or stays where the sentence ends (D-115)
+        ("It is approx. 5 m.", [(6, 13, "approximately")]),
+        ("It is approx. Then more.", [(6, 12, "approximately")]),
+        ("No abbreviation here.", []),
+    ],
+)
+def test_english_abbreviation_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("abbreviations", printed, "en") == tuple(
+        Reading(start, end, words, ABBREVIATIONS) for start, end, words in said
+    )
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("Siehe Kap. 3 hier.", [(6, 10, "Kapitel")]),
+        ("Das gilt z. B. hier.", [(9, 14, "zum Beispiel")]),
+        ("i. V. m. 2. Alternative", [(0, 8, "in Verbindung mit")]),
+        ("Äpfel, Birnen usw. und mehr.", [(14, 18, "und so weiter")]),
+        ("Äpfel, Birnen usw. Dann mehr.", [(14, 17, "und so weiter")]),  # the stop ends it
+        ("Kein Kürzel hier.", []),
+    ],
+)
+def test_german_abbreviation_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("abbreviations", printed, "de") == tuple(
+        Reading(start, end, words, ABBREVIATIONS) for start, end, words in said
+    )
+
+
+_ABBREVIATION_TOKENS = st.sampled_from(
+    ["Fig.", "Figs.", "e.g.", "i.e.", "eq.", "approx.", "resp.", "etc.", "et al.", "vs.",
+     "Kap.", "z. B.", "z.B.", "usw.", "bzw.", "i. V. m.", "Abs.", "S.", "Nr.", "Dr.", "Then",
+     "Dann", "and", "und", "3", "2.", "(1)", "(", ")", ".", ",", "https://x.org/a", "a"]
+)  # fmt: skip
+
+
+@st.composite
+def _abbreviation_blocks(draw: st.DrawFn) -> tuple[str, str]:
+    """A block's text in English or German, of the pieces the abbreviation rules look at."""
+    pieces = draw(st.lists(st.tuples(_ABBREVIATION_TOKENS, _GAPS), max_size=12))
+    return "".join(token + gap for token, gap in pieces), draw(st.sampled_from(["en", "de"]))
+
+
+@given(_abbreviation_blocks())
+def test_the_abbreviations_step_edits_are_its_readings(block: tuple[str, str]) -> None:
+    text, language = block
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    # as for the units step: the readings answer for the printed text alone
+    assume(read_as_prose(document.blocks[0], context) and not unread_marks(document, context))
+    edits = AbbreviationStep().find(document, context)
+    found = readings_of("abbreviations", text, language)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (r.start, r.end, r.words) for r in found
+    ]
+    assert {r.category for r in found} <= {AbbreviationStep.category}
+
+
+def test_the_links_step_alone_asks_the_abbreviations_step_past_the_readings() -> None:
+    """The one known exception (#1112): the abbreviations step's readings ask the links step
+    for what it removes, and the links step asks back whether an abbreviation reads its full
+    stop, so that question stays a window-based call outside the readings. Every other step
+    asks the readings."""
+    source = Path(textprep.__file__).parent
+    callers = sorted(
+        path.name
+        for path in source.glob("*.py")
+        if path.name != "abbreviations.py"
+        and re.search(r"\breads_full_stop\(", path.read_text(encoding="utf-8"))
+    )
+    assert callers == ["links.py"]
+    asks = readings.dependencies()
+    assert asks["abbreviations"] == ()
+    assert "abbreviations" in asks["statistics"]
+
+
+# ---- the numbers step's readings and words (#1114) --------------------------------------
+
+_NUMBER_TOKENS = st.sampled_from(
+    ["1", "2", "3", "17", "20", "1234", "2019", "3.5", "2,5", "2.50", "1/2", "17/20", "3:1",
+     "10⁶", "10^-4", "x²", "−", "-", "–", "×", "x", "=", "<", "⇒", "IV", "III", "Kapitel",
+     "Section", "1999-02-01", "3.", "Mai", "May", "am", "the", "in", "participants", "Proben",
+     "km", "%", "(", ")", ".", ",", "a", "ein"]
+)  # fmt: skip
+
+
+@st.composite
+def _number_blocks(draw: st.DrawFn) -> tuple[str, str]:
+    """A block's text in English or German, of the pieces the number rules look at."""
+    pieces = draw(st.lists(st.tuples(_NUMBER_TOKENS, _GAPS), max_size=12))
+    return "".join(token + gap for token, gap in pieces), draw(st.sampled_from(["en", "de"]))
+
+
+@given(_number_blocks())
+def test_the_numbers_step_edits_are_its_readings(block: tuple[str, str]) -> None:
+    text, language = block
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    # as for the units step: the readings answer for the printed text alone
+    assume(read_as_prose(document.blocks[0], context) and not unread_marks(document, context))
+    edits = NumbersStep().find(document, context)
+    found = readings_of("numbers", text, language)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (r.start, r.end, r.words) for r in found
+    ]
+    assert {r.category for r in found} <= {NumbersStep.category}
+
+
+def test_the_numbers_step_names_the_words_the_cutter_keeps_whole() -> None:
+    english, german = words_of("numbers", "en"), words_of("numbers", "de")
+    assert english.signs["/"] == "out of"  # "17/20" is "17 out of 20"
+    assert {"to the power of", "to the power of minus"} <= english.joined
+    assert english.months[:2] == ("January", "February")
+    assert {"hoch minus", "ein Drittel"} <= german.joined
+    assert german.months[:2] == ("Januar", "Februar")
+
+
+def test_the_cutter_imports_no_step_table_inside_a_function() -> None:
+    """#1114: the cutter learns every reading it must keep whole from the readings module."""
+    source = (Path(textprep.__file__).parent / "utterances.py").read_text(encoding="utf-8")
+    assert not re.findall(
+        r"^[ \t]+(?:from sci2audio\.textprep\S* import|import sci2audio)", source, re.M
+    )
+
+
 # ---- the readings table ----------------------------------------------------------------
+
+
+def test_a_step_follows_the_words_another_step_says(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#1113: no step holds a copy of another's words. Were the statistics step to read "="
+    as "is", the numbers step would count a number before "is" as it counts one before
+    "equals" ("1,234 equals A"), and the units step would take "is" as the sign before "2x"."""
+    from sci2audio.textprep import numbers, units
+
+    real = readings._finders()["statistics"]
+    said = real.words("en")
+    double = readings.Finder(
+        real.read,
+        real.asks,
+        words=lambda language: readings.Words(
+            signs={**said.signs, "=": "is"}, arrows=said.arrows, names=said.names
+        ),
+    )
+    caches = (numbers._before_equals, units._said_operators_en, units._compiled)
+
+    def cleared() -> None:
+        for cached in caches:
+            cached.cache_clear()
+        readings._read.cache_clear()
+
+    assert "1,234" in render_numbers("We set 1234 equals A.")
+    assert "1,234" not in render_numbers("We set 1234 is A.")
+    cleared()
+    monkeypatch.setitem(readings._finders(), "statistics", double)
+    try:
+        assert "1,234" in render_numbers("We set 1234 is A.")
+    finally:
+        monkeypatch.undo()
+        cleared()
+
+
+def test_the_units_step_follows_the_numbers_steps_words(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#1193: "minus 3x" is the reading of a minus sign before "3x", so its x is a variable
+    (#997). Were the numbers step to read a minus sign "negative", "negative 3x" would be."""
+    from sci2audio.textprep import units
+
+    real = readings._finders()["numbers"]
+    said = real.words("en")
+    double = readings.Finder(
+        real.read,
+        real.asks,
+        words=lambda language: readings.Words(
+            signs={**said.signs, "\u2212": "negative"}, joined=said.joined, months=said.months
+        ),
+    )
+    caches = (units._minus_said_en, units._plus_or_before_en, units._minus_said_after_en)
+
+    def cleared() -> None:
+        for cached in caches:
+            cached.cache_clear()
+        readings._read.cache_clear()
+
+    def times(text: str) -> bool:
+        return any(r.words.strip() == "times" for r in readings_of("units", text, "en"))
+
+    assert not times("So y minus 3x here.")
+    assert times("So y negative 3x here.")
+    cleared()
+    monkeypatch.setitem(readings._finders(), "numbers", double)
+    try:
+        assert not times("So y negative 3x here.")
+        assert times("So y minus 3x here.")
+    finally:
+        monkeypatch.undo()
+        cleared()
+
+
+def render_numbers(text: str) -> str:
+    """The text with the English numbers step's candidates applied, as one run reads it."""
+    from sci2audio.textprep.numbers import find_numbers
+
+    for found in sorted(find_numbers(text), key=lambda c: c.start, reverse=True):
+        text = text[: found.start] + found.replacement + text[found.end :]
+    return text
 
 
 def test_no_step_readings_ask_in_a_loop() -> None:

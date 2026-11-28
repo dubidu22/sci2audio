@@ -35,12 +35,13 @@ from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.links import find_links, link_removals
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
+from sci2audio.textprep.readings import Reading
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Abbreviation, abbreviations
 
 # what may follow an abbreviation read only before a label, a number or a word
 _SPACE = r"[^\S\r]{0,2}"
-_LABEL = re.compile(_SPACE + r"(?:\d|[(\[]\w|[A-Z](?![a-z]|\.[A-Za-z]))")
+_LABEL = re.compile(_SPACE + r"(?:\d|[(\[]+\w|[A-Z](?![a-z]|\.[A-Za-z]))")
 _NUMBER = re.compile(_SPACE + r"\d")
 _WORD = re.compile(r"[^\S\r]{1,2}(?:[A-Z]|\d)")
 # a date: a day and its full stop, then a month's number or German name ("v. 12.03.2015")
@@ -61,7 +62,7 @@ _LOWER = "".join(c for c in map(chr, range(0x250)) if c.islower())
 # 4 5" in the same run (#130)
 _FOLLOWS_ANY_CAPITAL = {
     "label": re.compile(
-        _SPACE + rf"(?:\.?\d|[(\[]\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"
+        _SPACE + rf"(?:\.?\d|[(\[]+\w|[{_UPPER}](?![{_LOWER}]|\.[{_UPPER}{_LOWER}]))"
     ),
     "number": re.compile(_SPACE + r"\.?\d"),
     "word": re.compile(rf"[^\S\r]{{1,2}}(?:[{_UPPER}]|\.?\d)"),
@@ -89,11 +90,8 @@ class AbbreviationStep(TextStep):
     stage = Stage.INLINE
 
     def find(self, document: Document, context: StepContext) -> list[Edit]:
-        entries = abbreviations(context.language)
-        if not entries:
+        if not abbreviations(context.language):
             return []
-        pattern, by_form = _compiled(entries)
-        any_capital = context.language.split("-", 1)[0].lower() != "en"
         marks = unread_marks(document, context)  # read as a second run reads, without them
         edits = []
         for index, block in enumerate(document.blocks):
@@ -102,13 +100,8 @@ class AbbreviationStep(TextStep):
             edits += edits_through_unread(
                 index,
                 block.text,
-                lambda read, index=index, block=block: self._edits(
-                    index,
-                    read,
-                    pattern,
-                    by_form,
-                    any_capital,
-                    _Removals(read, block.kind, block.label, context.language),
+                lambda read, index=index, block=block: _found(
+                    index, read, context.language, block.kind, block.label
                 ),
                 self.id,
                 marks.get(index, ()),
@@ -174,11 +167,33 @@ class AbbreviationStep(TextStep):
             )
 
 
+def find_readings(text: str, language: str) -> list[Reading]:
+    """The step's readings in `text`, one per edit it makes there, in text order: the rules
+    the step's edits and every other step's questions both come from (#1112). The text is
+    read as a paragraph's, past what the links step removes from it."""
+    return [
+        Reading(e.span.start, e.span.end, e.replacement or "", AbbreviationStep.category)
+        for e in _found(0, text, language, BlockKind.PARAGRAPH, "")
+    ]
+
+
+def _found(index: int, text: str, language: str, kind: BlockKind, label: str) -> Iterator[Edit]:
+    """The step's one finder: its edits in one block's text."""
+    entries = abbreviations(language)
+    if not entries:
+        return iter(())
+    pattern, by_form = _compiled(entries)
+    any_capital = language.split("-", 1)[0].lower() != "en"
+    removals = _Removals(text, kind, label, language)
+    return AbbreviationStep()._edits(index, text, pattern, by_form, any_capital, removals)
+
+
 def reads_full_stop(text: str, end: int, language: str) -> bool:
     """True if this step reads an abbreviation that ends at `end` with its full stop ("Kap."
-    as "Kapitel", "e.g." as "for example"): the citations step then leaves the full stop
-    after a citation that follows it, or the sentence would lose its end ("Siehe Kap.
-    (Müller, 2019). Dann", #227). Only the text around `end` is looked at."""
+    as "Kapitel", "e.g." as "for example"). Only the text around `end` is looked at, and
+    no removal: the links step asks this, and the readings of this step ask the links step
+    for its removals, so the two cannot ask each other through the readings (#1112). Every
+    other step asks the readings."""
     entries = abbreviations(language)
     if not entries or text[end - 1 : end] != ".":
         return False
@@ -190,24 +205,6 @@ def reads_full_stop(text: str, end: int, language: str) -> bool:
         edit.span.end == end - low
         for edit in AbbreviationStep()._edits(0, window, pattern, by_form, any_capital)
     )
-
-
-def read_before(text: str, start: int, language: str) -> tuple[int, str] | None:
-    """Where an abbreviation this step reads ends right before `start`, with only white space
-    between, its start and its reading: "i. V. m. 2. Alternative" gives the start of "i. V.
-    m." and "in Verbindung mit". The numbers step takes the reading as the word before an
-    ordinal, as a second run sees it ("mit zweiter", #264)."""
-    entries = abbreviations(language)
-    if not entries or text[max(0, start - _AROUND) : start].rstrip()[-1:] != ".":
-        return None
-    pattern, by_form = _compiled(entries)
-    any_capital = language.split("-", 1)[0].lower() != "en"
-    low = max(0, start - _AROUND)
-    window = text[low : start + _AROUND]
-    for edit in AbbreviationStep()._edits(0, window, pattern, by_form, any_capital):
-        if edit.span.end < start - low and not window[edit.span.end : start - low].strip():
-            return low + edit.span.start, (edit.replacement or "").strip()
-    return None
 
 
 _AROUND = 96  # more than any form and the look back of `_after_name`

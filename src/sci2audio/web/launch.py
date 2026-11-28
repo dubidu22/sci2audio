@@ -130,6 +130,7 @@ def _wind_down(state: ServerState) -> None:
     """What every way of stopping does once uvicorn has ended: end the event streams,
     cancel the running job, let the voice go."""
     state.stopping.set()
+    state.start_page.remove()  # if the browser never traded the token
     state.board.shutdown(SHUTDOWN_WAIT)
     # a preview can't be cancelled: while one still speaks, its engine stays with it
     # and goes when the process ends
@@ -145,8 +146,9 @@ def serve(
     say: Callable[[str], None] = print,
 ) -> None:
     """Run the server on `sock` until Ctrl-C; the running job is cancelled on the way out.
-    The link is printed, and the browser opened, once the server has started (#161). Launched
-    as "browser", a `Watch` also ends it on Quit or when idle (#215)."""
+    The link is printed, and the browser opened, once the server has started (#161): at the
+    start page, so no command line holds the token (#117). Launched as "browser", a `Watch`
+    also ends it on Quit or when idle (#215)."""
     app = create_app(config)
     state = app.state.sci2audio
 
@@ -155,7 +157,12 @@ def serve(
         if config.launched_as == "terminal":
             say("Keep this window open while you use sci2audio; press Ctrl-C to stop it.")
         if open_browser:
-            webbrowser.open(config.start_url)
+            try:
+                page = state.start_page.write(config.start_url)
+            except OSError as error:  # the link above still works
+                say(f"Open the link above in your browser (no start page: {error.strerror}).")
+            else:
+                webbrowser.open(page)
 
     server = _Server(uvicorn_config(app), started)
     ended = threading.Event()
