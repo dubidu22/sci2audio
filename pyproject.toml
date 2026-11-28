@@ -171,14 +171,18 @@ markers = [
 [tool.mutmut]
 source_paths = ["src/sci2audio/"]
 pytest_add_cli_args_test_selection = ["tests/"]
-# The browser tests need a Playwright browser (D-259). The linear-time check of a page of
-# drawings compares two timings against a ratio close to its limit, which mutmut's
-# trampolines distort: it failed the unmutated run of tests/unit at 32.5 against 32 (#1093).
+# The browser tests need a Playwright browser (D-259). Two tests measure what mutmut changes
+# in its copy, so they failed its unmutated run of tests/unit (#1093): the linear-time check
+# of a page of drawings compares two timings against a ratio close to its limit, which the
+# trampolines distort (32.5 against 32), and the privacy page's test counts call sites in
+# the source, which the copy holds once per mutant (36 against 1).
 pytest_add_cli_args = [
     "-m",
     "not browser",
     "--deselect",
     "tests/unit/test_layout_figure_speed.py::test_a_page_of_drawings_is_laid_out_in_linear_time",
+    "--deselect",
+    "tests/unit/test_web_languages.py::test_what_the_privacy_page_says_is_what_the_code_does",
 ]
 # Files outside src/ and tests/ that tests read from the repository root (mutmut copies
 # only those two into mutants/): the scripts they import, the README they check, the

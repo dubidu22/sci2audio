@@ -14,7 +14,7 @@ on:
         type: string
         required: true
       tests:
-        description: Test paths under tests/ that cover them (the first, unmutated run uses them too); tests/unit works, without the browser tests and one timing check (pyproject.toml)
+        description: Test paths under tests/ that cover them (the first, unmutated run uses them too); tests/unit works, without the browser tests and two tests that measure mutmut's copy (pyproject.toml)
         type: string
         default: tests/
       runners:
