@@ -3778,6 +3778,32 @@ expected = [
 ]
 
 [[case]]
+id = "a-citation-after-nx-before-a-bare-comparison"
+audit = 0
+issue = 1233
+goal = "A round citation removed right after 'Nx', or two in a row, is gone on a second run, so what stands past it decides whether the x reads 'times': before a bare '<' or '>' or a word it does ('3 times greater than 2 times', '3 times here'); before the words of a sign ('minus 2', 'greater than y', 'times 2') it stays a variable, as without the citation; each as a second run reads it; the mirror of #1032's citation before the sign (#1233)."
+blocks = [
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) > 2x here." },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) < 2x here." },
+    { kind = "heading", text = "When 3x (Smith, 2019) > 2x" },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) here." },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) minus 2 here." },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) greater than y and 3x (Smith, 2019) times 2 here." },
+    { kind = "heading", text = "When 3x (Smith, 2019) minus 2" },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) (Jones, 2020) and 3x (Smith, 2019)(Jones, 2020) here." },
+]
+expected = [
+    "It holds 3 times greater than 2 times here.",
+    "It holds 3 times less than 2 times here.",
+    "When 3 times greater than 2 times",
+    "It holds 3 times here.",
+    "It holds 3x minus 2 here.",
+    "It holds 3x greater than y and 3x times 2 here.",
+    "When 3x minus 2",
+    "It holds 3 times and 3 times here.",
+]
+
+[[case]]
 id = "four-digit-count-before-a-spaced-or-capital-x"
 audit = 0
 issue = 870

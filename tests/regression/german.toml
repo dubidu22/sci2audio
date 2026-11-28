@@ -3337,6 +3337,25 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-citation-after-nx"
+audit = 0
+issue = 1233
+goal = "A round citation removed right after 'Nx', or two in a row, is gone on a second run, so what stands past it decides whether the x reads 'mal', as without the citation: '3 mal hier', '3 mal minus 2', and '3x größer als 2x' stays (#1233)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt 3x (Smith, 2019) hier." },
+    { kind = "paragraph", text = "Es gilt 3x (Smith, 2019) (Jones, 2020) hier." },
+    { kind = "paragraph", text = "Es gilt 3x (Smith, 2019) minus 2 hier." },
+    { kind = "heading", text = "Es gilt 3x (Smith, 2019) > 2x" },
+]
+expected = [
+    "Es gilt 3 mal hier.",
+    "Es gilt 3 mal hier.",
+    "Es gilt 3 mal minus 2 hier.",
+    "Es gilt 3x größer als 2x",
+]
+
+[[case]]
 id = "de-an-arrow-after-an-abbreviation"
 audit = 0
 issue = 924

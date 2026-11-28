@@ -1041,6 +1041,13 @@ def test_german_units_read(text: str, expected: str) -> None:
         ("≈ 5", "ungefähr 5"),
         ("~10 Proben", "etwa 10 Proben"),
         ("y = 2x + 1", "y = 2x + 1"),
+        # a citation the citations step removes after "Nx" is gone on a second run (#1233)
+        ("Es gilt 3x (Smith, 2019) hier.", "Es gilt 3 mal (Smith, 2019) hier."),
+        (
+            "Es gilt 3x (Smith, 2019) (Jones, 2020) hier.",
+            "Es gilt 3 mal (Smith, 2019) (Jones, 2020) hier.",
+        ),
+        ("Es gilt 3x (Smith, 2019) > 2x hier.", "Es gilt 3x (Smith, 2019) > 2x hier."),
     ],
 )
 def test_german_symbols_read(text: str, expected: str) -> None:
@@ -1372,6 +1379,21 @@ def test_a_label_word_counts_up_to_64_characters_before_the_number() -> None:
         ("So 3x < 2.", "So 3 times < 2."),
         ("It took 3x >2h.", "It took 3 times >2h."),
         ("So 3x=>A.", "So 3 times =>A."),
+        # a citation the citations step removes after "Nx" or after the sign is gone on a
+        # second run, so what stands past it decides (#1233)
+        ("So 3x > (Smith, 2019) 2x.", "So 3 times > (Smith, 2019) 2 times."),
+        ("So 3x < (Smith, 2019) 2x.", "So 3 times < (Smith, 2019) 2 times."),
+        ("So 3x (Smith, 2019) > 2x.", "So 3 times (Smith, 2019) > 2 times."),
+        ("So 3x (Smith, 2019) here.", "So 3 times (Smith, 2019) here."),
+        ("So 3x > (Smith, 2019) y.", "So 3x > (Smith, 2019) y."),
+        ("So 3x > (a) 2x.", "So 3x > (a) 2 times."),
+        # ... and the words of a sign past it count as right after "Nx", as on a second run
+        ("So 3x (Smith, 2019) minus 2.", "So 3x (Smith, 2019) minus 2."),
+        ("So 3x (Smith, 2019) greater than y.", "So 3x (Smith, 2019) greater than y."),
+        ("So 3x (Smith, 2019) times 2.", "So 3x (Smith, 2019) times 2."),
+        # ... and so does a second citation right after the first, spaced or glued
+        ("So 3x (Smith, 2019) (Jones, 2020) here.", "So 3 times (Smith, 2019) (Jones, 2020) here."),
+        ("So 3x (Smith, 2019)(Jones, 2020) here.", "So 3 times (Smith, 2019)(Jones, 2020) here."),
         (
             "\u2190\u221212x and 12x\u2212\u2192 M",
             "\u2190\u221212 times and 12 times \u2212\u2192 M",
