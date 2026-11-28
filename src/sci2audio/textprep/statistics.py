@@ -96,6 +96,10 @@ _OPERAND = re.compile(
     r"|[" + "".join(ACCENTS) + r"][^\W\d_]|\u2012(?=\.?\d)"
 )
 _NEGATIONS = re.compile(r"(?:¬\s*)+")  # before an operand after an arrow: "⇒ ¬B", "⇒ ¬ ¬B"
+# a numeric citation in the citations step's shape ("[1]", "[2, 6, 16]", D-171): after a
+# negation sign it goes, so a second run sees nothing to negate there ("A ⇒ ¬.", #1246)
+_CITED_NUMBER = r"[1-9]\d{0,3}[a-z]?(?:\s*[-–—]\s*[1-9]\d{0,3}[a-z]?)?"
+_NUMERIC_CITATION = re.compile(rf"\[\s*{_CITED_NUMBER}(?:\s*[,;]\s*{_CITED_NUMBER})*\s*\]")
 _LEFT_OF_EQUALS = re.compile(
     r"[\w)\]}%'′|⟩" + _QUANTITY_SIGNS + _UNIT_SIGNS + re.escape(_SIGNS) + "]"
 )
@@ -380,8 +384,7 @@ def _operators(
                 continue  # "==>", ">=>": no arrow of logic
             # a negated operand too: "A ⇒ ¬B", but a negation sign with nothing to negate is
             # no operand ("A ⇒ ¬.", #853)
-            negated = _NEGATIONS.match(plain, right_start)
-            if not _OPERAND.match(plain, negated.end() if negated else right_start):
+            if not _OPERAND.match(plain, _past_negations(plain, right_start)):
                 continue
             # an abbreviation read as words ends an operand, as one prose word
             read_abbreviation = _LINE_BREAKS.isdisjoint(
@@ -551,6 +554,22 @@ def _prose_word(word: str) -> bool:
 
 def _greek(char: str) -> bool:
     return "\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff"
+
+
+def _past_negations(plain: str, position: int) -> int:
+    """Where the operand after an arrow starts: past its negation signs ("⇒ ¬B", "⇒ ¬ ¬B"),
+    a negation sign counting only with an operand after it ("A ⇒ ¬.", #853), and past the
+    numeric citations beside them, which the citations step removes, so that a second run
+    sees what follows them ("A ⇒ ¬[1]." is "A ⇒ ¬.", "A ⇒ ¬[1]B" is "A ⇒ ¬B", #1246)."""
+    negated = _NEGATIONS.match(plain, position)
+    if negated is None:
+        return position
+    position = negated.end()
+    while cited := _NUMERIC_CITATION.match(plain, position):
+        position = _SPACE.match(plain, cited.end()).end()  # type: ignore[union-attr]
+        if again := _NEGATIONS.match(plain, position):
+            position = again.end()
+    return position
 
 
 def _left_end(plain: str, start: int) -> int:

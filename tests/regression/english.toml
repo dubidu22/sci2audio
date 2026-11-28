@@ -4032,6 +4032,26 @@ expected = [
 ]
 
 [[case]]
+id = "an-arrow-before-a-negation-sign-and-a-citation-stays-as-printed"
+audit = 0
+issue = 1246
+goal = "A numeric citation after a negation sign is no operand: the citations step removes it, so a second run sees 'A ⇒ ¬.' and the arrow stays as printed on both runs; a bracket of a letter is an operand ('A ⇒ ¬[B]' is read), and so is what follows the citation ('A ⇒ ¬[1]B' reads 'A implies ¬B') (#853, #1246)."
+blocks = [
+    { kind = "paragraph", text = "So A ⇒ ¬[1]." },
+    { kind = "paragraph", text = "So A ⇒ ¬ [1, 2]." },
+    { kind = "paragraph", text = "So A ⇔ ¬[3–5]." },
+    { kind = "paragraph", text = "So A ⇒ ¬[B]." },
+    { kind = "paragraph", text = "So A ⇒ ¬[1]B." },
+]
+expected = [
+    "So A ⇒ ¬.",
+    "So A ⇒ ¬.",
+    "So A ⇔ ¬.",
+    "So A implies ¬[B].",
+    "So A implies ¬B.",
+]
+
+[[case]]
 id = "a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
 audit = 0
 issue = 1120
