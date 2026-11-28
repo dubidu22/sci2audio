@@ -76,7 +76,7 @@ Each `[[verbatim]]` entry:
 |---|---|---|
 | `where` | string | `plain`, `column-break` (the sentence runs from one column into the next), `page-break` (runs onto the next page), `hyphenation` (a word in it is split across lines with a hyphen), `footnote-mark` (it holds a footnote mark that the page's `footnotes` list) or `inline-maths` (it holds a sub- or superscript) |
 | `page` | integer | Page where it starts, counted from 1 |
-| `text` | string | The sentence. Where a sentence runs very long, or holds maths that cannot be written in line (a fraction, a stacked formula), a fragment of at least six words is used instead, and a comment says so |
+| `text` | string | The sentence. Where a sentence runs very long, or holds maths that cannot be written in line (a fraction or a formula built over several levels; a superscript stacked over a subscript is written in line, D-106), a fragment of at least six words is used instead, and a comment says so |
 
 Include one `column-break`, one `page-break`, one `hyphenation`, one `footnote-mark` and one
 `inline-maths` entry where the paper has them, and say in a comment when it has none (#39).
