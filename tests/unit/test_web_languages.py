@@ -804,6 +804,12 @@ def test_what_the_privacy_page_says_is_what_the_code_does(tmp_path: Path) -> Non
     for table in (EN, DE):
         assert f"({CAPTURES})" in table["privacy.work"]
         assert f"({MARKERS})" in table["privacy.work"]
+    # 9: the pictures of figures, tables and formulas the player shows (#582), made from the
+    # file on this computer into the project's own folder and removed with it (#596)
+    from sci2audio.web.figures import CACHE_FOLDER
+
+    for table in (EN, DE):
+        assert f"({CACHE_FOLDER}/)" in table["privacy.work"]
 
 
 def test_the_privacy_page_names_the_update_checks_host_from_the_code(

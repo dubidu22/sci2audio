@@ -58,6 +58,16 @@ def test_the_whitespace_hooks_leave_the_golden_files_and_the_corpus_alone() -> N
             assert not exclude.search(checked), (hook, checked)
 
 
+def test_ci_passed_needs_the_type_check() -> None:
+    """#1104: src/ has no type errors since #1100-#1103, so a PR that adds one cannot
+    merge. "CI passed" skips a job named "reported only", so the name no longer says so."""
+    job = block(CI, "  types:")
+    assert "    name: types (pyright)" in job
+    assert "reported only" not in job
+    assert "uv run --no-sync pyright > pyright.txt || status=$?" in job
+    assert 'exit "$status"' in job
+
+
 def test_ci_runs_on_no_label() -> None:
     trigger = block(CI, "  pull_request:")
     assert re.search(r"^\s+types: \[opened, synchronize, reopened\]$", trigger, re.M), trigger
@@ -70,7 +80,7 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
     # (#364); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
-    assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
+    assert "needs: [lint, licences, security, types, tests, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
 
@@ -660,7 +670,7 @@ def test_a_runs_wait_is_from_its_start_to_the_end_of_ci_passed() -> None:
     jobs = [
         ended("tests (ubuntu-latest, 1/3)", "2026-11-28T10:04:00Z"),
         ended("CI passed", "2026-11-28T10:05:30Z"),
-        ended("types (pyright, reported only)", "2026-11-28T10:09:00Z", "failure"),
+        ended("browser (Linux, webkit, 1/2, reported only)", "2026-11-28T10:09:00Z", "failure"),
     ]
     assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 5.5
 
