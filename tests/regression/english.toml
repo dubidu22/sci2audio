@@ -3669,6 +3669,42 @@ expected = [
 ]
 
 [[case]]
+id = "links-the-marks-around-a-removed-link-go-with-it"
+audit = 0
+issue = 899
+goal = "Quotes, typographic quotes, guillemets and emphasis marks that hold only a removed link go with it, and the sentence is repaired as for a bare link (ruled by Colin, 26 Nov 2026): 'available at 'https://…' for everyone' is 'available for everyone'. A full stop right after the link goes with it before a lower-case word and stays where the sentence ends. A word glued after the closing mark stays a word (#629, #837); a guillemet or an apostrophe inside a link's path, with no mark before the link, is no end of it."
+blocks = [
+    { kind = "paragraph", text = "It is available at 'https://example.org/a' for everyone." },
+    { kind = "paragraph", text = "It is available at ‘https://example.org/a’ for everyone." },
+    { kind = "paragraph", text = "It is available at \"https://example.org/a\" for everyone." },
+    { kind = "paragraph", text = "It is available at *https://example.org/a* for everyone." },
+    { kind = "paragraph", text = "It is available at **https://example.org/a** for everyone." },
+    { kind = "paragraph", text = "It is available at «https://example.org/a» for everyone." },
+    { kind = "paragraph", text = "It is available at https://example.org/a. for everyone." },
+    { kind = "paragraph", text = "It is available at https://example.org/a. Then more." },
+    { kind = "paragraph", text = "See «https://a.org»Smith." },
+    { kind = "paragraph", text = "The page »https://a.org«Smith wrote it." },
+    { kind = "paragraph", text = "It is at https://a.org/x»y today." },
+    { kind = "paragraph", text = "It is at https://a.org/it's today." },
+    { kind = "paragraph", text = "It is at https://a.org/a*b today." },
+]
+expected = [
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available for everyone.",
+    "It is available. Then more.",
+    "See Smith.",
+    "The page Smith wrote it.",
+    "It is today.",
+    "It is today.",
+    "It is today.",
+]
+
+[[case]]
 id = "a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
 audit = 0
 issue = 1120
@@ -3691,4 +3727,3 @@ expected = [
     "It held, t of 34 equals 2.1, here.",
     "The X2 increases here.",
 ]
-
