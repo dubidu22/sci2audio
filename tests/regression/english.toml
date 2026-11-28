@@ -699,6 +699,22 @@ goal = "A Roman numeral after a keyword printed short ('Fig.', 'Exp.', 'Sec.') i
 blocks = [{ kind = "paragraph", text = "See Fig. II and Exp. III in Sec. IV, but not the end. II" }]
 expected = ["See Figure 2 and Experiment 3 in Section 4, but not the end. II"]
 
+[[case]]
+id = "a-roman-list-joined-by-an-em-dash"
+audit = 0
+issue = 1231
+goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Chapters 1 to 2'): never only the first numeral (#1013, #1231)."
+blocks = [
+    { kind = "paragraph", text = "Chapters I — II follow." },
+    { kind = "paragraph", text = "Chapters I—II follow." },
+    { kind = "heading", text = "Phases II — IV" },
+]
+expected = [
+    "Chapters 1 to 2 follow.",
+    "Chapters 1 to 2 follow.",
+    "Phases 2 to 4",
+]
+
 # Issue #66: citations (TP-03, TP-04) and URLs, DOIs and e-mail addresses (TP-07), D-167 to D-175.
 
 [[case]]
@@ -3651,6 +3667,24 @@ expected = [
     "When A equals minus 3",
     "It holds. less than 3 here.",
     "It is 3x minus 2 here.",
+]
+
+[[case]]
+id = "a-tilde-after-a-read-fraction-or-power"
+audit = 0
+issue = 1234
+goal = "A '~' or '∼' after a fraction or power read in words is read 'about', as after those words on a second run: '1 half about 2', 'x squared about 2', glued or spaced, in a heading too (#1083, #1234). After a fraction read with its digits ('17 out of 20 ~ 2') it stays, as after any number ('5 ~ 10')."
+blocks = [
+    { kind = "paragraph", text = "So 1/2 ~ 2 and x^2 ~ 2 here." },
+    { kind = "paragraph", text = "So 1/2 ~ 1/3 and 3/4∼2 here." },
+    { kind = "heading", text = "So 1/2 ~ 2" },
+    { kind = "paragraph", text = "So 17/20 ~ 2 and 5 ~ 10 here." },
+]
+expected = [
+    "So 1 half about 2 and x squared about 2 here.",
+    "So 1 half about 1 third and 3 quarters about 2 here.",
+    "So 1 half about 2",
+    "So 17 out of 20 ~ 2 and 5 ~ 10 here.",
 ]
 
 [[case]]

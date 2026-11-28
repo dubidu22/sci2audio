@@ -572,6 +572,22 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
     check_text_step(STATISTICS, [document], allow_ask=False)
 
 
+@pytest.mark.parametrize(
+    "printed",
+    [
+        "Es ist }.451:1 hier.",  # #1083, #1234
+        "Es ist }.3/4 und }.3-5 hier.",
+        "Also A~.3/4 und A~.1.234 hier.",  # #1235
+        "Also A~.3-5 und A~.1:2 hier.",
+        "Es sind 1 %.3/4 und %.1.234 hier.",  # #1083
+    ],
+)
+def test_the_numbers_step_alone_keeps_the_contract_after_a_glued_full_stop(printed: str) -> None:
+    check_text_step(
+        NUMBERS, [make_document([(BlockKind.PARAGRAPH, printed)], "de")], allow_ask=False
+    )
+
+
 @given(german_notation_documents())
 @example(make_document([(BlockKind.PARAGRAPH, "im Jahr 1998. Jahr")], "de"))  # #536
 @example(make_document([(BlockKind.PARAGRAPH, "um 13:30 Uhr 3. Mai")], "de"))  # #557
