@@ -218,6 +218,7 @@ def run_script_job(
     pages: Callable[[int, int], None] | None = None,
     steps: Sequence[TextStep] = BUILT_IN_STEPS,
     max_chars: int = DEFAULT_MAX_CHARS,
+    finish: bool = False,
 ) -> ScriptJob:
     """Read `source`, prepare its listening script and report, and write them.
 
@@ -225,12 +226,19 @@ def run_script_job(
     replaced only with `overwrite`; that is checked before any work starts. Raises
     JobError (or a subclass) when the job cannot go on; nothing half-written is left.
     `pages(number, total)` follows the pages of a PDF as they are read (#343).
+
+    `finish` completes a set of files a run killed between its renames left (#1253):
+    when some but not all of them exist, each holding just what this job writes, those
+    are kept as they are and only the others written. Any other existing file is refused,
+    after the text steps and before any file is written.
     """
     report: Callable[[Phase], None] = progress or (lambda phase: None)
     check_readable(source)
     files = script_files(source, settings, work)
     check_folders((files.script.parent, files.record.parent))
-    if not overwrite and (existing := [path for path in files.outputs if path.exists()]):
+    existing = [path for path in files.outputs if path.exists()]
+    finish = finish and 0 < len(existing) < len(files.outputs)
+    if not overwrite and existing and not finish:
         names = ", ".join(path.name for path in existing)
         raise OutputExistsError(f"these files exist already: {names}; choose to replace them")
 
@@ -241,7 +249,7 @@ def run_script_job(
     job_report = build_report(result, settings_data(settings))
 
     report(Phase.WRITING)
-    files = _write(source, files, result, job_report, settings, overwrite)
+    files = _write(source, files, result, job_report, settings, (overwrite, finish))
     report(Phase.DONE)
     return ScriptJob(result, job_report, files)
 
@@ -252,9 +260,10 @@ def _write(
     result: ScriptResult,
     job_report: Report,
     settings: JobSettings,
-    overwrite: bool,
+    choices: tuple[bool, bool],  # overwrite, finish a set left half in place
 ) -> ScriptFiles:
     """Write the three files and the record; returns the files as written."""
+    overwrite, finish = choices
     made = not files.script.parent.is_dir()
     for folder in (files.script.parent, files.record.parent):
         try:
@@ -268,6 +277,8 @@ def _write(
         files.report_json: json_text(report_data(job_report)),
         files.report_markdown: report_markdown(job_report),
     }
+    if finish and not overwrite:
+        texts = _not_in_place(texts)
     try:
         write_texts(texts, overwrite=overwrite)
         record = _record(files, result, settings)
@@ -280,6 +291,26 @@ def _write(
         where = PurePath(str(error.filename)).name if error.filename else "the output"
         raise JobError(f"could not write {where}: {error.strerror or error}") from error
     return files
+
+
+def _not_in_place(texts: dict[Path, str]) -> dict[Path, str]:
+    """The texts whose files are not in place yet. A file in place that holds anything but
+    this text is the person's, never replaced: OutputExistsError, and nothing written."""
+    other = []
+    for target, text in texts.items():
+        try:
+            held = target.read_bytes()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise JobError(f"could not read {target.name}: {error.strerror or error}") from error
+        if held != text.encode("utf-8"):
+            other.append(target.name)
+    if other:
+        raise OutputExistsError(
+            f"these files exist already: {', '.join(other)}; choose to replace them"
+        )
+    return {target: text for target, text in texts.items() if not target.exists()}
 
 
 def check_readable(source: Path) -> None:

@@ -823,12 +823,16 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
         settings = _all_chapters(source, settings)
     work = _work_folder(args, env, source)
     output = OutputSettings(mp3=args.format != "m4b", m4b=args.format != "mp3")
+    existing: list[str] = []
     if args.with_script and not args.overwrite:
         # all or nothing: refuse an existing script before any work, as the audio job
         # refuses an existing audiobook before any speech (D-163); the audio job runs
-        # first, so a refused audiobook leaves no new script behind
+        # first, so a refused audiobook leaves no new script behind. A set only partly
+        # there is what a run killed between the script's renames leaves (#1253): only
+        # the finished audiobook of this run may finish it, checked below before any speech
         targets = script_files(source, settings, work).outputs
-        if existing := [path.name for path in targets if path.exists()]:
+        existing = [path.name for path in targets if path.exists()]
+        if len(existing) == len(targets):
             raise OutputExistsError(
                 f"these files exist already: {', '.join(existing)}; choose to replace them"
             )
@@ -847,6 +851,11 @@ def run_convert_command(args: argparse.Namespace, env: CliEnv) -> Exit:
         )
         if held is not None:
             return _script_for_the_audiobook(args, env, progress, (source, settings, work), held)
+        if existing:
+            progress.end()
+            raise OutputExistsError(
+                f"these files exist already: {', '.join(existing)}; choose to replace them"
+            )
     script: ScriptJob | None = None
     try:
         job = _audio_in_thread(
@@ -901,8 +910,10 @@ def _script_for_the_audiobook(
         settings = kept_settings(work, settings)
     settings = replace(settings, chapters=held)
     try:
+        # the files a run killed between their renames put in place are kept when they
+        # hold just this script and report; any other is refused (#1253)
         script = env.job_runner(settings).run_script(
-            source, settings, work, progress=progress.phase, pages=progress.pages
+            source, settings, work, progress=progress.phase, pages=progress.pages, finish=True
         )
     finally:
         progress.end()

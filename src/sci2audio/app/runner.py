@@ -66,6 +66,7 @@ class JobRunner:
         pages: Callable[[int, int], None] | None = None,
         steps: Sequence[TextStep] | None = None,
         max_chars: int = DEFAULT_MAX_CHARS,
+        finish: bool = False,
     ) -> ScriptJob:
         """`run_script_job` on this runner; JobBusyError if a job is running on it."""
         with self._one_job():
@@ -78,6 +79,7 @@ class JobRunner:
                 pages=pages,
                 steps=self.steps_for(settings, steps),
                 max_chars=max_chars,
+                finish=finish,
             )
 
     def run_audio(
