@@ -910,6 +910,11 @@ def _every_api_route(context: Any, origin: str, ids: Ids) -> None:
         asked = call("POST", export, 409, data=body, headers=same).json()
         yes = {**body, "overwrite": True, "file": asked["file"]}
         call("POST", export, 201, data=yes, headers=same)
+    # Copy's text (#1048): asked for only by the Copy button's script, which the walk never
+    # presses; as it asks, for every capture shown and for one document's
+    for shown in ("", ids.paper):
+        copied = call("GET", f"{api}/captures/markdown?type=all&document={shown}", 200).json()
+        _check(copied["count"] > 0, f"the Markdown to copy for {shown or 'all'} is empty")
     call("GET", "/openapi.json", 200)
     # another site as the way back: the switch goes home instead (D-321)
     back = call("GET", "/language?language=en&back=https://elsewhere.example/", 303,

@@ -420,6 +420,52 @@ def test_the_walk_reads_an_id_without_the_fragment_a_reload_adds(url: str, wante
     assert zap._last_part(url) == wanted
 
 
+class _Answer:
+    """What a page's request gets back in `_every_api_route`: the status the walk expects
+    and a body with every field it reads."""
+
+    def __init__(self, status: int) -> None:
+        self.status = status
+        self.headers = {"location": "/"}
+
+    def json(self) -> dict:
+        return {
+            "settings": {},
+            "job": {"id": "built"},
+            "state": "done",
+            "id": "gone",
+            "file": "Captures.md",
+            "text": "# Captures\n",
+            "count": 3,
+        }
+
+
+def test_the_api_walk_asks_for_the_captures_markdown_as_copy_does(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#1276: `GET /api/v1/captures/markdown` (#1048) is called only by the Copy button's
+    script, which the walk never presses, so the API part of the walk asks for it as the
+    script does: every capture shown, and one document's."""
+    asked: list[tuple[str, str]] = []
+
+    class Request:
+        def fetch(self, url: str, method: str, **options: object) -> _Answer:
+            asked.append((method, url.removeprefix("http://127.0.0.1:1")))
+            expected = 409 if url.endswith("/cancel") else 200
+            return _Answer(expected)
+
+    context = type("Context", (), {"request": Request()})()
+    monkeypatch.setattr(zap, "_check", lambda condition, message: None)
+    ids = zap.Ids("0123456789abcdef", "fedcba9876543210", "s-1", "a-1", "v-1")
+    zap._every_api_route(context, "http://127.0.0.1:1", ids)
+    markdown = [path for method, path in asked if path.startswith("/api/v1/captures/markdown")]
+    assert [method for method, path in asked if path in markdown] == ["GET", "GET"]
+    assert markdown == [
+        "/api/v1/captures/markdown?type=all&document=",
+        "/api/v1/captures/markdown?type=all&document=0123456789abcdef",
+    ]
+
+
 def test_the_walks_uploads_are_the_same_bytes_on_every_call() -> None:
     """The scan sees the same document hashes on every run (#422): no random file ID and no
     creation time. Two calls in the same second agree even without the fixed date, so the
