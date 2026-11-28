@@ -14,7 +14,14 @@ from hypothesis import strategies as st
 from sci2audio import textprep
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
-from sci2audio.textprep import AbbreviationStep, StatisticsStep, StepContext, UnitStep, readings
+from sci2audio.textprep import (
+    AbbreviationStep,
+    NumbersStep,
+    StatisticsStep,
+    StepContext,
+    UnitStep,
+    readings,
+)
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import (
@@ -345,6 +352,55 @@ def test_the_links_step_alone_asks_the_abbreviations_step_past_the_readings() ->
     asks = readings.dependencies()
     assert asks["abbreviations"] == ()
     assert "abbreviations" in asks["statistics"]
+
+
+# ---- the numbers step's readings and words (#1114) --------------------------------------
+
+_NUMBER_TOKENS = st.sampled_from(
+    ["1", "2", "3", "17", "20", "1234", "2019", "3.5", "2,5", "2.50", "1/2", "17/20", "3:1",
+     "10⁶", "10^-4", "x²", "−", "-", "–", "×", "x", "=", "<", "⇒", "IV", "III", "Kapitel",
+     "Section", "1999-02-01", "3.", "Mai", "May", "am", "the", "in", "participants", "Proben",
+     "km", "%", "(", ")", ".", ",", "a", "ein"]
+)  # fmt: skip
+
+
+@st.composite
+def _number_blocks(draw: st.DrawFn) -> tuple[str, str]:
+    """A block's text in English or German, of the pieces the number rules look at."""
+    pieces = draw(st.lists(st.tuples(_NUMBER_TOKENS, _GAPS), max_size=12))
+    return "".join(token + gap for token, gap in pieces), draw(st.sampled_from(["en", "de"]))
+
+
+@given(_number_blocks())
+def test_the_numbers_step_edits_are_its_readings(block: tuple[str, str]) -> None:
+    text, language = block
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    # as for the units step: the readings answer for the printed text alone
+    assume(read_as_prose(document.blocks[0], context) and not unread_marks(document, context))
+    edits = NumbersStep().find(document, context)
+    found = readings_of("numbers", text, language)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (r.start, r.end, r.words) for r in found
+    ]
+    assert {r.category for r in found} <= {NumbersStep.category}
+
+
+def test_the_numbers_step_names_the_words_the_cutter_keeps_whole() -> None:
+    english, german = words_of("numbers", "en"), words_of("numbers", "de")
+    assert english.signs["/"] == "out of"  # "17/20" is "17 out of 20"
+    assert {"to the power of", "to the power of minus"} <= english.joined
+    assert english.months[:2] == ("January", "February")
+    assert {"hoch minus", "ein Drittel"} <= german.joined
+    assert german.months[:2] == ("Januar", "Februar")
+
+
+def test_the_cutter_imports_no_step_table_inside_a_function() -> None:
+    """#1114: the cutter learns every reading it must keep whole from the readings module."""
+    source = (Path(textprep.__file__).parent / "utterances.py").read_text(encoding="utf-8")
+    assert not re.findall(
+        r"^[ \t]+(?:from sci2audio\.textprep\S* import|import sci2audio)", source, re.M
+    )
 
 
 # ---- the readings table ----------------------------------------------------------------

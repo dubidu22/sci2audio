@@ -66,7 +66,6 @@ highlight the original words (OU-02). The voice only ever gets the text, never a
 
 from __future__ import annotations
 
-import calendar
 import re
 import unicodedata
 from bisect import bisect_right
@@ -700,16 +699,12 @@ def _readings(language: str) -> re.Pattern[str] | None:
     A joining word matches with the white space on its side only (" per ", "square "), so its
     neighbour is never part of a match: a match never starts at a word that a longer word
     around it would have to give back, which keeps the search linear on any text (#616)."""
-    # the number modules import this module (through the footnotes and links steps), so
-    # their tables are read here, not at import
-    from sci2audio.textprep.numbers import OUT_OF
-    from sci2audio.textprep.numbers_de import FRACTIONS_OF_ONE, MONTHS
-
     listed, entries = units(language), abbreviations(language)
     if listed is None and entries is None:
         return None
     german = language == "de"
     statistics = words_of("statistics", "de" if german else "en")
+    numbers = words_of("numbers", "de" if german else "en")  # its words, from the readings
     phrases = {
         reading.strip()
         for entry in entries or ()
@@ -718,12 +713,11 @@ def _readings(language: str) -> re.Pattern[str] | None:
     for unit in listed.units if listed else ():
         phrases.update((unit.singular, unit.plural))
     phrases.update(statistics.signs.values(), statistics.arrows.values(), statistics.names)
-    phrases.update(FRACTIONS_OF_ONE if german else ())
-    phrases.update(["hoch minus"] if german else ["to the power of minus", "to the power of"])
+    phrases.update(numbers.joined)
     # each a whole match, bounded by what is not a letter or digit
     whole = [re.escape(phrase) for phrase in phrases if " " in phrase]
-    if not german:
-        whole.append(rf"(?<=\d\s){re.escape(OUT_OF)}(?=\s+\d)")  # "17 out of 20"
+    if out_of := numbers.signs.get("/"):
+        whole.append(rf"(?<=\d\s){re.escape(out_of)}(?=\s+\d)")  # "17 out of 20"
     names = "|".join(
         sorted(
             {
@@ -752,7 +746,7 @@ def _readings(language: str) -> re.Pattern[str] | None:
     joins += [
         rf"(?<=\S)\s+{re.escape(words[key])}(?!\w)" for key in ("squared", "cubed") if key in words
     ]
-    months = MONTHS if german else tuple(calendar.month_name[1:])
+    months = numbers.months
     joins.append(rf"(?<=\S)\s+(?-i:{'|'.join(months)})(?!\w)")  # "May", not "may"
     alternatives = sorted(whole, key=len, reverse=True)
     return re.compile(
