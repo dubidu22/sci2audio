@@ -66,6 +66,7 @@ class JobRunner:
         pages: Callable[[int, int], None] | None = None,
         steps: Sequence[TextStep] | None = None,
         max_chars: int = DEFAULT_MAX_CHARS,
+        finish: bool = False,
     ) -> ScriptJob:
         """`run_script_job` on this runner; JobBusyError if a job is running on it."""
         with self._one_job():
@@ -78,6 +79,7 @@ class JobRunner:
                 pages=pages,
                 steps=self.steps_for(settings, steps),
                 max_chars=max_chars,
+                finish=finish,
             )
 
     def run_audio(
@@ -124,9 +126,11 @@ class JobRunner:
         output_settings: OutputSettings | None = None,
         keep_settings: bool = False,
         progress: Callable[[Phase], None] = lambda phase: None,
+        max_chars: int = DEFAULT_MAX_CHARS,
     ) -> tuple[int, ...] | None:
         """`finished_audiobook` on this runner: the chapters of the finished audiobook in
-        place when this run would make it as it is (#115); JobBusyError if a job runs."""
+        place when this run would make it as it is (#115), with the steps `run_audio` would
+        give the job, since they decide what it speaks (#1252); JobBusyError if a job runs."""
         with self._one_job():
             return finished_audiobook(
                 source,
@@ -136,6 +140,8 @@ class JobRunner:
                 output_settings=output_settings,
                 keep_settings=keep_settings,
                 progress=progress,
+                steps=self.steps if keep_settings else self.steps_for(settings),
+                max_chars=max_chars,
             )
 
     def run_book(

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import _thread
 import json
+import subprocess
 import sys
 import threading
 import time
@@ -383,6 +384,35 @@ def test_with_script_refuses_a_changed_audiobook(cli: Cli, source: Path, tmp_pat
     assert not (out / "note.script.txt").exists()
 
 
+def test_with_script_refuses_the_audiobook_of_a_text_changed_since(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """Same settings, same files, but the text is not the one the audiobook speaks: this
+    run's audio job would speak the changed chapter again, so it is not the audiobook this
+    run would make (#1252)."""
+    out, work = tmp_path / "b", tmp_path / "wf"
+    assert cli("convert", source, "-o", out, "-q", "--work-folder", work).code == 0
+    before = times(out)
+    small_pdf(source.parent, [LINES[0].replace("e", "a", 1), *LINES[1:]])
+    result = cli("convert", source, "-o", out, "-q", "--with-script", "--work-folder", work)
+    assert result.code == 7, result.out
+    assert times(out) == before  # no script of a text the audiobook does not speak
+
+
+def test_with_script_refuses_the_audiobook_made_before_a_plugin_came(tmp_path: Path) -> None:
+    """A text-step plugin installed since changes what the chapter says; the settings key
+    does not name the plugins, the chapters' content does (#1252)."""
+    out = tmp_path / "b"
+    source = small_pdf(tmp_path / "in", ["Salt & pepper are on the table."])
+    without = Cli(tmp_path, steps=installed_steps(entry_points=[]))
+    assert without("convert", source, "-o", out, "-q").code == 0
+    before = times(out)
+    cli = Cli(tmp_path, steps=installed_steps(entry_points=[AMPERSAND]))
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 7, result.out
+    assert times(out) == before
+
+
 def test_plain_convert_still_refuses_the_finished_audiobook(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
@@ -421,6 +451,76 @@ def test_a_script_phase_that_fails_while_writing_is_finished_by_the_rerun(
     assert files_in(out) == sorted([*BOOK, *SCRIPT])
     assert {name: time for name, time in times(out).items() if name in before} == before
     assert cli.voice.spoken == spoken
+
+
+_KILLED_IN_THE_SCRIPT_PHASE = """
+import os, sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from cli_helpers import Cli
+from sci2audio.app import files
+
+root, source, out, after = Path(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
+real = files._commit
+
+def commit(partial, target, overwrite):
+    real(partial, target, overwrite)
+    if target.name == after:
+        os._exit(9)  # killed outright between two renames: no clean-up runs
+
+files._commit = commit
+Cli(root)("convert", source, "-o", out, "-q", "--with-script")
+"""
+
+
+@pytest.mark.parametrize("after", ["note.script.txt", "note.report.json"])
+def test_a_script_phase_killed_between_its_renames_is_finished_by_the_rerun(
+    tmp_path: Path, source: Path, after: str
+) -> None:
+    """Fault injection: the script phase killed outright after one of its files was put
+    in place; the rerun of the same command writes the others, keeps the ones in place,
+    and speaks nothing (#1253, #115)."""
+    out = tmp_path / "b"
+    here = str(Path(__file__).parent)
+    args = [here, str(tmp_path), str(source), str(out), after]
+    child = subprocess.run(
+        [sys.executable, "-c", _KILLED_IN_THE_SCRIPT_PHASE, *args],
+        capture_output=True,
+        timeout=300,
+    )
+    assert child.returncode == 9, child.stderr
+    renamed = ["note.script.txt", "note.report.json", "note.report.md"]  # in this order
+    placed = renamed[: renamed.index(after) + 1]
+    assert [n for n in files_in(out) if not n.startswith(".")] == sorted([*BOOK, *placed])
+    before = times(out)
+    cli = Cli(tmp_path)
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 0, result.err
+    assert [n for n in files_in(out) if not n.startswith(".")] == sorted([*BOOK, *SCRIPT])
+    assert {name: time for name, time in times(out).items() if name in before} == before
+    assert cli.voice.spoken == []
+    made = Cli(tmp_path / "fresh")
+    fresh = tmp_path / "fresh" / "b"
+    assert made("convert", source, "-o", fresh, "-q", "--with-script").code == 0
+    for name in SCRIPT:
+        assert (out / name).read_bytes() == (fresh / name).read_bytes(), name
+
+
+def test_with_script_refuses_a_script_half_in_place_that_is_not_this_runs(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """Only what this run would write is taken as in place: a script of other text beside
+    the finished audiobook is the person's, refused as before (D-163, #1253)."""
+    out = tmp_path / "b"
+    assert cli("convert", source, "-o", out, "-q").code == 0
+    (out / "note.script.txt").write_text("Another script.\n", encoding="utf-8")
+    before = times(out)
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 7
+    assert "note.script.txt" in result.err
+    assert times(out) == before
+    assert (out / "note.script.txt").read_text(encoding="utf-8") == "Another script.\n"
 
 
 def test_with_script_refuses_an_existing_script_before_any_speech(

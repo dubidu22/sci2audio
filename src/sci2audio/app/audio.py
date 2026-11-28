@@ -656,15 +656,6 @@ def run_audio_job(
         )
         if not plan.chunks:
             raise JobError("there is nothing to read in the chosen chapters")
-        titles = {chapter.chapter.index: chapter.chapter.title for chapter in result.chapters}
-        # D-903: in printed order a chapter is numbered by its place among the book's
-        # chapters with something to say, so its files stay the same when others are added;
-        # in an order the person chose (#119) by its place among the chosen
-        if order == "book":
-            places = speakable(result, max_chars)
-        else:
-            places = tuple(dict.fromkeys(chunk.chapter for chunk in plan.chunks))
-        numbers = {index: n for n, index in enumerate(places, start=1)}
         try:
             run = _CancellableFfmpeg(
                 (ffmpeg or Ffmpeg(find_ffmpeg())).exe, inner=ffmpeg, cancel=cancel
@@ -672,7 +663,8 @@ def run_audio_job(
         except FfmpegNotFoundError as error:
             raise JobError(str(error)) from error
         book = replace(book, cover=usable_cover(write_cover(source, work), run.exe))
-        book_plan = _BookPlan.of(plan, titles, book, output_settings, numbers, len(places))
+        book_plan = _BookPlan.of(plan, result, book, output_settings, order, max_chars)
+        titles = book_plan.titles
         found_files = _check_targets(
             work, out_folder, book_plan, record, owned, key, overwrite, adding=union is not None
         )
@@ -744,12 +736,22 @@ class _BookPlan:
     def of(
         cls,
         plan: AudioPlan,
-        titles: dict[int, str],
+        result: ScriptResult,
         book: BookInfo,
         settings: OutputSettings,
-        numbers: dict[int, int],
-        count: int,
+        order: str,
+        max_chars: int,
     ) -> _BookPlan:
+        titles = {chapter.chapter.index: chapter.chapter.title for chapter in result.chapters}
+        # D-903: in printed order a chapter is numbered by its place among the book's
+        # chapters with something to say, so its files stay the same when others are added;
+        # in an order the person chose (#119) by its place among the chosen
+        if order == "book":
+            places = speakable(result, max_chars)
+        else:
+            places = tuple(dict.fromkeys(chunk.chapter for chunk in plan.chunks))
+        numbers = {index: n for n, index in enumerate(places, start=1)}
+        count = len(places)
         chunks: dict[int, list[PlannedChunk]] = {}
         for chunk in plan.chunks:
             chunks.setdefault(chunk.chapter, []).append(chunk)
@@ -870,38 +872,107 @@ def finished_audiobook(
     output_settings: OutputSettings | None = None,
     keep_settings: bool = False,
     progress: Callable[[Phase], None] = lambda phase: None,
+    steps: Sequence[TextStep] = BUILT_IN_STEPS,
+    max_chars: int = DEFAULT_MAX_CHARS,
 ) -> tuple[int, ...] | None:
     """The chapters of the finished audiobook in place, in the order it reads them, when it
     is what this run would make: the record finished, this book's, made with the same
-    settings, voice and output, every chosen chapter in it, and every file it vouches for
-    unchanged. Otherwise None. Nothing is spoken or written: `convert --with-script` asks
-    this after its script phase was stopped, to write only the script (#115)."""
-    record = read_record(work)
-    if record is None or not record.complete or record.made is None:
-        return None
-    if keep_settings:
-        settings, output_settings, _ = _kept(record, settings, output_settings, ())
-    out_folder = (settings.output_folder or source.absolute().parent).absolute()
-    document = read_document(source, settings, progress)
-    book = book_info(document)
-    if not _same_book(record, book, out_folder):
-        return None
-    output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
-    voice_id = voice.voice_for(settings.voice, document.language)
-    if record.settings != settings_key(_made(settings, voice, voice_id, output_settings, book)):
-        return None
-    vouched = {
-        *(f.name for f in record.book),
-        *(f.name for c in record.chapters for f in c.files),
-        *(b.file.name for b in record.built),
-    }
-    if not vouched or not vouched <= record.owned(out_folder):
-        return None  # a file is no longer as recorded: not the audiobook this run would make
-    chosen, _ = selected(find_chapters(document), settings.chapters)
-    made = {c.index for c in record.chapters if c.files}
-    if record.order == "chosen" or list(chosen) != sorted(chosen):
-        return record.planned if tuple(chosen) == record.planned else None
-    return record.planned if set(chosen) <= made else None
+    settings, voice and output, every chosen chapter in it, every file it vouches for
+    unchanged, and every chapter what this run's audio job would speak, as its fingerprint
+    says (#1252). Otherwise None. Nothing is spoken and nothing in the output folder is
+    written: `convert --with-script` asks this after its script phase was stopped, to
+    write only the script (#115)."""
+    with work_folder_lock(work):
+        record = read_record(work)
+        if record is None or not record.complete or record.made is None:
+            return None
+        if keep_settings:
+            settings, output_settings, steps = _kept(record, settings, output_settings, steps)
+        out_folder = (settings.output_folder or source.absolute().parent).absolute()
+        document = read_document(source, settings, progress)
+        book = book_info(document)
+        if not _same_book(record, book, out_folder):
+            return None
+        output_settings = replace(output_settings or JOB_OUTPUT, subtitles=settings.subtitles)
+        voice_id = voice.voice_for(settings.voice, document.language)
+        made = _made(settings, voice, voice_id, output_settings, book)
+        if record.settings != settings_key(made):
+            return None
+        vouched = {
+            *(f.name for f in record.book),
+            *(f.name for c in record.chapters for f in c.files),
+            *(b.file.name for b in record.built),
+        }
+        if not vouched or not vouched <= record.owned(out_folder):
+            return None  # a file is no longer as recorded: not the audiobook this run would make
+        chosen, _ = selected(find_chapters(document), settings.chapters)
+        made_chapters = {c.index for c in record.chapters if c.files}
+        if record.order == "chosen" or list(chosen) != sorted(chosen):
+            if tuple(chosen) != record.planned:
+                return None
+        elif not set(chosen) <= made_chapters:
+            return None
+        order = "book" if list(chosen) == sorted(chosen) else "chosen"
+        settings = replace(settings, chapters=record.planned)
+        result = prepare_script(document, settings, steps, max_chars)
+        where = (source, work, out_folder)
+        job = (settings, output_settings)
+        voices = (voice, voice_id)
+        if not _speaks_as_recorded(where, record, result, book, voices, job, (order, max_chars)):
+            return None
+        return record.planned
+
+
+def _speaks_as_recorded(
+    where: tuple[Path, Path, Path],  # source, working folder, output folder
+    record: ChapterRecord,
+    result: ScriptResult,
+    book: BookInfo,
+    voices: tuple[VoiceSource, str],
+    job: tuple[JobSettings, OutputSettings],
+    plan_as: tuple[str, int],  # the order read, the longest chunk
+) -> bool:
+    """Whether the audio job would take every chapter of the finished audiobook as it is:
+    the same chapters, numbered as recorded, each with its recorded fingerprint, timed
+    from the chunk cache as a rerun takes its chapters (`_check_targets`). A changed text,
+    a plugin installed since or another sci2audio speaks a chunk the cache lacks or gives
+    another fingerprint."""
+    source, work, out_folder = where
+    voice, voice_id = voices
+    settings, output_settings = job
+    order, max_chars = plan_as
+    plan = plan_audio(
+        result,
+        engine=voice.engine,
+        engine_version=voice.version_of(voice_id),
+        voice=voice_id,
+        speed=settings.speed,
+        letter_speed=settings.letter_speed,
+    )
+    try:
+        exe = find_ffmpeg()
+    except FfmpegNotFoundError:
+        return False  # the audio job stops with that error itself
+    # the cover goes into the fingerprint; the audio job writes it to the working folder
+    # the same way before it checks the files in place
+    book = replace(book, cover=usable_cover(write_cover(source, work), exe))
+    book_plan = _BookPlan.of(plan, result, book, output_settings, order, max_chars)
+    if book_plan.order != record.planned:
+        return False
+    recorded = {c.index: c for c in record.chapters}
+    for index in book_plan.order:
+        chapter = recorded.get(index)
+        if chapter is None or chapter.number != book_plan.number(index):
+            return False
+        if {f.name for f in chapter.files} != book_plan.chapter_files(out_folder, index):
+            return False
+        try:
+            spoken = book_plan.spoken(work, index, None)
+        except (OSError, EOFError, wave.Error):
+            return False  # a chunk this run speaks is not in the cache: spoken again
+        if book_plan.fingerprint(index, spoken) != chapter.fingerprint:
+            return False
+    return True
 
 
 def _made(
