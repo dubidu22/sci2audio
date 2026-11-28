@@ -97,7 +97,7 @@ class CitationWords:
     # words that may stand before an identifier in brackets: "(grant no. DMS-1912345)" (#285)
     funding: str = r"(?!)"
     and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
-    or_word: str = "or"  # a list of citation brackets with it is no one citation (#414)
+    or_word: str = "or"  # joins a list of numeric citation brackets as `and_word` does (#622)
     # a page after a numeric citation's source, and how it is read: "[12, p. 3]" (#257)
     page_lead: str = r"pp?\.|pages?"
     page_words: tuple[str, str] = ("page", "pages")
@@ -309,7 +309,9 @@ _DECIMAL_COMMA = re.compile(r"\d,\d")
 _SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
 _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
-_RANGE_GAP = re.compile(r"\s*[\u2013\u2014-]\s*")  # between "[1]" and "[3]" of a range
+# between "[1]" and "[3]" of a range; PDF text often carries a figure dash, a minus sign or a
+# Unicode hyphen there, which the units and numbers steps read as dashes too (#1254)
+_RANGE_GAP = re.compile(r"\s*[\u2010-\u2014\u2212-]\s*")
 _ONE_NUMBER = re.compile(r"\s*\d+\s*")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
@@ -484,14 +486,16 @@ class _Rules:
             r"(?P<first>[1-9]\d{0,4})(?:\s*[-–—]\s*(?P<last>[1-9]\d{0,4}))?\s*\Z"
         )
         # what joins two square brackets of a list: "[1], [2]", "[2] and [3]", "[2], and [3]"
-        # (#257, #414); "or" joins none, and a list joined on to a bracket by it is no list
+        # (#257, #414); "or" joins no keys, and a list of keys joined on to a bracket by it is
+        # no list
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
-        # ... or "or" before the last of a list of numbers: "[1], [2] or [3]" (#622)
+        # ... or "or" between the items of a list of numbers: "[1], [2] or [3]" (#622)
         self.or_gap = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
-        self._or_lists: set[int] = set()  # the lists joined by "or" (#622)
-        self._ranges: set[int] = set()  # the lists that are a range of two brackets
+        self._insides: dict[int, str] = {}  # what each list holds, as `_spoken` reads it
+        # the join word ("and", "or") of each list of two items, a pair (#257, #622)
+        self._pair_joins: dict[int, str] = {}
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         # a join word before and after a removal, which would read side by side (#628)
@@ -1294,13 +1298,7 @@ class _Rules:
         end = node.close + 1
         if listed is not None:
             end = listed[-1].close + 1
-            inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed])
-            if node.open in self._ranges:  # "[1]–[3]" reads as "[1–3]" does
-                inside = "–".join(text[item.open + 1 : item.close].strip() for item in listed)
-                inside = f"{text[node.open + 1 : node.close].strip()}–{inside}"
-            elif node.open in self._or_lists:  # "1, 2 or 3": `_spoken` says the "or"
-                *rest, final = inside.rsplit(", ", 1)
-                inside = f"{rest[0]} {self.words.or_word} {final}"
+            inside = self._insides[node.open]
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1321,7 +1319,7 @@ class _Rules:
             word not in self.words.before
             or any(before.lower().endswith(aside) for aside in self.words.asides)
         ) and not self._is_subject(text, at, end):
-            if listed is not None and self._needed_pair(text, node, listed):
+            if listed is not None and self._needed_pair(node):
                 # an aside joined by "and" to a second bracket, which the "and" makes needed:
                 # both are needed, read as one ("between [1] and [3]" is "between references
                 # 1 and 3", #257, D-668); an aside starts no sentence
@@ -1366,7 +1364,10 @@ class _Rules:
         A list is a run of two or more square brackets of one kind (whole numbers, lists and
         ranges, or listed keys; no page, no German decimal interval) set off only by "," and
         "and": "[1], [2] and [3]", "[1, 2], [3]", "[MH17], [Fa14] and [Ka20]", and "[1] and [2],
-        [3]" too (read "references 1 and 2, here" bracket by bracket before).
+        [3]" too (read "references 1 and 2, here" bracket by bracket before); numbers also by
+        "or", alone or mixed with "and" (#622, #1255). Two brackets of one number joined by a
+        dash are one item, a range, as "[1–3]" is: alone ("[1]–[3]", #623) or in a longer run
+        ("[1]–[3], [5]", #1239).
         A later bracket that a number is glued after ends the run before it. Whether the
         brackets are citations at all (no interval, no label's number) is decided at the first
         one in `_numeric`, as for one bracket: with only "," and "and" between them, a later
@@ -1374,10 +1375,10 @@ class _Rules:
         is no citation (after a label word, a sign or a glued word: "Table [1], [2] and [3]"),
         the run makes no list and its later brackets read one by one as before, an aside
         joined by "and" alone to the next as a D-668 pair (`_pair`, from `_following`); what
-        such a run should read is #634 (#621). A run joined on by "or" to a
-        further bracket ("[1], [2] or [3]") is no list either, so its brackets read as before
-        (#414). One pass over the square brackets in text order, each gap read once, so a
-        block of n brackets costs O(n)."""
+        such a run should read is #634 (#621). A run of keys joined on by "or" to a further
+        bracket is no list either, so its brackets read as before (#414). One pass over the
+        square brackets in text order, each gap read once, so a block of n brackets costs
+        O(n)."""
         squares: list[_Bracket] = []
         stack = list(roots)
         while stack:
@@ -1387,37 +1388,21 @@ class _Rules:
             stack += node.children
         squares.sort(key=lambda node: node.open)
         lists: dict[int, list[_Bracket]] = {}
-        self._following = {}
-        self._or_lists = set()
-        self._ranges = set()
+        self._following, self._insides, self._pair_joins = {}, {}, {}
         first = 0
         while first < len(squares):
-            head, last = squares[first], first
+            head = squares[first]
             kind = self._item_kind(text, head)
-            if kind == "numbers" and first + 1 < len(squares):
-                # "[1]–[3]": two brackets of one number joined by a dash are one range, as
-                # "[1–3]" is (#623)
-                ahead = squares[first + 1]
-                if (
-                    _RANGE_GAP.fullmatch(text, head.close + 1, ahead.open)
-                    and _ONE_NUMBER.fullmatch(text, head.open + 1, head.close)
-                    and _ONE_NUMBER.fullmatch(text, ahead.open + 1, ahead.close)
-                    and not _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
-                ):
-                    lists[head.open] = [ahead]
-                    self._ranges.add(head.open)
-                    first += 2
-                    continue
-            joins: set[str] = set()  # "and", "or": a run that mixes them makes no list
+            last = self._item_end(text, squares, first, kind)
+            items = [squares[first : last + 1]]
+            joins: list[str | None] = []  # the join word before each later item
             while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
-                if gap is None and kind == "numbers" and "or" not in joins:
+                join = "and" if gap is not None and gap["join"] is not None else None
+                if gap is None and kind == "numbers":
                     gap = self.or_gap.fullmatch(text, squares[last].close + 1, ahead.open)
-                    if gap is not None:
-                        joins.add("or")
-                elif gap is not None and gap["join"] is not None:
-                    joins.add("and")
+                    join = "or"
                 if (
                     gap is None
                     or self._item_kind(text, ahead) != kind
@@ -1425,17 +1410,61 @@ class _Rules:
                 ):
                     break
                 self._following[squares[last].open] = ahead
-                last += 1
-            if (
-                last > first
-                and len(joins) < 2
-                and not self.or_after.match(text, squares[last].close + 1)
+                end = self._item_end(text, squares, last + 1, kind)
+                items.append(squares[last + 1 : end + 1])
+                joins.append(join)
+                last = end
+            # a lone range has nothing after it to be joined on to
+            if last > first and (
+                len(items) == 1 or not self.or_after.match(text, squares[last].close + 1)
             ):
                 lists[head.open] = squares[first + 1 : last + 1]
-                if joins == {"or"}:
-                    self._or_lists.add(head.open)
+                self._insides[head.open] = self._run_inside(text, items, joins)
+                if len(joins) == 1 and joins[0] is not None:
+                    self._pair_joins[head.open] = joins[0]
             first = last + 1
         return lists
+
+    @staticmethod
+    def _item_end(text: str, squares: list[_Bracket], at: int, kind: str | None) -> int:
+        """Where the item of a run that starts at `squares[at]` ends: at the next bracket for
+        a range of two brackets of one number joined by a dash ("[1]–[3]", read as "[1–3]",
+        #623, #1239), else at its own."""
+        if kind != "numbers" or at + 1 >= len(squares):
+            return at
+        node, ahead = squares[at], squares[at + 1]
+        if (
+            _RANGE_GAP.fullmatch(text, node.close + 1, ahead.open)
+            and _ONE_NUMBER.fullmatch(text, node.open + 1, node.close)
+            and _ONE_NUMBER.fullmatch(text, ahead.open + 1, ahead.close)
+            and not _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
+        ):
+            return at + 1
+        return at
+
+    def _run_inside(self, text: str, items: list[list[_Bracket]], joins: list[str | None]) -> str:
+        """What a run of brackets holds, as `_spoken` reads it: "1, 2, 3" for a run joined by
+        "and" (`_spoken` says the "and"), "1, 2 or 3" for one joined by "or" (#622), "1–3, 5"
+        with a range of two brackets (#1239); a run that mixes "and" and "or" keeps each join
+        word where it stands, "1, 2 and 3 or 4", as no one join word says it (#622 ruling,
+        #1255)."""
+        held = [
+            "–".join(text[node.open + 1 : node.close].strip() for node in item)
+            if len(item) > 1
+            else text[item[0].open + 1 : item[0].close]
+            for item in items
+        ]
+        if len(set(joins) - {None}) > 1:
+            said = {"and": self.words.and_word, "or": self.words.or_word}
+            return held[0] + "".join(
+                (", " if join is None else f" {said[join]} ") + item
+                for join, item in zip(joins, held[1:], strict=True)
+            )
+        inside = ", ".join(held)
+        if "or" in joins:
+            *rest, final = inside.rsplit(", ", 1)
+            inside = f"{rest[0]} {self.words.or_word} {final}"
+        return inside
 
     def _item_kind(self, text: str, node: _Bracket) -> str | None:
         """What a square bracket holds as an item of a list: "numbers", "keys" or None."""
@@ -1469,17 +1498,15 @@ class _Rules:
             return None
         return ahead
 
-    def _needed_pair(self, text: str, node: _Bracket, listed: list[_Bracket]) -> bool:
-        """True for a list of two brackets joined by "and", when "and" makes a citation after
-        it needed: then the first is needed too (#257, D-668)."""
-        if len(listed) != 1:
+    def _needed_pair(self, node: _Bracket) -> bool:
+        """True for a list of two items joined by "and", when "and" makes a citation after it
+        needed: then the first is needed too (#257, D-668); "or" as "and" does ("in [1] or
+        [3]", #622); an item may be a range of two brackets ("[1] or [3]–[5]", #1239)."""
+        join = self._pair_joins.get(node.open)
+        if join is None:
             return False
-        if node.open in self._or_lists:  # "or" as "and" does: "in [1] or [3]" (#622)
-            return self.words.or_word in self.words.before
-        if self.words.and_word not in self.words.before:
-            return False
-        gap = self.list_gap.fullmatch(text, node.close + 1, listed[0].open)
-        return gap is not None and gap["join"] is not None
+        word = self.words.and_word if join == "and" else self.words.or_word
+        return word in self.words.before
 
     def _paged(self, inside: str) -> tuple[str, str] | None:
         """One source and its page, as the source and the page's reading: "12, p. 3" is "12"
@@ -1575,10 +1602,29 @@ class _Rules:
         noun = self.wording.reference if single else self.wording.references
         if len(items) == 1:
             return f"{noun} {items[0]}"
+        mixed = None if keys else self._mixed_joins(inside, items)
+        if mixed is not None:
+            return f"{noun} {mixed}"
         last = self.wording.list_and
         if re.search(rf"\s{re.escape(self.words.or_word)}\s", inside):
             last = f" {self.words.or_word} "  # a list joined by "or" (#622)
         return f"{noun} {self.wording.list_comma.join(items[:-1])}{last}{items[-1]}"
+
+    def _mixed_joins(self, inside: str, items: list[str]) -> str | None:
+        """The items of a run that mixes "and" and "or", each join word as printed and a comma
+        elsewhere ("1, 2 and 3 or 4", #1255), or None for any other run."""
+        joins = []
+        for ahead, behind in itertools.pairwise(_ITEMS.finditer(inside)):
+            gap = inside[ahead.end() : behind.start()].split()
+            if self.words.and_word in gap:
+                joins.append(self.wording.list_and)
+            elif self.words.or_word in gap:
+                joins.append(f" {self.words.or_word} ")
+            else:
+                joins.append(self.wording.list_comma)
+        if self.wording.list_and not in joins or f" {self.words.or_word} " not in joins:
+            return None
+        return items[0] + "".join(join + item for join, item in zip(joins, items[1:], strict=True))
 
     # author-year citations
 

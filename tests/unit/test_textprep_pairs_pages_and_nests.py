@@ -273,13 +273,14 @@ def test_a_list_is_named_whole_in_its_reason(printed: str, named: str) -> None:
     assert named in edit.reason
 
 
-def test_an_or_list_is_one_citation_but_not_one_that_mixes_and_and_or() -> None:
+def test_an_or_list_is_one_citation_and_so_is_one_that_mixes_and_and_or() -> None:
     """#622 (follow-up F1 of #414): a list joined by "or" is one citation, read with its
-    "or"; a run that mixes "and" and "or" is no list and reads as before."""
+    "or"; so is a run that mixes "and" and "or", each join word read as printed (#1255)."""
     assert read_all("It holds [1], [2] or [3] here.") == "It holds here."
     assert read_all("As shown in [1] or [3].") == "As shown in references 1 or 3."
-    mixed = read_all("It holds [1] and [2] or [3] here.")
-    assert mixed == "It holds references 1 and 2 or reference 3 here."
+    assert read_all("It holds [1] and [2] or [3] here.") == "It holds here."
+    mixed = read_all("As shown in [1] and [2] or [3].")
+    assert mixed == "As shown in references 1 and 2 or 3."
 
 
 @pytest.mark.parametrize(
@@ -449,16 +450,11 @@ def test_a_lead_word_nest_with_a_flat_part_reads_its_names_once(
         ("de", "Es gilt x = [1], [2] und [3] hier.", "Es gilt x gleich [1], Quellen 2 und 3 hier."),
         # only "and" alone makes a pair, as before
         ("en", "Table [1], [2], and [3] show it.", "Table [1], and reference 3 show it."),
-        # a run that "or" ends is no list either: its pairs read as before (#622)
+        # after a label word a run that "or" ends reads as before too (#622, #1255)
         (
             "en",
-            "It holds [1] and [2] or [3] here.",
-            "It holds references 1 and 2 or reference 3 here.",
-        ),
-        (
-            "en",
-            "It holds [1], [2] and [3] or [4] here.",
-            "It holds, references 2 and 3 or reference 4 here.",
+            "Table [1], [2] and [3] or [4] show it.",
+            "Table [1], references 2 and 3 or reference 4 show it.",
         ),
         # an interval first: the bracket after it reads as before (#151)
         (
