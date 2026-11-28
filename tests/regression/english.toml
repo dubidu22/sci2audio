@@ -3727,3 +3727,27 @@ expected = [
     "So A implies ¬B.",
     "So A implies ¬¬B.",
 ]
+
+[[case]]
+id = "a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
+audit = 0
+issue = 1120
+goal = "A statistic letter, a space and a df bracket followed by '=' read as the glued form ('t (34) = 2.1' is 't of 34 equals 2.1'), and a Latin 'X2' before such a bracket reads 'chi-square', as 'χ2' does, glued or spaced (ruled by Colin, 26 Nov 2026). Without '=' after the bracket a spaced one stays as printed ('t (34 s)'); the glued form and 'X2' elsewhere read as before."
+blocks = [
+    { kind = "paragraph", text = "It held, t (34) = 2.1, here." },
+    { kind = "paragraph", text = "It held, F (2, 57) = 4.1, here." },
+    { kind = "paragraph", text = "It held, X2(1) = 3.84, here." },
+    { kind = "paragraph", text = "It held, X2 (1) = 3.84, here." },
+    { kind = "paragraph", text = "It took t (34 s) here." },
+    { kind = "paragraph", text = "It held, t(34) = 2.1, here." },
+    { kind = "paragraph", text = "The X2 increases here." },
+]
+expected = [
+    "It held, t of 34 equals 2.1, here.",
+    "It held, F of 2 and 57 equals 4.1, here.",
+    "It held, chi-square of 1 equals 3.84, here.",
+    "It held, chi-square of 1 equals 3.84, here.",
+    "It took t (34 seconds) here.",
+    "It held, t of 34 equals 2.1, here.",
+    "The X2 increases here.",
+]

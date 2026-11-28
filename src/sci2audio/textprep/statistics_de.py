@@ -64,15 +64,17 @@ _NUMBER = r"\d+(?:[.,]\d+)*"
 _PAIR = r"(?:\s*;\s*|,\s+)"
 
 # S-de-2: a test statistic, its df in a bracket, then a comparison sign
-_DF = re.compile(
-    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)"
+_DF_BRACKET = (
     r"(?P<paren>\(\s*(?P<a>" + _NUMBER + r")\s*"
-    r"(?:"
-    + _PAIR
-    + r"(?:(?P<n>[Nn]\s*=\s*\d[\d.]*)|(?P<b>"
-    + _NUMBER
-    + r")))?\s*\))"
-    + _THEN_OPERATOR
+    r"(?:" + _PAIR + r"(?:(?P<n>[Nn]\s*=\s*\d[\d.]*)|(?P<b>" + _NUMBER + r")))?\s*\))"
+)
+_DF = re.compile(r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)" + _DF_BRACKET + _THEN_OPERATOR)
+# a Latin "X2" before a df bracket and "=" is a chi-square, as "χ2" is, in either language
+# (#1120)
+LATIN_CHI = re.compile(r"(?<![\w′'])X2(?= ?\(\s*\d[^()]*\)\s*=)")
+# ... and set apart by a space, only before "=", as in English (#1120)
+_DF_SPACED = re.compile(
+    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)(?P<gap> )" + _DF_BRACKET + r"(?=\s*=)"
 )
 
 # S-de-3
@@ -150,8 +152,10 @@ def _number(printed: str) -> str:
 
 def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
     found = []
-    for match in _DF.finditer(plain):
+    for match in (*_DF.finditer(plain), *_DF_SPACED.finditer(plain)):
         start, end = match.span("paren")
+        if match.groupdict().get("gap"):
+            start = match.start("gap")  # "t (34)" reads "t mit 34 …", one space
         a = _number(match["a"])
         if match["n"]:
             n = re.sub(r"\s*=\s*", " gleich ", match["n"]).replace(".", "")
@@ -176,7 +180,10 @@ def _degrees(number: str) -> str:
 
 
 def _squared(text: str, plain: str) -> list[Candidate]:
-    found = []
+    found = [
+        Candidate(*m.span(), _SQUARED_NAMES["χ"], f'"{m.group()}" read as "{_SQUARED_NAMES["χ"]}"')
+        for m in LATIN_CHI.finditer(plain)
+    ]
     for match in _SQUARED.finditer(plain):
         if match["two"] and not _THEN_OPERATOR_OR_DF.match(plain, match.end()):
             continue
