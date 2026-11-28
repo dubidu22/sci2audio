@@ -1576,6 +1576,9 @@ _PART_KEYWORDS = frozenset(
     | {"kap", "abschn", "anh", "bd"}
 )
 _ROMAN = r"[IVX]{1,6}"
+# the words that join two numerals of a list; "bzw." is "beziehungsweise" once the
+# abbreviations step has read it (#1013)
+_LIST_WORDS = r"und|oder|&|sowie|u\.|bzw\.|beziehungsweise"
 # a number joined after a Roman numeral or a label's number; unlike `_JOINED_AFTER` not by a
 # space, since German has no rule that joins "1 395" (and "Kapitel I 12.03.2019" reads the
 # date as words)
@@ -1587,7 +1590,9 @@ def _roman_run() -> re.Pattern[str]:
     return re.compile(
         r"(?<![\w-])(?P<keyword>[^\W\d_]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
         + _ROMAN
-        + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:"
+        + _LIST_WORDS
+        + r")\s+)"
         + _ROMAN
         # with a full stop glued on after it, it is left as printed ("Kapitel I.2"); before a
         # full stop and white space or the end, only one numeral after a part's keyword is
@@ -1601,7 +1606,9 @@ def _roman_run() -> re.Pattern[str]:
         + r")*)(?![\w⁺⁻%]|\.(?!\s|\Z|"
         + _sign_start()
         + r")|\s+%|\s+(?:Quadrat|hoch)\b"
-        + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:und|oder|&)\s+)"
+        + r"|(?:\s*[/\u2013-]\s*|,\s*|\s+(?:"
+        + _LIST_WORDS
+        + r")\s+)"
         + _ROMAN
         + r"|\s+bis\s+"
         + _ROMAN
@@ -1611,10 +1618,10 @@ def _roman_run() -> re.Pattern[str]:
 
 
 # a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis
-# III."): the first numeral is no part number on its own, so the list stays as printed as a
-# whole, as "Teil II und III." does (#996)
+# III.", "Kapitel I. bzw. II.", "Kapitel I. — II."): the first numeral is no part number on
+# its own, so the list stays as printed as a whole, as "Teil II und III." does (#996, #1013)
 _LIST_AFTER_STOP = re.compile(
-    r"\.(?:,\s*|\s+(?:und|oder|&|bis)\s+|\s*[/\u2013-]\s*)" + _ROMAN + r"(?!\w)"
+    r"\.(?:,\s*|\s+(?:bis|" + _LIST_WORDS + r")\s+|\s*[/\u2013\u2014-]\s*)" + _ROMAN + r"(?!\w)"
 )
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")

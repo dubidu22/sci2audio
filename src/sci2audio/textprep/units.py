@@ -59,6 +59,7 @@ from sci2audio.textprep.footnotes import (
     unread_marks,
 )
 from sci2audio.textprep.notation import (
+    ARROW_JOINS,
     DOUBLE_ARROW,
     FILE_NUMBER_DE,
     LEFT_ARROW_TAIL,
@@ -163,9 +164,6 @@ _SAID_SIGNS_EN = ("\u2264", "\u2265", "=")
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
 # after the first run), filled in by `_compiled`; the words are the statistics step's "<", ">"
 _COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:{compared}) *\Z"
-# the characters that join a "<" or ">" to the sign before it ("<<", "=<", "->"): the
-# statistics step then leaves it as printed (its `_ARROW`), so it stays a sign on a second run
-_JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
 # the numbers step's English reading of a minus sign before a number counts as the sign before
 # "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the times sign
 # and "times" do (#253); white space between them is joined to one space by then. Not after
@@ -995,7 +993,7 @@ def _bare_comparison(text: str, sign: str, at: int, compared: re.Pattern[str] | 
     run (`_COMPARED_EN`): then the sign makes no variable of the "Nx" after it either."""
     if sign not in ("<", ">") or compared is None:
         return False
-    joined = at > 0 and text[at - 1] in _JOINED_TO_SIGN
+    joined = at > 0 and text[at - 1] in ARROW_JOINS
     if joined and not LEFT_ARROW_TAIL.search(text, max(0, at - 16), at):
         return False  # "A << 3x", "A -> 3x": left as printed, a sign on both runs
     said_before = text[max(0, at - 32) : at].rstrip(" ") + " less than "

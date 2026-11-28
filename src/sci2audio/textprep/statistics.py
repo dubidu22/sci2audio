@@ -39,6 +39,7 @@ from sci2audio.core import Document, Edit
 from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
+    ARROW_JOINS,
     DOUBLE_ARROW,
     LEFT_ARROW_TAIL,
     Candidate,
@@ -79,9 +80,6 @@ OPERATORS = {
     "≫": "much greater than",
 }
 _OPERATOR = re.compile("|".join(sorted(map(re.escape, OPERATORS), key=len, reverse=True)))
-# characters that make an ASCII "<", ">" or "=" part of an arrow or a doubled sign; "⇐="
-# is a long double arrow the numbers step reads as "⇐" (#590)
-_ARROW = frozenset("<>=-−!:~|⇐")
 # a sign this step reads counts as a word next to another sign, since after the first run it
 # is one ("x = ≤ 3" reads both, so a second run on the script finds nothing more)
 _SIGNS = "".join(sorted({key[0] for key in OPERATORS} | {"\u0338"}))
@@ -415,7 +413,7 @@ def _operators(
         if not (_OPERAND.match(plain, right_start) or minus_read):
             continue
         if op in "<>=" and (
-            (before in _ARROW and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
+            (before in ARROW_JOINS and not LEFT_ARROW_TAIL.search(plain, max(0, start - 16), start))
             or (after and after in "<>=")
             or (_arrow_after(plain, end) and not minus_read)
         ):
