@@ -64,6 +64,7 @@ from sci2audio.textprep.notation import (
     LEFT_ARROW_TAIL,
     edits_through_unread,
     in_ascii_run,
+    upright,
 )
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
@@ -255,10 +256,8 @@ class UnitStep(TextStep):
     def _read(self, index: int, read: str, language: str) -> list[Edit]:
         # upright maths letters as the plain letters the characters step makes of them last
         # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
-        upright = _upright(read)
-        return [
-            self._edit(index, found, upright) for found in readings_of(self.id, upright, language)
-        ]
+        plain = upright(read)
+        return [self._edit(index, found, plain) for found in readings_of(self.id, read, language)]
 
     def _mass_numbers(
         self, text: str, edits: list[Edit], raised: Collection[tuple[int, int]], table: _Table
@@ -317,7 +316,9 @@ def find_readings(text: str, language: str) -> list[Reading]:
     table = _compiled(language)
     if table is None:
         return []
-    return _without_overlaps(_found(text, table))
+    # upright maths letters as the plain letters the characters step makes of them, so a
+    # step that asks about a bold "2,55 m" hears what this step says there (#1083)
+    return _without_overlaps(_found(upright(text), table))
 
 
 def _found(text: str, table: _Table) -> Iterator[Reading]:
@@ -831,28 +832,6 @@ def _said(
         # German writes it into one word: "Quadrat" + "Meter" is "Quadratmeter"
         return f"{power}{name[:1].lower()}{name[1:]}" if joined else f"{power} {name}"
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
-
-
-# the maths alphabets set slanted or ornate: their letters are variables, not units (ISO 80000)
-_SLANTED = ("ITALIC", "SCRIPT", "FRAKTUR", "DOUBLE-STRUCK")
-
-
-def _upright(text: str) -> str:
-    """The text with upright maths letters and digits as plain ones ("𝐬" as "s", "𝟏" as "1");
-    same length. An italic one ("𝑠") stays: it names a variable, and units are set upright."""
-    if text.isascii():
-        return text
-    return "".join(_upright_char(char) for char in text)
-
-
-@cache
-def _upright_char(char: str) -> str:
-    if "\U0001d400" <= char <= "\U0001d7ff":
-        name = unicodedata.name(char, "")
-        folded = unicodedata.normalize("NFKC", char)
-        if len(folded) == 1 and not any(style in name for style in _SLANTED):
-            return folded
-    return char
 
 
 def _times_x(
