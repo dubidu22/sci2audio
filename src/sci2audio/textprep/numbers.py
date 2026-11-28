@@ -52,6 +52,7 @@ from sci2audio.textprep.numbers_de import (
     FRACTIONS_OF_ONE,
     MONTHS,
     find_numbers_de,
+    tildes_read_after,
     unit_glued,
     unit_read_after_per,
     x_read_after,
@@ -273,12 +274,13 @@ _ROMAN = r"[IVX]{1,6}"
 _ROMAN_RUN = re.compile(
     r"\b(?P<keyword>[A-Za-z]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
     + _ROMAN
-    + r"(?:(?:\s*[/\u2013-]\s*|,\s*|\s+(?:and|or|&)\s+)"
+    + r"(?:(?:\s*[/\u2013\u2014-]\s*|,\s*|\s+(?:and|or|&)\s+)"
     + _ROMAN
     # a power after it is the powers rule's: "Phase II⁻⁴", "Phase I²" (later "I squared")
     + r")*)(?![\w⁺⁻]|\s+(?:squared|cubed|to the power of)\b)"
 )
-_ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
+# an em dash, spaced or not, joins a range as the en dash does: "Chapters I — II" (#1231)
+_ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013\u2014-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
 _UNITS = {"": 0, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9}
 
@@ -368,7 +370,7 @@ def find_numbers(text: str) -> list[Candidate]:
     minus is not also read as a minus sign.
     """
     plain = fold(text)
-    return pick(
+    found = pick(
         [
             *arrows(text),
             *_iso_dates(text),
@@ -383,6 +385,7 @@ def find_numbers(text: str) -> list[Candidate]:
             *_fractions(text),
         ]
     )
+    return pick([*found, *tildes_read_after(text, found, "en")])
 
 
 # a number joined to the next or the last one by a dash, colon or slash, by a space, or by
