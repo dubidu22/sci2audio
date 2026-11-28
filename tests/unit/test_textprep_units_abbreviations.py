@@ -1226,13 +1226,14 @@ def test_an_x_after_a_read_comparison_sign_is_the_variable(printed: str, read: s
 
 
 def test_the_said_signs_are_the_statistics_steps_readings() -> None:
-    """A drift guard: the words the units step counts are those the statistics step reads."""
+    """The words the units step counts as signs are the statistics step's readings of signs
+    it counts (#320); since #1113 they come from the readings, not a copy."""
     from sci2audio.textprep.statistics import OPERATORS
-    from sci2audio.textprep.units import _OPERATORS, _SAID_OPERATORS_EN
+    from sci2audio.textprep.units import _OPERATORS, _SAID_SIGNS_EN, _said_operators_en
 
-    for words in _SAID_OPERATORS_EN:
-        signs = [sign for sign, reading in OPERATORS.items() if reading == words]
-        assert any(sign in _OPERATORS for sign in signs), words
+    assert set(_said_operators_en()) == {OPERATORS[sign] for sign in _SAID_SIGNS_EN}
+    assert all(sign in _OPERATORS for sign in _SAID_SIGNS_EN)
+    assert "less than" not in _said_operators_en()  # a bare one is prose (D-605)
 
 
 @pytest.mark.parametrize(

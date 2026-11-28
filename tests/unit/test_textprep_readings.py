@@ -350,6 +350,48 @@ def test_the_links_step_alone_asks_the_abbreviations_step_past_the_readings() ->
 # ---- the readings table ----------------------------------------------------------------
 
 
+def test_a_step_follows_the_words_another_step_says(monkeypatch: pytest.MonkeyPatch) -> None:
+    """#1113: no step holds a copy of another's words. Were the statistics step to read "="
+    as "is", the numbers step would count a number before "is" as it counts one before
+    "equals" ("1,234 equals A"), and the units step would take "is" as the sign before "2x"."""
+    from sci2audio.textprep import numbers, units
+
+    real = readings._finders()["statistics"]
+    said = real.words("en")
+    double = readings.Finder(
+        real.read,
+        real.asks,
+        words=lambda language: readings.Words(
+            signs={**said.signs, "=": "is"}, arrows=said.arrows, names=said.names
+        ),
+    )
+    caches = (numbers._before_equals, units._said_operators_en, units._compiled)
+
+    def cleared() -> None:
+        for cached in caches:
+            cached.cache_clear()
+        readings._read.cache_clear()
+
+    assert "1,234" in render_numbers("We set 1234 equals A.")
+    assert "1,234" not in render_numbers("We set 1234 is A.")
+    cleared()
+    monkeypatch.setitem(readings._finders(), "statistics", double)
+    try:
+        assert "1,234" in render_numbers("We set 1234 is A.")
+    finally:
+        monkeypatch.undo()
+        cleared()
+
+
+def render_numbers(text: str) -> str:
+    """The text with the English numbers step's candidates applied, as one run reads it."""
+    from sci2audio.textprep.numbers import find_numbers
+
+    for found in sorted(find_numbers(text), key=lambda c: c.start, reverse=True):
+        text = text[: found.start] + found.replacement + text[found.end :]
+    return text
+
+
 def test_no_step_readings_ask_in_a_loop() -> None:
     asks = readings.dependencies()
     assert all(set(needed) <= set(asks) for needed in asks.values())
