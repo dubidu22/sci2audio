@@ -525,8 +525,7 @@ def test_a_unit_edit_names_the_printed_unit_and_its_reading() -> None:
         ("\u00d7\u00d7 and \u2248\u2248", "\u00d7\u00d7 and \u2248\u2248"),
         (
             "3 x 4, 3x4, 1920x1080, 10x speedup, 3.5x., 2x3x4",
-            "3 times 4, 3 times 4, 1920 times 1080, 10 times speedup, 3.5 times., "
-            "2 times 3 times 4",
+            "3 times 4, 3 times 4, 1920 by 1080, 10 times speedup, 3.5 times., 2 times 3 times 4",
         ),
         (
             "0x1F, x86, 2 x n, 2xl, 0003-066X, 10.1/2x3",
@@ -1227,13 +1226,14 @@ def test_an_x_after_a_read_comparison_sign_is_the_variable(printed: str, read: s
 
 
 def test_the_said_signs_are_the_statistics_steps_readings() -> None:
-    """A drift guard: the words the units step counts are those the statistics step reads."""
+    """The words the units step counts as signs are the statistics step's readings of signs
+    it counts (#320); since #1113 they come from the readings, not a copy."""
     from sci2audio.textprep.statistics import OPERATORS
-    from sci2audio.textprep.units import _OPERATORS, _SAID_OPERATORS_EN
+    from sci2audio.textprep.units import _OPERATORS, _SAID_SIGNS_EN, _said_operators_en
 
-    for words in _SAID_OPERATORS_EN:
-        signs = [sign for sign, reading in OPERATORS.items() if reading == words]
-        assert any(sign in _OPERATORS for sign in signs), words
+    assert set(_said_operators_en()) == {OPERATORS[sign] for sign in _SAID_SIGNS_EN}
+    assert all(sign in _OPERATORS for sign in _SAID_SIGNS_EN)
+    assert "less than" not in _said_operators_en()  # a bare one is prose (D-605)
 
 
 @pytest.mark.parametrize(
@@ -1271,7 +1271,7 @@ def test_no_unit_after_a_fraction_read_out_of(printed: str, read: str) -> None:
 
 
 def test_a_number_with_more_digits_before_out_of_keeps_its_unit() -> None:
-    """Pins the look-behind of `_OUT_OF` (#359): "1,017 out of" is no
+    """Pins the look-behind of `_out_of` (#359): "1,017 out of" is no
     reading of a fraction (the numbers step reads none with a 4-digit numerator)."""
     assert said(UNITS, "It was 1,017 out of 20 kg.") == "It was 1,017 out of 20 kilograms."
     assert said(UNITS, "It was 2.5 out of 20 kg.") == "It was 2.5 out of 20 kilograms."

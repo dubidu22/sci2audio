@@ -110,6 +110,49 @@ def test_the_chapters_list_their_states(tmp_path: Path) -> None:
     assert 'id="generate-rest"' in listen
 
 
+def test_a_deleted_chapter_mp3_reads_as_not_generated_and_the_others_as_generated(
+    tmp_path: Path,
+) -> None:
+    """#770: a made chapter's MP3 deleted from the audiobook folder leaves the book
+    unplayable as a whole, but each chapter's state is still read from the chapter record
+    and the project's folder: that one is offered again, the others stay generated, and
+    generating it makes only that chapter."""
+    client, config, doc, _gate = project(tmp_path, [0, 1, 2])
+    folder = book_folder(config.output_folder)
+    (folder / "paper - 02 Methods.mp3").unlink()
+    before = files(folder)
+    assert states(client, doc) == [
+        ("Introduction", "generated"),
+        ("Methods", "not-generated"),
+        ("Results", "generated"),
+    ]
+    page = client.get(f"/documents/{doc}").text
+    assert re.search(r'id="chapter-state-1"[^>]*>not generated<', page)
+    assert page.count('class="sm generate"') == 1
+    assert re.search(r'<button type="button" class="sm generate" data-chapter="1"', page)
+    rest = re.search(r'<button[^>]*id="generate-rest"[^>]*>', page)
+    assert rest is not None
+    assert 'data-chapters="[1]"' in rest[0]
+    # what the Listen page shows for a book with a file gone is #1069's (next in this set)
+    done = audio(client, doc, [1])
+    assert done["state"] == "done", done["error"]
+    after = files(folder)
+    assert "paper - 02 Methods.mp3" in after
+    for name in ("paper - 01 Introduction.mp3", "paper - 03 Results.mp3"):
+        assert after[name] == before[name]  # not made again
+    assert states(client, doc) == [(title, "generated") for title in TITLES]
+
+
+def test_with_every_chapter_mp3_deleted_the_project_has_no_audiobook(tmp_path: Path) -> None:
+    """#770: with no chapter's files left, there is nothing to add to, as before."""
+    client, config, doc, _gate = project(tmp_path, [0, 1])
+    folder = book_folder(config.output_folder)
+    for mp3 in folder.glob("*.mp3"):
+        mp3.unlink()
+    assert {state for _title, state in states(client, doc)} == {None}
+    assert 'id="generate-rest"' not in client.get(f"/documents/{doc}").text
+
+
 def test_a_chapter_file_changed_after_it_was_made_reads_as_not_generated(tmp_path: Path) -> None:
     """A chapter counts as generated only while its files are the ones the chapter record
     vouches for: one edited in place, its size kept, is offered again."""

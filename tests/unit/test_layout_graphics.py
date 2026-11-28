@@ -334,6 +334,21 @@ def test_a_mark_before_a_running_head_joins_it_and_is_no_figure() -> None:
     assert [part.item for part in head.parts] == ["mark", "logo0"]
 
 
+def test_a_mark_read_right_after_a_running_head_joins_it_after_its_parts() -> None:
+    """#649: a loose mark read just after a repeated logo joins the running head that
+    `_place` builds, as its last part, never a block of its own or the paragraph after."""
+    mark = Picture("mark", Box(545, 40, 549, 44))
+    logos = [Picture(f"logo{n}", Box(500, 30, 540, 70)) for n in range(4)]
+    doc = build(
+        *([logos[0], mark, *running()] if n == 0 else [logos[n], *running()] for n in range(4))
+    )
+    assert of(doc, BlockKind.FIGURE) == []
+    head = doc.blocks[0]
+    assert (head.kind, head.role) == (BlockKind.FURNITURE, FurnitureRole.RUNNING_HEAD)
+    assert [part.item for part in head.parts] == ["logo0", "mark"]
+    assert all("mark" not in {p.item for p in b.parts} for b in doc.blocks[1:])
+
+
 def test_a_rule_between_paragraphs_joins_the_paragraph_before_it() -> None:
     """D-90: its text stays as it was; the rule is its last part."""
     first, second = running(), running(top=270, count=4)

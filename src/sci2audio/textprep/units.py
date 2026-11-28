@@ -49,6 +49,7 @@ import unicodedata
 from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from functools import cache
+from types import MappingProxyType
 
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.footnotes import (
@@ -65,7 +66,7 @@ from sci2audio.textprep.notation import (
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, holding, readings_of, words_of
+from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
@@ -139,6 +140,12 @@ _LETTER_X = re.compile(
     r"(?:(?<![\w.,/-])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹][xX])|(?<=[\d⁰¹²³⁴⁵⁶⁷⁸⁹] [xX]))"
     r"(?P<number>\d+(?:[.,]\d+)*(?:[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)(?P<space> ?)(?P<x>[xX])"
 )
+# a size: two whole numbers of two or more digits joined by a glued x or times sign, in no
+# chain and no decimal ("1920x1080", "32x32"); English reads it "by" (#1037), German "mal"
+_GLUED_SIZE = re.compile(
+    r"(?<![\w\u00d7])(?<!\d[.,])\d{2,}(?P<x>[xX\u00d7])\d{2,}(?![\w\u00d7]|[.,]\d)"
+)
+_BY = "by"
 _UNIT_JOINTS = "/^\u00b7\u22c5\u207b\u00b2\u00b3"  # after these, a letter is a unit: "5K/s"
 _GLUED_JOINT = "\u02da\u00c5\u212b"  # a unit glued after another: only the angstrom forms
 _HEX = frozenset("0123456789abcdefABCDEF")
@@ -147,46 +154,37 @@ _LOGIC_ARROW = re.compile(DOUBLE_ARROW)
 # minus signs and a right arrow: one arrow to the numbers step (`notation.arrows`)
 _PIECED_RIGHT_ARROW = re.compile("\u2212+\u2192")
 _LOGIC_ARROW_BEFORE = re.compile(f"(?:{DOUBLE_ARROW}) *\\Z")
-# the statistics step's English readings of those signs, which count as the signs around "2x"
-# ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
-# "less than 2x slower" (D-605). Longest first.
-_SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
+# the statistics step's English readings of "≤", "≥" and "=", which count as the signs around
+# "2x" ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose
+# says "less than 2x slower" (D-605). From the readings, longest first (#1113).
+_SAID_SIGNS_EN = ("\u2264", "\u2265", "=")
 # ... and a bare "less than" / "greater than" counts after a one-letter variable or a closing
 # bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646). Not after "a", "A", "I"
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
-# after the first run), filled in by `_compiled`
-_COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z"
+# after the first run), filled in by `_compiled`; the words are the statistics step's "<", ">"
+_COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:{compared}) *\Z"
 # the characters that join a "<" or ">" to the sign before it ("<<", "=<", "->"): the
 # statistics step then leaves it as printed (its `_ARROW`), so it stays a sign on a second run
 _JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
-# the numbers step's English reading of a minus sign before a number: it counts as the sign
-# before "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the
-# times sign and "times" do (#253); white space between them is joined to one space by then
-_MINUS_SAID_EN = re.compile(r"(?<![\w-])minus\s*\Z")
-# ... but not after "plus or" or "plus/", in any case and with any white space: "plus or minus"
-# is the reading of "±", which is no such sign ("± 3x" is "plus or minus 3 times"), and a
-# second run sees its white space joined ("plus or\nminus" is "plus or minus" then); nor after
-# "plus" and a glued dash or Unicode hyphen, which is "plus-minus" as typeset (#1021)
-_PLUS_OR_BEFORE_EN = re.compile(
-    r"plus(?:\s+or\s+|\s*/\s*|[\u2010\u2011\u2013\u2014])\Z", re.IGNORECASE
-)
-# after "Nx", the numbers step's reading of a minus sign before a number counts as that sign,
-# as before it: "3x", a minus sign and "2" read "3x minus 2" on both runs (#1010); "minus the
-# rest" is no such reading
-_MINUS_SAID_AFTER_EN = re.compile(r"\s+minus\s+\.?\d")
+# the numbers step's English reading of a minus sign before a number counts as the sign before
+# "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the times sign
+# and "times" do (#253); white space between them is joined to one space by then. Not after
+# "plus or" or "plus/", in any case and with any white space: "plus or minus" is the reading of
+# "±", which is no such sign ("± 3x" is "plus or minus 3 times"), and a second run sees its
+# white space joined ("plus or\nminus" is "plus or minus" then); nor after "plus" and a glued
+# dash or Unicode hyphen, which is "plus-minus" as typeset (#1021). After "Nx" the reading of a
+# minus sign before a number counts as that sign too: "3x", a minus sign and "2" read "3x minus
+# 2" on both runs (#1010); "minus the rest" is no such reading. The words come from the
+# readings (#1193): `_minus_said_en`, `_plus_or_before_en`, `_minus_said_after_en`.
 # after "Nx", a bare "less than" / "greater than" counts as the sign before a one-letter
 # variable (not "a", "A", "I", which are words) or an opening bracket, mirroring
 # `_COMPARED_EN`: "3x greater than y" is the reading of "3x > y" (#1010, D-646)
-_COMPARED_AFTER_EN = re.compile(r"\s*(?:less|greater) than\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()")
+_COMPARED_AFTER_EN = r"\s*(?:{compared})\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()"
 # the reading of a power ("A⁻¹" is "A to the power of minus 1", "5 A²" "5 Ampere hoch 2"): its
-# number is an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did (#816)
-_POWER_SAID = {
-    "en": re.compile(r"(?<![\w-])to the power of (?:minus )?\Z"),
-    "de": re.compile(r"(?<![\w-])hoch (?:minus )?\Z"),
-}
-# the numbers step's reading of a fraction it has no word for ("17/20" is "17 out of 20"): the
-# second number is no unit's number, as the printed denominator is not (#335, D-605)
-_OUT_OF = re.compile(r"(?<![\w.,])\d{1,3} out of \Z")
+# number is an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did
+# (#816); and the numbers step's reading of a fraction it has no word for ("17/20" is "17 out
+# of 20"): the second number is no unit's number, as the printed denominator is not (#335,
+# D-605). Both from the numbers step's words in the readings (#1193): `_power_said`, `_out_of`.
 # the words after which a unit is read with no number before it: "per m²", "pro m²", "je kg"
 # (#230, D-646)
 _PER_WORDS = {"en": ("per",), "de": ("pro", "je")}
@@ -340,9 +338,11 @@ def _found(text: str, table: _Table) -> Iterator[Reading]:
         if gender and (one := _one(text, match, table, gender)) is not None:
             yield _reads(match.start(), match.end(), one)
     words = table.words.words
+    english = table.language == "en"
+    sizes = {m.start("x") for m in _GLUED_SIZE.finditer(text)} if english else set()
     for position, char in enumerate(text):
         if char == "\u00d7" and _single(text, position, "\u00d7"):
-            yield _symbol(text, position, words["times"])
+            yield _symbol(text, position, _BY if position in sizes else words["times"])
         elif char == "\u2248" and _single(text, position, "\u2248"):
             yield _symbol(text, position, words["approximately"])
         elif char == MICRO_SIGN and not any(s <= position < e for s, e in units_found):
@@ -359,14 +359,16 @@ def _found(text: str, table: _Table) -> Iterator[Reading]:
         if not after_number or max(0, match.start() - 3) + len(head) in unit_ends:
             yield _symbol(text, match.start(), words["about"], before_number=True)
     for match in _LETTER_X.finditer(text):
-        if _times_x(
+        if match.start("x") in sizes:
+            yield _symbol(text, match.start("x"), _BY)
+        elif _times_x(
             text,
             match,
             words["times"],
             table.said_operators,
             table.words.decimal,
             table.compared,
-            english=table.language == "en",
+            english=english,
         ):
             yield _symbol(text, match.start("x"), words["times"])
 
@@ -426,7 +428,7 @@ def _compiled(language: str) -> _Table | None:
     said_words = (
         sorted(set(words_of("statistics", "de").signs.values()), key=len, reverse=True)
         if german
-        else _SAID_OPERATORS_EN
+        else _said_operators_en()
     )
     said = re.compile("|".join(map(re.escape, said_words)))
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
@@ -447,9 +449,87 @@ def _compiled(language: str) -> _Table | None:
     )
 
 
+@cache
+def _minus_said_en() -> re.Pattern[str]:
+    minus = re.escape(words_of("numbers", "en").signs["\u2212"])
+    return re.compile(rf"(?<![\w-]){minus}\s*\Z")
+
+
+@cache
+def _minus_said_after_en() -> re.Pattern[str]:
+    minus = re.escape(words_of("numbers", "en").signs["\u2212"])
+    return re.compile(rf"\s+{minus}\s+\.?\d")
+
+
+@cache
+def _plus_or_before_en() -> re.Pattern[str]:
+    """The statistics step's reading of "±" less the numbers step's word for a minus sign at
+    its end ("plus or minus" less "minus"), any white space between its words; or its first
+    word before a slash, a glued dash or a Unicode hyphen ("plus/", "plus-")."""
+    minus = words_of("numbers", "en").signs["\u2212"]
+    plus_or = words_of("statistics", "en").signs["\u00b1"].removesuffix(minus).split()
+    rest = r"\s+".join(map(re.escape, plus_or[1:]))
+    return re.compile(
+        rf"{re.escape(plus_or[0])}(?:\s+{rest}\s+|\s*/\s*|[\u2010\u2011\u2013\u2014])\Z",
+        re.IGNORECASE,
+    )
+
+
+@cache
+def _power_said(language: str) -> re.Pattern[str] | None:
+    said = words_of("numbers", language).signs
+    if "^" not in said:
+        return None
+    power, minus = re.escape(said["^"]), re.escape(said["\u2212"])
+    return re.compile(rf"(?<![\w-]){power} (?:{minus} )?\Z")
+
+
+@cache
+def _out_of(language: str) -> re.Pattern[str] | None:
+    out_of = words_of("numbers", language).signs.get("/")
+    return re.compile(rf"(?<![\w.,])\d{{1,3}} {re.escape(out_of)} \Z") if out_of else None
+
+
+@cache
+def _said_operators_en() -> tuple[str, ...]:
+    signs = words_of("statistics", "en").signs
+    return tuple(sorted({signs[sign] for sign in _SAID_SIGNS_EN}, key=len, reverse=True))
+
+
+@cache
+def _compared() -> str:
+    """The statistics step's English words for "<" and ">", as one alternation."""
+    signs = words_of("statistics", "en").signs
+    return "|".join(re.escape(signs[sign]) for sign in ("<", ">"))
+
+
+@cache
+def _compared_after_en() -> re.Pattern[str]:
+    return re.compile(_COMPARED_AFTER_EN.replace("{compared}", _compared()))
+
+
+def words(language: str) -> Words:
+    """The words the step says for its signs wherever it reads them (#1113): what a second
+    run finds where "×", "≈", "~" and "∼" were printed."""
+    listed = units(language)
+    if listed is None:
+        return Words()
+    said = listed.words
+    return Words(
+        signs=MappingProxyType(
+            {
+                "\u00d7": said["times"],
+                "\u2248": said["approximately"],
+                "~": said["about"],
+                "\u223c": said["about"],
+            }
+        )
+    )
+
+
 def _compared_en(by_form: dict[str, Unit]) -> re.Pattern[str]:
     letters = "".join(sorted(f for f in by_form if len(f) == 1 and f.isascii() and f.isalpha()))
-    return re.compile(_COMPARED_EN.replace("{units}", letters))
+    return re.compile(_COMPARED_EN.replace("{units}", letters).replace("{compared}", _compared()))
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -475,9 +555,10 @@ def _unit_after(
     start = end + 1 if hyphen else gap
     if _is_label(text, number.start(), table) or _in_name(text, number.start()):
         return None
-    if table.language == "en" and _OUT_OF.search(text, max(0, number.start() - 16), number.start()):
+    out_of = _out_of(table.language)
+    if out_of and out_of.search(text, max(0, number.start() - 16), number.start()):
         return None  # the numbers step's "17 out of 20" for "17/20", whose "20" no unit follows
-    power_said = _POWER_SAID.get(table.language)
+    power_said = _power_said(table.language)
     if power_said and power_said.search(text, max(0, number.start() - 24), number.start()):
         return None
     # after a power printed in superscripts ("10⁴K") a glued letter reads as it does with a
@@ -843,7 +924,9 @@ def _in_algebra(
         return True  # "y less than 2x" (#358, D-646)
     if english and _minus_said_before(text, start):
         return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
-    if english and (_MINUS_SAID_AFTER_EN.match(text, end) or _COMPARED_AFTER_EN.match(text, end)):
+    if english and (
+        _minus_said_after_en().match(text, end) or _compared_after_en().match(text, end)
+    ):
         return True  # "3x minus 2", "3x greater than y": the readings of signs after "3x"
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
@@ -887,7 +970,7 @@ def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
     if sign not in ("<", ">") or not _read_alone(text, at):
         return False
     said_after = " less than " + text[at + 1 : at + 33].lstrip()
-    return _COMPARED_AFTER_EN.match(said_after) is None
+    return _compared_after_en().match(said_after) is None
 
 
 def _read_alone(text: str, at: int) -> bool:
@@ -900,8 +983,8 @@ def _read_alone(text: str, at: int) -> bool:
 def _minus_said_before(text: str, start: int) -> bool:
     """True if "minus" stands right before the number at `start` as the reading of a minus
     sign, not as the end of "plus or minus" ("±")."""
-    minus = _MINUS_SAID_EN.search(text, max(0, start - 24), start)
-    return minus is not None and not _PLUS_OR_BEFORE_EN.search(
+    minus = _minus_said_en().search(text, max(0, start - 24), start)
+    return minus is not None and not _plus_or_before_en().search(
         text, max(0, minus.start() - 24), minus.start()
     )
 

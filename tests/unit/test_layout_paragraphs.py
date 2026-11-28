@@ -747,6 +747,40 @@ def test_a_dash_list_with_a_worded_number_item_is_list_items(worded: str) -> Non
     ]
 
 
+@pytest.mark.parametrize(
+    "items",
+    [
+        ["first point", "10 min", "the last one", "a fourth"],
+        ["Warm up", "3 ms Pause", "Then run", "Cool down"],
+        ["first point", "10 min", "the third", "20 min", "the last one"],
+    ],
+)
+def test_a_dash_list_with_a_number_and_unit_item_among_words_is_list_items(
+    items: list[str],
+) -> None:
+    """#1005: most of the column's lines open with words, so one or two that are a number
+    and a unit ("- 10 min") are items of the list too, not minus cells that make every dash
+    in it a cell. A column of dashes before numbers only stays cells (above)."""
+    intro = lines("p", LEFT, RIGHT, 100, 4, last=1.0)
+    rows = []
+    for k, item in enumerate(items):
+        y = 100 + PITCH * (5 + k)
+        rows += [line("-", LEFT, y, LEFT + 4), line(item, LEFT + 18, y, LEFT + 300)]
+    doc = build_document(content([*intro, *rows]))
+    assert [(b.label, b.text) for b in doc.blocks if b.kind is BlockKind.LIST_ITEM] == [
+        ("-", f"- {item}") for item in items
+    ]
+
+
+def test_a_dash_column_of_half_numbers_stays_cells() -> None:
+    """#1005: only a column whose lines mostly open with words is a list; as many number
+    lines as worded ones leave it a table's, each dash a cell."""
+    above, cells = _table([["-", "alpha"], ["-", "0.5 s"], ["-", "beta"], ["-", "0.7 s"]])
+    doc = build_document(content([*above, *(cell for row in cells for cell in row)]))
+    found = [text for block in paragraphs(doc) for text in block.split("\n")]
+    assert found == [li.text for li in above] + [cell.text for row in cells for cell in row]
+
+
 # Properties
 
 

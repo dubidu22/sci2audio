@@ -40,7 +40,6 @@ import re
 from collections.abc import Container
 from functools import cache
 
-from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
     DOUBLE_ARROW,
     FILE_NUMBER_DE,
@@ -52,7 +51,14 @@ from sci2audio.textprep.notation import (
     unit_follows,
     unit_starts_at,
 )
-from sci2audio.textprep.readings import Reading, first_from, holding, readings_of, words_of
+from sci2audio.textprep.readings import (
+    Reading,
+    first_from,
+    holding,
+    last_before,
+    readings_of,
+    words_of,
+)
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
@@ -226,7 +232,8 @@ def _is_year(
         return False  # "seit 1998 %": the units step's ("1998 Prozent", a capital after it)
     following = _NEXT_WORD.match(text, end)
     # "seit 1998x" is "seit 1998 mal" after the units step, which a second run reads alike
-    return following is None or not (following["word"][0].isupper() or following["word"] == "mal")
+    times = words_of("units", "de").signs["\u00d7"]
+    return following is None or not (following["word"][0].isupper() or following["word"] == times)
 
 
 # not after a full stop, but for one that ends a word: the abbreviations step reads "Abb.1:1"
@@ -298,7 +305,7 @@ _POINT_DECIMAL = re.compile(
 )
 _X_AFTER = re.compile(r" ?[xX]")
 _LINE_END_HYPHEN = re.compile(r"[-\u2010\u2011]\n\Z")
-_COUNT_LETTER = re.compile(r"(?<![\w′'])[Nn]\s*(?:=|gleich)\s*\Z")
+_COUNT_LETTER = r"(?<![\w′'])[Nn]\s*(?:=|{equals})\s*\Z"
 # a letter after the number does not stop these: "1.234x" and "1.234Å" are read when the units
 # step reads the "x" or the unit, and left as printed when it does not
 _THOUSANDS = re.compile(
@@ -370,7 +377,7 @@ def _decimals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
             continue  # "2.5" in running text: a decimal, a date or a version; left as printed
         if not whole and _LINE_END_HYPHEN.search(before):
             continue  # "1-\n.45": the hyphen step decides by the "." after the line break
-        if whole and whole != "0" and len(fraction) == 3 and _COUNT_LETTER.search(before):
+        if whole and whole != "0" and len(fraction) == 3 and _count_letter().search(before):
             continue  # "N = 1.234": a count with a thousands point (N-de-2)
         words = f"{whole or '0'} Komma {' '.join(fraction)}"
         found.append(Candidate(*match.span(), words, _decimal_reason(match.group(), words)))
@@ -547,7 +554,7 @@ def _thousands(text: str, worded: Container[int] = ()) -> list[Candidate]:
         if (
             number.count(".") == 1
             and _sign_before().search(before)
-            and not _COUNT_LETTER.search(before)
+            and not _count_letter().search(before)
         ):
             continue  # "M = 2.345": a point decimal, read by N-de-1 (or left as printed)
         # in round brackets "(12.345)" reads "(12 345)", as the voice reads "1 234" well: read
@@ -879,10 +886,30 @@ _RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z|\d\.[\u2
 _DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
+@cache
+def _count_letter() -> re.Pattern[str]:
+    """ "N =" or "N gleich" before a number: the statistics step's word for "=" (#1113)."""
+    said = words_of("statistics", "de").signs["="]
+    return re.compile(_COUNT_LETTER.replace("{equals}", re.escape(said)))
+
+
+def _read_before(text: str, start: int) -> tuple[int, str] | None:
+    """Where an abbreviation the abbreviations step reads ends right before `start`, with
+    only white space between, its start and its reading: "i. V. m. 2. Alternative" gives the
+    start of "i. V. m." and "in Verbindung mit". The reading is the word before an ordinal,
+    as a second run sees it ("mit zweiter", #264)."""
+    if text[:start].rstrip()[-1:] != ".":
+        return None
+    found = last_before(readings_of("abbreviations", text, "de"), start)
+    if found is None or text[found.end : start].strip():
+        return None
+    return found.start, found.words.strip()
+
+
 def _before_read(text: str, start: int) -> str:
     """The text before `start` as a second run sees it: an abbreviation the abbreviations
     step reads right before is its reading ("i. V. m. 2." is "in Verbindung mit 2.")."""
-    read = read_before(text, start, "de")
+    read = _read_before(text, start)
     if read is None:
         return _before(text, start)
     return _before(text, read[0]) + read[1] + " "
@@ -1652,7 +1679,7 @@ def _ordinal_on_a_second_run(plain: str, start: int, end: int, digits: str) -> b
     the text around the numeral is looked at, so long blocks stay linear."""
     low = max(0, start - 2 * WINDOW)
     before = plain[low:start]
-    read = read_before(plain, start, "de")
+    read = _read_before(plain, start)
     if read is not None and read[0] >= low:
         printed = plain[read[0] : start]
         gap = printed[len(printed.rstrip()) :]

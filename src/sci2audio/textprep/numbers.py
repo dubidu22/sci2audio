@@ -35,6 +35,8 @@ from __future__ import annotations
 
 import calendar
 import re
+from functools import cache
+from types import MappingProxyType
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.footnotes import as_superscripts, raised_exponents, unread_marks
@@ -46,9 +48,15 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
-from sci2audio.textprep.numbers_de import find_numbers_de, unit_read_after_per, x_read_after
+from sci2audio.textprep.numbers_de import (
+    FRACTIONS_OF_ONE,
+    MONTHS,
+    find_numbers_de,
+    unit_read_after_per,
+    x_read_after,
+)
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import readings_of
+from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
@@ -66,6 +74,14 @@ _MINUS = re.compile(r"(?<![\w.,)\]}])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space>
 # --- N2 ranges ------------------------------------------------------------------------------
 # an en dash or figure dash, spaces allowed around it, or an em dash without spaces
 _DASH_RANGE = re.compile(r"(?<=\d)(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=[\u2212-]?\.?\d)")
+# ... between a number's power and a power of ten: "10⁴–10⁶ K" is "10 to the power of 4 to
+# 10 to the power of 6 kelvin", as German reads it (#822); the power before it is read too
+_RAISED = "[⁰¹²³⁴⁵⁶⁷⁸⁹]"
+_POWER_RANGE = re.compile(
+    "(?:"
+    + "|".join(f"(?<=\\d{sign}{_RAISED}{{{n}}})" for sign in ("", "[⁺⁻]") for n in (1, 2))
+    + r")(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=10[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹])"
+)
 # a hyphen between two plain numbers that are not part of a longer chain
 _HYPHEN_RANGE = re.compile(
     r"(?<![\w.,/:-])(?<!-\n)(?P<a>\d{1,4}(?:\.\d+)?)(?P<dash>-\n?)(?P<b>\d{1,4}(?:\.\d+)?)"
@@ -79,13 +95,13 @@ _FOUR_DIGITS = re.compile(r"(?<![\w.,/])[1-9]\d{3}(?!(?![xX])\w|[xX](?!\d)\w|[.,
 _AFTER_OPERATOR = re.compile(r"[=<>\u2264\u2265\u2248~]\s*\Z")
 # a sign after the number that the statistics step reads "equals", or that word as a second
 # run sees it (#844); not "==" or "=\u21d2", which no step reads "equals"
-_BEFORE_EQUALS = re.compile(r"\s*=(?![=\u21d2])|\s+equals\b")
+_BEFORE_EQUALS = r"\s*=(?![=\u21d2])|\s+{equals}\b"
 # a number of three or more digits, "1,080" too: after a times sign it makes a size, whose
 # first number is no count ("1920x1080", #870); a second run sees it after "times" too, while
 # a smaller factor follows a count there ("2,019 times 3", #871)
 _SIZE = r"(?P<size>\s*(?:\d{1,3}(?:,\d{3})+|\d{3,})(?!\d))?"
 # the times sign the units step reads "times", or that word as a second run sees it (#844)
-_BEFORE_TIMES = re.compile(r"(?:\s*\u00d7|\s+times\b)" + _SIZE)
+_BEFORE_TIMES = r"(?:\s*\u00d7|\s+{times}\b)" + _SIZE
 # an "x" the units step may read "times": glued, or after one space (#870)
 _X_AFTER = re.compile(r" ?[xX]" + _SIZE)
 _YEAR_LIKE = range(1500, 2100)
@@ -95,7 +111,6 @@ _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
 _NOT_PLURAL = frozenset(
     {"is", "was", "has", "his", "its", "this", "thus", "as", "yes", "does", "goes", "whereas"}
     | {"versus", "plus", "minus", "less", "unless", "always", "perhaps", "towards", "besides"}
-    | {"implies"}  # "1234 ⇒ A" is "1234 implies A" after the statistics step (#796)
 )
 _PLURALS = frozenset({"people", "children", "men", "women", "mice", "data", "persons"})
 _MONTHS = {name.lower() for name in calendar.month_name[1:] + calendar.month_abbr[1:]}
@@ -317,6 +332,31 @@ def _written(
     ]
 
 
+def find_readings(text: str, language: str) -> list[Reading]:
+    """The step's readings in `text`, one per edit it makes in a paragraph of it, in text
+    order (#1114): the English or German rules its edits come from, on the printed text."""
+    german = language.split("-", 1)[0].lower() == "de"
+    found = find_numbers_de(text) if german else find_numbers(text)
+    return [Reading(c.start, c.end, c.replacement, NumbersStep.category) for c in found]
+
+
+def words(language: str) -> Words:
+    """The words the step says that other steps must know (#1114, #1193): what a slash
+    between numbers, a minus sign and a power read, its readings of more than one word, and
+    the month names of its dates."""
+    if language.split("-", 1)[0].lower() == "de":
+        return Words(
+            signs=MappingProxyType({"\u2212": "minus", "^": "hoch"}),
+            joined=frozenset({"hoch minus", *FRACTIONS_OF_ONE}),
+            months=tuple(MONTHS),
+        )
+    return Words(
+        signs=MappingProxyType({"/": OUT_OF, "\u2212": "minus", "^": "to the power of"}),
+        joined=frozenset({"to the power of", "to the power of minus"}),
+        months=tuple(calendar.month_name[1:]),
+    )
+
+
 def find_numbers(text: str) -> list[Candidate]:
     """The number edits for one block's text, without overlap, in text order.
 
@@ -330,7 +370,7 @@ def find_numbers(text: str) -> list[Candidate]:
             *_iso_dates(text),
             *_unjoined(text, _roman_numerals(plain, text)),
             *_grouped_digits(text),
-            *_unjoined(text, _powers(text, plain)),
+            *_unjoined(text, _powers(text, plain), _POWER_RANGE),
             *_minus_signs(text),
             *_ranges(text),
             *_unjoined(text, _trailing_zeros(text)),
@@ -361,18 +401,25 @@ def _joined_before(text: str, at: int) -> bool:
     return bool(_JOINED_BEFORE.search(text, max(0, at - WINDOW), at))
 
 
-def _unjoined(text: str, candidates: list[Candidate]) -> list[Candidate]:
+def _unjoined(
+    text: str, candidates: list[Candidate], range_after: re.Pattern[str] | None = None
+) -> list[Candidate]:
     """The candidates whose number stands on its own.
 
     These rules write digits next to words ("2 point 5 0", "Phase 3", "of 4"). Where the
     printed number is joined to another one ("3:2.50", "Phase I 395", "10⁻⁴–5"), that new
     reading would join differently on a second run, so such a number is left as printed:
-    the step proposes nothing that a second run would change again.
+    the step proposes nothing that a second run would change again. A dash that
+    `range_after` reads as a range joins nothing: it is read "to" in the same run.
     """
     return [
         c
         for c in candidates
-        if not _JOINED_AFTER.match(text, c.end) and not _joined_before(text, c.start)
+        if (
+            not _JOINED_AFTER.match(text, c.end)
+            or (range_after is not None and range_after.match(text, c.end))
+        )
+        and not _joined_before(text, c.start)
     ]
 
 
@@ -538,7 +585,7 @@ def _minus_signs(text: str) -> list[Candidate]:
 
 def _ranges(text: str) -> list[Candidate]:
     found = []
-    for match in _DASH_RANGE.finditer(text):
+    for match in (*_DASH_RANGE.finditer(text), *_POWER_RANGE.finditer(text)):
         start, end = match.span("dash")
         found.append(Candidate(start, end, " to ", _range_reason(text, start, end)))
     for match in _HYPHEN_RANGE.finditer(text):
@@ -568,6 +615,8 @@ def _counts(text: str) -> list[Candidate]:
         if value % 100 == 0:
             continue  # "1000", "1200": read right as a year and as a number
         before = _before(text, match.start())
+        if _size_by(text, match.end()):
+            continue  # "1920x1080", "1024X768": a size, its digits read as printed (#1037)
         x_after = _X_AFTER.match(text, match.end())
         times_x = x_after is not None and x_read_after(text, match.end(), "en")
         if x_after is not None and not x_after.group().startswith(" ") and not times_x:
@@ -581,6 +630,35 @@ def _counts(text: str) -> list[Candidate]:
     return found
 
 
+def _size_by(text: str, end: int) -> bool:
+    """True if the units step reads the sign glued right after the number ending at `end`
+    "by", as a size ("1920x1080"): a second run sees "1920 by 1080", no count there."""
+    found = holding(readings_of("units", text, "en"), end)
+    return found is not None and found.start == end and found.words.strip() == "by"
+
+
+# the words other steps say there come from the readings, so a reading changed in its own
+# step reaches these rules too (#1113)
+@cache
+def _before_equals() -> re.Pattern[str]:
+    said = words_of("statistics", "en").signs["="]
+    return re.compile(_BEFORE_EQUALS.replace("{equals}", re.escape(said)))
+
+
+@cache
+def _before_times() -> re.Pattern[str]:
+    said = words_of("units", "en").signs["\u00d7"]
+    return re.compile(_BEFORE_TIMES.replace("{times}", re.escape(said)))
+
+
+@cache
+def _not_plural() -> frozenset[str]:
+    """Words ending in "s" that are no plural noun, with the statistics step's arrow words
+    that are one word: "1234 ⇒ A" is "1234 implies A" after it (#796)."""
+    arrows = words_of("statistics", "en").arrows.values()
+    return _NOT_PLURAL | {said for said in arrows if " " not in said}
+
+
 def _counted_before_sign(
     text: str, end: int, before: str, value: int, times_x: re.Match[str] | None
 ) -> bool:
@@ -591,9 +669,9 @@ def _counted_before_sign(
     ("1920x1080", a size, #870) or a word before makes it a year ("in 2019 times"); before
     "×" or "times" otherwise it is a count, not "twenty nineteen times" (#871). Otherwise
     `_counted`."""
-    if _BEFORE_EQUALS.match(text, end):
+    if _before_equals().match(text, end):
         return value not in _YEAR_LIKE
-    times = times_x or _BEFORE_TIMES.match(text, end)
+    times = times_x or _before_times().match(text, end)
     if times is None:
         return _counted(text, end, before, value)
     if value not in _YEAR_LIKE:
@@ -611,7 +689,7 @@ def _counted(text: str, end: int, before: str, value: int) -> bool:
         return False
     word = following["word"]
     plural = word in _PLURALS or (
-        word.endswith("s") and not word.endswith(("ss", "us", "'s")) and word not in _NOT_PLURAL
+        word.endswith("s") and not word.endswith(("ss", "us", "'s")) and word not in _not_plural()
     )
     if not plural:
         return False
