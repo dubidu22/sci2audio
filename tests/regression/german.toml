@@ -4102,6 +4102,21 @@ expected = [
 ]
 
 [[case]]
+id = "de-an-arrow-before-a-negation-sign-and-a-citation-stays-as-printed"
+audit = 0
+issue = 1246
+goal = "As in English: a numeric citation after a negation sign is no operand, so the arrow stays as printed on both runs (#1246)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A ⇒ ¬[1]." },
+    { kind = "paragraph", text = "Also A ⇒ ¬[B]." },
+]
+expected = [
+    "Also A ⇒ ¬.",
+    "Also A daraus folgt ¬[B].",
+]
+
+[[case]]
 id = "de-a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
 audit = 0
 issue = 1120

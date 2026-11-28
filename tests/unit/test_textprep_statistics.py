@@ -2,9 +2,11 @@
 # (minus signs, dashes and Greek letters are what these rules are about)
 """Statistics read as words (TP-11, #67): unit cases and properties of `StatisticsStep`."""
 
+import ast
 import re
 import unicodedata
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from hypothesis import given
@@ -13,7 +15,15 @@ from notation_texts import notation_documents
 
 from sci2audio.core import Block, BlockKind, Document, EditKind, Span, apply_edits
 from sci2audio.testing import check_text_step, make_document
-from sci2audio.textprep import StatisticsStep, StepContext, run_steps, spoken_text
+from sci2audio.textprep import (
+    StatisticsStep,
+    StepContext,
+    notation,
+    run_steps,
+    spoken_text,
+    statistics,
+    units,
+)
 from sci2audio.textprep.readings import readings_of
 from sci2audio.textprep.statistics import MAX_JOINED_INTERVALS
 
@@ -333,3 +343,54 @@ def test_a_minus_after_a_sign_is_a_negative_number_not_an_arrow() -> None:
     """ "<-2" compares with minus two; "<- b" is an arrow (mutation run, #80)."""
     assert read("x <-2 y") == "x less than -2 y"
     assert read("x <- y") == "x <- y"
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        # the citations step removes a numeric citation after a negation sign, so it is no
+        # operand: a second run sees "A ⇒ ¬." (#1246)
+        ("So A ⇒ ¬[1].", "So A ⇒ ¬[1]."),
+        ("So A ⇒ ¬ [1, 2].", "So A ⇒ ¬ [1, 2]."),
+        ("So A ⇒ ¬[3–5a] here.", "So A ⇒ ¬[3–5a] here."),
+        ("So A ⇒¬¬[12; 14].", "So A ⇒¬¬[12; 14]."),
+        # ... while a bracket of a letter or a zero is an operand, as before
+        ("So A ⇒ ¬[B].", "So A implies ¬[B]."),
+        ("So A ⇒ ¬[0, 1].", "So A implies ¬[0, 1]."),
+    ],
+)
+def test_a_citation_after_a_negation_sign_is_no_operand(printed: str, said: str) -> None:
+    assert read(printed) == said
+
+
+def test_the_arrow_set_has_one_copy_the_steps_share() -> None:
+    """#1013: the statistics and units steps leave the same signs beside an arrow as printed,
+    so both use `notation.ARROW_JOINS`; no text step holds a copy of it (#1249)."""
+    assert statistics.ARROW_JOINS is notation.ARROW_JOINS
+    assert units.ARROW_JOINS is notation.ARROW_JOINS
+    copies = [
+        f"{path.name}:{node.lineno}"
+        for path in sorted(Path(notation.__file__).parent.glob("*.py"))
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and _holds_the_arrow_set(node.value)
+    ]
+    found = [copy for copy in copies if not copy.startswith("notation.py:")]
+    assert len(copies) == 1, f"the set itself is found in notation.py: {copies}"
+    assert found == [], f"share notation.ARROW_JOINS instead of a copy: {found}"
+
+
+def _holds_the_arrow_set(literal: str) -> bool:
+    """True for a string most of whose signs are the arrow set's, holding most of them: a copy
+    as a string or a frozenset's argument, maybe reordered or one sign off."""
+    signs = set(literal) & notation.ARROW_JOINS
+    return len(signs) >= len(notation.ARROW_JOINS) - 2 and len(signs) >= 0.75 * len(set(literal))
+
+
+def test_the_copy_check_finds_a_copy() -> None:
+    assert _holds_the_arrow_set("<>=-−!:~|⇐")
+    assert _holds_the_arrow_set("⇐|~:!−-=><")  # reordered
+    assert _holds_the_arrow_set("<>=-!:~|")  # one sign off
+    assert not _holds_the_arrow_set("<>=")
+    assert not _holds_the_arrow_set(r"(?:<=>|=>)(?![<>=])")
