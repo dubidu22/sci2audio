@@ -36,6 +36,7 @@ from __future__ import annotations
 import calendar
 import re
 from functools import cache
+from types import MappingProxyType
 
 from sci2audio.core import Document, Edit
 from sci2audio.textprep.footnotes import as_superscripts, raised_exponents, unread_marks
@@ -47,9 +48,15 @@ from sci2audio.textprep.notation import (
     through_unread,
     to_edits,
 )
-from sci2audio.textprep.numbers_de import find_numbers_de, unit_read_after_per, x_read_after
+from sci2audio.textprep.numbers_de import (
+    FRACTIONS_OF_ONE,
+    MONTHS,
+    find_numbers_de,
+    unit_read_after_per,
+    x_read_after,
+)
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import holding, readings_of, words_of
+from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 _UNSIGNED = r"\d+(?:\.\d+)?"
@@ -323,6 +330,26 @@ def _written(
         )
         for start, end in left
     ]
+
+
+def find_readings(text: str, language: str) -> list[Reading]:
+    """The step's readings in `text`, one per edit it makes in a paragraph of it, in text
+    order (#1114): the English or German rules its edits come from, on the printed text."""
+    german = language.split("-", 1)[0].lower() == "de"
+    found = find_numbers_de(text) if german else find_numbers(text)
+    return [Reading(c.start, c.end, c.replacement, NumbersStep.category) for c in found]
+
+
+def words(language: str) -> Words:
+    """The words the step says that other steps must know (#1114): what a slash between
+    numbers reads, its readings of more than one word, and the month names of its dates."""
+    if language.split("-", 1)[0].lower() == "de":
+        return Words(joined=frozenset({"hoch minus", *FRACTIONS_OF_ONE}), months=tuple(MONTHS))
+    return Words(
+        signs=MappingProxyType({"/": OUT_OF}),
+        joined=frozenset({"to the power of", "to the power of minus"}),
+        months=tuple(calendar.month_name[1:]),
+    )
 
 
 def find_numbers(text: str) -> list[Candidate]:

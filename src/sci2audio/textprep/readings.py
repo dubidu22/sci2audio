@@ -48,6 +48,9 @@ class Words:
     arrows: Mapping[str, str] = field(default_factory=dict)  # of logic, "⇒": "implies"
     names: frozenset[str] = frozenset()  # notation read by name: "R squared", "odds ratio"
     squared: frozenset[str] = frozenset()  # of those, a squared statistic's: "R squared"
+    # readings of more than one word the step says whole: "to the power of", "ein Drittel"
+    joined: frozenset[str] = frozenset()
+    months: tuple[str, ...] = ()  # the month names its dates are read with
 
 
 @dataclass(frozen=True)
@@ -153,7 +156,7 @@ def _read(step: str, text: str, language: str) -> tuple[Reading, ...]:
 def _finders() -> dict[str, Finder]:
     # the steps import this module to ask for readings, so their finders can only be
     # reached once every step module is loaded: the one local import of step modules here
-    from sci2audio.textprep import abbreviations, statistics, units
+    from sci2audio.textprep import abbreviations, numbers, statistics, units
 
     return {
         "units": Finder(units.find_readings, asks=("statistics",), words=units.words),
@@ -161,6 +164,11 @@ def _finders() -> dict[str, Finder]:
             statistics.find_readings, asks=("abbreviations",), words=statistics.words
         ),
         "abbreviations": Finder(abbreviations.find_readings),
+        "numbers": Finder(
+            numbers.find_readings,
+            asks=("units", "statistics", "abbreviations"),
+            words=numbers.words,
+        ),
     }
 
 
