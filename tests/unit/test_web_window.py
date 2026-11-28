@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 from web_helpers import ORIGIN, browser, make_config, program
 
 from sci2audio import __version__
-from sci2audio.web import bind, create_app, launch, window
+from sci2audio.web import bind, create_app, launch, startpage, window
 from sci2audio.web.i18n import strings
 from sci2audio.web.jobs import JobKind
 
@@ -664,6 +664,7 @@ def test_the_app_without_a_window_opens_the_browser_and_quit_stops_it(
     monkeypatch.setattr(launch.webbrowser, "open", opened.append)
     monkeypatch.setattr(launch, "WATCH_EVERY", 0.05)
     monkeypatch.setattr(launch, "SHUTDOWN_WAIT", 0.5)
+    monkeypatch.setattr(startpage, "default_folder", lambda: tmp_path / "run")
     sock = bind()
     config = make_config(tmp_path, port=sock.getsockname()[1], launched_as="browser")
     serving = threading.Thread(
@@ -678,7 +679,10 @@ def test_the_app_without_a_window_opens_the_browser_and_quit_stops_it(
             if opened:
                 break
             serving.join(0.05)
-        assert opened == [config.start_url]
+        # at the start page, which sends the browser on to the start link (#117)
+        (page,) = opened
+        assert page.startswith("file:")
+        assert config.token not in page
         with fetch(config.start_url, opener) as library:
             assert 'id="quit"' in library.read().decode("utf-8")
         with fetch(

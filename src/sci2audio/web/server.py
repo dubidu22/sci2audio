@@ -132,7 +132,8 @@ def create_app(
 
     app.add_middleware(Seen, state=state)  # innermost: only requests that passed the checks
     app.add_middleware(BodyLimit, upload_limit=config.upload_limit, text_limit=config.text_limit)
-    app.add_middleware(LocalOnly, config=config)  # added last = outermost
+    # added last = outermost; a traded token takes the start page away (#117)
+    app.add_middleware(LocalOnly, config=config, on_start=state.start_page.remove)
     return app
 
 
