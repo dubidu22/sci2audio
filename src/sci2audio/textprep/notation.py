@@ -168,6 +168,28 @@ def _plain(char: str) -> str:
     return char
 
 
+# the maths alphabets set slanted or ornate: their letters are variables, not units (ISO 80000)
+_SLANTED = ("ITALIC", "SCRIPT", "FRAKTUR", "DOUBLE-STRUCK")
+
+
+def upright(text: str) -> str:
+    """The text with upright maths letters and digits as plain ones ("𝐬" as "s", "𝟏" as "1");
+    same length. An italic one ("𝑠") stays: it names a variable, and units are set upright."""
+    if text.isascii():
+        return text
+    return "".join(_upright_char(char) for char in text)
+
+
+@cache
+def _upright_char(char: str) -> str:
+    if "\U0001d400" <= char <= "\U0001d7ff":
+        name = unicodedata.name(char, "")
+        folded = unicodedata.normalize("NFKC", char)
+        if len(folded) == 1 and not any(style in name for style in _SLANTED):
+            return folded
+    return char
+
+
 def fold(text: str) -> str:
     """The text with math and letterlike letters as plain letters; same length, same digits."""
     if text.isascii():
@@ -288,6 +310,7 @@ FILE_NUMBER_DE = (
 )
 
 _NEXT_TOKEN = re.compile(r"\s{1,2}(\S+)")
+_UNIT_LOOK = 40  # longer than any unit's printed form and the letter after it
 
 
 @cache
@@ -321,13 +344,15 @@ def unit_follows(text: str, end: int, language: str) -> bool:
     if _unit_start(language).match(text, end):
         return True  # a sign glued on: "[1; 2]%"
     token = _NEXT_TOKEN.match(text, end)
-    return token is not None and _unit_base(language).match(token.group(1)) is not None
+    # an upright maths letter is the unit it shows: "𝐦" is "m" to the units step (#1083)
+    return token is not None and _unit_base(language).match(upright(token.group(1))) is not None
 
 
 def unit_starts_at(text: str, position: int, language: str) -> bool:
     """True if a unit of the language's list starts at `position`, maybe with a power ("s"
-    in "s⁻¹", "m" in "m²")."""
-    return _unit_base(language).match(text, position) is not None
+    in "s⁻¹", "m" in "m²"), an upright maths letter as the plain one ("𝐦")."""
+    near = upright(text[position : position + _UNIT_LOOK])
+    return _unit_base(language).match(near) is not None
 
 
 @cache

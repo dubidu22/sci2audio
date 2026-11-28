@@ -247,9 +247,10 @@ _STOP = (
     # and after "×", which the units step reads "mal"
     r"|(?<=×\.))"
 )
-# ... or, for a comma decimal, after a full stop glued to a symbol the units step may read as a
-# word: "1 %.452,5" is "ein Prozent.452,5" after it. The rule checks that it does
-# (`_AfterNumber.unit_ends_at`): "%.452,5", with no number before the "%", stays (#1082)
+# ... or, for a comma decimal, a thousands number, a range, a fraction or a ratio, after a full
+# stop glued to a symbol the units step may read as a word: "1 %.452,5" is "ein Prozent.452,5"
+# after it, "1 %.3/4" "ein Prozent.3/4". The rules check that it does (`_AfterNumber.
+# unit_ends_at`, `_symbol_left`): "%.452,5", with no number before the "%", stays (#1082, #1083)
 _STOP_OR_SYMBOL = "(?:" + _STOP + r"|(?<=[^\w\s.]\.)(?P<symbol>))"
 
 
@@ -309,7 +310,7 @@ _COUNT_LETTER = r"(?<![\w′'])[Nn]\s*(?:=|{equals})\s*\Z"
 # a letter after the number does not stop these: "1.234x" and "1.234Å" are read when the units
 # step reads the "x" or the unit, and left as printed when it does not
 _THOUSANDS = re.compile(
-    r"(?<![,/:^])" + _STOP + r"(?<![^\WxX])\d{1,3}(?:\.\d{3})+(?![\d_]|[⁺⁻^]|[.,:/]\d)"
+    r"(?<![,/:^])" + _STOP_OR_SYMBOL + r"(?<![^\WxX])\d{1,3}(?:\.\d{3})+(?![\d_]|[⁺⁻^]|[.,:/]\d)"
 )
 
 # words after which a point between numbers is read "Punkt": "Abschnitt 2.5", "Abb. 3.1"
@@ -364,13 +365,10 @@ def _decimals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
         if _x_left_alone(text, match.end()) or _unit_left_alone(text, match.end()):
             continue
         whole, fraction = match["whole"], match["fraction"]
-        if (
-            not whole
-            and _KOMMA_AFTER.match(text, match.end())
-            and after.unit_ends_at(match.start())
-        ):
-            # "1 %.452 Komma 5", read from "1 %.452,5" (above): ".452" follows "Prozent" once
-            # the units step has read the "%", so it stays, as on a second run (#1082)
+        if not whole and after.unit_ends_at(match.start()):
+            # "1 %.452 Komma 5", read from "1 %.452,5" (above), and "1 %.1234", from "1
+            # %.1.234": ".452" follows "Prozent" once the units step has read the "%", so it
+            # stays, as on a second run (#1082, #1083)
             continue
         before = _before(text, match.start())
         if whole and not _sign_before().search(before):
@@ -442,7 +440,6 @@ def _unit_read_after(text: str, end: int) -> bool:
     return printed not in (*_UNIT_SIGNS, _MICRO_SIGN) and not printed[:1].isdigit()
 
 
-_KOMMA_AFTER = re.compile(r" Komma \d")
 _LEADING_POINT = re.compile(r"(?:\A|[^\w×]|(?<!\d)[xX])\.\Z")  # a point that would start a decimal
 _RATIO_BEFORE = re.compile(r"(?<![\d,])\d+(?:,\d+)?:\Z")
 _HYPHEN_AFTER = re.compile(r"-\n?\d")
@@ -538,12 +535,17 @@ def _in_round_bracket(text: str, start: int) -> bool:
     return False
 
 
-def _thousands(text: str, worded: Container[int] = ()) -> list[Candidate]:
+def _thousands(
+    text: str, worded: Container[int] = (), after: _AfterNumber | None = None
+) -> list[Candidate]:
     found = []
     for match in _THOUSANDS.finditer(text):
         if _x_left_alone(text, match.end()) or _unit_left_alone(text, match.end()):
             continue  # "1.234abc"; "1.234Å" is read, as the units step reads the unit
-        if _LEADING_POINT.search(text, max(0, match.start() - 2), match.start()):
+        if match["symbol"] is not None:
+            if _symbol_left(text, match, after):
+                continue  # "%.1.234": "1234" would leave "%.1234", a decimal next time
+        elif _LEADING_POINT.search(text, max(0, match.start() - 2), match.start()):
             continue  # "}.1.234": "1234" would leave ".1234", a decimal on a second run (#253)
         number = match.group()
         value = int(number.replace(".", ""))
@@ -633,7 +635,7 @@ _DASH_RANGE = re.compile(
 )
 _HYPHEN_RANGE = re.compile(
     r"(?<![^\WxX])(?<![,/:^\u2212-])"
-    + _STOP
+    + _STOP_OR_SYMBOL
     + r"(?<!-\n)(?P<a>\d{1,3}(?:\.\d{3})+|\d{1,4}(?:,\d+)?)(?P<dash>-\n?)"
     r"(?P<b>\d{1,3}(?:\.\d{3})+|\d{1,4}(?:,\d+)?)"
     r"(?![^\WxX]|[/:-]|[.,]\d)"
@@ -642,7 +644,9 @@ _LEFT_NUMBER = re.compile(r"[\d.,]*\d\Z")
 _RIGHT_NUMBER = re.compile(r"[\u2212-]?[\d.,]*\d")
 
 
-def _ranges(text: str, worded: Container[int] = ()) -> list[Candidate]:
+def _ranges(
+    text: str, worded: Container[int] = (), after: _AfterNumber | None = None
+) -> list[Candidate]:
     found = []
     for match in _DASH_RANGE.finditer(text):
         start, end = match.span("dash")
@@ -654,11 +658,20 @@ def _ranges(text: str, worded: Container[int] = ()) -> list[Candidate]:
             continue
         found.append(Candidate(start, end, " bis ", _range_reason(text, start, end)))
     for match in _HYPHEN_RANGE.finditer(text):
-        if not _hyphen_range_at(text, match.start()):
+        if not _hyphen_range_at(text, match.start()) or _symbol_left(text, match, after):
             continue  # "3-1" is a score or a code, not a range
         start, end = match.span("dash")
         found.append(Candidate(start, end, " bis ", _range_reason(text, start, end)))
     return found
+
+
+def _symbol_left(text: str, match: re.Match[str], after: _AfterNumber | None) -> bool:
+    """True if `match` stands after a full stop glued to a symbol (`_STOP_OR_SYMBOL`) that the
+    units step leaves as printed: "%.1.234" with no number before the "%" stays, while "1
+    %.1.234" is "ein Prozent.1234", as a second run reads "ein Prozent.1.234" (#1083)."""
+    if match["symbol"] is None:
+        return False
+    return not (after or _AfterNumber(text)).unit_ends_at(match.start() - 1)
 
 
 _CARET_EXPONENT = re.compile(r"\^\d{1,2}\Z")
@@ -1247,7 +1260,7 @@ def _ordinals(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
 # --- N-de-7 fractions, N-de-8 ratios and times ----------------------------------------------
 _FRACTION = re.compile(
     r"(?<![^\WxX])(?<![,/:\u2212-])"
-    + _STOP
+    + _STOP_OR_SYMBOL
     + r"(?<!-\n)(?P<n>\d{1,3})/(?P<d>\d{1,3})(?![^\WxX]|[/:⁺⁻^-]|[.,]\d)"
 )
 _FRACTION_WORDS = {
@@ -1273,7 +1286,7 @@ _JOINED_AFTER = re.compile(
 _UNSIGNED = r"\d+(?:,\d+)?"
 _RATIO = re.compile(
     r"(?<![^\WxX])(?<![:/,^\u2212-])"
-    + _STOP
+    + _STOP_OR_SYMBOL
     + r"(?<!-\n)(?P<a>"
     + _UNSIGNED
     + r"):(?P<b>"
@@ -1309,9 +1322,11 @@ def _power_left_after(text: str, end: int) -> bool:
     return chain is not None and _unit_chain(text, chain.start("base"))
 
 
-def _fractions(text: str) -> list[Candidate]:
+def _fractions(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
     found = []
     for match in _FRACTION.finditer(text):
+        if _symbol_left(text, match, after):
+            continue  # "%.3/4": no number before the "%", which stays a sign on a second run
         if _x_left_alone(text, match.end()) or _power_left_after(text, match.end()):
             continue  # "1/5 m⁶", "2/3 m s⁻²"; "1/5 R²" is read, the statistics step reads "R²"
         n, d = int(match["n"]), int(match["d"])
@@ -1378,9 +1393,11 @@ def _time_before(text: str, match: re.Match[str]) -> bool:
     return not (joining and _DIGIT_BEFORE.search(before, 0, word.start()))
 
 
-def _ratios(text: str) -> list[Candidate]:
+def _ratios(text: str, after: _AfterNumber | None = None) -> list[Candidate]:
     found = []
     for match in _RATIO.finditer(text):
+        if _symbol_left(text, match, after):
+            continue  # "%.1:2": no number before the "%", which stays a sign on a second run
         # unlike English, "8:64–77" (a volume and its pages) is read as a ratio too: a rule that
         # skipped it before "bis 12.03.2019" would read it on a second run, after the date
         if _unit_left_alone(text, match.end()) or _x_left_alone(text, match.end()):
@@ -1735,11 +1752,11 @@ def find_numbers_de(text: str) -> list[Candidate]:
             *powers,
             *_times(text),
             *_decimals(text, after),
-            *_thousands(text, worded),
+            *_thousands(text, worded, after),
             *_years(text, worded),
-            *_ranges(text, worded),
-            *_ratios(text),
-            *_fractions(text),
+            *_ranges(text, worded, after),
+            *_ratios(text, after),
+            *_fractions(text, after),
         ]
     )
     # a label's run left as printed ("Abschnitt 2.5 und 2.612-1") is left whole: "2612" read
