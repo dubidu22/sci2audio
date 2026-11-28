@@ -170,6 +170,9 @@ markers = [
 
 [tool.mutmut]
 source_paths = ["src/sci2audio/"]
+# CPython's HTML parser, copied verbatim and never edited here (#175, D-777): its mutants
+# would only cost a run's time (#633). mutmut copies it unmutated, so it still imports.
+do_not_mutate = ["src/sci2audio/extraction/htmlparser.py"]
 pytest_add_cli_args_test_selection = ["tests/"]
 # The browser tests need a Playwright browser (D-259). The linear-time check of a page of
 # drawings compares two timings against a ratio close to its limit, which mutmut's
@@ -185,11 +188,13 @@ pytest_add_cli_args = [
 # CI workflows they read (test_ci_workflows.py, #360), the licence table whose font
 # hashes test_web_design.py checks (#549), and every other root file tests/unit reads
 # (the docs, the archived KB, the packaging files, the changelog, the licence and the
-# project file), so the whole of tests/unit runs there (#1093).
+# project file), so the whole of tests/unit runs there (#1093), and the pre-commit hooks
+# whose excludes test_ci_workflows.py checks (#176, #633).
 also_copy = [
     "scripts/",
     "README.md",
     ".github/",
+    ".pre-commit-config.yaml",
     "THIRD_PARTY_LICENSES.md",
     "docs/",
     "governance/",

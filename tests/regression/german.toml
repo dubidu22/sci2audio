@@ -3869,6 +3869,25 @@ expected = [
 ]
 
 [[case]]
+id = "de-an-arrow-before-a-lone-negation-sign-stays-as-printed"
+audit = 0
+issue = 853
+goal = "As in English: a lone negation sign after an arrow of logic is no operand, so the arrow stays as printed; 'A ⇒ ¬B' is read (#853)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A ⇒ ¬" },
+    { kind = "paragraph", text = "Also A ⇒ ¬." },
+    { kind = "paragraph", text = "Also A ⇔ ¬." },
+    { kind = "paragraph", text = "Also A ⇒ ¬B." },
+]
+expected = [
+    "Also A ⇒ ¬",
+    "Also A ⇒ ¬.",
+    "Also A ⇔ ¬.",
+    "Also A daraus folgt ¬B.",
+]
+
+[[case]]
 id = "de-a-dating-bracket-of-period-words-and-months-stays-read"
 audit = 0
 issue = 925
