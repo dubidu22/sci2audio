@@ -383,6 +383,35 @@ def test_with_script_refuses_a_changed_audiobook(cli: Cli, source: Path, tmp_pat
     assert not (out / "note.script.txt").exists()
 
 
+def test_with_script_refuses_the_audiobook_of_a_text_changed_since(
+    cli: Cli, source: Path, tmp_path: Path
+) -> None:
+    """Same settings, same files, but the text is not the one the audiobook speaks: this
+    run's audio job would speak the changed chapter again, so it is not the audiobook this
+    run would make (#1252)."""
+    out, work = tmp_path / "b", tmp_path / "wf"
+    assert cli("convert", source, "-o", out, "-q", "--work-folder", work).code == 0
+    before = times(out)
+    small_pdf(source.parent, [LINES[0].replace("e", "a", 1), *LINES[1:]])
+    result = cli("convert", source, "-o", out, "-q", "--with-script", "--work-folder", work)
+    assert result.code == 7, result.out
+    assert times(out) == before  # no script of a text the audiobook does not speak
+
+
+def test_with_script_refuses_the_audiobook_made_before_a_plugin_came(tmp_path: Path) -> None:
+    """A text-step plugin installed since changes what the chapter says; the settings key
+    does not name the plugins, the chapters' content does (#1252)."""
+    out = tmp_path / "b"
+    source = small_pdf(tmp_path / "in", ["Salt & pepper are on the table."])
+    without = Cli(tmp_path, steps=installed_steps(entry_points=[]))
+    assert without("convert", source, "-o", out, "-q").code == 0
+    before = times(out)
+    cli = Cli(tmp_path, steps=installed_steps(entry_points=[AMPERSAND]))
+    result = cli("convert", source, "-o", out, "-q", "--with-script")
+    assert result.code == 7, result.out
+    assert times(out) == before
+
+
 def test_plain_convert_still_refuses_the_finished_audiobook(
     cli: Cli, source: Path, tmp_path: Path
 ) -> None:
