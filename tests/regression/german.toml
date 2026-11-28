@@ -3760,7 +3760,7 @@ expected = [
 id = "de-a-number-after-a-unit-symbol-and-a-full-stop"
 audit = 0
 issue = 1082
-goal = "A comma decimal after a full stop glued to a symbol the units step reads as a word ('1 %.452,5' is 'ein Prozent.452,5' after it) is read as after a word, as a second run reads it: 'ein Prozent.452 Komma 5' on both runs, in a paragraph and a heading. Where the units step leaves the symbol ('%.452,5') the number stays as printed (#1082)."
+goal = "A comma decimal after a full stop glued to a symbol the units step reads as a word ('1 %.452,5' is 'ein Prozent.452,5' after it) is read as after a word, as a second run reads it: 'ein Prozent.452 Komma 5' on both runs, in a paragraph and a heading. Where the units step leaves the symbol ('%.452,5') the number stays as printed (#1082). A point decimal there stays as printed too: '1 %.452' is 'ein Prozent.452', as after 'Prozent.' on a second run (#1083; it was 'ein Prozent0 Komma 4 5 2')."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "1–1 %.452,5" },
@@ -3774,7 +3774,7 @@ expected = [
     "1 bis 1 Prozent.452 Komma 5",
     "ein Euro.452 Komma 5",
     "5 Prozent.452 Komma 5",
-    "ein Prozent0 Komma 4 5 2",
+    "ein Prozent.452",
     "%.452,5",
     "1 bis 1 Prozent.452 Komma 5",
 ]
