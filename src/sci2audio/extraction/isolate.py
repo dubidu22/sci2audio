@@ -36,6 +36,7 @@ the child (multiprocessing would otherwise run it, and with it every other layer
 from __future__ import annotations
 
 import contextlib
+import copy
 import importlib.machinery
 import logging
 import multiprocessing
@@ -313,7 +314,9 @@ def _wait(
             if reason == "ended" and cancel is not None and cancel.wait(_CANCEL_GRACE_SECONDS):
                 return Stopped("cancelled", step)  # Ctrl-C ended it, then reached `cancel`
             return Stopped(reason, step)
-        if kind == "step":
+        if kind == "log":
+            _log_here(value)
+        elif kind == "step":
             step = value
             deadline = time.monotonic() + step_seconds
             _tell(on_step, step)
@@ -330,6 +333,15 @@ def _exit_code(child: Any) -> int | None:
     while child.exitcode is None and time.monotonic() < deadline:
         time.sleep(0.001)
     return child.exitcode
+
+
+def _log_here(record: logging.LogRecord) -> None:
+    """A record the child logged, handed to this process's logger of its name as if logged
+    here; a handler that fails must not stop the read."""
+    try:
+        logging.getLogger(record.name).handle(record)
+    except Exception:
+        _log.exception("a log record of the reader child could not be handed on")
 
 
 def _tell(on_step: Callable[[str], None] | None, step: str) -> None:
@@ -356,9 +368,10 @@ def _child(
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C is the parent's to act on (D-628)
     if hasattr(signal, "pthread_sigmask"):  # a SIGINT held back since the start is dropped
         signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
-    # The child answers through `send` alone: a library's log line (pypdfium2 on a looped
-    # outline) would reach the person's terminal unasked, past the program's choice (#143).
-    logging.getLogger().addHandler(logging.NullHandler())
+    # The child answers through `send` alone: what it logs goes to the parent, whose
+    # start-up chose what of it the person sees (#143, #1258); printed here, a library's
+    # line (pypdfium2 on a looped outline) would pass that choice by.
+    logging.getLogger().addHandler(_ToParent(send))
     send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()
@@ -383,6 +396,27 @@ def _child(
         send.send(("raised", _sendable(error)))
         return
     send.send(("done", result))
+
+
+class _ToParent(logging.Handler):
+    """Sends each record to the parent, its message and any traceback made text first, so
+    it crosses the pipe whatever its arguments were."""
+
+    def __init__(self, send: Connection) -> None:
+        super().__init__()
+        self._send = send
+
+    def emit(self, record: logging.LogRecord) -> None:
+        # a record that cannot be sent (the parent gone, the pipe closed) is not the
+        # read's concern, and printing it here is what this handler is for not doing
+        with contextlib.suppress(Exception):
+            plain = copy.copy(record)
+            plain.msg = self.format(record)
+            plain.args = None
+            plain.exc_info = None
+            plain.exc_text = None
+            plain.stack_info = None
+            self._send.send(("log", plain))
 
 
 # PDFium's allocator (PartitionAlloc) ends an allocation it cannot have with this Windows
