@@ -58,7 +58,7 @@ def test_the_marker_selects_the_quarantined_tests(pytester: pytest.Pytester) -> 
     result = pytester.runpytest_subprocess("-m", "quarantined", "--collect-only", "-q")
     result.stdout.fnmatch_lines(
         [
-            "3 quarantined test(s), all to be fixed before v1.0*",
+            "3 quarantined test(s), each to be fixed before the next release (D-374, D-739):",
             "  #138 test_made_up.py::test_flaky",
             f"  #157 test_made_up.py::test_flaky_here (on {sys.platform})",
             "  #1 test_made_up.py::test_flaky_elsewhere (on no-such-system)",
