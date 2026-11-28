@@ -52,6 +52,10 @@ def edits(text: str, language: str = "en") -> list[Edit]:
         ("en", "e.g./i.e. here", "for example and that is here"),
         # names no year follows are words like any other: a second run sees no citation
         ("de", "Heydorn/Koneffke zeigen das.", "Heydorn und Koneffke zeigen das."),
+        # spaced, the name before a year is a name alone: the year goes and the slash is read,
+        # as a second run reads "Smith and Jones" (#1236)
+        ("en", "As Smith / Jones (2019) show it.", "As Smith and Jones show it."),
+        ("en", "As Smith / Jones (in press) show it.", "As Smith and Jones show it."),
     ],
 )
 def test_a_slash_between_words_is_read(language: str, printed: str, said: str) -> None:
@@ -73,6 +77,13 @@ def test_a_slash_between_words_is_read(language: str, printed: str, said: str) -
         ("de", "5 Euro/Monat", "5 Euro/Monat"),
         ("de", "3 pro Kopf/Jahr", "3 pro Kopf/Jahr"),
         ("en", "5 dollars/month", "5 dollars/month"),
+        # a rate's abbreviated time word, and a quantity after a number per anything (#1237)
+        ("en", "120 words/min and 50 requests/sec", "120 words/min and 50 requests/sec"),
+        ("en", "the rate in words/min", "the rate in words/min"),
+        ("en", "It costs 3 dollars/user.", "It costs 3 dollars/user."),
+        ("de", "120 Wörter/min", "120 Wörter/min"),
+        ("de", "Es kostet 5 Euro/Nutzer.", "Es kostet 5 Euro/Nutzer."),
+        ("de", "Er läuft 3 Meter/Sek.", "Er läuft 3 Meter/Sek."),
         # links, addresses and paths
         ("en", "It is at https://a.org/b/c for all.", "It is for all."),
         ("en", "the files in docs/kb and /usr/bin", "the files in docs/kb and /usr/bin"),
@@ -83,6 +94,10 @@ def test_a_slash_between_words_is_read(language: str, printed: str, said: str) -
         ("de", "die Lehrer/-innen", "die Lehrer/-innen"),
         ("de", "ein/e und jede/r", "ein/e und jede/r"),
         ("de", "die Studierende/r", "die Studierende/r"),
+        # ... with a capital or a double suffix too (#1250)
+        ("de", "Die Lehrer/Innen.", "Die Lehrer/Innen."),
+        ("de", "Die Mitarbeiter/In.", "Die Mitarbeiter/In."),
+        ("de", "Die Kolleg/inn/en.", "Die Kolleg/inn/en."),
         # acronyms and abbreviations
         ("en", "TCP/IP and I/O", "TCP/IP and I/O"),
         ("en", "an A/B-test", "an A/B-test"),
@@ -97,6 +112,17 @@ def test_a_slash_between_words_is_read(language: str, printed: str, said: str) -
         ("en", "it equals jzy/Ex and qy/qx", "it equals jzy/Ex and qy/qx"),
         # author names in a citation stay the citations step's (#455)
         ("de", "Wie Heydorn/Koneffke (1964) zeigen.", "Wie Heydorn/Koneffke (1964) zeigen."),
+        # ... before an undated bracket or a possessive too, as a second run reads them (#1236)
+        ("en", "As Smith/Jones (in press) show.", "As Smith/Jones (in press) show."),
+        ("en", "As Smith/Jones (n.d.) show.", "As Smith/Jones (n.d.) show."),
+        ("en", "As Smith/Jones (forthcoming) show.", "As Smith/Jones (forthcoming) show."),
+        ("en", "As Smith/Jones's (2019) work shows.", "As Smith/Jones's (2019) work shows."),
+        (
+            "de",
+            "Wie Heydorn/Koneffke (im Druck) zeigen.",
+            "Wie Heydorn/Koneffke (im Druck) zeigen.",
+        ),
+        ("de", "Wie Heydorn/Koneffke (o. J.) zeigen.", "Wie Heydorn/Koneffke (o. J.) zeigen."),
         ("de", "Das zeigen auch (Heydorn/Koneffke 1964) hier.", "Das zeigen auch hier."),
     ],
 )

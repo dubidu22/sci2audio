@@ -9,12 +9,16 @@ another language keeps the slash.
 
 Every part is a word as a second run reads it: two letters or more, one of them lower case and
 one a vowel, glued to no other sign, no join word itself ("und/oder", "and/or",
-"bzw./oder"), and after the first part no word of a rate ("Euro/Monat", "pro Kopf/Jahr"). An
-abbreviation or a unit the steps before this one read counts by its words ("z. B./u. a." is
-"zum Beispiel/unter anderem" then, so "Beispiel" and "unter"; "€/Monat" is "Euro/Monat").
-German gender forms stay as printed ("Lehrer/innen"; "ein/e" and "Lehrer/-innen" have no word
+"bzw./oder"), and no rate: no word of one after the first part ("Euro/Monat", "pro
+Kopf/Jahr", "words/min"), and no pair after a number ("3 dollars/user", "5 Euro/Nutzer": a
+quantity per something). An abbreviation or a unit the steps before this one read counts by
+its words ("z. B./u. a." is "zum Beispiel/unter anderem" then, so "Beispiel" and "unter";
+"€/Monat" is "Euro/Monat"). German gender forms stay as printed, in any case and doubled
+("Lehrer/innen", "Lehrer/Innen", "Kolleg/inn/en"; "ein/e" and "Lehrer/-innen" have no word
 after the slash). So are numbers, dates, units, links, paths and acronyms ("1998/2019",
 "km/h", "docs/kb", "TCP/IP"); the steps that read them run first and win where they edit.
+Names glued to a slash before a bracket the citations step takes for a narrative citation's
+year stay as printed too ("Heydorn/Koneffke (1964)", "Smith/Jones (in press)", #455).
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 from sci2audio.core import Document, Edit, EditKind, Span
+from sci2audio.textprep.citations import WORDS as CITATION_WORDS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import edits_through_unread
 from sci2audio.textprep.placeholders import read_as_prose
@@ -54,6 +59,7 @@ WORDS = {
         signs=frozenset({"plus", "minus"}),
         rates=frozenset({
             "second", "minute", "hour", "day", "week", "month", "quarter", "year", "semester",
+            "sec", "secs", "min", "mins", "hr", "hrs", "wk", "wks", "mo", "yr", "yrs",
             "head", "capita", "person", "piece",
         }),
     ),
@@ -70,9 +76,9 @@ WORDS = {
         signs=frozenset({"plus", "minus"}),
         rates=frozenset({
             "sekunde", "minute", "stunde", "tag", "woche", "monat", "quartal", "jahr",
-            "semester", "kopf", "person", "einwohner", "stück",
+            "semester", "sek", "min", "kopf", "person", "einwohner", "stück",
         }),
-        suffixes=frozenset({"innen", "in"}),
+        suffixes=frozenset({"innen", "in", "inn"}),  # "inn" of a double form: "Kolleg/inn/en"
     ),
 }  # fmt: skip
 
@@ -84,9 +90,19 @@ _PART = r"[^\W\d_]{2,}"
 # a hyphen ("Sozial-/")
 _LIST = re.compile(rf"(?<![\w@\\/.:\-])(?:{_PART}-?{_SLASH})+{_PART}(?![\w@\\]|{_SLASH}|[.:]\w)")
 _SEPARATOR = re.compile(_SLASH)
-# names before a bracketed year are the citations step's ("Heydorn/Koneffke (1964)", #455):
-# read "und", a second run would take "Heydorn und Koneffke (1964)" for a citation
-_YEAR_AFTER = re.compile(r"\s*\(\s*(?:1[5-9]|20)\d\d")
+# names before a bracket of years are the citations step's ("Heydorn/Koneffke (1964)", #455):
+# glued to the slash they are no name to it and the bracket stays; read "und", a second run
+# would take "Heydorn und Koneffke (1964)" for a citation and drop the bracket. A stand-in for
+# the year ("in press") and a possessive ("Jones's (2019)") count as they do for that step.
+_CITED_AFTER = {
+    language: re.compile(
+        rf"(?:[\u2019']s?)?\s*\(\s*(?:(?:1[5-9]|20)\d\d|{CITATION_WORDS[language].undated})",
+        re.IGNORECASE,
+    )
+    for language in WORDS
+}
+# a pair right after a number is a quantity per something: "3 dollars/user"
+_NUMBER_BEFORE = re.compile(r"\d[ \u00a0]+\Z")
 _VOWELS = frozenset("aeiouäöüàáâãåæèéêëìíîïòóôõøùúûœ")  # not "y": "jzy/Ex" is maths
 
 
@@ -124,7 +140,12 @@ def _found(index: int, text: str, words: SlashWords, language: str) -> Iterator[
     for match in _LIST.finditer(view.text):
         shown = re.split(_SLASH, match.group())  # "Sozial-", "Kulturpädagogik"
         parts = [part.removesuffix("-") for part in shown]
-        if not _a_list(parts, words) or _YEAR_AFTER.match(view.text, match.end()):
+        if not _a_list(parts, words) or _a_rate(view.text, match.start(), parts):
+            continue
+        # spaced ("Smith / Jones (2019)"), the name before the bracket stands alone, so the
+        # bracket is a citation on both runs and the slash may be read
+        glued = not _SEPARATOR.findall(match.group())[-1].endswith((" ", "\u00a0"))
+        if glued and _CITED_AFTER[language].match(view.text, match.end()):
             continue
         said = _said(parts, words)
         printed = view.printed(match.start(), match.end())
@@ -148,9 +169,14 @@ def _a_list(parts: Sequence[str], words: SlashWords) -> bool:
             return False  # "TCP/IP", "docs/kb", "und/oder", "plus/minus"
         if number and low in words.rates:
             return False  # "Euro/Monat": a rate, "Euro pro Monat"
-        if number and low in words.suffixes and parts[number - 1][:1].isupper() and part.islower():
-            return False  # "Lehrer/innen": a gender form, out of scope (D-816)
+        if number and low in words.suffixes and parts[number - 1][:1].isupper():
+            return False  # "Lehrer/innen", "Lehrer/Innen": a gender form, out of scope (D-816)
     return True
+
+
+def _a_rate(text: str, start: int, parts: Sequence[str]) -> bool:
+    """True if a pair stands right after a number: "3 dollars/user", "5 Euro/Nutzer"."""
+    return len(parts) == 2 and bool(_NUMBER_BEFORE.search(text, max(0, start - 4), start))
 
 
 def _said(parts: Sequence[str], words: SlashWords) -> list[str]:
