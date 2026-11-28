@@ -433,9 +433,10 @@ def test_a_slow_plugin_is_given_up_and_the_run_goes_on() -> None:
             started = time.monotonic()
             run = run_with("SlowStep", "RemovingStep", timeout=0.2)
             elapsed = time.monotonic() - started
-        # the hang never ends, so any finite bound proves it was given up; 10 s is far below the
-        # hang and the pytest timeout, and the sum of collections is an upper bound
-        # clock-bound: any finite bound proves the hang was given up; 10 s heavy load cannot reach
+        # The step waits 30 s and the guard gives up after 0.2 s, so a run under 10 s (less its
+        # collections, whose sum is an upper bound) was given up; a run that was not also
+        # finds no problem below.
+        # clock-bound: 10 s is 50 times the 0.2 s step limit and a third of the 30 s hang
         assert elapsed - sum(collecting) < 10
     finally:
         broken.SlowStep.release.set()
