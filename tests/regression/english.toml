@@ -2220,6 +2220,24 @@ expected = [
 ]
 
 [[case]]
+id = "links-no-two-join-words-nor-or-ampersand-around-a-citation"
+audit = 0
+issue = 1248
+goal = "'nor' and '&' before and after a removed citation, with or without a removed link after it, are read once, as 'and' and 'or' are (#628, #847, #1248)."
+blocks = [
+    { kind = "paragraph", text = "Then it & (Lee, 2019) https://x.org & more." },
+    { kind = "paragraph", text = "Then it nor (Lee, 2019) https://x.org nor more." },
+    { kind = "paragraph", text = "Then it & (Lee, 2019) & more." },
+    { kind = "paragraph", text = "Then it nor (Lee, 2019) nor more." },
+]
+expected = [
+    "Then it & more.",
+    "Then it nor more.",
+    "Then it & more.",
+    "Then it nor more.",
+]
+
+[[case]]
 id = "links-a-word-glued-after-a-removed-bracket-stays-a-word"
 audit = 0
 issue = 629
@@ -3375,6 +3393,28 @@ expected = [
     "It grew here.",
     "It grew here.",
     "It grew (May and Lee 2019) here.",
+]
+
+[[case]]
+id = "a-dating-bracket-of-several-period-words-with-a-comma-stays-read"
+audit = 0
+issue = 1247
+goal = "A dating bracket of two or more period words or months with a comma before the year stays as printed, as its months-only twin '(May and June, 2019)' and the comma-less '(Spring and May 2019)' do; one period word alone with a comma still cites ('(Summer, 2019)', #483), and so does a name among them ('(Summer & Lee, 2019)') (#1247)."
+blocks = [
+    { kind = "paragraph", text = "It grew (Spring and May, 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring and Summer, 2019) here." },
+    { kind = "paragraph", text = "It grew (Spring & May, 2019) here." },
+    { kind = "paragraph", text = "It grew (May and June, 2019) here." },
+    { kind = "paragraph", text = "It grew (Summer, 2019) here." },
+    { kind = "paragraph", text = "It grew (Summer & Lee, 2019) here." },
+]
+expected = [
+    "It grew (Spring and May, 2019) here.",
+    "It grew (Spring and Summer, 2019) here.",
+    "It grew (Spring & May, 2019) here.",
+    "It grew (May and June, 2019) here.",
+    "It grew here.",
+    "It grew here.",
 ]
 
 [[case]]
