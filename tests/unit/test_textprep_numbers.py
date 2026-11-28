@@ -295,6 +295,15 @@ def test_the_step_keeps_the_contract_on_any_document(document: Document) -> None
     check_text_step(STEP, [document], allow_ask=False)
 
 
+@pytest.mark.parametrize(
+    "printed",
+    ["It is }.451:1 here.", "It is }.3/4 and }.3-5 here.", "So 1/2 ~ 2 and x^2 ~ 2 here."],
+)
+def test_the_step_alone_keeps_the_contract_after_a_brace_or_before_a_tilde(printed: str) -> None:
+    # the English side of the German shapes (#1083, #1234)
+    check_text_step(STEP, [make_document([(BlockKind.PARAGRAPH, printed)])], allow_ask=False)
+
+
 def digits(text: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFKC", text) if c.isdigit())
 

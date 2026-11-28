@@ -3530,6 +3530,31 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-roman-list-joined-by-an-em-dash"
+audit = 0
+issue = 1231
+goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Kapitel 1 bis 2'): never only the first numeral (#1013, #1231). Only where the dash reads as a range: the second numeral is larger and no lone I, V or X, which in prose is a letter after a parenthetical dash ('Kapitel II — X ist hier klein', 'X-Achse'), read as before; a falling pair is left as printed whole."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I — II folgen." },
+    { kind = "paragraph", text = "Kapitel I—II folgen." },
+    { kind = "heading", text = "Teile II — IV" },
+    { kind = "paragraph", text = "Siehe Kapitel II — X ist hier klein." },
+    { kind = "paragraph", text = "Siehe Kapitel II — V steht für Volumen." },
+    { kind = "paragraph", text = "Siehe Kapitel II — X-Achse." },
+    { kind = "paragraph", text = "Kapitel III — II folgen." },
+]
+expected = [
+    "Kapitel 1 bis 2 folgen.",
+    "Kapitel 1 bis 2 folgen.",
+    "Teile 2 bis 4",
+    "Siehe Kapitel 2 — X ist hier klein.",
+    "Siehe Kapitel 2 — V steht für Volumen.",
+    "Siehe Kapitel 2 — X-Achse.",
+    "Kapitel III — II folgen.",
+]
+
+[[case]]
 id = "de-a-sign-before-nx"
 audit = 0
 issue = 988
@@ -3590,6 +3615,27 @@ expected = [
     "Kapitel 4. ungefähr 1",
     "Also A gleich ‒3 und A gleich −3 hier.",
     "Also A etwa 0 Komma 5 und ein Prozent.452 hier.",
+]
+
+[[case]]
+id = "de-a-number-after-a-tilde-and-a-full-stop"
+audit = 0
+issue = 1235
+goal = "After '~' or '∼' and a glued full stop, which the units step reads 'etwa ' with a space, a fraction, a thousands number, a range, a ratio and a comma decimal stay as printed, as a second run reads them after 'etwa .' (D-577): the '.' starts a decimal there, no full stop glued to a word, as it is after 'Prozent' ('ein Prozent.3 Viertel'). The point decimal 'A~.5' is read, as before (#1220)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also A~.3/4 und A~.1.234 hier." },
+    { kind = "paragraph", text = "Also A~.3-5 und A~.1:2 hier." },
+    { kind = "paragraph", text = "Also A∼.3,5 und A ~.3/4 hier." },
+    { kind = "heading", text = "Also A~.3/4" },
+    { kind = "paragraph", text = "Also A~.5 und 1 %.3/4 hier." },
+]
+expected = [
+    "Also A etwa .3/4 und A etwa .1.234 hier.",
+    "Also A etwa .3-5 und A etwa .1:2 hier.",
+    "Also A etwa .3,5 und A etwa .3/4 hier.",
+    "Also A etwa .3/4",
+    "Also A etwa 0 Komma 5 und ein Prozent.3 Viertel hier.",
 ]
 
 [[case]]
@@ -4077,6 +4123,27 @@ expected = [
     "Es sind 17/20 g",
     "Es ist um 13:30 N hier.",
     "Es sind 2 Komma 5 5 Meter hier.",
+]
+
+[[case]]
+id = "de-a-tilde-after-a-read-fraction-or-power-and-a-brace-full-stop"
+audit = 0
+issue = 1234
+goal = "A '~' after a fraction or power read in words is read as after those words, as a second run reads it: 'ein halb etwa 2', 'x Quadrat etwa 2' (#1083). After '}' and a glued full stop with no word read before it, a ratio, fraction or range stays as printed, since a second run reads '.451' as a decimal there; after a power the units step reads ('m^{2}.' as 'Quadratmeter.') it is read (#1083, #1234)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Also 1/2 ~ 2 und x^2 ~ 2 hier." },
+    { kind = "paragraph", text = "Also 1/2 ~ 1/3 und 3/4~2 hier." },
+    { kind = "heading", text = "Also 1/2 ~ 2" },
+    { kind = "paragraph", text = "Es ist }.451:1 und }.3/4 und }.3-5 hier." },
+    { kind = "paragraph", text = "Es ist 5 m^{2}.45:1 hier." },
+]
+expected = [
+    "Also ein halb etwa 2 und x Quadrat etwa 2 hier.",
+    "Also ein halb etwa ein Drittel und 3 Viertel etwa 2 hier.",
+    "Also ein halb etwa 2",
+    "Es ist }.451:1 und }.3/4 und }.3-5 hier.",
+    "Es ist 5 Quadratmeter.45 zu 1 hier.",
 ]
 
 [[case]]
