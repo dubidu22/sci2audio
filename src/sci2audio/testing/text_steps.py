@@ -119,7 +119,8 @@ def _sample_documents() -> tuple[Document, ...]:
             BlockKind.PARAGRAPH,
             "Data are at https://doi.org/10.1000/xyz123 and www.example.org/data.\n"
             "Contact: j.doe@uni-example.edu. In total n = 35 (p < .05, 95% CI [1.2, 3.4]);\n"
-            "3.5 mg/kg at 37 °C, approx. 1,234 participants (± 12%) vs. 980 aged ≥ 18.",
+            "3.5 mg/kg at 37 °C, approx. 1,234 participants (± 12%) vs. 980 aged ≥ 18.\n"
+            "Their input/output was logged.",
         ),
         Block(BlockKind.FOOTNOTE, "1 See the appendix.", label="1"),
         (BlockKind.TABLE, "Group n Mean\nA 12 3.4\nB 15 2.9"),

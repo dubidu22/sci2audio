@@ -2,8 +2,8 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-chi-plue]
   dict({
     'abbreviations: accepted': 23,
-    'characters: accepted': 97,
-    'characters: set-aside': 62,
+    'characters: accepted': 108,
+    'characters: set-aside': 64,
     'citations: accepted': 48,
     'footnote-texts: switched-off': 7,
     'footnotes: accepted': 25,
@@ -20,7 +20,7 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[acl2023-hardt-ellipsis]
   dict({
     'abbreviations: accepted': 10,
-    'characters: accepted': 69,
+    'characters: accepted': 80,
     'characters: set-aside': 14,
     'citations: accepted': 17,
     'footnote-texts: switched-off': 2,
@@ -73,8 +73,8 @@
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[arxiv2024-arsiwalla-qualia-meaning]
   dict({
     'abbreviations: accepted': 15,
-    'characters: accepted': 59,
-    'characters: set-aside': 26,
+    'characters: accepted': 62,
+    'characters: set-aside': 27,
     'citations: accepted': 93,
     'citations: set-aside': 185,
     'footnote-texts: switched-off': 20,
@@ -93,7 +93,7 @@
   dict({
     'abbreviations: accepted': 6,
     'abbreviations: set-aside': 5,
-    'characters: accepted': 71,
+    'characters: accepted': 74,
     'characters: set-aside': 30,
     'citations: accepted': 43,
     'citations: set-aside': 85,
@@ -124,6 +124,7 @@
 # ---
 # name: test_on_the_corpus_only_furniture_is_removed_and_the_rest_reads_as_printed[joss2022-biggs-pymedphys]
   dict({
+    'characters: accepted': 2,
     'characters: set-aside': 2,
     'citations: accepted': 5,
     'footnotes: accepted': 13,

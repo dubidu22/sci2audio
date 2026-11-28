@@ -181,7 +181,7 @@
         'switched_off': 0,
       }),
       'characters': dict({
-        'applied': 69,
+        'applied': 80,
         'label': 'Characters and hyphenation',
         'not_spoken': 0,
         'set_aside': 14,
@@ -2016,6 +2016,245 @@
         'step': 'abbreviations',
       }),
       dict({
+        'block': 10,
+        'category': 'characters',
+        'chapter': 2,
+        'end': 109,
+        'kind': 'replace',
+        'original': '/',
+        'page': 1,
+        'printed_page': '39',
+        'reason': '''
+          slash between words "With such examples, we can test understanding
+          of ellipsis by targeting the ellipsis phrase with a
+          simple Yes/No question:" read as "Yes or No"
+        ''',
+        'said': ' or ',
+        'spoken': True,
+        'start': 108,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 19,
+        'category': 'characters',
+        'chapter': 3,
+        'end': 81,
+        'kind': 'replace',
+        'original': '/',
+        'page': 1,
+        'printed_page': '39',
+        'reason': '''
+          slash between words "(4) The city councilmen refused the demonstra-
+          tors a permit because they feared/advocated
+          violence." read as "feared and advocated"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 80,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 41,
+        'category': 'characters',
+        'chapter': 5,
+        'end': 124,
+        'kind': 'replace',
+        'original': '/',
+        'page': 3,
+        'printed_page': '41',
+        'reason': '''
+          slash between words "For each instantiation of a given structure, we pro-
+          duce paired ellipsis and non-ellipsis examples, with
+          an associated Yes/No question. We randomly select
+          1000 examples for each structure, including 500
+          ellipsis examples and 500 examples which are their
+          non-elliptical counterparts. Each example is pre-
+          sented to the system, preceded by the text, “Please
+          give a Yes or No answer:". We test five GPT-3 mod-
+          els on these structures: Davinci-003, Davinci-002,
+          Curie-001, Babbage-001, and Ada-001. According
+          to the GPT-3 documentation, Davinci-003 is the
+          most powerful model and Ada-001, the least." read as "Yes or No"
+        ''',
+        'said': ' or ',
+        'spoken': True,
+        'start': 123,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 137,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 85,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
+          information that names or uniquely identifies individual people or offensive content, and the steps
+          taken to protect / anonymize it?" read as "collected and used"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 82,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 137,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 222,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
+          information that names or uniquely identifies individual people or offensive content, and the steps
+          taken to protect / anonymize it?" read as "protect and anonymize"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 219,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 141,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 87,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+          number of examples in train / validation / test splits, as these provide necessary context for a reader
+          to understand experimental results. For example, small differences in accuracy on large test sets may
+          be significant, while on small test sets they may not be." read as "train, test and dev"
+        ''',
+        'said': ', ',
+        'spoken': True,
+        'start': 84,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 141,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 94,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+          number of examples in train / validation / test splits, as these provide necessary context for a reader
+          to understand experimental results. For example, small differences in accuracy on large test sets may
+          be significant, while on small test sets they may not be." read as "train, test and dev"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 91,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 141,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 140,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+          number of examples in train / validation / test splits, as these provide necessary context for a reader
+          to understand experimental results. For example, small differences in accuracy on large test sets may
+          be significant, while on small test sets they may not be." read as "used and created"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 137,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 141,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 234,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+          number of examples in train / validation / test splits, as these provide necessary context for a reader
+          to understand experimental results. For example, small differences in accuracy on large test sets may
+          be significant, while on small test sets they may not be." read as "train, validation and test"
+        ''',
+        'said': ', ',
+        'spoken': True,
+        'start': 231,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 141,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 247,
+        'kind': 'replace',
+        'original': ' / ',
+        'page': 8,
+        'printed_page': '46',
+        'reason': '''
+          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+          number of examples in train / validation / test splits, as these provide necessary context for a reader
+          to understand experimental results. For example, small differences in accuracy on large test sets may
+          be significant, while on small test sets they may not be." read as "train, validation and test"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 244,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
+        'block': 161,
+        'category': 'characters',
+        'chapter': 12,
+        'end': 93,
+        'kind': 'replace',
+        'original': '/',
+        'page': 9,
+        'printed_page': '47',
+        'reason': '''
+          slash between words "D3. Did you discuss whether and how consent was obtained from people whose data you’re
+          using/curating? For example, if you collected data via crowdsourcing, did your instructions to
+          crowdworkers explain how the data would be used?" read as "using and curating"
+        ''',
+        'said': ' and ',
+        'spoken': True,
+        'start': 92,
+        'status': 'accepted',
+        'step': 'slashes',
+      }),
+      dict({
         'block': 4,
         'category': 'characters',
         'chapter': 1,
@@ -3809,7 +4048,7 @@
   | Category | Applied | Not spoken (chapter not chosen) | Set aside | Switched off |
   |---|---|---|---|---|
   | Page furniture | 11 | 1 | 0 | 0 |
-  | Characters and hyphenation | 69 | 0 | 14 | 0 |
+  | Characters and hyphenation | 80 | 0 | 14 | 0 |
   | Footnotes | 4 | 0 | 0 | 0 |
   | Footnote texts | 0 | 0 | 0 | 2 |
   | Citations | 17 | 0 | 0 | 0 |
@@ -3836,8 +4075,60 @@
   - page 8 (printed 46), chapter 13, applied: “46” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   - page 9 (printed 47), chapter 13, applied: “47” → left out. Reason: page furniture (page number) is not read. Step: page-furniture.
   
-  ## Characters and hyphenation (83)
+  ## Characters and hyphenation (94)
   
+  - page 1 (printed 39), chapter 3, applied: “/” → read as “or”. Reason: slash between words "With such examples, we can test understanding
+  of ellipsis by targeting the ellipsis phrase with a
+  simple Yes/No question:" read as "Yes or No". Step: slashes.
+  - page 1 (printed 39), chapter 4, applied: “/” → read as “and”. Reason: slash between words "(4) The city councilmen refused the demonstra-
+  tors a permit because they feared/advocated
+  violence." read as "feared and advocated". Step: slashes.
+  - page 3 (printed 41), chapter 6, applied: “/” → read as “or”. Reason: slash between words "For each instantiation of a given structure, we pro-
+  duce paired ellipsis and non-ellipsis examples, with
+  an associated Yes/No question. We randomly select
+  1000 examples for each structure, including 500
+  ellipsis examples and 500 examples which are their
+  non-elliptical counterparts. Each example is pre-
+  sented to the system, preceded by the text, “Please
+  give a Yes or No answer:". We test five GPT-3 mod-
+  els on these structures: Davinci-003, Davinci-002,
+  Curie-001, Babbage-001, and Ada-001. According
+  to the GPT-3 documentation, Davinci-003 is the
+  most powerful model and Ada-001, the least." read as "Yes or No". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
+  information that names or uniquely identifies individual people or offensive content, and the steps
+  taken to protect / anonymize it?" read as "collected and used". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
+  information that names or uniquely identifies individual people or offensive content, and the steps
+  taken to protect / anonymize it?" read as "protect and anonymize". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+  number of examples in train / validation / test splits, as these provide necessary context for a reader
+  to understand experimental results. For example, small differences in accuracy on large test sets may
+  be significant, while on small test sets they may not be." read as "train, test and dev". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+  number of examples in train / validation / test splits, as these provide necessary context for a reader
+  to understand experimental results. For example, small differences in accuracy on large test sets may
+  be significant, while on small test sets they may not be." read as "train, test and dev". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+  number of examples in train / validation / test splits, as these provide necessary context for a reader
+  to understand experimental results. For example, small differences in accuracy on large test sets may
+  be significant, while on small test sets they may not be." read as "used and created". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+  number of examples in train / validation / test splits, as these provide necessary context for a reader
+  to understand experimental results. For example, small differences in accuracy on large test sets may
+  be significant, while on small test sets they may not be." read as "train, validation and test". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+  number of examples in train / validation / test splits, as these provide necessary context for a reader
+  to understand experimental results. For example, small differences in accuracy on large test sets may
+  be significant, while on small test sets they may not be." read as "train, validation and test". Step: slashes.
+  - page 9 (printed 47), chapter 13, applied: “/” → read as “and”. Reason: slash between words "D3. Did you discuss whether and how consent was obtained from people whose data you’re
+  using/curating? For example, if you collected data via crowdsourcing, did your instructions to
+  crowdworkers explain how the data would be used?" read as "using and curating". Step: slashes.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
@@ -13646,7 +13937,7 @@
   (2) William went running.
   Harold went running too.
   
-  With such examples, we can test understanding of ellipsis by targeting the ellipsis phrase with a simple Yes/No question:
+  With such examples, we can test understanding of ellipsis by targeting the ellipsis phrase with a simple Yes or No question:
   
   (3) Did Harold go running?
   
@@ -13679,7 +13970,7 @@
   The Winograd Schema involves test examples that use the linguistic problem of pronoun resolution to gain insight into the commonsense reasoning abilities of an AI system.
   To do this, the Winograd Schema requires pairs of examples that differ only in one specific, small way, as in (4):
   
-  (4) The city councilmen refused the demonstrators a permit because they feared/advocated violence.
+  (4) The city councilmen refused the demonstrators a permit because they feared and advocated violence.
   
   With “feared", the pronoun “they" refers to the city councilmen, while with “advocated", it refers to the demonstrators.
   Humans understand this because of general, commonsense knowledge about what would reasonably explain the refusal of a permit in the two cases.
@@ -13746,7 +14037,7 @@
   
   4 Test
   
-  For each instantiation of a given structure, we produce paired ellipsis and non-ellipsis examples, with an associated Yes/No question.
+  For each instantiation of a given structure, we produce paired ellipsis and non-ellipsis examples, with an associated Yes or No question.
   We randomly select 1000 examples for each structure, including 500 ellipsis examples and 500 examples which are their non-elliptical counterparts.
   Each example is presented to the system, preceded by the text, “Please give a Yes or No answer:".
   We test five GPT-3 models on these structures: Davinci-003, Davinci-002, Curie-001, Babbage-001, and Ada-001.
@@ -13948,7 +14239,7 @@
   research use of GPT3 is well established
   
   ✗ B4.
-  Did you discuss the steps taken to check whether the data that was collected / used contains any information that names or uniquely identifies individual people or offensive content, and the steps taken to protect / anonymize it?
+  Did you discuss the steps taken to check whether the data that was collected and used contains any information that names or uniquely identifies individual people or offensive content, and the steps taken to protect and anonymize it?
   
   We created simple synthetic data and see no issues here
   
@@ -13958,8 +14249,8 @@
   section 3
   
   B6.
-  Did you report relevant statistics like the number of examples, details of train / test / dev splits, etc. for the data that you used / created?
-  Even for commonly-used benchmark datasets, include the number of examples in train / validation / test splits, as these provide necessary context for a reader to understand experimental results.
+  Did you report relevant statistics like the number of examples, details of train, test and dev splits, etc. for the data that you used and created?
+  Even for commonly-used benchmark datasets, include the number of examples in train, validation and test splits, as these provide necessary context for a reader to understand experimental results.
   For example, small differences in accuracy on large test sets may be significant, while on small test sets they may not be.
   
   Not applicable.
@@ -14008,7 +14299,7 @@
   No response.
   
   D3.
-  Did you discuss whether and how consent was obtained from people whose data you’re using/curating?
+  Did you discuss whether and how consent was obtained from people whose data you’re using and curating?
   For example, if you collected data via crowdsourcing, did your instructions to crowdworkers explain how the data would be used?
   
   No response.

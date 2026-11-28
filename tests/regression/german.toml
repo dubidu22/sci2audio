@@ -2717,15 +2717,59 @@ expected = ["Das zeigen frühere Arbeiten."]
 id = "de-dating-bracket-of-several-period-words-kept"
 audit = 0
 issue = 595
-goal = "Eine Klammer, die mit mehreren Wörtern datiert ('(Frühjahr und Sommer 2019)', '(Herbst/Winter 2019)', '(Stand März 2020)'), ist keine Quellenangabe und bleibt wie gedruckt; mit einem Namen ('(Sommer und Koch 2019)') bleibt sie eine und wird entfernt."
+goal = "Eine Klammer, die mit mehreren Wörtern datiert ('(Frühjahr und Sommer 2019)', '(Herbst/Winter 2019)', '(Stand März 2020)'), ist keine Quellenangabe und bleibt stehen, der Schrägstrich zwischen zwei Wörtern gelesen als 'und' (#653); mit einem Namen ('(Sommer und Koch 2019)') bleibt sie eine und wird entfernt."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020)." },
     { kind = "paragraph", text = "Das zeigen frühere Arbeiten (Sommer und Koch 2019)." },
 ]
 expected = [
-    "Die Daten (Frühjahr und Sommer 2019) und (Herbst/Winter 2019) gelten, ebenso der Bericht (Stand März 2020).",
+    "Die Daten (Frühjahr und Sommer 2019) und (Herbst und Winter 2019) gelten, ebenso der Bericht (Stand März 2020).",
     "Das zeigen frühere Arbeiten.",
+]
+
+[[case]]
+id = "de-a-slash-between-words-reads-und"
+audit = 0
+issue = 653
+goal = "A slash between two words, glued or spaced, reads 'und', between three or more words a list ('Schulen, Vereine und Einrichtungen'); a pair of opposites reads 'oder' ('ja oder nein'), and a hyphen fragment keeps its hyphen ('Sozial- und Kulturpädagogik'), ruled by Colin at triage on 26 Nov 2026 (D-816). The first block is the sentence of the lecture handout of #653, written into the case. An abbreviation counts by its reading: 'z. B./u. a.' is 'zum Beispiel und unter anderem'."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Dadurch entsteht nicht nur eine Abneigung gegenüber diesem Ort, sondern auch gegenüber den Menschen/Gruppen, die ihn stattdessen nutzen (dürfen) – was sich nicht selten in Form von Gewalt und Vandalismus ausdrückt." },
+    { kind = "paragraph", text = "Es geht um Theorie/Praxis und um Theorie / Praxis." },
+    { kind = "paragraph", text = "Gemeint sind Schulen/Vereine/Einrichtungen." },
+    { kind = "paragraph", text = "Die Antwort ist ja/nein, richtig/falsch oder wahr/falsch." },
+    { kind = "heading", text = "Die Sozial-/Kulturpädagogik am Ein-/Ausgang" },
+    { kind = "paragraph", text = "Siehe z. B./u. a. hier." },
+]
+expected = [
+    "Dadurch entsteht nicht nur eine Abneigung gegenüber diesem Ort, sondern auch gegenüber den Menschen und Gruppen, die ihn stattdessen nutzen (dürfen) – was sich nicht selten in Form von Gewalt und Vandalismus ausdrückt.",
+    "Es geht um Theorie und Praxis und um Theorie und Praxis.",
+    "Gemeint sind Schulen, Vereine und Einrichtungen.",
+    "Die Antwort ist ja oder nein, richtig oder falsch oder wahr oder falsch.",
+    "Die Sozial- und Kulturpädagogik am Ein- und Ausgang",
+    "Siehe zum Beispiel und unter anderem hier.",
+]
+
+[[case]]
+id = "de-a-slash-the-slash-rule-leaves"
+audit = 0
+issue = 653
+goal = "A slash that is no slash between words stays as the steps before read it: gender forms ('Lehrer/innen', 'Lehrer/-innen', 'ein/e', 'jede/r', 'Studierende/r', D-816), a rate ('Euro/Monat', 'pro Kopf/Jahr'), join words ('und/oder', 'bzw./oder'), an acronym ('TCP/IP'), numbers and a fraction ('1998/2019', '3/4'), names before a year ('Heydorn/Koneffke (1964)', #455) (#653)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Lehrer/innen, Lehrer/-innen, ein/e und jede/r Studierende/r." },
+    { kind = "paragraph", text = "Es kostet 5 Euro/Monat und 3 Euro pro Kopf/Jahr." },
+    { kind = "paragraph", text = "Es gilt und/oder, bzw./oder und TCP/IP." },
+    { kind = "paragraph", text = "Die Ausgaben 1998/2019 und 3/4 der Befragten." },
+    { kind = "paragraph", text = "Wie Heydorn/Koneffke (1964) zeigen." },
+]
+expected = [
+    "Die Lehrer/innen, Lehrer/-innen, ein/e und jede/r Studierende/r.",
+    "Es kostet 5 Euro/Monat und 3 Euro pro Kopf/Jahr.",
+    "Es gilt und/oder, beziehungsweise/oder und TCP/IP.",
+    "Die Ausgaben 1998/2019 und 3 Viertel der Befragten.",
+    "Wie Heydorn/Koneffke (1964) zeigen.",
 ]
 
 [[case]]
