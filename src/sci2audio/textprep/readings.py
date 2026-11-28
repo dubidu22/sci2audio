@@ -111,6 +111,22 @@ def holding(found: Sequence[Reading], position: int) -> Reading | None:
     return None
 
 
+def ending_at(found: Sequence[Reading], end: int) -> Reading | None:
+    """The one of one step's readings that ends exactly at `end`, or None."""
+    reading = last_before(found, end)
+    return reading if reading is not None and reading.end == end else None
+
+
+def last_before(found: Sequence[Reading], position: int) -> Reading | None:
+    """The last of one step's readings that ends at `position` or before it, or None."""
+    index = bisect.bisect_right(found, position, key=_end) - 1
+    return found[index] if index >= 0 else None
+
+
+def _end(reading: Reading) -> int:
+    return reading.end
+
+
 def first_from(found: Sequence[Reading], position: int) -> Reading | None:
     """The first of one step's readings that starts at `position` or after it, or None."""
     index = bisect.bisect_left(found, position, key=_start)
@@ -137,11 +153,14 @@ def _read(step: str, text: str, language: str) -> tuple[Reading, ...]:
 def _finders() -> dict[str, Finder]:
     # the steps import this module to ask for readings, so their finders can only be
     # reached once every step module is loaded: the one local import of step modules here
-    from sci2audio.textprep import statistics, units
+    from sci2audio.textprep import abbreviations, statistics, units
 
     return {
         "units": Finder(units.find_readings, asks=("statistics",)),
-        "statistics": Finder(statistics.find_readings, words=statistics.words),
+        "statistics": Finder(
+            statistics.find_readings, asks=("abbreviations",), words=statistics.words
+        ),
+        "abbreviations": Finder(abbreviations.find_readings),
     }
 
 

@@ -36,7 +36,6 @@ from functools import partial
 from types import MappingProxyType
 
 from sci2audio.core import Document, Edit
-from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import ACCENTS
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.notation import (
@@ -51,7 +50,7 @@ from sci2audio.textprep.notation import (
     to_edits,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, Words
+from sci2audio.textprep.readings import Reading, Words, ending_at, readings_of
 from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE, WORDS_DE, find_statistics_de
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
@@ -474,7 +473,11 @@ def _read_abbreviation_before(plain: str, left: int, language: str) -> bool:
     """True if an abbreviation the abbreviations step reads with its full stop ends at `left`:
     it is an operand before an arrow or "=", since a second run sees its words there ("Jh.⇒1"
     is "Jahrhundert⇒1" then, #924; "e.g.=1" is "for example=1", #972)."""
-    return left > 0 and plain[left - 1] == "." and reads_full_stop(plain, left, language)
+    return (
+        left > 0
+        and plain[left - 1] == "."
+        and ending_at(readings_of("abbreviations", plain, language), left) is not None
+    )
 
 
 def _named_in_prose(
