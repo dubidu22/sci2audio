@@ -5,24 +5,49 @@ The browser is opened at this file, not at the start link: a link on the command
 (`ps`), and the start-up token in it is the one thing between them and the server. The file
 is in the person's runtime folder, readable by them alone (mode 0600 in a 0700 folder; on
 Windows inside their profile), and sends the browser on to the start link. It goes once the
-token has been traded for the cookie, or when the server stops. The terminal still prints
+token has been traded for the cookie, or when the server stops; one a server could not take
+away when it ended goes at the next start (`STALE_AFTER`). The terminal still prints
 the link, for when no browser opens.
 """
 
 from __future__ import annotations
 
+import contextlib
 import html
 import os
+import re
 import secrets
+import stat
 import threading
+import time
 from pathlib import Path
 
 import platformdirs
+
+# A page this old belongs to a server that ended without taking it away (Windows closing the
+# console, a kill): a browser opens it within seconds of its writing (#1251). A running
+# server's page that old is one no browser opened, and taking it away leaves its token in
+# no file.
+STALE_AFTER = 10 * 60  # seconds
+_PAGE_NAME = re.compile(r"start-[0-9a-f]{16}\.html")
 
 
 def default_folder() -> Path:
     """The person's runtime folder for sci2audio (`platformdirs`)."""
     return platformdirs.user_runtime_path("sci2audio", appauthor=False, ensure_exists=False)
+
+
+def _remove_stale(folder: Path) -> None:
+    """Take away the start pages in `folder` older than `STALE_AFTER`, and nothing else."""
+    oldest = time.time() - STALE_AFTER
+    for path in folder.iterdir():
+        if not _PAGE_NAME.fullmatch(path.name):
+            continue
+        # another server may take it away first; Windows refuses a file still open
+        with contextlib.suppress(OSError):
+            info = path.lstat()
+            if stat.S_ISREG(info.st_mode) and info.st_mtime < oldest:
+                path.unlink()
 
 
 class StartPage:
@@ -40,6 +65,7 @@ class StartPage:
         folder.mkdir(mode=0o700, parents=True, exist_ok=True)
         if os.name == "posix":
             os.chmod(folder, 0o700)  # an older folder may have been made with more
+        _remove_stale(folder)
         path = folder / f"start-{secrets.token_hex(8)}.html"
         link = html.escape(start_url, quote=True)
         page = (

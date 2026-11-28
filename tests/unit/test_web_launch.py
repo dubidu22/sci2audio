@@ -509,10 +509,8 @@ def test_a_signal_stops_the_server_as_ctrl_c_does(tmp_path: Path, stop: int) -> 
     server = Running(tmp_path, script=PAGED_SERVER)
     assert server.process.stdout is not None
     try:
-        for line in server.process.stdout:
-            if line.startswith("opened "):
-                break
-        assert page_file(line.split(" ", 1)[1].strip()).exists()
+        opened = next(line for line in server.process.stdout if line.startswith("opened "))
+        assert page_file(opened.split(" ", 1)[1].strip()).exists()
         server.process.send_signal(stop)
         code = server.process.wait(30)
     finally:
