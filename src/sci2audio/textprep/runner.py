@@ -20,9 +20,11 @@ code (`inline_code`: a character of it, or a position strictly inside it) is dro
 anything else, from built-in steps and plugins alike, so arrows, operators and numbers in
 "Use `x => x + 1` here." stay as typed while the prose around them is still read. Code
 that holds only links (URLs, DOIs, e-mail addresses, with the punctuation and brackets
-around them) is not protected: the links step leaves it out as before. Block edits (a code
-block's notice, furniture) and moves claim whole blocks and are not touched. A dropped
-edit is no outcome: the report lists what a rule changes, and inside code none does.
+around them) is not protected: the links step leaves it out as before; nor is a word split
+over a line end, whose hyphen and line break the line-end hyphen step takes away as layout,
+not code (#913). Block edits (a code block's notice, furniture) and moves claim whole
+blocks and are not touched. A dropped edit is no outcome: the report lists what a rule
+changes, and inside code none does.
 
 A step that raises or returns invalid edits is dropped, with a problem in the result: the
 run never stops halfway (D-61 (3)). `strict=True` raises instead, for tests. Steps from
@@ -49,6 +51,7 @@ from sci2audio.core import (
     check_edits,
 )
 from sci2audio.textprep.furniture import HIDDEN_TAGS, PAGE_BREAK_TAGS
+from sci2audio.textprep.hyphens import HYPHENS, LineEndHyphenStep
 from sci2audio.textprep.links import find_links
 from sci2audio.textprep.plugins import InstalledSteps, PluginError, PluginInfo
 from sci2audio.textprep.registry import BUILT_IN_STEPS, check_registry
@@ -178,7 +181,11 @@ def run_steps(
             problems.append(StepProblem(step.id, said))
             continue
         if step.stage is Stage.INLINE and code:
-            edits = [edit for edit in edits if not _in_code(code, edit.span)]
+            edits = [
+                edit
+                for edit in edits
+                if not _in_code(code, edit.span) or _layout_join(step, edit, document)
+            ]
         for edit in edits:
             if step.category in switched_off:
                 outcomes.append(Outcome(edit, step.category, Status.SWITCHED_OFF))
@@ -278,6 +285,21 @@ def _only_links(text: str) -> bool:
             return False
         at = link.end
     return bool(links) and _AROUND_LINKS.issuperset(text[at:].strip())
+
+
+def _layout_join(step: TextStep, edit: Edit, document: Document) -> bool:
+    """True for the built-in line-end hyphen step's join of a word split over a line end:
+    it takes away the hyphen and the line break that the page's layout put there, no
+    character of the code, so a typewriter word split so reads whole ("matplot-" and "lib"
+    are "matplotlib", #913). Every other edit that touches inline code is dropped."""
+    removed = document.blocks[edit.span.block].text[edit.span.start : edit.span.end]
+    return (
+        isinstance(step, LineEndHyphenStep)
+        and edit.kind is EditKind.REMOVE
+        and len(removed) == 2
+        and removed[0] in HYPHENS
+        and removed[1] == "\n"
+    )
 
 
 def _in_code(code: Mapping[int, list[tuple[int, int]]], span: Span) -> bool:
