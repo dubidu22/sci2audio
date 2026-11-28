@@ -2024,11 +2024,7 @@
         'original': '/',
         'page': 1,
         'printed_page': '39',
-        'reason': '''
-          slash between words "With such examples, we can test understanding
-          of ellipsis by targeting the ellipsis phrase with a
-          simple Yes/No question:" read as "Yes or No"
-        ''',
+        'reason': 'slash between words "Yes/No" read as "Yes or No"',
         'said': ' or ',
         'spoken': True,
         'start': 108,
@@ -2044,11 +2040,7 @@
         'original': '/',
         'page': 1,
         'printed_page': '39',
-        'reason': '''
-          slash between words "(4) The city councilmen refused the demonstra-
-          tors a permit because they feared/advocated
-          violence." read as "feared and advocated"
-        ''',
+        'reason': 'slash between words "feared/advocated" read as "feared and advocated"',
         'said': ' and ',
         'spoken': True,
         'start': 80,
@@ -2064,20 +2056,7 @@
         'original': '/',
         'page': 3,
         'printed_page': '41',
-        'reason': '''
-          slash between words "For each instantiation of a given structure, we pro-
-          duce paired ellipsis and non-ellipsis examples, with
-          an associated Yes/No question. We randomly select
-          1000 examples for each structure, including 500
-          ellipsis examples and 500 examples which are their
-          non-elliptical counterparts. Each example is pre-
-          sented to the system, preceded by the text, “Please
-          give a Yes or No answer:". We test five GPT-3 mod-
-          els on these structures: Davinci-003, Davinci-002,
-          Curie-001, Babbage-001, and Ada-001. According
-          to the GPT-3 documentation, Davinci-003 is the
-          most powerful model and Ada-001, the least." read as "Yes or No"
-        ''',
+        'reason': 'slash between words "Yes/No" read as "Yes or No"',
         'said': ' or ',
         'spoken': True,
         'start': 123,
@@ -2093,11 +2072,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
-          information that names or uniquely identifies individual people or offensive content, and the steps
-          taken to protect / anonymize it?" read as "collected and used"
-        ''',
+        'reason': 'slash between words "collected / used" read as "collected and used"',
         'said': ' and ',
         'spoken': True,
         'start': 82,
@@ -2113,11 +2088,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
-          information that names or uniquely identifies individual people or offensive content, and the steps
-          taken to protect / anonymize it?" read as "protect and anonymize"
-        ''',
+        'reason': 'slash between words "protect / anonymize" read as "protect and anonymize"',
         'said': ' and ',
         'spoken': True,
         'start': 219,
@@ -2133,13 +2104,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-          number of examples in train / validation / test splits, as these provide necessary context for a reader
-          to understand experimental results. For example, small differences in accuracy on large test sets may
-          be significant, while on small test sets they may not be." read as "train, test and dev"
-        ''',
+        'reason': 'slash between words "train / test / dev" read as "train, test and dev"',
         'said': ', ',
         'spoken': True,
         'start': 84,
@@ -2155,13 +2120,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-          number of examples in train / validation / test splits, as these provide necessary context for a reader
-          to understand experimental results. For example, small differences in accuracy on large test sets may
-          be significant, while on small test sets they may not be." read as "train, test and dev"
-        ''',
+        'reason': 'slash between words "train / test / dev" read as "train, test and dev"',
         'said': ' and ',
         'spoken': True,
         'start': 91,
@@ -2177,13 +2136,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-          number of examples in train / validation / test splits, as these provide necessary context for a reader
-          to understand experimental results. For example, small differences in accuracy on large test sets may
-          be significant, while on small test sets they may not be." read as "used and created"
-        ''',
+        'reason': 'slash between words "used / created" read as "used and created"',
         'said': ' and ',
         'spoken': True,
         'start': 137,
@@ -2199,13 +2152,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-          number of examples in train / validation / test splits, as these provide necessary context for a reader
-          to understand experimental results. For example, small differences in accuracy on large test sets may
-          be significant, while on small test sets they may not be." read as "train, validation and test"
-        ''',
+        'reason': 'slash between words "train / validation / test" read as "train, validation and test"',
         'said': ', ',
         'spoken': True,
         'start': 231,
@@ -2221,13 +2168,7 @@
         'original': ' / ',
         'page': 8,
         'printed_page': '46',
-        'reason': '''
-          slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-          etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-          number of examples in train / validation / test splits, as these provide necessary context for a reader
-          to understand experimental results. For example, small differences in accuracy on large test sets may
-          be significant, while on small test sets they may not be." read as "train, validation and test"
-        ''',
+        'reason': 'slash between words "train / validation / test" read as "train, validation and test"',
         'said': ' and ',
         'spoken': True,
         'start': 244,
@@ -2243,11 +2184,7 @@
         'original': '/',
         'page': 9,
         'printed_page': '47',
-        'reason': '''
-          slash between words "D3. Did you discuss whether and how consent was obtained from people whose data you’re
-          using/curating? For example, if you collected data via crowdsourcing, did your instructions to
-          crowdworkers explain how the data would be used?" read as "using and curating"
-        ''',
+        'reason': 'slash between words "using/curating" read as "using and curating"',
         'said': ' and ',
         'spoken': True,
         'start': 92,
@@ -4077,58 +4014,17 @@
   
   ## Characters and hyphenation (94)
   
-  - page 1 (printed 39), chapter 3, applied: “/” → read as “or”. Reason: slash between words "With such examples, we can test understanding
-  of ellipsis by targeting the ellipsis phrase with a
-  simple Yes/No question:" read as "Yes or No". Step: slashes.
-  - page 1 (printed 39), chapter 4, applied: “/” → read as “and”. Reason: slash between words "(4) The city councilmen refused the demonstra-
-  tors a permit because they feared/advocated
-  violence." read as "feared and advocated". Step: slashes.
-  - page 3 (printed 41), chapter 6, applied: “/” → read as “or”. Reason: slash between words "For each instantiation of a given structure, we pro-
-  duce paired ellipsis and non-ellipsis examples, with
-  an associated Yes/No question. We randomly select
-  1000 examples for each structure, including 500
-  ellipsis examples and 500 examples which are their
-  non-elliptical counterparts. Each example is pre-
-  sented to the system, preceded by the text, “Please
-  give a Yes or No answer:". We test five GPT-3 mod-
-  els on these structures: Davinci-003, Davinci-002,
-  Curie-001, Babbage-001, and Ada-001. According
-  to the GPT-3 documentation, Davinci-003 is the
-  most powerful model and Ada-001, the least." read as "Yes or No". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
-  information that names or uniquely identifies individual people or offensive content, and the steps
-  taken to protect / anonymize it?" read as "collected and used". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "✗ B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
-  information that names or uniquely identifies individual people or offensive content, and the steps
-  taken to protect / anonymize it?" read as "protect and anonymize". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-  number of examples in train / validation / test splits, as these provide necessary context for a reader
-  to understand experimental results. For example, small differences in accuracy on large test sets may
-  be significant, while on small test sets they may not be." read as "train, test and dev". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-  number of examples in train / validation / test splits, as these provide necessary context for a reader
-  to understand experimental results. For example, small differences in accuracy on large test sets may
-  be significant, while on small test sets they may not be." read as "train, test and dev". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-  number of examples in train / validation / test splits, as these provide necessary context for a reader
-  to understand experimental results. For example, small differences in accuracy on large test sets may
-  be significant, while on small test sets they may not be." read as "used and created". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-  number of examples in train / validation / test splits, as these provide necessary context for a reader
-  to understand experimental results. For example, small differences in accuracy on large test sets may
-  be significant, while on small test sets they may not be." read as "train, validation and test". Step: slashes.
-  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
-  etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
-  number of examples in train / validation / test splits, as these provide necessary context for a reader
-  to understand experimental results. For example, small differences in accuracy on large test sets may
-  be significant, while on small test sets they may not be." read as "train, validation and test". Step: slashes.
-  - page 9 (printed 47), chapter 13, applied: “/” → read as “and”. Reason: slash between words "D3. Did you discuss whether and how consent was obtained from people whose data you’re
-  using/curating? For example, if you collected data via crowdsourcing, did your instructions to
-  crowdworkers explain how the data would be used?" read as "using and curating". Step: slashes.
+  - page 1 (printed 39), chapter 3, applied: “/” → read as “or”. Reason: slash between words "Yes/No" read as "Yes or No". Step: slashes.
+  - page 1 (printed 39), chapter 4, applied: “/” → read as “and”. Reason: slash between words "feared/advocated" read as "feared and advocated". Step: slashes.
+  - page 3 (printed 41), chapter 6, applied: “/” → read as “or”. Reason: slash between words "Yes/No" read as "Yes or No". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "collected / used" read as "collected and used". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "protect / anonymize" read as "protect and anonymize". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "train / test / dev" read as "train, test and dev". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "train / test / dev" read as "train, test and dev". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "used / created" read as "used and created". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “,”. Reason: slash between words "train / validation / test" read as "train, validation and test". Step: slashes.
+  - page 8 (printed 46), chapter 13, applied: “/” → read as “and”. Reason: slash between words "train / validation / test" read as "train, validation and test". Step: slashes.
+  - page 9 (printed 47), chapter 13, applied: “/” → read as “and”. Reason: slash between words "using/curating" read as "using and curating". Step: slashes.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 2, applied: “-↵” → left out. Reason: word split at a line end joined: "examples" (the document prints it so). Step: line-end-hyphens.
   - page 1 (printed 39), chapter 3, applied: “-↵” → left out. Reason: word split at a line end joined: "language" (the document prints it so). Step: line-end-hyphens.
