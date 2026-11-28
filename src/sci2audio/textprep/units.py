@@ -49,6 +49,7 @@ import unicodedata
 from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from functools import cache
+from types import MappingProxyType
 
 from sci2audio.core import Document, Edit, EditKind, Span
 from sci2audio.textprep.footnotes import (
@@ -65,7 +66,7 @@ from sci2audio.textprep.notation import (
     in_ascii_run,
 )
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import Reading, holding, readings_of, words_of
+from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.wordlists import Unit, UnitList, opens_sentence, units
 
@@ -153,15 +154,15 @@ _LOGIC_ARROW = re.compile(DOUBLE_ARROW)
 # minus signs and a right arrow: one arrow to the numbers step (`notation.arrows`)
 _PIECED_RIGHT_ARROW = re.compile("\u2212+\u2192")
 _LOGIC_ARROW_BEFORE = re.compile(f"(?:{DOUBLE_ARROW}) *\\Z")
-# the statistics step's English readings of those signs, which count as the signs around "2x"
-# ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose says
-# "less than 2x slower" (D-605). Longest first.
-_SAID_OPERATORS_EN = ("less than or equal to", "greater than or equal to", "equals")
+# the statistics step's English readings of "≤", "≥" and "=", which count as the signs around
+# "2x" ("equals 4x" as "= 4x", #320); a bare "less than" or "greater than" does not, as prose
+# says "less than 2x slower" (D-605). From the readings, longest first (#1113).
+_SAID_SIGNS_EN = ("\u2264", "\u2265", "=")
 # ... and a bare "less than" / "greater than" counts after a one-letter variable or a closing
 # bracket: "y less than 2x" is the reading of "y < 2x" (#358, D-646). Not after "a", "A", "I"
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
-# after the first run), filled in by `_compiled`
-_COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:less|greater) than *\Z"
+# after the first run), filled in by `_compiled`; the words are the statistics step's "<", ">"
+_COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:{compared}) *\Z"
 # the characters that join a "<" or ">" to the sign before it ("<<", "=<", "->"): the
 # statistics step then leaves it as printed (its `_ARROW`), so it stays a sign on a second run
 _JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
@@ -183,7 +184,7 @@ _MINUS_SAID_AFTER_EN = re.compile(r"\s+minus\s+\.?\d")
 # after "Nx", a bare "less than" / "greater than" counts as the sign before a one-letter
 # variable (not "a", "A", "I", which are words) or an opening bracket, mirroring
 # `_COMPARED_EN`: "3x greater than y" is the reading of "3x > y" (#1010, D-646)
-_COMPARED_AFTER_EN = re.compile(r"\s*(?:less|greater) than\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()")
+_COMPARED_AFTER_EN = r"\s*(?:{compared})\s+(?:(?![aAI]\b)[A-Za-z](?!\w|\.\w)|\()"
 # the reading of a power ("A⁻¹" is "A to the power of minus 1", "5 A²" "5 Ampere hoch 2"): its
 # number is an exponent, no unit's number, so a second run reads "A⁻¹ K" as the first did (#816)
 _POWER_SAID = {
@@ -436,7 +437,7 @@ def _compiled(language: str) -> _Table | None:
     said_words = (
         sorted(set(words_of("statistics", "de").signs.values()), key=len, reverse=True)
         if german
-        else _SAID_OPERATORS_EN
+        else _said_operators_en()
     )
     said = re.compile("|".join(map(re.escape, said_words)))
     kept = re.compile(FILE_NUMBER_DE if german else r"(?!)")
@@ -457,9 +458,46 @@ def _compiled(language: str) -> _Table | None:
     )
 
 
+@cache
+def _said_operators_en() -> tuple[str, ...]:
+    signs = words_of("statistics", "en").signs
+    return tuple(sorted({signs[sign] for sign in _SAID_SIGNS_EN}, key=len, reverse=True))
+
+
+@cache
+def _compared() -> str:
+    """The statistics step's English words for "<" and ">", as one alternation."""
+    signs = words_of("statistics", "en").signs
+    return "|".join(re.escape(signs[sign]) for sign in ("<", ">"))
+
+
+@cache
+def _compared_after_en() -> re.Pattern[str]:
+    return re.compile(_COMPARED_AFTER_EN.replace("{compared}", _compared()))
+
+
+def words(language: str) -> Words:
+    """The words the step says for its signs wherever it reads them (#1113): what a second
+    run finds where "×", "≈", "~" and "∼" were printed."""
+    listed = units(language)
+    if listed is None:
+        return Words()
+    said = listed.words
+    return Words(
+        signs=MappingProxyType(
+            {
+                "\u00d7": said["times"],
+                "\u2248": said["approximately"],
+                "~": said["about"],
+                "\u223c": said["about"],
+            }
+        )
+    )
+
+
 def _compared_en(by_form: dict[str, Unit]) -> re.Pattern[str]:
     letters = "".join(sorted(f for f in by_form if len(f) == 1 and f.isascii() and f.isalpha()))
-    return re.compile(_COMPARED_EN.replace("{units}", letters))
+    return re.compile(_COMPARED_EN.replace("{units}", letters).replace("{compared}", _compared()))
 
 
 def _boundary(text: str, position: int) -> bool:
@@ -853,7 +891,7 @@ def _in_algebra(
         return True  # "y less than 2x" (#358, D-646)
     if english and _minus_said_before(text, start):
         return True  # "minus 3x", the reading of a minus sign before "3x" (#997)
-    if english and (_MINUS_SAID_AFTER_EN.match(text, end) or _COMPARED_AFTER_EN.match(text, end)):
+    if english and (_MINUS_SAID_AFTER_EN.match(text, end) or _compared_after_en().match(text, end)):
         return True  # "3x minus 2", "3x greater than y": the readings of signs after "3x"
     before = head[-1:]
     before_at = max(0, start - len(times) - 3) + len(head) - 1
@@ -897,7 +935,7 @@ def _bare_comparison_after(text: str, sign: str, at: int) -> bool:
     if sign not in ("<", ">") or not _read_alone(text, at):
         return False
     said_after = " less than " + text[at + 1 : at + 33].lstrip()
-    return _COMPARED_AFTER_EN.match(said_after) is None
+    return _compared_after_en().match(said_after) is None
 
 
 def _read_alone(text: str, at: int) -> bool:

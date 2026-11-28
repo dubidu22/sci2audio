@@ -156,7 +156,7 @@ def _finders() -> dict[str, Finder]:
     from sci2audio.textprep import abbreviations, statistics, units
 
     return {
-        "units": Finder(units.find_readings, asks=("statistics",)),
+        "units": Finder(units.find_readings, asks=("statistics",), words=units.words),
         "statistics": Finder(
             statistics.find_readings, asks=("abbreviations",), words=statistics.words
         ),
