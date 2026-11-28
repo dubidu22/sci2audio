@@ -3846,6 +3846,29 @@ expected = [
 ]
 
 [[case]]
+id = "de-links-the-marks-around-a-removed-link-go-with-it"
+audit = 0
+issue = 899
+goal = "As in English: quotes, typographic quotes, guillemets in both orders and emphasis marks that hold only a removed link go with it, and the sentence is repaired as for a bare link; a full stop before a lower-case word goes with the link; a word glued after the closing guillemet stays a word (#899, #837)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es ist unter ‚https://example.org/a‘ für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter „https://example.org/a“ für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter »https://example.org/a« für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter *https://example.org/a* für alle verfügbar." },
+    { kind = "paragraph", text = "Es ist unter https://example.org/a. für alle verfügbar." },
+    { kind = "paragraph", text = "Siehe »https://a.org«Smith." },
+]
+expected = [
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Es ist für alle verfügbar.",
+    "Siehe Smith.",
+]
+
+[[case]]
 id = "de-an-arrow-before-a-lone-negation-sign-stays-as-printed"
 audit = 0
 issue = 853
@@ -3863,4 +3886,3 @@ expected = [
     "Also A ⇔ ¬.",
     "Also A daraus folgt ¬B.",
 ]
-

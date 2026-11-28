@@ -341,12 +341,17 @@ def find_readings(text: str, language: str) -> list[Reading]:
 
 
 def words(language: str) -> Words:
-    """The words the step says that other steps must know (#1114): what a slash between
-    numbers reads, its readings of more than one word, and the month names of its dates."""
+    """The words the step says that other steps must know (#1114, #1193): what a slash
+    between numbers, a minus sign and a power read, its readings of more than one word, and
+    the month names of its dates."""
     if language.split("-", 1)[0].lower() == "de":
-        return Words(joined=frozenset({"hoch minus", *FRACTIONS_OF_ONE}), months=tuple(MONTHS))
+        return Words(
+            signs=MappingProxyType({"\u2212": "minus", "^": "hoch"}),
+            joined=frozenset({"hoch minus", *FRACTIONS_OF_ONE}),
+            months=tuple(MONTHS),
+        )
     return Words(
-        signs=MappingProxyType({"/": OUT_OF}),
+        signs=MappingProxyType({"/": OUT_OF, "\u2212": "minus", "^": "to the power of"}),
         joined=frozenset({"to the power of", "to the power of minus"}),
         months=tuple(calendar.month_name[1:]),
     )
