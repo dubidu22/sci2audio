@@ -14,8 +14,11 @@ class AudioChunk:
     """One audio file of the voice and the original span it reads.
 
     `file` is relative to the job's working folder, with forward slashes, so a job folder
-    can move and snapshots hold no machine-specific paths. Output uses the spans for
-    chapters and the durations for read-along timing.
+    can move and snapshots hold no machine-specific paths. It is a 16-bit mono PCM WAV at
+    the job's one sample rate, the only form output takes (D-117). Output uses the spans
+    for chapters, and times the chapters and the read-along from each file's frame count.
+    `duration` is the voice's own figure: for progress and estimates, and part of what
+    identifies a made chapter, never for timing.
     """
 
     span: Span

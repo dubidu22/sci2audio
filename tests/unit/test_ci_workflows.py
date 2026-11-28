@@ -39,6 +39,37 @@ def block(text: str, header: str) -> str:
     return "\n".join(out)
 
 
+def test_the_whitespace_hooks_leave_the_golden_files_and_the_corpus_alone() -> None:
+    """#176: both are stored byte for byte; a hook that strips a trailing space or adds a
+    last newline changes a golden file silently, and its snapshot tests then fail.
+    pre-commit matches `exclude` with re.search against each file's path."""
+    config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    kept = [
+        p.relative_to(ROOT).as_posix()
+        for p in sorted((ROOT / "tests").rglob("*"))
+        if p.is_file() and ("__snapshots__" in p.parts or "corpus" in p.parts)
+    ]
+    assert any("__snapshots__" in p for p in kept)
+    assert any(p.startswith("tests/corpus/") for p in kept)
+    for hook in ("end-of-file-fixer", "trailing-whitespace"):
+        found = re.search(rf"^      - id: {hook}\n        exclude: (.+)$", config, re.M)
+        assert found, hook
+        exclude = re.compile(found[1].strip())
+        assert [p for p in kept if not exclude.search(p)] == [], hook
+        for checked in ("tests/unit/test_ci_workflows.py", "src/sci2audio/cli.py", "README.md"):
+            assert not exclude.search(checked), (hook, checked)
+
+
+def test_ci_passed_needs_the_type_check() -> None:
+    """#1104: src/ has no type errors since #1100-#1103, so a PR that adds one cannot
+    merge. "CI passed" skips a job named "reported only", so the name no longer says so."""
+    job = block(CI, "  types:")
+    assert "    name: types (pyright)" in job
+    assert "reported only" not in job
+    assert "uv run --no-sync pyright > pyright.txt || status=$?" in job
+    assert 'exit "$status"' in job
+
+
 def test_ci_runs_on_no_label() -> None:
     trigger = block(CI, "  pull_request:")
     assert re.search(r"^\s+types: \[opened, synchronize, reopened\]$", trigger, re.M), trigger
@@ -51,7 +82,7 @@ def test_ci_passed_fails_on_any_job_that_did_not_succeed() -> None:
     # the job's own condition, at the job's indent: a step's "if: always()" does not count
     # (#364); it reports in a cancelled run too, never skipped
     assert re.search(r"^    if: always\(\)$", job, re.M), job
-    assert "needs: [lint, licences, security, tests, browser, web-paths]" in job
+    assert "needs: [lint, licences, security, types, tests, browser, web-paths]" in job
     for result in ("failure", "cancelled", "skipped"):
         assert f"contains(needs.*.result, '{result}')" in job
 
@@ -526,12 +557,22 @@ def test_one_shard_script_serves_the_browser_jobs_and_the_fast_suite() -> None:
         assert "browser_shard.py" not in text
 
 
+def test_the_quarantine_summary_names_the_next_release_not_a_past_one() -> None:
+    """#817: v1.0 shipped and #80 is closed; a quarantined test is fixed before the next
+    release (D-739), in the job summary as in the banner pytest prints."""
+    lint = block(CI, "  lint:")
+    step = block(lint, "      - name: Quarantined tests (listed in the job summary)")
+    assert "before the next release" in step
+    assert "v1.0" not in step
+    assert "#80" not in step
+
+
 def test_the_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
     """The quarantine banner names a test with "::" too; read as a test it made the shard's
     argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698)."""
     listing = "\n".join(
         [
-            "1 quarantined test(s), all to be fixed before v1.0 (D-374, #80):",
+            "1 quarantined test(s), each to be fixed before the next release (D-374, D-739):",
             "  #697 tests/browser/test_flow.py::test_resume[firefox]",
             "tests/browser/test_flow.py::test_open[firefox]",
             "tests/browser/test_flow.py::test_resume[firefox]",
@@ -631,7 +672,7 @@ def test_a_runs_wait_is_from_its_start_to_the_end_of_ci_passed() -> None:
     jobs = [
         ended("tests (ubuntu-latest, 1/3)", "2026-11-28T10:04:00Z"),
         ended("CI passed", "2026-11-28T10:05:30Z"),
-        ended("types (pyright, reported only)", "2026-11-28T10:09:00Z", "failure"),
+        ended("browser (Linux, webkit, 1/2, reported only)", "2026-11-28T10:09:00Z", "failure"),
     ]
     assert pr_wait_script().minutes_to_ci_passed(pr_run(), jobs) == 5.5
 

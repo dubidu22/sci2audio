@@ -277,7 +277,8 @@ def _decode(data: bytes) -> Decoded:
     try:
         return Decoded(data.decode("utf-8"), "utf-8", guessed=False)
     except UnicodeDecodeError:
-        text, _ = codecs.charmap_decode(data, "strict", _WINDOWS_1252)
+        # typeshed knows only the dict and encoding-map forms; CPython takes this table too
+        text, _ = codecs.charmap_decode(data, "strict", _WINDOWS_1252)  # pyright: ignore[reportArgumentType]
         return Decoded(text, "windows-1252", guessed=True)
 
 

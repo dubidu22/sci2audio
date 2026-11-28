@@ -129,6 +129,8 @@ uv run lint-imports           # layer rules
 uv run pre-commit install     # run checks before every commit
 ```
 
+**On macOS, keep the clone outside folders iCloud syncs** (Desktop and Documents, when "Desktop & Documents" is on in iCloud Drive). The sync can set the macOS hidden flag on the `.pth` files in `.venv`, and Python 3.12 skips hidden `.pth` files. Then `uv run sci2audio` fails with `No module named 'sci2audio'` some time after a `uv sync` that worked (#255). `chflags -R nohidden .venv` fixes it at once. Stray copies named "… 2" come from the same sync. Installing from PyPI or with an installer is not affected: those files live outside your folders.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how work is planned and reviewed.
 
 ## Licence

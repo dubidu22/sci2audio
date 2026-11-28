@@ -60,6 +60,7 @@ from sci2audio.app import (
     kokoro_voice,
     language_warning,
     load_settings,
+    own_warnings_only,
     script_files,
 )
 from sci2audio.app.chunks import CHUNKS, cache_size
@@ -1263,6 +1264,7 @@ def _fail(env: CliEnv, message: str, code: Exit) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    own_warnings_only()  # sci2audio's own warnings, never a library's (#143)
     # A packaged build starts itself again for each PDF reader process (D-581); this hands
     # such a start to the reader. In a plain Python install it does nothing.
     multiprocessing.freeze_support()
