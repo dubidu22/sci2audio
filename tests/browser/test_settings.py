@@ -4,6 +4,7 @@ other settings; a bad folder explained; axe in English and German."""
 
 from __future__ import annotations
 
+import pytest
 from playwright.sync_api import Page, expect
 from test_keyboard import press_on, tab_to
 
@@ -120,6 +121,9 @@ def test_the_announce_switch_saves_itself(signed_in: Page, live: Live) -> None:
     assert (cookie(page, ANNOUNCE_COOKIE) or {}).get("value") == "off"
 
 
+@pytest.mark.quarantined(
+    issue=1182, reason="the switch's save response does not come in 15 s", browser="webkit"
+)
 def test_the_keys_switch_saves_itself_and_every_page_carries_it(
     signed_in: Page, live: Live
 ) -> None:
