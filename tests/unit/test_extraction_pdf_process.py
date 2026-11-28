@@ -10,6 +10,7 @@ comes back from the child stays small too.
 
 from __future__ import annotations
 
+import logging
 import operator
 import os
 import signal
@@ -293,6 +294,30 @@ def test_a_child_within_the_limit_gives_its_result() -> None:
         operator.add, (2, 3), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)
     )
     assert result == 5
+
+
+def test_what_the_child_logs_reaches_this_processs_logging(
+    caplog: pytest.LogCaptureFixture, capfd: pytest.CaptureFixture[str]
+) -> None:
+    """The child sets no policy of its own: each record it logs is handed to this process's
+    logging, whose set-up at start-up decides what reaches the person (#1258, #143)."""
+    import reader_targets
+
+    with caplog.at_level(logging.WARNING):
+        result = isolate.run(
+            reader_targets.logs_then_returns,
+            (5,),
+            memory=1024**3,
+            step_seconds=60,
+            readers=isolate.Readers(1),
+        )
+    assert result == 5
+    assert [(r.name, r.levelno, r.getMessage()) for r in caplog.records] == [
+        ("sci2audio.extraction.pdf", logging.WARNING, "own warning in the reader child"),
+        ("pypdfium2._helpers", logging.WARNING, "library warning in the reader child"),
+        ("pypdfium2._helpers", logging.ERROR, "library error in the reader child"),
+    ]
+    assert "in the reader child" not in capfd.readouterr().err  # the child prints nothing
 
 
 def test_an_error_in_the_child_is_raised_here() -> None:
