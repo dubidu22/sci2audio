@@ -1613,15 +1613,10 @@ def captures_page(
         chosen=chosen,
         counts=counts,
         any_shown=any(not group["hidden"] for group in groups),
-        # the files take what the filters show (#399); the folder starts as the audiobooks'
+        # the files take what the filters show (#399); the folder starts as the audiobooks'.
+        # No Zotero (RIS) file while that export is on hold (#1050, #705): its writer and the
+        # API's "ris" format stay, so bringing it back is its entry here and its strings.
         export_targets=[
-            {
-                "id": "ris",
-                "icon": "quote",
-                "name": s("export.ris"),
-                "text": s("export.ris_text"),
-                "save": s("export.save_ris"),
-            },
             {
                 "id": "md",
                 "icon": "note",

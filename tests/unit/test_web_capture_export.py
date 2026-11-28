@@ -593,7 +593,7 @@ def test_an_unreadable_captures_file_is_left_out_and_left_as_it_is(
 # ---- the page ---------------------------------------------------------------------------
 
 
-def test_the_page_offers_the_three_files_each_with_its_folder(studied: dict[str, Any]) -> None:
+def test_the_page_offers_the_two_files_each_with_its_folder(studied: dict[str, Any]) -> None:
     client, config = studied["client"], studied["config"]
     root = page(client)
     aside = root.by_id("capture-export")
@@ -603,8 +603,9 @@ def test_the_page_offers_the_three_files_each_with_its_folder(studied: dict[str,
     assert count is not None
     assert count.text == "Saves the 4 captures shown."
     targets = aside.all("target")
-    assert [t.attrs.get("data-format") for t in targets] == ["ris", "md", "csv"]
-    assert [t.one(tag="h3").text for t in targets] == ["Zotero", "Obsidian", "Table"]
+    # no Zotero (RIS) file while that export is on hold (#1050); the API still writes one
+    assert [t.attrs.get("data-format") for t in targets] == ["md", "csv"]
+    assert [t.one(tag="h3").text for t in targets] == ["Obsidian", "Table"]
     for target in targets:
         form = target.attrs["data-format"]
         field = target.by_id(f"export-folder-{form}")
@@ -636,7 +637,7 @@ def test_the_export_in_german(studied: dict[str, Any]) -> None:
     aside = root.by_id("capture-export")
     assert aside is not None
     assert aside.one(tag="h2").text == "Als Dateien speichern"
-    assert [t.one(tag="h3").text for t in aside.all("target")] == ["Zotero", "Obsidian", "Tabelle"]
+    assert [t.one(tag="h3").text for t in aside.all("target")] == ["Obsidian", "Tabelle"]
     state = aside.by_id("export-state-csv")
     assert state is not None
     assert state.text == "Noch nicht gespeichert"
