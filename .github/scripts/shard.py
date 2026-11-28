@@ -35,8 +35,10 @@ def shard(tests: list[str], number: int, total: int) -> list[str]:
 
 
 def collect_only(args: list[str]) -> str:
-    """A collection runs no test, so syrupy reads every snapshot as unused and would exit 1."""
-    return subprocess.run(  # noqa: S603 (this Python running pytest, no shell)
+    """A collection runs no test, so syrupy reads every snapshot as unused and would exit 1.
+    A collection that fails stops the step with pytest's own output: the file that failed
+    to import and its error (#1256)."""
+    ran = subprocess.run(  # noqa: S603 (this Python running pytest, no shell)
         [
             sys.executable,
             "-m",
@@ -48,10 +50,16 @@ def collect_only(args: list[str]) -> str:
             "no:cacheprovider",
             "--snapshot-warn-unused",
         ],
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
-    ).stdout
+    )
+    if ran.returncode != 0:
+        sys.stderr.write(ran.stdout + ran.stderr)
+        sys.exit(
+            f"collecting the tests failed (pytest exit {ran.returncode}); see its output above"
+        )
+    return ran.stdout
 
 
 def main(
