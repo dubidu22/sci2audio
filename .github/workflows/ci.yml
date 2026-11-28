@@ -51,6 +51,12 @@ jobs:
         run: uv run deptry src
       - name: No working files on this branch (D-874)
         run: python3 .github/scripts/working_files.py
+      # the hooks of .pre-commit-config.yaml on every file: conflict markers, large files,
+      # secrets, line ends (#1227); ruff and the layer rules run as their own steps above
+      - name: Pre-commit hooks (conflict markers, secrets, whitespace)
+        env:
+          SKIP: ruff-check,ruff-format,lint-imports
+        run: uv run pre-commit run --all-files --show-diff-on-failure
       # D-374, D-739: a flaky test is skipped with a linked issue and fixed before the next release.
       - name: Quarantined tests (listed in the job summary)
         run: |

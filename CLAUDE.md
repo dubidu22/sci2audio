@@ -36,7 +36,7 @@ Also `risk:high`, and so critical: licences and third-party content; anything th
 ## Commands
 
 ```bash
-uv sync                        # set up
+uv sync && uv run pre-commit install   # set up; the hook stops a commit with conflict markers
 uv run pytest -m "not slow and not benchmark and not browser"   # fast tests (as in CI)
 uv run playwright install chromium  # once: the browser for the browser tests
 uv run pytest -m browser       # the interface in Chromium (main flow, keyboard, axe-core)
@@ -48,6 +48,9 @@ uv run ruff check --fix        # lint and fix
 uv run ruff format             # format
 uv run lint-imports            # layer rules
 uv run deptry src              # unused or missing dependencies
+scripts/precheck.sh            # every check before a PR, stops at the first failure; in a git worktree too, on the clone's .venv
+uv run python scripts/corpus_diff.py [REF]          # corpus output here vs REF (default origin/main)
+uv run python scripts/second_run.py en "TEXT" ...   # a text's first and second run (D-577)
 ```
 
 ## More rules
@@ -61,7 +64,7 @@ Work follows Matt Pocock's skills (the `mattpocock-skills` plugin): grill a chan
 
 1. **Scope** is an issue the owner has marked `ready-for-agent`. Anything else becomes a new issue (`needs-triage`), never part of the current PR.
 2. **Branches.** One issue, or a few related ones, per branch and PR. Never commit to `main`, never force-push, never merge.
-3. **Before opening a PR** run `uv run ruff check && uv run ruff format --check && uv run lint-imports && uv run deptry src && uv run pytest -m "not slow and not benchmark and not browser"`.
+3. **Before opening a PR** run `scripts/precheck.sh` (ruff, format, layers, deptry, pyright, fast tests).
 4. **Tests first.** A failing test before a bug fix. Never weaken or delete a test to get green; if a test is wrong, say why in the PR.
 5. **Decisions.** Domain terms go in `GLOSSARY.md`, architecture decisions in `docs/adr/`. A ruling that outlasts a PR but is too small for an ADR (how a text reads) is one dated line in a file of its own, `docs/decisions/<YYYY-MM-DD>-<issue>.md`, in that PR (`docs/decisions.md` is the archive up to 2026-11-28).
 6. **Comments and files.** A comment says why the code is as it is, never what it does or what changed. Create no file the issue does not ask for (no summary or notes files): report in the PR body.
