@@ -1,8 +1,8 @@
-"""The Captures page's files (#399, ADR-008 2.1 item 7, D-850): Zotero (RIS), Obsidian
-(Markdown) and the table (CSV), each saved into a folder typed beside it; a file already
-there is replaced only after "Replace it", "Keep it" and Escape leave it; a folder that is
-not there is named. By keyboard, with axe in light, dark and German, reduced motion, no
-highlighter on a button, and at 1440 and 1280 px."""
+"""The Captures page's files (#399, ADR-008 2.1 item 7, D-850): Obsidian (Markdown) and
+the table (CSV), Zotero (RIS) on hold (#1050), each saved into a folder typed beside it; a
+file already there is replaced only after "Replace it", "Keep it" and Escape leave it; a
+folder that is not there is named. By keyboard, with axe in light, dark and German, reduced
+motion, no highlighter on a button, and at 1440 and 1280 px."""
 
 from __future__ import annotations
 
@@ -26,6 +26,29 @@ def state(page: Page, form: str) -> object:
     return page.locator(f"#export-state-{form}")
 
 
+def test_the_files_offered_are_obsidian_and_the_table_in_english_and_german(
+    signed_in: Page, live: Live
+) -> None:
+    """#1050: the Zotero export is on hold by Colin's decision (24 Nov 2026), so the page
+    offers no RIS file; the API's `ris` format and its writer stay."""
+    page = signed_in
+    captured(page, live)
+    open_captures(page)
+    targets = page.locator("#capture-export .target")
+    for language, names in (("en", ["Obsidian", "Table"]), ("de", ["Obsidian", "Tabelle"])):
+        page.set_extra_http_headers({"Accept-Language": language})
+        page.reload()
+        page.wait_for_load_state("load")
+        expect(page.locator("html")).to_have_attribute("lang", language)
+        expect(targets).to_have_count(2)
+        expect(targets.locator("h3")).to_have_text(names)
+        assert targets.evaluate_all("(ts) => ts.map((t) => t.dataset.format)") == ["md", "csv"]
+        expect(page.locator("#export-folder-ris")).to_have_count(0)
+        expect(page.locator("#capture-export")).not_to_contain_text("Zotero")
+        expect(page.locator("#capture-export")).not_to_contain_text("RIS")
+    page.set_extra_http_headers({})
+
+
 def test_save_ask_before_replacing_keep_and_a_missing_folder(signed_in: Page, live: Live) -> None:
     page = signed_in
     captured(page, live)
@@ -40,51 +63,51 @@ def test_save_ask_before_replacing_keep_and_a_missing_folder(signed_in: Page, li
     page.locator('.cap-kinds button[data-kind="all"]').click()
     expect(page.locator("#export-count")).to_have_text("Saves the 3 captures shown.")
     # each folder field is named by its target
-    for form, name in (("ris", "Zotero"), ("md", "Obsidian"), ("csv", "Table")):
+    for form, name in (("md", "Obsidian"), ("csv", "Table")):
         expect(page.locator(f"#export-folder-{form}")).to_have_accessible_name(f"Folder {name}")
-    # Zotero: saved into the folder typed
-    page.locator("#export-folder-ris").fill(str(folder))
-    save = page.locator("#export-save-ris")
-    expect(save).to_have_text("Save RIS file")
+    # Obsidian: saved into the folder typed
+    page.locator("#export-folder-md").fill(str(folder))
+    save = page.locator("#export-save-md")
+    expect(save).to_have_text("Save Markdown file")
     save.click()
-    expect(state(page, "ris")).to_have_text(f"Saved as Captures.ris in {folder}.")
-    expect(state(page, "ris")).to_have_attribute("data-state", "saved")
-    target = folder / "Captures.ris"
-    assert target.read_bytes().startswith(b"TY  - GEN\r\n")
+    expect(state(page, "md")).to_have_text(f"Saved as Captures.md in {folder}.")
+    expect(state(page, "md")).to_have_attribute("data-state", "saved")
+    target = folder / "Captures.md"
+    assert target.read_bytes().startswith(b"# ")
     # again: the file is there, so the target asks, and nothing is written yet
     target.write_bytes(b"mine")
     save.click()
-    ask = page.locator("#export-ask-ris")
+    ask = page.locator("#export-ask-md")
     expect(ask).to_be_visible()
-    expect(page.locator("#export-ask-ris-title")).to_have_text(
-        "Captures.ris is in this folder already."
+    expect(page.locator("#export-ask-md-title")).to_have_text(
+        "Captures.md is in this folder already."
     )
-    expect(page.locator("#export-ask-ris-title")).to_be_focused()
+    expect(page.locator("#export-ask-md-title")).to_be_focused()
     assert target.read_bytes() == b"mine"
     ask.get_by_role("button", name="Keep it").click()
     expect(ask).to_be_hidden()
-    expect(state(page, "ris")).to_have_text("Nothing saved. Captures.ris stays as it was.")
+    expect(state(page, "md")).to_have_text("Nothing saved. Captures.md stays as it was.")
     expect(save).to_be_focused()
     assert target.read_bytes() == b"mine"
     # only "Replace it" replaces it
     save.click()
     ask.get_by_role("button", name="Replace it").click()
-    expect(state(page, "ris")).to_have_text(f"Saved as Captures.ris in {folder}.")
-    assert target.read_bytes().startswith(b"TY  - GEN\r\n")
+    expect(state(page, "md")).to_have_text(f"Saved as Captures.md in {folder}.")
+    assert target.read_bytes().startswith(b"# ")
     expect(save).to_be_focused()
-    # Obsidian into a folder that is not there: named, nothing made
-    missing = folder / "not-there"
-    page.locator("#export-folder-md").fill(str(missing))
-    page.locator("#export-save-md").click()
-    expect(state(page, "md")).to_contain_text("Not saved. That folder does not exist")
-    expect(state(page, "md")).to_have_attribute("data-state", "failed")
-    assert not missing.exists()
-    # the table, in the default folder: the audiobook folder
+    # the table starts in the default folder, the audiobook folder; into a folder that is
+    # not there: named, nothing made
     expect(page.locator("#export-folder-csv")).to_have_value(str(live.config.output_folder))
+    missing = folder / "not-there"
+    page.locator("#export-folder-csv").fill(str(missing))
+    page.locator("#export-save-csv").click()
+    expect(state(page, "csv")).to_contain_text("Not saved. That folder does not exist")
+    expect(state(page, "csv")).to_have_attribute("data-state", "failed")
+    assert not missing.exists()
     page.locator("#export-folder-csv").fill(str(folder))
     page.locator("#export-save-csv").click()
     expect(state(page, "csv")).to_have_text(f"Saved as Captures.csv in {folder}.")
-    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv", "Captures.ris"]
+    assert sorted(p.name for p in folder.iterdir()) == ["Captures.csv", "Captures.md"]
     assert live.outside == []  # no request left the test server
 
 
@@ -98,16 +121,16 @@ def test_replace_it_replaces_only_the_file_the_question_named(signed_in: Page, l
     a, b = folder_of(live) / "a", folder_of(live) / "b"
     for folder in (a, b):
         folder.mkdir()
-        (folder / "Captures.ris").write_bytes(b"mine")
-        (folder / "paper.ris").write_bytes(b"mine too")
-    field, save = page.locator("#export-folder-ris"), page.locator("#export-save-ris")
-    ask = page.locator("#export-ask-ris")
+        (folder / "Captures.md").write_bytes(b"mine")
+        (folder / "paper.md").write_bytes(b"mine too")
+    field, save = page.locator("#export-folder-md"), page.locator("#export-save-md")
+    ask = page.locator("#export-ask-md")
     field.fill(str(a))
     save.click()
     expect(ask).to_be_visible()
     field.fill(str(b))  # another folder typed: the question was about A
     expect(ask).to_be_hidden()
-    expect(state(page, "ris")).to_have_text("Nothing saved. Captures.ris stays as it was.")
+    expect(state(page, "md")).to_have_text("Nothing saved. Captures.md stays as it was.")
     # a filter changed: the question was about what was shown before
     save.click()
     expect(ask).to_be_visible()
@@ -115,31 +138,29 @@ def test_replace_it_replaces_only_the_file_the_question_named(signed_in: Page, l
     expect(ask).to_be_hidden()
     page.locator('.cap-kinds button[data-kind="quote"]').click()
     save.click()
-    expect(page.locator("#export-ask-ris-title")).to_have_text(
-        "paper.ris is in this folder already."
-    )
+    expect(page.locator("#export-ask-md-title")).to_have_text("paper.md is in this folder already.")
     page.locator('.cap-kinds button[data-kind="all"]').click()
     expect(ask).to_be_hidden()
     for folder in (a, b):
-        assert (folder / "Captures.ris").read_bytes() == b"mine"
-        assert (folder / "paper.ris").read_bytes() == b"mine too"
+        assert (folder / "Captures.md").read_bytes() == b"mine"
+        assert (folder / "paper.md").read_bytes() == b"mine too"
     # the yes sends the request asked about: B, the one document, quotes only
     page.locator('.cap-kinds button[data-kind="quote"]').click()
     save.click()
     with page.expect_request("**/api/v1/captures/export") as sent:
         ask.get_by_role("button", name="Replace it").click()
     assert sent.value.post_data_json == {
-        "format": "ris",
+        "format": "md",
         "folder": str(b),
         "type": "quote",
         "document": made["document"],
-        "file": "paper.ris",
+        "file": "paper.md",
         "overwrite": True,
     }
-    expect(state(page, "ris")).to_have_text(f"Saved as paper.ris in {b}.")
-    assert (b / "paper.ris").read_bytes().startswith(b"TY  - GEN\r\n")
-    assert (b / "Captures.ris").read_bytes() == b"mine"
-    assert (a / "paper.ris").read_bytes() == b"mine too"
+    expect(state(page, "md")).to_have_text(f"Saved as paper.md in {b}.")
+    assert (b / "paper.md").read_bytes().startswith(b"# ")
+    assert (b / "Captures.md").read_bytes() == b"mine"
+    assert (a / "paper.md").read_bytes() == b"mine too"
 
 
 def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
@@ -154,20 +175,20 @@ def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
     a, b = folder_of(live) / "a", folder_of(live) / "b"
     for folder in (a, b):
         folder.mkdir()
-        (folder / "Captures.ris").write_bytes(b"mine")
+        (folder / "Captures.md").write_bytes(b"mine")
     held: list[Route] = []
 
     def hold(route: Route) -> None:
         held.append(route)
 
     page.route("**/api/v1/captures/export", hold)
-    field, save = page.locator("#export-folder-ris"), page.locator("#export-save-ris")
-    ask = page.locator("#export-ask-ris")
-    kept = "Nothing saved. Captures.ris stays as it was."
+    field, save = page.locator("#export-folder-md"), page.locator("#export-save-md")
+    ask = page.locator("#export-ask-md")
+    kept = "Nothing saved. Captures.md stays as it was."
     for change in ("folder", "type"):
         field.fill(str(a))
         save.click()
-        expect(state(page, "ris")).to_have_text("Saving…")
+        expect(state(page, "md")).to_have_text("Saving…")
         for _ in range(200):  # the handler runs while the page is waited on
             if held:
                 break
@@ -178,12 +199,12 @@ def test_an_answer_that_comes_after_the_folder_or_a_filter_changed_asks_nothing(
         else:
             page.locator('.cap-kinds button[data-kind="quote"]').click()
         held.pop().continue_()
-        expect(state(page, "ris")).to_have_text(kept)
+        expect(state(page, "md")).to_have_text(kept)
         expect(ask).to_be_hidden()
         page.locator('.cap-kinds button[data-kind="all"]').click()
     page.unroute("**/api/v1/captures/export")
     for folder in (a, b):
-        assert (folder / "Captures.ris").read_bytes() == b"mine"
+        assert (folder / "Captures.md").read_bytes() == b"mine"
     # unchanged while it was on its way: the question comes as before
     field.fill(str(a))
     save.click()
@@ -348,11 +369,11 @@ def test_reduced_motion_no_highlighter_and_every_state_with_an_icon(
     page.emulate_media(reduced_motion="reduce")
     open_captures(page)
     folder = folder_of(live)
-    page.locator("#export-folder-ris").fill(str(folder))
-    page.locator("#export-save-ris").click()
-    expect(state(page, "ris")).to_have_attribute("data-state", "saved")
-    page.locator("#export-save-ris").click()
-    expect(page.locator("#export-ask-ris")).to_be_visible()
+    page.locator("#export-folder-md").fill(str(folder))
+    page.locator("#export-save-md").click()
+    expect(state(page, "md")).to_have_attribute("data-state", "saved")
+    page.locator("#export-save-md").click()
+    expect(page.locator("#export-ask-md")).to_be_visible()
     page.locator("#export-folder-csv").fill(str(folder / "gone"))
     page.locator("#export-save-csv").click()
     expect(state(page, "csv")).to_have_attribute("data-state", "failed")
@@ -370,10 +391,10 @@ def test_reduced_motion_no_highlighter_and_every_state_with_an_icon(
     )
     assert not set(colours) & highlighters
     # every state: an icon and a word (saved, never, failed, and the question)
-    for form in ("ris", "md", "csv"):
+    for form in ("md", "csv"):
         expect(state(page, form).locator("svg")).to_have_count(1)
         expect(state(page, form)).not_to_be_empty()
-    expect(page.locator("#export-ask-ris > svg")).to_have_count(1)
+    expect(page.locator("#export-ask-md > svg")).to_have_count(1)
     for target in page.locator("#capture-export .target").all():
         expect(target.locator("h3 svg")).to_have_count(1)
         expect(target.locator("button[data-export] svg")).to_have_count(1)
@@ -408,7 +429,7 @@ def test_at_1440_and_1280_px_beside_the_list_and_below_it_when_narrower(
                     assert aside["x"] >= rows["x"] + rows["width"], where  # beside the list
                 else:
                     assert aside["y"] >= rows["y"] + rows["height"], where  # under it
-                for form in ("ris", "md", "csv"):
+                for form in ("md", "csv"):
                     box = page.locator(f"#export-folder-{form}").bounding_box()
                     assert box is not None
                     assert box["x"] + box["width"] <= aside["x"] + aside["width"] + 1, where

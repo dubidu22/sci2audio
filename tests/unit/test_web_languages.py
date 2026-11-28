@@ -79,7 +79,6 @@ SAME_IN_GERMAN = {
     "voice.letter_pace_normal",  # "Normal" (#295)
     "listen.speed_value",  # the number and the times sign, the number in the page language (#152)
     "library.minutes",  # "min" (#389)
-    "export.ris",  # "Zotero", the program the file is for (#399)
     "export.md",  # "Obsidian"
 }
 
