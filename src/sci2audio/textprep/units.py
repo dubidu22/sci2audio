@@ -59,11 +59,13 @@ from sci2audio.textprep.footnotes import (
     unread_marks,
 )
 from sci2audio.textprep.notation import (
+    ARROW_JOINS,
     DOUBLE_ARROW,
     FILE_NUMBER_DE,
     LEFT_ARROW_TAIL,
     edits_through_unread,
     in_ascii_run,
+    upright,
 )
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import Reading, Words, holding, readings_of, words_of
@@ -163,9 +165,6 @@ _SAID_SIGNS_EN = ("\u2264", "\u2265", "=")
 # (words) nor a letter the list has as a unit ("2 s less than 2x" is "2 seconds less than"
 # after the first run), filled in by `_compiled`; the words are the statistics step's "<", ">"
 _COMPARED_EN = r"(?:(?<![\w.])(?![aAI{units}]\b)[A-Za-z]|\)) +(?:{compared}) *\Z"
-# the characters that join a "<" or ">" to the sign before it ("<<", "=<", "->"): the
-# statistics step then leaves it as printed (its `_ARROW`), so it stays a sign on a second run
-_JOINED_TO_SIGN = frozenset("<>=-\u2212!:~|\u21d0")
 # the numbers step's English reading of a minus sign before a number counts as the sign before
 # "2x", so a minus sign before "3x" and its reading "minus 3x" agree (#997), as the times sign
 # and "times" do (#253); white space between them is joined to one space by then. Not after
@@ -255,10 +254,8 @@ class UnitStep(TextStep):
     def _read(self, index: int, read: str, language: str) -> list[Edit]:
         # upright maths letters as the plain letters the characters step makes of them last
         # (D-150): a bold "1 s" is "1 s" to a second run, which reads "eine Sekunde" (#1082)
-        upright = _upright(read)
-        return [
-            self._edit(index, found, upright) for found in readings_of(self.id, upright, language)
-        ]
+        plain = upright(read)
+        return [self._edit(index, found, plain) for found in readings_of(self.id, read, language)]
 
     def _mass_numbers(
         self, text: str, edits: list[Edit], raised: Collection[tuple[int, int]], table: _Table
@@ -317,7 +314,9 @@ def find_readings(text: str, language: str) -> list[Reading]:
     table = _compiled(language)
     if table is None:
         return []
-    return _without_overlaps(_found(text, table))
+    # upright maths letters as the plain letters the characters step makes of them, so a
+    # step that asks about a bold "2,55 m" hears what this step says there (#1083)
+    return _without_overlaps(_found(upright(text), table))
 
 
 def _found(text: str, table: _Table) -> Iterator[Reading]:
@@ -833,28 +832,6 @@ def _said(
     return f"{name} {words['squared' if term.power == 2 else 'cubed']}"
 
 
-# the maths alphabets set slanted or ornate: their letters are variables, not units (ISO 80000)
-_SLANTED = ("ITALIC", "SCRIPT", "FRAKTUR", "DOUBLE-STRUCK")
-
-
-def _upright(text: str) -> str:
-    """The text with upright maths letters and digits as plain ones ("𝐬" as "s", "𝟏" as "1");
-    same length. An italic one ("𝑠") stays: it names a variable, and units are set upright."""
-    if text.isascii():
-        return text
-    return "".join(_upright_char(char) for char in text)
-
-
-@cache
-def _upright_char(char: str) -> str:
-    if "\U0001d400" <= char <= "\U0001d7ff":
-        name = unicodedata.name(char, "")
-        folded = unicodedata.normalize("NFKC", char)
-        if len(folded) == 1 and not any(style in name for style in _SLANTED):
-            return folded
-    return char
-
-
 def _times_x(
     text: str,
     match: re.Match[str],
@@ -953,10 +930,13 @@ def _in_algebra(
     ):
         return True
     # ... and, in English, a bare "<" or ">" after "Nx" counts only where its words do on a
-    # second run (`_COMPARED_AFTER_EN`): "3x > 2" is "3 times greater than 2", as "2 < 3x" is
+    # second run (`_COMPARED_AFTER_EN`): "3x > 2" is "3 times greater than 2", as "2 < 3x" is.
+    # In English a figure dash (U+2012) after it counts as a minus sign does: the numbers step
+    # reads it before a number after "times" as "minus" (#1032); before "Nx" it is a range
+    # dash ("2 to 3x"), and German reads it as printed
     return (
         after != ""
-        and after in _OPERATORS + "("
+        and after in _OPERATORS + ("(\u2012" if english else "(")
         and not _arrow_of_logic(_LOGIC_ARROW.match(text, after_at), text)
         and not _PIECED_RIGHT_ARROW.match(text, after_at)
         and not (english and _bare_comparison_after(text, after, after_at))
@@ -995,10 +975,21 @@ def _bare_comparison(text: str, sign: str, at: int, compared: re.Pattern[str] | 
     run (`_COMPARED_EN`): then the sign makes no variable of the "Nx" after it either."""
     if sign not in ("<", ">") or compared is None:
         return False
-    joined = at > 0 and text[at - 1] in _JOINED_TO_SIGN
+    joined = at > 0 and text[at - 1] in ARROW_JOINS
     if joined and not LEFT_ARROW_TAIL.search(text, max(0, at - 16), at):
         return False  # "A << 3x", "A -> 3x": left as printed, a sign on both runs
-    said_before = text[max(0, at - 32) : at].rstrip(" ") + " less than "
+    before = text[:at].rstrip(" ")
+    if before.endswith(")"):
+        # a citation the citations step removes there is gone on a second run: "x (Smith,
+        # 2019) > 3x" reads "x greater than 3 times" then, no bracket compared (#1032).
+        # Imported here: the citations step asks the readings, which ask this step
+        from sci2audio.textprep.citations import citation_removals
+
+        for start, end in citation_removals(text, "en"):
+            if start < len(before) <= end:
+                before = text[:start].rstrip(" ")
+                break
+    said_before = before[-32:] + " less than "
     return compared.search(said_before) is None
 
 

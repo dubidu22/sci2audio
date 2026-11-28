@@ -44,7 +44,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from sci2audio.core import Document, Edit, EditKind, Span
+from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.links import (
@@ -56,7 +56,7 @@ from sci2audio.textprep.links import (
 from sci2audio.textprep.notation import Candidate, through_unread
 from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import ending_at, readings_of, words_of
+from sci2audio.textprep.readings import ending_at, first_from, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -642,11 +642,15 @@ class _Rules:
         """A removal between two join words takes the one before along: "Then it and (Lee,
         2019) and more" reads "Then it and more", not "Then it and and more"; so does "Then it
         and https://x.org (Lee, 2019) and more", the join word then an edit of its own before
-        the link's removal (#628). Not where the join word starts the sentence."""
+        the link's removal (#628), and "Then it and (Lee, 2019) https://x.org and more", the
+        join word after the link (#847). Not where the join word starts the sentence."""
         result: list[_Found] = []
         kept_end = 0
         for start, end, kind, replacement, reason in found:
-            if kind is EditKind.REMOVE and self.join_after.match(text, end):
+            after = end  # past the removed links right after it
+            while not self.links_read and after in self._link_ends:
+                after = self._link_ends[after]
+            if kind is EditKind.REMOVE and self.join_after.match(text, after):
                 before = start  # past the removed links right before it
                 while (
                     not self.links_read
@@ -1268,7 +1272,9 @@ class _Rules:
         )
         if glued and (glued.isalnum() or glued in ")]"):
             return None
-        if _NUMBER_GLUED_AFTER.match(text, node.close + 1):
+        if _NUMBER_GLUED_AFTER.match(text, node.close + 1) and not self._said_as_a_word(
+            text, node.close + 1
+        ):
             return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
         if self._decimal_interval(inside):
             return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
@@ -1859,6 +1865,13 @@ class _Rules:
             return start, end
         return _with_space(text, start, end)
 
+    def _said_as_a_word(self, text: str, position: int) -> bool:
+        """True if the units step reads the number at `position` as a word: German "[1]1 kg"
+        is "[1]ein Kilogramm" after a first run, whose "[1]" a second run removes before the
+        glued word, so this run removes it too (#1032)."""
+        found = first_from(readings_of("units", text, self.language), position)
+        return found is not None and found.start == position and found.words[:1].isalpha()
+
     def _glued_word(self, text: str, position: int) -> bool:
         """True if a word stands right at `position`, past the removed links that start there."""
         while not self.links_read and position in self._link_ends:
@@ -2222,6 +2235,23 @@ _KEY_ENTRY = re.compile(
     rf"^\[({_KEY})\][ \t]+(?:[A-Z]\.(?:\s?-?[A-Z]\.)*\s?[A-Z][^\W\d_]|[A-Z][^\W\d_]+,\s[A-Z]\.)",
     re.MULTILINE,
 )
+
+
+def citation_removals(text: str, language: str = "en") -> list[tuple[int, int]]:
+    """Where this step removes text in a paragraph holding `text` alone, in order: what a
+    second run no longer sees there. Keys are judged as if no reference list printed them."""
+    words = WORDS.get(language, WORDS["en"])
+    rules = _Rules(
+        words,
+        wording_for(language),
+        ABBREVIATIONS.get(language, frozenset()) | words.abbreviations,
+        language,
+        frozenset(),
+    )
+    links = link_removals(text, BlockKind.PARAGRAPH, "", language)
+    return [
+        (start, end) for start, end, kind, *_ in rules.block(text, links) if kind is EditKind.REMOVE
+    ]
 
 
 def listed_keys(document: Document) -> frozenset[str]:
