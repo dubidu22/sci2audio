@@ -3533,17 +3533,25 @@ expected = [
 id = "de-a-roman-list-joined-by-an-em-dash"
 audit = 0
 issue = 1231
-goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Kapitel 1 bis 2'): never only the first numeral (#1013, #1231)."
+goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Kapitel 1 bis 2'): never only the first numeral (#1013, #1231). Only where the dash reads as a range: the second numeral is larger and no lone I, V or X, which in prose is a letter after a parenthetical dash ('Kapitel II — X ist hier klein', 'X-Achse'), read as before; a falling pair is left as printed whole."
 language = "de"
 blocks = [
     { kind = "paragraph", text = "Kapitel I — II folgen." },
     { kind = "paragraph", text = "Kapitel I—II folgen." },
     { kind = "heading", text = "Teile II — IV" },
+    { kind = "paragraph", text = "Siehe Kapitel II — X ist hier klein." },
+    { kind = "paragraph", text = "Siehe Kapitel II — V steht für Volumen." },
+    { kind = "paragraph", text = "Siehe Kapitel II — X-Achse." },
+    { kind = "paragraph", text = "Kapitel III — II folgen." },
 ]
 expected = [
     "Kapitel 1 bis 2 folgen.",
     "Kapitel 1 bis 2 folgen.",
     "Teile 2 bis 4",
+    "Siehe Kapitel 2 — X ist hier klein.",
+    "Siehe Kapitel 2 — V steht für Volumen.",
+    "Siehe Kapitel 2 — X-Achse.",
+    "Kapitel III — II folgen.",
 ]
 
 [[case]]

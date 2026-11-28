@@ -580,6 +580,7 @@ def test_both_steps_keep_the_contract_on_any_german_document(document: Document)
         "Also A~.3/4 und A~.1.234 hier.",  # #1235
         "Also A~.3-5 und A~.1:2 hier.",
         "Es sind 1 %.3/4 und %.1.234 hier.",  # #1083
+        "Es sind 1 %.1.234 und 1 %.1:2 und 1 %.3-5 hier.",
     ],
 )
 def test_the_numbers_step_alone_keeps_the_contract_after_a_glued_full_stop(printed: str) -> None:

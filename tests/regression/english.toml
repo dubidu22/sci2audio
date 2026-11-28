@@ -703,16 +703,28 @@ expected = ["See Figure 2 and Experiment 3 in Section 4, but not the end. II"]
 id = "a-roman-list-joined-by-an-em-dash"
 audit = 0
 issue = 1231
-goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Chapters 1 to 2'): never only the first numeral (#1013, #1231)."
+goal = "Two Roman numerals after a keyword joined by an em dash, spaced or not, are a range read whole, as with an en dash ('Chapters 1 to 2'): never only the first numeral (#1013, #1231). Only where the dash reads as a range: the second numeral is larger and no lone I, V or X, which in prose is a pronoun or a letter after a parenthetical dash ('Chapter II — I argue', 'Phase I — X marks it'), read as before; a falling pair is left as printed whole."
 blocks = [
     { kind = "paragraph", text = "Chapters I — II follow." },
     { kind = "paragraph", text = "Chapters I—II follow." },
     { kind = "heading", text = "Phases II — IV" },
+    { kind = "paragraph", text = "In Chapter II — I argue that this holds." },
+    { kind = "paragraph", text = "In Chapter II—I argue that." },
+    { kind = "paragraph", text = "As shown in Part III — I think — the data fit." },
+    { kind = "paragraph", text = "Chapter V — I conclude." },
+    { kind = "paragraph", text = "In Phase I — X marks it." },
+    { kind = "paragraph", text = "Chapters III — II follow." },
 ]
 expected = [
     "Chapters 1 to 2 follow.",
     "Chapters 1 to 2 follow.",
     "Phases 2 to 4",
+    "In Chapter 2 — I argue that this holds.",
+    "In Chapter 2—I argue that.",
+    "As shown in Part 3 — I think — the data fit.",
+    "Chapter 5 — I conclude.",
+    "In Phase 1 — X marks it.",
+    "Chapters III — II follow.",
 ]
 
 # Issue #66: citations (TP-03, TP-04) and URLs, DOIs and e-mail addresses (TP-07), D-167 to D-175.
