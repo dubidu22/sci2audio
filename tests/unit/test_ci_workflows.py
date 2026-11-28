@@ -524,12 +524,22 @@ def test_one_shard_script_serves_the_browser_jobs_and_the_fast_suite() -> None:
         assert "browser_shard.py" not in text
 
 
+def test_the_quarantine_summary_names_the_next_release_not_a_past_one() -> None:
+    """#817: v1.0 shipped and #80 is closed; a quarantined test is fixed before the next
+    release (D-739), in the job summary as in the banner pytest prints."""
+    lint = block(CI, "  lint:")
+    step = block(lint, "      - name: Quarantined tests (listed in the job summary)")
+    assert "before the next release" in step
+    assert "v1.0" not in step
+    assert "#80" not in step
+
+
 def test_the_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
     """The quarantine banner names a test with "::" too; read as a test it made the shard's
     argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698)."""
     listing = "\n".join(
         [
-            "1 quarantined test(s), all to be fixed before v1.0 (D-374, #80):",
+            "1 quarantined test(s), each to be fixed before the next release (D-374, D-739):",
             "  #697 tests/browser/test_flow.py::test_resume[firefox]",
             "tests/browser/test_flow.py::test_open[firefox]",
             "tests/browser/test_flow.py::test_resume[firefox]",

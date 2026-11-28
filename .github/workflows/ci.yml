@@ -51,14 +51,14 @@ jobs:
         run: uv run deptry src
       - name: No working files on this branch (D-874)
         run: python3 .github/scripts/working_files.py
-      # D-374: flaky tests are skipped with a linked issue; all must be fixed before v1.0.
+      # D-374, D-739: a flaky test is skipped with a linked issue and fixed before the next release.
       - name: Quarantined tests (listed in the job summary)
         run: |
           uv run pytest -m quarantined --collect-only -q -p no:cacheprovider | tee quarantined.txt
           {
             echo "## Quarantined tests (D-374)"
             echo
-            echo "Each is skipped until its issue is fixed; all must be fixed before v1.0 (#80)."
+            echo "Each is skipped until its issue is fixed, and fixed before the next release (D-739)."
             echo
             echo '```'
             grep -E '^ +#[0-9]+ ' quarantined.txt || echo "none"

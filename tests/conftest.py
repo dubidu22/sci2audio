@@ -36,7 +36,7 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "dev"))
 # `@pytest.mark.quarantined(issue=N, reason="...")`, linked to the GitHub issue that tracks
 # its fix. `platform="win32"` (a `sys.platform` value) limits the skip to one system, and
 # `browser="webkit"` (a pytest-playwright browser name) to one browser of the browser tests.
-# Every quarantined test must be fixed before the v1.0 release (#80). List them with
+# Every quarantined test is fixed before the next release (D-374, D-739). List them with
 # `uv run pytest -m quarantined --collect-only -q`; run them with `--run-quarantined`.
 
 
@@ -114,7 +114,8 @@ def pytest_report_collectionfinish(config: pytest.Config, items: list[pytest.Ite
             lines.append(f"  #{issue} {item.nodeid}" + (f" (on {where})" if where else ""))
     if not lines:
         return []
-    return [f"{len(lines)} quarantined test(s), all to be fixed before v1.0 (D-374, #80):", *lines]
+    banner = f"{len(lines)} quarantined test(s), each to be fixed before the next release"
+    return [f"{banner} (D-374, D-739):", *lines]
 
 
 # --- PDF reader processes (D-581) ----------------------------------------------------------
