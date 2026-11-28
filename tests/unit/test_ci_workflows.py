@@ -567,6 +567,27 @@ def test_the_quarantine_summary_names_the_next_release_not_a_past_one() -> None:
     assert "#80" not in step
 
 
+def test_the_quarantine_summary_collects_the_tests_of_every_browser() -> None:
+    """A test quarantined in Firefox or WebKit only is collected only with that browser;
+    without it the summary said "none" while four were quarantined (#1241)."""
+    lint = block(CI, "  lint:")
+    step = block(lint, "      - name: Quarantined tests (listed in the job summary)")
+    collect = next(line for line in step.splitlines() if "--collect-only" in line)
+    nightly = re.search(r"browser: \[(.*)\]", NIGHTLY)
+    assert nightly is not None
+    for browser in nightly[1].split(", "):  # every browser the nightly runs
+        assert f"--browser {browser}" in collect, collect
+
+
+def test_the_quarantined_markers_help_names_the_next_release() -> None:
+    """`pytest --markers` says what the banner and the job summary say (#817, #1257)."""
+    pytest_options = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    markers = pytest_options["tool"]["pytest"]["ini_options"]["markers"]
+    quarantined = next(m for m in markers if m.startswith("quarantined("))
+    assert "fixed before the next release (D-739)" in quarantined
+    assert "v1.0" not in quarantined
+
+
 def test_the_shard_reads_only_test_ids_not_the_quarantine_banner() -> None:
     """The quarantine banner names a test with "::" too; read as a test it made the shard's
     argument file hold "#697 tests/..." and pytest exit 4 with no test run (#698)."""
@@ -647,6 +668,21 @@ def test_the_shard_collects_tests_with_golden_files(tmp_path: Path) -> None:
     tests = out.read_text(encoding="utf-8").splitlines()
     assert tests
     assert all(test.startswith(f"{golden}::") for test in tests)
+
+
+def test_a_collection_that_fails_prints_what_pytest_said(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A test file that fails to import fails the shard step with pytest's own words (the
+    file and the error), not only a CalledProcessError (#1256)."""
+    broken = tmp_path / "test_zz_broken.py"
+    broken.write_text("def test_x(:\n    pass\n", encoding="utf-8")
+    with pytest.raises(SystemExit) as stopped:
+        shard_script().collect_only(["-m", FAST, str(broken)])
+    assert stopped.value.code != 0
+    said = capsys.readouterr().err
+    assert "test_zz_broken.py" in said
+    assert "SyntaxError" in said
 
 
 def pr_wait_script():  # type: ignore[no-untyped-def]
