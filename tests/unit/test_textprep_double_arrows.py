@@ -202,6 +202,7 @@ def signs_after_nx(draw: st.DrawFn) -> str:
 @example("So 3x > y.", "en")  # #1010
 @example("So 3x − 2.", "en")  # #1010
 @example("So 3x minus\n2.", "en")  # #1010
+@example("1234 x-\ns", "en")  # #1218: a plural split at a line end
 def test_a_sign_after_nx_reads_the_same_on_a_second_run(text: str, language: str) -> None:
     """D-577 for #1010: a sign after "Nx" makes it a variable or "N times" the same way on
     both runs, as one before it does (#988, #997)."""
