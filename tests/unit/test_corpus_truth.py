@@ -5,6 +5,7 @@ tests/corpus/truth/README.md. These tests check the shape only; whether the valu
 checked by hand against the PDF or EPUB.
 """
 
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -131,6 +132,23 @@ def footnote_marks(truth: dict[str, Any], page: int) -> set[str]:
     }
 
 
+def test_a_footnote_mark_counts_only_as_a_whole_number() -> None:
+    """#82: the mark "1" is no mark inside "2019" or "[124]"; beside a word or a stop it is."""
+    assert not has_mark("as shown in 2019.", "1")
+    assert not has_mark("see [124] for more", "1")
+    assert not has_mark("it took 41 nights", "4")
+    assert has_mark("sleep.1 Then", "1")
+    assert has_mark("night4 and day", "4")
+    assert has_mark("the end* of it", "*")
+    assert has_mark("both 4,5 hold", "5")
+
+
+def has_mark(text: str, mark: str) -> bool:
+    """Whether `text` holds the footnote mark `mark` as printed: never as part of a longer
+    run of digits, so "1" is not found in "2019" or "[124]" (#82)."""
+    return re.search(rf"(?<!\d){re.escape(mark)}(?!\d)", text) is not None
+
+
 def test_every_corpus_file_has_one_truth_file() -> None:
     expected = {path.stem for path in sample_files()}
     found = {path.stem for path in truth_files()}
@@ -218,7 +236,7 @@ def test_paper_truth_follows_format(path: Path) -> None:
         assert len(entry["text"].split()) >= 6, f"verbatim text too short: {entry['text']!r}"
         if entry["where"] == "footnote-mark":
             marks = footnote_marks(truth, entry["page"])
-            assert any(mark in entry["text"] for mark in marks), (
+            assert any(has_mark(entry["text"], mark) for mark in marks), (
                 f"no footnote mark of page {entry['page']} ({sorted(marks)}) in {entry['text']!r}"
             )
 
