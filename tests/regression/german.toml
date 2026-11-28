@@ -3886,3 +3886,24 @@ expected = [
     "Also A ⇔ ¬.",
     "Also A daraus folgt ¬B.",
 ]
+
+[[case]]
+id = "de-a-spaced-df-bracket-and-a-latin-x2-read-as-statistics"
+audit = 0
+issue = 1120
+goal = "As in English: a spaced df bracket followed by '=' reads as the glued form, and a Latin 'X2' before such a bracket reads 'Chi-Quadrat'; 'X2' elsewhere stays as printed (#1120)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt t (34) = 2,1 hier." },
+    { kind = "paragraph", text = "Es gilt X2(1) = 3,84 hier." },
+    { kind = "paragraph", text = "Es gilt X2 (1) = 3,84 hier." },
+    { kind = "paragraph", text = "Es gilt t(34) = 2,1 hier." },
+    { kind = "paragraph", text = "Das X2 steigt hier." },
+]
+expected = [
+    "Es gilt t mit 34 Freiheitsgraden gleich 2 Komma 1 hier.",
+    "Es gilt Chi-Quadrat mit 1 Freiheitsgrad gleich 3 Komma 8 4 hier.",
+    "Es gilt Chi-Quadrat mit 1 Freiheitsgrad gleich 3 Komma 8 4 hier.",
+    "Es gilt t mit 34 Freiheitsgraden gleich 2 Komma 1 hier.",
+    "Das X2 steigt hier.",
+]
