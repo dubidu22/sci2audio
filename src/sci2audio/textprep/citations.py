@@ -98,6 +98,9 @@ class CitationWords:
     funding: str = r"(?!)"
     and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
     or_word: str = "or"  # a list of citation brackets with it is no one citation (#414)
+    # a join word that reads twice when it stands before and after a removal (#628, #847):
+    # the links step's join words, so a link before or after the citation reads alike (#1248)
+    join_words: str = r"and|or|nor|&"
     # a page after a numeric citation's source, and how it is read: "[12, p. 3]" (#257)
     page_lead: str = r"pp?\.|pages?"
     page_words: tuple[str, str] = ("page", "pages")
@@ -261,6 +264,7 @@ WORDS: dict[str, CitationWords] = {
         ),
         and_word="und",
         or_word="oder",
+        join_words=r"und|oder|sowie|bzw\.|bzw|&",
         page_lead=r"S\.|Seiten?|pp?\.",
         page_words=("Seite", "Seiten"),
         name_leads=frozenset((
@@ -317,6 +321,7 @@ _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs
 _GLUES = ".,0123456789"  # what a removal must not join to a digit after it (#308)
 _CLOSE_AHEAD = re.compile(r"\s*\)")
 _PLAIN_YEAR = re.compile(r"\s+(?:1[5-9]\d\d|20\d\d)\s*")  # a year alone, no comma or letter
+_COMMA_YEAR = re.compile(r"\s*,\s*(?:1[5-9]\d\d|20\d\d)\s*")  # ", 2019"
 _FULL_STOP_INSIDE = re.compile(r"[\d)]\s*\.\s*\Z")  # "(See Smith (2019).)", not "n.d."
 
 
@@ -495,7 +500,7 @@ class _Rules:
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         # a join word before and after a removal, which would read side by side (#628)
-        either = rf"{words.and_word}|{words.or_word}"
+        either = words.join_words
         self.join_after = re.compile(rf"\s+(?:{either})(?!\w)", re.IGNORECASE)
         self.join_before = re.compile(rf"\s+({either})\s*\Z", re.IGNORECASE)
         self._paired: set[int] = set()  # the later brackets of lists, this look only
@@ -1278,9 +1283,8 @@ class _Rules:
         )
         if glued and (glued.isalnum() or glued in ")]"):
             return None
-        if _NUMBER_GLUED_AFTER.match(text, node.close + 1) and not self._said_as_a_word(
-            text, node.close + 1
-        ):
+        glued_number = _NUMBER_GLUED_AFTER.match(text, node.close + 1) is not None
+        if glued_number and not self._said_as_a_word(text, node.close + 1):
             return None  # "[1; 3],1": read "3,1" would be a decimal on a second run
         if self._decimal_interval(inside):
             return None  # "[1,2; 3,4]": two German decimals, an interval, not sources
@@ -1289,6 +1293,11 @@ class _Rules:
         if node.open in self._paired:
             return []  # a later bracket of a list: decided with the first (#257, #414)
         self._numbered.add(node.open)
+        if glued_number:  # and so said as a word
+            # read, it would glue to the word ("und Quelle 2ein Kelvin"): it goes even where
+            # the sentence needs it, as the glued word starts what a second run reads (#1232)
+            what = "citation key" if keys else "numeric citation"
+            return [self._removed(text, node.open, node.close + 1, what)]
         # a list of brackets is one citation, decided here at its first: "[1], [2] and [3]"
         listed = self._list(node)
         end = node.close + 1
@@ -1675,28 +1684,39 @@ class _Rules:
     ) -> bool:
         """True for a bracket that is only seasons, terms or the like and a year: "(Sommer
         2019)", "(Wintersemester 2019)", "(Ausgabe 2018)" (#483), "(Summer 2019)" (#588),
-        "(Frühjahr und Sommer 2019)", "(Herbst/Winter 2019)", "(Stand März 2020)" (#595)."""
+        "(Frühjahr und Sommer 2019)", "(Herbst/Winter 2019)", "(Stand März 2020)" (#595).
+        Several of them date something with a comma before the year too, as months alone do
+        ("(Spring and May, 2019)", "(Frühjahr und Sommer, 2019)", #1247); one alone with a
+        comma still cites, as a name ("(Sommer, 2019)", #483)."""
+        periods = self._periods(match["authors"])
+        after = match.end("authors")
         return (
-            self._only_periods(match["authors"])
+            periods > 0
             and not piece[: match.start("authors")].strip()
-            and _PLAIN_YEAR.fullmatch(piece, match.end("authors")) is not None
+            and (
+                _PLAIN_YEAR.fullmatch(piece, after) is not None
+                or (periods > 1 and _COMMA_YEAR.fullmatch(piece, after) is not None)
+            )
             and text[part[0] - 1 : part[0]] == "("
             and text[part[1] : part[1] + 1] == ")"
         )
 
-    def _only_periods(self, authors: str) -> bool:
-        """True when every word is a period word or a month, joined by `and_word` in any
-        case, "&", a slash, a hyphen, an en dash or a space: "Sommer", "Frühjahr und
-        Sommer", "Herbst/Winter", "Stand März" (#595), "Spring and May", "Spring & Summer",
-        "Fall-Winter" (#925). A name among them makes it a citation ("Summer & Lee")."""
+    def _periods(self, authors: str) -> int:
+        """How many words there are when every word is a period word or a month, joined by
+        `and_word` in any case, "&", a slash, a hyphen, an en dash or a space: "Sommer",
+        "Frühjahr und Sommer", "Herbst/Winter", "Stand März" (#595), "Spring and May",
+        "Spring & Summer", "Fall-Winter" (#925); 0 when a name is among them, which makes it a
+        citation ("Summer & Lee")."""
         joins = rf"(?i:\s+{re.escape(self.words.and_word)}\s+)|\s*&\s*|[ \t]+|/|[-\u2013]"
         words = [word for word in re.split(joins, authors) if word]
         if not words or not all(re.fullmatch(_WORD, word) for word in words):
-            return False
-        return all(
+            return 0
+        if all(
             word.lower() in self.words.periods or word.lower() in self.words.months
             for word in words
-        )
+        ):
+            return len(words)
+        return 0
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [
