@@ -1271,3 +1271,5 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+_SCRATCH_FOR_1104: int = "not an int"  # one type error, to show CI passed turns red
