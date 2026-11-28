@@ -67,6 +67,14 @@ _MINUS = re.compile(r"(?<![\w.,)\]}])(?:\u2212|(?<!\d)(?<!\d\s)\u2012)(?P<space>
 # --- N2 ranges ------------------------------------------------------------------------------
 # an en dash or figure dash, spaces allowed around it, or an em dash without spaces
 _DASH_RANGE = re.compile(r"(?<=\d)(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=[\u2212-]?\.?\d)")
+# ... between a number's power and a power of ten: "10⁴–10⁶ K" is "10 to the power of 4 to
+# 10 to the power of 6 kelvin", as German reads it (#822); the power before it is read too
+_RAISED = "[⁰¹²³⁴⁵⁶⁷⁸⁹]"
+_POWER_RANGE = re.compile(
+    "(?:"
+    + "|".join(f"(?<=\\d{sign}{_RAISED}{{{n}}})" for sign in ("", "[⁺⁻]") for n in (1, 2))
+    + r")(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=10[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹])"
+)
 # a hyphen between two plain numbers that are not part of a longer chain
 _HYPHEN_RANGE = re.compile(
     r"(?<![\w.,/:-])(?<!-\n)(?P<a>\d{1,4}(?:\.\d+)?)(?P<dash>-\n?)(?P<b>\d{1,4}(?:\.\d+)?)"
@@ -330,7 +338,7 @@ def find_numbers(text: str) -> list[Candidate]:
             *_iso_dates(text),
             *_unjoined(text, _roman_numerals(plain, text)),
             *_grouped_digits(text),
-            *_unjoined(text, _powers(text, plain)),
+            *_unjoined(text, _powers(text, plain), _POWER_RANGE),
             *_minus_signs(text),
             *_ranges(text),
             *_unjoined(text, _trailing_zeros(text)),
@@ -361,18 +369,25 @@ def _joined_before(text: str, at: int) -> bool:
     return bool(_JOINED_BEFORE.search(text, max(0, at - WINDOW), at))
 
 
-def _unjoined(text: str, candidates: list[Candidate]) -> list[Candidate]:
+def _unjoined(
+    text: str, candidates: list[Candidate], range_after: re.Pattern[str] | None = None
+) -> list[Candidate]:
     """The candidates whose number stands on its own.
 
     These rules write digits next to words ("2 point 5 0", "Phase 3", "of 4"). Where the
     printed number is joined to another one ("3:2.50", "Phase I 395", "10⁻⁴–5"), that new
     reading would join differently on a second run, so such a number is left as printed:
-    the step proposes nothing that a second run would change again.
+    the step proposes nothing that a second run would change again. A dash that
+    `range_after` reads as a range joins nothing: it is read "to" in the same run.
     """
     return [
         c
         for c in candidates
-        if not _JOINED_AFTER.match(text, c.end) and not _joined_before(text, c.start)
+        if (
+            not _JOINED_AFTER.match(text, c.end)
+            or (range_after is not None and range_after.match(text, c.end))
+        )
+        and not _joined_before(text, c.start)
     ]
 
 
@@ -538,7 +553,7 @@ def _minus_signs(text: str) -> list[Candidate]:
 
 def _ranges(text: str) -> list[Candidate]:
     found = []
-    for match in _DASH_RANGE.finditer(text):
+    for match in (*_DASH_RANGE.finditer(text), *_POWER_RANGE.finditer(text)):
         start, end = match.span("dash")
         found.append(Candidate(start, end, " to ", _range_reason(text, start, end)))
     for match in _HYPHEN_RANGE.finditer(text):
