@@ -2732,10 +2732,10 @@ expected = [
 id = "de-a-slash-between-words-reads-und"
 audit = 0
 issue = 653
-goal = "A slash between two words, glued or spaced, reads 'und', between three or more words a list ('Schulen, Vereine und Einrichtungen'); a pair of opposites reads 'oder' ('ja oder nein'), and a hyphen fragment keeps its hyphen ('Sozial- und Kulturpädagogik'), ruled by Colin at triage on 26 Nov 2026 (D-816). The first block is the sentence of the lecture handout of #653, written into the case. An abbreviation counts by its reading: 'z. B./u. a.' is 'zum Beispiel und unter anderem'."
+goal = "A slash between two words, glued or spaced, reads 'und', between three or more words a list ('Schulen, Vereine und Einrichtungen'); a pair of opposites reads 'oder' ('ja oder nein'), and a hyphen fragment keeps its hyphen ('Sozial- und Kulturpädagogik'), ruled by Colin at triage on 26 Nov 2026 (D-816). The first block has the shape of the lecture handout's sentence in #653, in our own words: third-party text never enters the repository. An abbreviation counts by its reading: 'z. B./u. a.' is 'zum Beispiel und unter anderem'."
 language = "de"
 blocks = [
-    { kind = "paragraph", text = "Dadurch entsteht nicht nur eine Abneigung gegenüber diesem Ort, sondern auch gegenüber den Menschen/Gruppen, die ihn stattdessen nutzen (dürfen) – was sich nicht selten in Form von Gewalt und Vandalismus ausdrückt." },
+    { kind = "paragraph", text = "So wächst nicht nur die Distanz zu diesem Platz, sondern auch zu den Menschen/Gruppen, die ihn heute nutzen (können) – was sich oft in Streit äußert." },
     { kind = "paragraph", text = "Es geht um Theorie/Praxis und um Theorie / Praxis." },
     { kind = "paragraph", text = "Gemeint sind Schulen/Vereine/Einrichtungen." },
     { kind = "paragraph", text = "Die Antwort ist ja/nein, richtig/falsch oder wahr/falsch." },
@@ -2743,7 +2743,7 @@ blocks = [
     { kind = "paragraph", text = "Siehe z. B./u. a. hier." },
 ]
 expected = [
-    "Dadurch entsteht nicht nur eine Abneigung gegenüber diesem Ort, sondern auch gegenüber den Menschen und Gruppen, die ihn stattdessen nutzen (dürfen) – was sich nicht selten in Form von Gewalt und Vandalismus ausdrückt.",
+    "So wächst nicht nur die Distanz zu diesem Platz, sondern auch zu den Menschen und Gruppen, die ihn heute nutzen (können) – was sich oft in Streit äußert.",
     "Es geht um Theorie und Praxis und um Theorie und Praxis.",
     "Gemeint sind Schulen, Vereine und Einrichtungen.",
     "Die Antwort ist ja oder nein, richtig oder falsch oder wahr oder falsch.",
