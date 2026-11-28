@@ -812,14 +812,20 @@ def chapter_states(
     work: Path, document_id: str, folders: Iterable[Path | None], running: bool
 ) -> ChapterStates | None:
     """The state of the document's chapters (#726), with `running` true while an audio job
-    of it runs; None while the project has no chapter made: there is nothing to add to."""
+    of it runs; None while the project has no chapter made: there is nothing to add to.
+    Each chapter is decided on its own, so a book that no longer plays as a whole (a
+    chapter's MP3 deleted) still lists the others as made and that one as not (#770)."""
     record = _chapter_record(work)
     if record is None or not record.chapters:
         return None
+    folders = tuple(folders)
     try:
         folder = current_audiobook(work, document_id, folders).located.folder
     except PlayerError:
-        return None
+        found = _recorded_folder(record, folders)
+        if found is None:
+            return None
+        folder = found
     made = frozenset(
         chapter.index
         for chapter in record.chapters
@@ -830,6 +836,19 @@ def chapter_states(
         return None
     coming = frozenset(record.planned) - made if running else frozenset()
     return ChapterStates(made, coming, folder)
+
+
+def _recorded_folder(record: ChapterRecord, folders: Iterable[Path | None]) -> Path | None:
+    """The first of the project's audiobook folders that holds a file the chapter record
+    vouches for, or None: where the record's chapters were made, though the book as a whole
+    does not play (#770)."""
+    for folder in folders:
+        if folder is None:
+            continue
+        for chapter in record.chapters:
+            if any(_vouched(folder, f.name, f.bytes, f.sha256) is not None for f in chapter.files):
+                return folder
+    return None
 
 
 def chapter_place(work: Path, index: int) -> int | None:
