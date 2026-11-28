@@ -281,9 +281,13 @@ def test_security_headers_on_every_kind_of_answer(server: tuple[FastAPI, Any]) -
     assert "script-src 'self'" in CSP
 
 
-def test_the_permissions_policy_turns_off_every_feature_but_playing_audio() -> None:
+def test_the_permissions_policy_turns_off_every_feature_but_playing_audio_and_copying() -> None:
     features = dict(part.split("=") for part in PERMISSIONS_POLICY.split(", "))
     assert features.pop("autoplay") == "(self)"  # the player starts the next chapter itself
+    # Copy on the Captures page writes the Markdown export to the clipboard (#1048, ruled
+    # by Colin at triage on 26 Nov 2026); the page never reads it
+    assert features.pop("clipboard-write") == "(self)"
+    assert features["clipboard-read"] == "()"
     assert set(features.values()) == {"()"}
     assert {"camera", "microphone", "geolocation", "payment", "usb", "fullscreen"} <= set(features)
     # the interface's own script uses none of the switched-off features
@@ -291,8 +295,9 @@ def test_the_permissions_policy_turns_off_every_feature_but_playing_audio() -> N
         (Path(pages.__file__).parent / "static" / name).read_text(encoding="utf-8")
         for name in ("app.js", "player.js")
     )
-    for used in ("clipboard", "geolocation", "getUserMedia", "requestFullscreen", "share("):
+    for used in ("readText", "clipboard.read(", "geolocation", "getUserMedia", "requestFullscreen"):
         assert used not in script, used
+    assert "share(" not in script
 
 
 def test_no_cors_preflight_is_answered(server: tuple[FastAPI, Any]) -> None:

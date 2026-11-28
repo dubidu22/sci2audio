@@ -14,7 +14,7 @@ import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, Literal, cast
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Query, Request, Response, UploadFile
@@ -22,7 +22,7 @@ from fastapi import Path as Path_
 from fastapi.responses import FileResponse, StreamingResponse
 
 from sci2audio.app import JobBusyError, JobSettings, clean_work_folder, load_settings, save_settings
-from sci2audio.app.capture_export import ExportFormat, PageFinder, export_captures
+from sci2audio.app.capture_export import ExportFormat, PageFinder, export_captures, markdown_text
 from sci2audio.app.settings import MAX_SPEED, MIN_SPEED
 from sci2audio.core import Anchor, Capture, CaptureType, Document, SourceFormat, Span, SpanError
 from sci2audio.output import BookKind
@@ -892,6 +892,30 @@ def export_captures_file(
             500, "export-failed", f"could not save {file}: {error.strerror or error}"
         ) from error
     return models.CaptureExportOut(file=path.name, folder=str(folder), path=str(path), count=count)
+
+
+@router.get(
+    "/captures/markdown",
+    response_model=models.CaptureTextOut,
+    responses=_errors(404, 422),
+    summary="The Markdown text of the captures shown, for Copy",
+)
+def captures_markdown(
+    request: Request,
+    state: State,
+    type: Annotated[Literal["all", "note", "quote", "mark"], Query()] = "all",
+    document: Annotated[str, Query(max_length=200)] = "",
+) -> models.CaptureTextOut:
+    """What the Markdown file of the same filters holds (#1048): the page writes it to the
+    clipboard, so it never needs a folder. Reads only; no network call."""
+    if document and document not in exports.keys(state):
+        raise ApiError(404, "not-found", f"no document {document}")
+    documents = exports.exported(state, type, document)
+    count = sum(len(found.captures) for found in documents)
+    if not count:
+        raise ApiError(422, "export-empty", "no captures are shown, so there is nothing to copy")
+    text = markdown_text(documents, exports.labels(strings_of(request)))
+    return models.CaptureTextOut(text=text, count=count)
 
 
 @router.delete(
