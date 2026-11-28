@@ -98,12 +98,12 @@ class CitationWords:
     funding: str = r"(?!)"
     and_word: str = "and"  # between two identifiers: "(0801700 and 527794)"
     or_word: str = "or"  # a list of citation brackets with it is no one citation (#414)
-    # a join word that reads twice when it stands before and after a removal (#628, #847):
-    # the links step's join words, so a link before or after the citation reads alike (#1248)
-    join_words: str = r"and|or|nor|&"
     # a page after a numeric citation's source, and how it is read: "[12, p. 3]" (#257)
     page_lead: str = r"pp?\.|pages?"
     page_words: tuple[str, str] = ("page", "pages")
+    # a join word that reads twice when it stands before and after a removal (#628, #847):
+    # the links step's join words, so a link before or after the citation reads alike (#1248)
+    join_words: str = r"and|or|nor|&"
     # German writes every noun with a capital: a capital word before a year bracket names an
     # author only after one of these words (or at a sentence start), not after an article or
     # an inflected adjective ("die neue Studie (2019)", "Die Olympischen Spiele (2016)")
