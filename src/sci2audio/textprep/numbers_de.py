@@ -23,7 +23,10 @@ reason quotes the printed text (in English, as every reason in the report).
 - N-de-10: Roman numerals after a keyword ("Kapitel IV" is "Kapitel 4").
 
 The statistics step reads the comparison signs (statistics_de.py); units, %, ×, ≈ and µ are
-the units step's (#113).
+the units step's (#113). One reading of the units step's is proposed here, for English too
+(`tildes_read_after`, used by numbers.py): a "~" after a number this step reads in words, which
+the units step leaves after the printed digits and reads after the words ("1/2 ~ 2" is "ein
+halb etwa 2", #1234).
 
 Every rule decides the same on the printed text and on the script a run made of it, so a second
 run changes nothing. Where a reading would give another rule or step something new to read, the
@@ -1623,12 +1626,20 @@ _LIST_WORDS = r"und|oder|&|sowie|u\.|bzw\.|beziehungsweise"
 _CLOSE_JOINED_AFTER = re.compile(r"\s*[\u2013\u2014\u2012:/-]\s*[.,]?\d|[.,]?\d|[⁺⁻^⁰¹²³⁴⁵⁶⁷⁸⁹]")
 
 
+# an em dash joins two numerals only before one that is no lone letter: in prose a lone
+# "I", "V" or "X" after a parenthetical dash is a letter ("Kapitel II — X ist hier
+# klein", "X-Achse"); whether the pair rises is checked in code (#1231)
+_RUN_SEP = r"\s*[/\u2013-]\s*|\s*\u2014\s*(?![IVX](?![IVX]))"
+
+
 @cache
 def _roman_run() -> re.Pattern[str]:
     return re.compile(
         r"(?<![\w-])(?P<keyword>[^\W\d_]+)(?P<dot>\.)?(?(dot)\s*|\s+)(?P<run>"
         + _ROMAN
-        + r"(?:(?:\s*[/\u2013\u2014-]\s*|,\s*|\s+(?:"
+        + r"(?:(?:"
+        + _RUN_SEP
+        + r"|,\s*|\s+(?:"
         + _LIST_WORDS
         + r")\s+)"
         + _ROMAN
@@ -1646,7 +1657,9 @@ def _roman_run() -> re.Pattern[str]:
         + "|"
         + _UNIT_SIGN
         + r")|\s+%|\s+(?:Quadrat|hoch)\b"
-        + r"|(?:\s*[/\u2013\u2014-]\s*|,\s*|\s+(?:"
+        + r"|(?:"
+        + _RUN_SEP
+        + r"|,\s*|\s+(?:"
         + _LIST_WORDS
         + r")\s+)"
         + _ROMAN
@@ -1667,6 +1680,21 @@ _LIST_AFTER_STOP = re.compile(
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013\u2014-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
 _UNITS = {"": 0, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9}
+
+
+def _em_dashes_rise(parts: list[re.Match[str]]) -> bool:
+    """True if each em dash in a run of Roman numerals stands between a numeral and a
+    larger one, as in a range ("Kapitel I — II"); any other em dash there is no range."""
+    previous, after_em_dash = 0, False
+    for part in parts:
+        if part["numeral"]:
+            value = _roman_value(part["numeral"])
+            if after_em_dash and value <= previous:
+                return False
+            previous, after_em_dash = value, False
+        else:
+            after_em_dash = "\u2014" in part["sep"]
+    return True
 
 
 def _roman_value(numeral: str) -> int:
@@ -1697,8 +1725,11 @@ def _roman_numerals(plain: str) -> list[Candidate]:
                 continue  # "Kapitel IV.==1": the sign stays as printed, so does the numeral
         offset = match.start("run")
         parts = list(_ROMAN_PART.finditer(match["run"]))
-        if not all(_roman_value(p["numeral"]) for p in parts if p["numeral"]):
+        values = [_roman_value(p["numeral"]) for p in parts if p["numeral"]]
+        if not all(values):
             continue  # "Typ IIX": not a numeral, so nothing in the run is read as one
+        if not _em_dashes_rise(parts):
+            continue  # "Kapitel III — II": no range, so the run is left as printed whole
         if plain[match.end("run") : match.end("run") + 1] == "." and (
             match["keyword"].lower() not in _PART_KEYWORDS
             or len(parts) > 1
