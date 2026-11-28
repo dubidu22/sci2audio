@@ -170,6 +170,9 @@ markers = [
 
 [tool.mutmut]
 source_paths = ["src/sci2audio/"]
+# CPython's HTML parser, copied verbatim and never edited here (#175, D-777): its mutants
+# would only cost a run's time (#633). mutmut copies it unmutated, so it still imports.
+do_not_mutate = ["src/sci2audio/extraction/htmlparser.py"]
 pytest_add_cli_args_test_selection = ["tests/"]
 # The browser tests need a Playwright browser (D-259). The linear-time check of a page of
 # drawings compares two timings against a ratio close to its limit, which mutmut's
