@@ -278,6 +278,16 @@ def test_a_watch_exit_keeps_its_reason_while_the_read_is_cancelled(
     assert stopped == isolate.Stopped(reason, "starting")
 
 
+def test_a_read_whose_child_returns_no_content_is_an_extraction_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`extract_pdf` returns Content (#1102): the child's result crosses a pipe untyped, so a
+    reader that returned something else is named here, never handed on to the layout stage."""
+    monkeypatch.setattr(pdf, "_isolated", lambda *args, **kwargs: ["not", "content"])
+    with pytest.raises(ExtractionError, match=r"^a\.pdf: cannot be read: .*no content"):
+        extract_pdf(Path("a.pdf"))
+
+
 def test_a_child_within_the_limit_gives_its_result() -> None:
     result = isolate.run(
         operator.add, (2, 3), memory=1024**3, step_seconds=60, readers=isolate.Readers(1)

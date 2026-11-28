@@ -48,7 +48,7 @@ import time
 import types
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from multiprocessing import resource_tracker
+from multiprocessing import connection, resource_tracker
 from multiprocessing.connection import Connection
 from multiprocessing.context import SpawnProcess
 from typing import Any
@@ -180,7 +180,7 @@ def _end(child: Any, ended: bool) -> None:
     signal a pid that is free again), `join()` returns with no exit code, and `close()`
     raises "still running" (#440). The sentinel, which the child holds open until it ends,
     tells its end whoever reaped it."""
-    if not ended and not multiprocessing.connection.wait([child.sentinel], 0):
+    if not ended and not connection.wait([child.sentinel], 0):
         child.kill()
     child.join()
     if child.exitcode is not None:
