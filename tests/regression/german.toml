@@ -2891,6 +2891,50 @@ expected = [
 ]
 
 [[case]]
+id = "de-citations-a-dash-range-of-brackets-inside-a-longer-list"
+audit = 0
+issue = 1239
+goal = "Ein Bereich aus zwei Klammern ('[1]–[3]') ist ein Glied einer längeren Liste, wie '[1–3]' es ist: die Liste ist eine Quellenangabe, ganz gelesen ('Quellen 1 bis 3 und 5') oder nebenbei ganz entfernt, ohne dass Strich, Komma oder Bindewort stehen bleiben; auch nach einem Minuszeichen oder Bindestrich als Strich (#1239, #1254)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Wie in [1]–[3], [5] gezeigt." },
+    { kind = "paragraph", text = "Das gilt [1]–[3], [5] hier." },
+    { kind = "paragraph", text = "Das gilt [1], [3]–[5] hier." },
+    { kind = "paragraph", text = "Das gilt [1]−[3] hier." },
+    { kind = "paragraph", text = "Wie in [1]‐[3] gezeigt." },
+]
+expected = [
+    "Wie in Quellen 1 bis 3 und 5 gezeigt.",
+    "Das gilt hier.",
+    "Das gilt hier.",
+    "Das gilt hier.",
+    "Wie in Quellen 1 bis 3 gezeigt.",
+]
+
+[[case]]
+id = "de-citations-a-run-mixing-und-and-oder-is-one-citation"
+audit = 0
+issue = 1255
+goal = "Eine Reihe von Zahlenklammern, die 'und' und 'oder' mischt oder 'oder' wiederholt, ist eine Quellenangabe wie eine mit 'und' (Entscheid zu #622): nebenbei entfällt sie ganz, im Satz gebraucht liest sie einmal, jedes Bindewort wie gedruckt ('Quellen 1, 2 und 3 oder 4') (#1255, #622)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Es gilt [1], [2] und [3] oder [4] hier." },
+    { kind = "paragraph", text = "Es gilt [1] oder [2], [3] und [4] hier." },
+    { kind = "paragraph", text = "Es gilt [1] oder [2] oder [3] hier." },
+    { kind = "paragraph", text = "Zwischen [1], [2] oder [3] liegt es." },
+    { kind = "paragraph", text = "Wie in [1], [2] und [3] oder [4] gezeigt." },
+    { kind = "paragraph", text = "Wie in [1] oder [2] oder [3] gezeigt." },
+]
+expected = [
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Es gilt hier.",
+    "Zwischen liegt es.",
+    "Wie in Quellen 1, 2 und 3 oder 4 gezeigt.",
+    "Wie in Quellen 1, 2 oder 3 gezeigt.",
+]
+
+[[case]]
 id = "de-citations-a-list-of-citation-brackets-is-one-citation"
 audit = 0
 issue = 414
