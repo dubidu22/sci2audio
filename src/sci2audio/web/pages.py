@@ -1353,7 +1353,9 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
         # a book with a chapter's files gone plays nothing (#1069), but the chapters still
         # made are listed and the others offered again, as on the project page (#1244)
         made = None if stored is None else _made_chapters(state, found.id, _chapters_of(stored))
-        key = "listen.chapters_missing" if made and error.key == "listen.missing" else error.key
+        problem = s(error.key, **error.values)
+        if made and error.key == "listen.missing":
+            problem = s("listen.chapters_missing", **error.values)
         return _page(
             request,
             state,
@@ -1363,7 +1365,7 @@ def listen(request: Request, state: State, document_id: str) -> HTMLResponse:
             document=found,
             head=head(None),  # nothing plays: no length (#1259)
             view=None,
-            problem=s(key, **error.values),
+            problem=problem,
             made=made,
             made_rows=None if made is None or stored is None else _made_rows(stored, made),
             text_language=_text_language(report),
