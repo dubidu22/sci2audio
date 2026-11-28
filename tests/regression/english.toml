@@ -3932,6 +3932,42 @@ expected = [
 ]
 
 [[case]]
+id = "links-a-full-stop-before-a-pointer-phrase-ends-the-sentence"
+audit = 0
+issue = 1230
+goal = "A full stop after a link that a lower-case pointer phrase with its own link follows ends the sentence: the pointer phrase goes whole and the sentence keeps its end, 'The data are. Then more.' (#899's sentence end, #1230)."
+blocks = [
+    { kind = "paragraph", text = "The data are at https://a.org. see https://b.org. Then more." },
+    { kind = "paragraph", text = "The data are at https://a.org. see also https://b.org. Then more." },
+    { kind = "paragraph", text = "It is available at https://example.org/a. see the notes." },
+]
+expected = [
+    "The data are. Then more.",
+    "The data are. Then more.",
+    "It is available see the notes.",
+]
+
+[[case]]
+id = "links-quotes-around-a-link-go-when-they-hold-punctuation-or-are-spaced-guillemets"
+audit = 0
+issue = 1245
+goal = "Quotes that hold a removed link go with it when they also hold the sentence's punctuation ('\"https://a.org/code.\"', American style), which stays as the sentence's as after a bare link, and when they are spaced or single guillemets ('« https://… »', '‹https://…›') (#899, #1245)."
+blocks = [
+    { kind = "paragraph", text = "The code is at \"https://a.org/code.\" Then more." },
+    { kind = "paragraph", text = "The code is at \"https://a.org/code,\" then more." },
+    { kind = "paragraph", text = "The code is at \"https://a.org/code.\" for all." },
+    { kind = "paragraph", text = "The code is at « https://example.org/a » now." },
+    { kind = "paragraph", text = "The code is at ‹https://example.org/a› now." },
+]
+expected = [
+    "The code is. Then more.",
+    "The code is, then more.",
+    "The code is for all.",
+    "The code is now.",
+    "The code is now.",
+]
+
+[[case]]
 id = "an-arrow-before-a-lone-negation-sign-stays-as-printed"
 audit = 0
 issue = 853
