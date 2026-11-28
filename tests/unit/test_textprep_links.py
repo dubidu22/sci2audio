@@ -484,6 +484,21 @@ def test_the_generated_sentences_mostly_hold_links() -> None:
         # ... with lead words too; quotation marks apart from the link stay
         ('Text "see https://a.org" here.', "Text here."),
         ('The tool "X" https://a.org "Y" here.', 'The tool "X" "Y" here.'),
+        # ... and also hold the sentence's punctuation, which stays as after a bare link (#1245)
+        ('The code is at "https://a.org/code." Then more.', "The code is. Then more."),
+        ('The code is at "https://a.org/code!" Then more.', "The code is! Then more."),
+        ('Text "https://a.org/code;" then more.', "Text; then more."),
+        ('The code is at "https://a.org/code." for all.', "The code is for all."),
+        # ... and spaced and single guillemets (#1245)
+        ("The code is at « https://example.org/a » now.", "The code is now."),
+        ("The code is at ‹https://example.org/a› now.", "The code is now."),
+        ("The code is at ›https://example.org/a‹ now.", "The code is now."),
+        ("See ‹https://a.org›Smith.", "See Smith."),
+        # a full stop before a pointer phrase with its own link ends the sentence (#1230)
+        (
+            "The data are at https://a.org. see https://b.org. Then more.",
+            "The data are. Then more.",
+        ),
         # a bracket glued after a later closing bracket still wins (#371)
         ("Text (see https://example.org/a)b)(more) here.", "Text (more) here."),
     ],
@@ -500,6 +515,17 @@ def test_the_reasons_name_the_join_word_and_the_quotation_marks() -> None:
     (edit,) = edits('Text "https://a.org"Smith here.')
     assert edit.reason == (
         'URL "https://a.org" is not read; the quotation marks around it go too (TP-07)'
+    )
+
+
+def test_the_closing_mark_after_the_punctuation_goes_in_an_edit_of_its_own() -> None:  # #1245
+    text = 'The code is at "https://a.org/code." Then more.'
+    link, closer = edits(text)
+    assert text[link.span.start : link.span.end] == ' at "https://a.org/code'
+    assert text[closer.span.start : closer.span.end] == '"'
+    assert closer.reason == (
+        'URL "https://a.org/code" is not read; the closing quotation mark after its '
+        "punctuation goes with it, the punctuation stays the sentence's (TP-07)"
     )
 
 

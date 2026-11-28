@@ -17,6 +17,9 @@ goes with the run:
 The white space before the removed text goes too (after it, at the start of a block). A
 block that holds nothing but links, or a footnote that holds nothing but its mark and links,
 loses its whole text in one edit, so no lone "Footnote 5." is read (#64's intro is set aside).
+Marks that hold only the run go with it; where they also hold the sentence's punctuation
+('"https://a.org/code." Then'), the closing mark goes in a second edit, so the punctuation
+stays as after a bare link (#1245).
 
 A URL broken at a line end continues on the next line when it ends in a character that
 cannot end a URL, or in "." before a word that looks like the rest of an address (D-170);
@@ -31,6 +34,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, replace
 from functools import cache
+from typing import NamedTuple
 
 from sci2audio.core import BlockKind, Document, Edit, EditKind, Span
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
@@ -394,13 +398,17 @@ _QUOTES = {
     "‚": "‘",
     "«": "»",
     "»": "«",
+    "‹": "›",
+    "›": "‹",
     "*": "*",
 }
-_GUILLEMETS = {"«": "»", "»": "«"}
+_GUILLEMETS = {"«": "»", "»": "«", "‹": "›", "›": "‹"}
 _OPENING_MARK = "|".join(re.escape(mark) for mark in _QUOTES)
-# a full stop right after a link that a lower-case word follows ends no sentence: it goes
-# with the link ("available at https://a.org/x. for everyone", #899)
-_STOP_BEFORE_LOWER = re.compile(r"\.(?=\s+[^\W\d_])")
+# a mark before a run, maybe set apart by a space, and after it the sentence's punctuation
+# and the closing mark: '"https://a.org/code."', "« https://a.org »" (#1245)
+_MARK_BEFORE = re.compile(rf"(?<![\w\"“”„*'‘’‚«»‹›])(?P<mark>{_OPENING_MARK})(?P<gap>\s*)")
+_MARK_AFTER = re.compile(r"(?P<punctuation>[.,;:!?]*)(?P<gap>\s*)")
+_GAP_BEFORE_WORD = re.compile(r"\s+(?=[^\W\d_])")
 _SPACE = re.compile(r"\s+")
 _POINTER_WORDS = 6  # the most words after a link that a pointer sentence may have
 _SENTENCE_START = re.compile(r"(?:\A|[.!?][\"'”’)\]]*\s+)\Z")
@@ -467,7 +475,7 @@ class LinkStep(TextStep):
         position = 0
         while position < len(runs):
             run = runs[position]
-            start, end, repair = _repair(text, run, words, claimed, sentence_at)
+            start, end, repair, closer = _repair(text, run, words, claimed, sentence_at)
             bare = start == run[0].start  # no lead word or bracket went with it
             position += 1
             # a repair that reaches over later runs takes them into the same edit
@@ -511,7 +519,7 @@ class LinkStep(TextStep):
                 glued = text[end : end + 1]
                 if (
                     text[start].isspace()
-                    and text[end - 1] in ")]>\"”“'’‘«»*"
+                    and text[end - 1] in ")]>\"”“'’‘«»‹›*"
                     and (glued in ("(", "[") or glued.isalnum())
                 ):
                     # "Text (see https://x.org)(more)" reads "Text (more)": the bracket glued
@@ -519,6 +527,8 @@ class LinkStep(TextStep):
                     # after it, "Text <https://a.org>Smith" reads "Text Smith" (#629), and
                     # after the single quotes, guillemets and emphasis marks of #899 and #837
                     start += 1
+            if closer and closer[0] < end:
+                end, closer = max(end, closer[1]), None  # the repair took the mark along
             noted = any(link.printed_end >= 0 for link in run)
             access = "; the access note after it goes too" if noted else ""
             edits.append(
@@ -529,7 +539,17 @@ class LinkStep(TextStep):
                     self.id,
                 )
             )
-            claimed = end
+            if closer:
+                edits.append(
+                    Edit(
+                        Span(index, *closer),
+                        EditKind.REMOVE,
+                        f"{_named(text, run)} not read; the closing quotation mark after its "
+                        "punctuation goes with it, the punctuation stays the sentence's (TP-07)",
+                        self.id,
+                    )
+                )
+            claimed = closer[1] if closer else end
             sentence_at = end if at_start else -1
         return _tidied(text, edits)
 
@@ -919,18 +939,67 @@ def _link_words(words: LinkWords) -> re.Pattern[str]:
     return re.compile(rf"(?<!\w)(?:{listed})(?!\w)", re.IGNORECASE)
 
 
+class _Repair(NamedTuple):
+    """The span to remove for a run and what the reason says about the repair; `closer` is a
+    closing mark the sentence's punctuation keeps apart from the run ('"https://a.org."'),
+    which goes in an edit of its own so that the punctuation stays."""
+
+    start: int
+    end: int
+    note: str
+    closer: tuple[int, int] | None = None
+
+
 def _repair(
     text: str, run: list[_Link], words: LinkWords, claimed: int, sentence_at: int = -1
-) -> tuple[int, int, str]:
+) -> _Repair:
     """The span to remove for a run, and what the reason says about the repair."""
     end = run[-1].end
-    lower = _STOP_BEFORE_LOWER.match(text, end)
-    if lower:
-        word = lower.end() + len(text[lower.end() :]) - len(text[lower.end() :].lstrip())
-        # a lower-case word of the sentence, not the next link ("x.org/a. https://b.org")
-        if text[word : word + 1].islower() and not _START.match(text, word):
-            end = lower.end()
+    if text[end : end + 1] == "." and _sentence_goes_on(text, end + 1, words):
+        end += 1
     return _repair_span(text, run[0].start, end, words, claimed, sentence_at)
+
+
+def _sentence_goes_on(text: str, position: int, words: LinkWords) -> bool:
+    """True if a lower-case word of the sentence follows a full stop that ends at `position`,
+    so it ends no sentence ("available at https://a.org/x. for everyone", #899). The next
+    link is no such word ("x.org/a. https://b.org"), nor a pointer phrase with a link of its
+    own, which goes whole as a sentence ("https://a.org. see https://b.org. Then", #1230)."""
+    gap = _GAP_BEFORE_WORD.match(text, position)
+    if gap is None:
+        return False
+    word = gap.end()
+    if not text[word].islower() or _START.match(text, word):
+        return False
+    pointer = _pointer_phrase(words).match(text, word)
+    return pointer is None or _START.match(text, pointer.end()) is None
+
+
+def _marks_around(text: str, before: str, end: int, introduced: str) -> tuple[int, int, int] | None:
+    """The marks that hold only a run ending at `end` and lead words: where the opening one
+    starts in `before`, where the sentence's punctuation inside the closing one ends and
+    where the closing one ends; None if there are none. A guillemet may stand apart by a
+    space, as Swiss and French typography sets it ("« https://a.org »"), and punctuation
+    stands inside the closing mark in American style ('"https://a.org/code."', #1245)."""
+    opened = re.search(rf"{_MARK_BEFORE.pattern}(?:{introduced}\s+)?\Z", before, re.IGNORECASE)
+    if opened is None:
+        return None
+    mark = opened["mark"]
+    spaced = mark in _GUILLEMETS
+    after = _MARK_AFTER.match(text, end)
+    if after is None or ((opened["gap"] or after["gap"]) and not spaced):
+        return None
+    closer = _QUOTES[mark]
+    if text[after.end() : after.end() + len(closer)] != closer:
+        return None
+    return opened.start(), after.end("punctuation"), after.end() + len(closer)
+
+
+@cache
+def _pointer_phrase(words: LinkWords) -> re.Pattern[str]:
+    """A pointer word and the space after it: "see ", "siehe auch "."""
+    listed = "|".join(re.escape(word) for word in sorted(words.pointers, key=len, reverse=True))
+    return re.compile(rf"(?:{listed})\s+", re.IGNORECASE)
 
 
 def _repair_span(
@@ -941,7 +1010,7 @@ def _repair_span(
     claimed: int,
     sentence_at: int = -1,
     marks: bool = True,
-) -> tuple[int, int, str]:
+) -> _Repair:
     """The span to remove for what runs from `start` to `end`, and what the reason says;
     `marks` false once the marks around it are part of it."""
     before = text[max(claimed, start - _LOOK_BACK) : start]
@@ -966,33 +1035,32 @@ def _repair_span(
                 re.IGNORECASE,
             )
             if word and re.compile(r"[.,;:!?]|\Z").match(text, stop):
-                return (
+                return _Repair(
                     claimed + word.start(),
                     stop,
                     f'; the brackets around it and "{word.group(1)}" before them go too',
                 )
-            return claimed + opened.start(), stop, "; the brackets around it go too"
+            return _Repair(claimed + opened.start(), stop, "; the brackets around it go too")
     # ... and marks that hold only the run and lead words, set close to them, go with it:
     # '"https://a.org"Smith' reads "Smith", not '""Smith' (#629); with no word glued after
     # them the sentence is repaired as for a bare link: "available at 'https://a.org' for
     # everyone" is "available for everyone" (#899, ruled by Colin on 26 Nov 2026)
-    quoted = (
-        re.search(
-            rf"(?<![\w\"“”„*'‘’‚«»])({_OPENING_MARK})(?:{introduced}\s+)?\Z", before, re.IGNORECASE
-        )
-        if marks
-        else None
-    )
-    closer = _QUOTES[quoted.group(1)] if quoted else ""
-    if quoted and text[end : end + len(closer)] == closer:
-        opened_at, closed_at = claimed + quoted.start(), end + len(closer)
+    marked = _marks_around(text, before, end, introduced) if marks else None
+    if marked:
+        opened, inside, closed_at = marked
+        opened_at = claimed + opened
         note = "; the quotation marks around it go too"
         if text[closed_at : closed_at + 1].isalnum():
-            return opened_at, closed_at, note
-        found = _repair_span(
-            text, opened_at, closed_at, words, first_claimed, sentence_at, marks=False
-        )
-        return found[0], found[1], note + found[2]
+            return _Repair(opened_at, closed_at, note)
+        if inside > end and not (
+            text[end:inside] == "." and _sentence_goes_on(text, closed_at, words)
+        ):
+            # '"https://a.org/code." Then' reads "Then" after the sentence's own full stop,
+            # as after a bare link, so the closing mark goes on its own (#1245)
+            found = _repair_span(text, opened_at, end, words, first_claimed, sentence_at, False)
+            return _Repair(found.start, found.end, note + found.note, (inside, closed_at))
+        found = _repair_span(text, opened_at, closed_at, words, first_claimed, sentence_at, False)
+        return _Repair(found.start, found.end, note + found.note)
     # 2. a label before it, maybe with a pointer: "Code: https://...", "Code: see https://..."
     labels = "|".join(re.escape(label) for label in sorted(words.labels, key=len, reverse=True))
     pointers = "|".join(re.escape(word) for word in sorted(words.pointers, key=len, reverse=True))
@@ -1010,12 +1078,12 @@ def _repair_span(
             else None
         )
         if stop is not None:
-            return label_start, stop, f'; with the label "{name}" the whole sentence goes'
-        return label_start, end, f'; the label "{name}" goes too'
+            return _Repair(label_start, stop, f'; with the label "{name}" the whole sentence goes')
+        return _Repair(label_start, end, f'; the label "{name}" goes too')
     # 3. a colon right before it
     colon = re.search(r":\s*\Z", before)
     if colon:
-        return claimed + colon.start(), end, "; the colon before it goes too"
+        return _Repair(claimed + colon.start(), end, "; the colon before it goes too")
     # 4. a preposition or verb right before it
     # German chains two: "z. B. unter https://...", "siehe z. B. https://..." (#256)
     chain = rf"(?:{befores})(?:\s+(?:{befores})){{0,{words.chained - 1}}}"
@@ -1024,14 +1092,14 @@ def _repair_span(
     if word and first and re.fullmatch(pointers, first.group(), re.IGNORECASE):
         pointed = _pointer(text, claimed + word.start(), end, first.group(), words, sentence_at)
         if pointed:
-            return pointed
+            return _Repair(*pointed)
     if word:
-        return (
+        return _Repair(
             claimed + word.start(),
             end,
             f'; "{word.group(1)}" before it goes too, so the sentence still reads',
         )
-    return start, end, ""
+    return _Repair(start, end, "")
 
 
 def _pointer(

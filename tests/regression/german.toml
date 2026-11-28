@@ -4083,6 +4083,40 @@ expected = [
 ]
 
 [[case]]
+id = "de-links-a-full-stop-before-a-pointer-phrase-ends-the-sentence"
+audit = 0
+issue = 1230
+goal = "As in English: a full stop after a link that a lower-case pointer phrase with its own link follows ends the sentence (#1230)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Die Daten liegen unter https://a.org. siehe https://b.org. Dann mehr." },
+    { kind = "paragraph", text = "Die Daten liegen unter https://a.org. vgl. https://b.org. Dann mehr." },
+]
+expected = [
+    "Die Daten liegen. Dann mehr.",
+    "Die Daten liegen. Dann mehr.",
+]
+
+[[case]]
+id = "de-links-quotes-around-a-link-go-when-they-hold-punctuation-or-are-spaced-guillemets"
+audit = 0
+issue = 1245
+goal = "As in English: quotes that hold a removed link and the sentence's punctuation go with it, the punctuation read as after a bare link; spaced and single guillemets in both orders go too (#1245)."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Der Code ist unter „https://a.org/code.“ verfügbar." },
+    { kind = "paragraph", text = "Der Code ist unter „https://a.org/code.“ Dann mehr." },
+    { kind = "paragraph", text = "Der Code liegt unter » https://a.org/code « bereit." },
+    { kind = "paragraph", text = "Der Code liegt unter ›https://a.org/code‹ bereit." },
+]
+expected = [
+    "Der Code ist verfügbar.",
+    "Der Code ist. Dann mehr.",
+    "Der Code liegt bereit.",
+    "Der Code liegt bereit.",
+]
+
+[[case]]
 id = "de-an-arrow-before-a-lone-negation-sign-stays-as-printed"
 audit = 0
 issue = 853
