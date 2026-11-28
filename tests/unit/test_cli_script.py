@@ -6,18 +6,21 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import subprocess
+import sys
 from importlib.metadata import EntryPoint
 from pathlib import Path
 
 import pytest
 from cli_helpers import CORPUS, SEABORN, Cli, files_in, small_pdf
-from pdf_maker import Text, image_only_pdf, joined_pdf, make_pdf, twin_pdf
+from pdf_maker import Mark, Text, image_only_pdf, joined_pdf, make_pdf, outlined_pdf, twin_pdf
 from syrupy.assertion import SnapshotAssertion
 from test_app_job import TWIN_LINES
 from test_layout_language import ENGLISH, GERMAN
 
 from sci2audio.app import JobSettings, run_script_job
 from sci2audio.cli import chapter_numbers
+from sci2audio.extraction.pdf import OUTLINE_DEPTH
 from sci2audio.textprep import Category, installed_steps
 from sci2audio.textprep.plugins import PLUGIN_GROUP
 
@@ -450,3 +453,40 @@ def test_a_command_that_runs_no_job_imports_no_plugin(
     monkeypatch.setattr(plugins, "entry_points", lambda **kwargs: [point])
     assert Cli(tmp_path)("voices").code == 0
     assert point.loads == 0
+
+
+def nested(depth: int) -> Mark:
+    """One bookmark with a chain of `depth - 1` children, each inside the one before."""
+    mark = Mark("deepest", 2)
+    for level in range(depth - 1):
+        mark = Mark(f"level {depth - 1 - level}", 1, (mark,))
+    return mark
+
+
+@pytest.mark.parametrize(
+    ("marks", "circular", "said"),
+    [
+        pytest.param(
+            (Mark("a", 1, (Mark("b", 2),)), Mark("c", 2)),
+            True,
+            "A circular bookmark reference",
+            id="looped",
+        ),
+        pytest.param((nested(OUTLINE_DEPTH + 2),), False, "Maximum recursion depth", id="deep"),
+    ],
+)
+def test_a_librarys_own_warning_is_not_printed(
+    tmp_path: Path, marks: tuple[Mark, ...], circular: bool, said: str
+) -> None:
+    """#143: pypdfium2 logs a warning while it reads a damaged or very deep outline, in the
+    reader's child process. The command line, started as a person starts it, prints only
+    its own lines."""
+    pdf = tmp_path / "outlined.pdf"
+    pdf.write_bytes(outlined_pdf(2, marks, circular=circular))
+    argv = [sys.executable, "-m", "sci2audio.cli", "script", str(pdf), "-o", str(tmp_path / "out")]
+    argv += ["--work-folder", str(tmp_path / "work"), "--language", "en", "--ignore-settings"]
+    ran = subprocess.run(argv, capture_output=True, text=True, check=False, timeout=120)
+    assert ran.returncode == 0, ran.stderr
+    assert said not in ran.stderr
+    assert "Reading the file ..." in ran.stderr  # its own progress lines stay
+    assert (tmp_path / "out" / "outlined.script.txt").exists()

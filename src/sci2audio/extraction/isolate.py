@@ -356,6 +356,9 @@ def _child(
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C is the parent's to act on (D-628)
     if hasattr(signal, "pthread_sigmask"):  # a SIGINT held back since the start is dropped
         signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+    # The child answers through `send` alone: a library's log line (pypdfium2 on a looped
+    # outline) would reach the person's terminal unasked, past the program's choice (#143).
+    logging.getLogger().addHandler(logging.NullHandler())
     send.send(("step", "opening"))  # started: the parent's clock for the first step begins
     _hard_limit(2 * memory)
     _step_started = time.monotonic()
