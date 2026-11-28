@@ -309,6 +309,8 @@ _DECIMAL_COMMA = re.compile(r"\d,\d")
 _SQUARE = re.compile(r"\[([^\[\]]*)\]")  # what a square bracket holds
 _UNREAD = re.compile(r"[\s.,;:!?]*")  # what a removal may leave to a link's
 _NUMBER_GLUED_AFTER = re.compile(r"[.,]?\d")  # a number glued to a bracket's end
+_RANGE_GAP = re.compile(r"\s*[\u2013\u2014-]\s*")  # between "[1]" and "[3]" of a range
+_ONE_NUMBER = re.compile(r"\s*\d+\s*")
 _LOWER_NEXT = re.compile(r"\s+[a-z]")
 _AFTER_START = re.compile(r"[.!?,;:]+(?:\s+|\Z)")
 _LOOK_BACK = 300  # characters looked at before a bracket, so a long block costs linear time
@@ -486,6 +488,7 @@ class _Rules:
         self.list_gap = re.compile(rf"\s*,\s*|(?:\s*,)?\s+(?P<join>{words.and_word})\s+")
         self.or_after = re.compile(rf"(?:\s*,)?\s+{words.or_word}\s+\[")
         self._lists: dict[int, list[_Bracket]] = {}  # this look only
+        self._ranges: set[int] = set()  # the lists that are a range of two brackets
         self._following: dict[int, _Bracket] = {}  # the next bracket of a run, this look only
         self.pair_gap = re.compile(rf"\s+{words.and_word}\s+")
         # a join word before and after a removal, which would read side by side (#628)
@@ -1289,6 +1292,9 @@ class _Rules:
         if listed is not None:
             end = listed[-1].close + 1
             inside = ", ".join(text[item.open + 1 : item.close] for item in [node, *listed])
+            if node.open in self._ranges:  # "[1]–[3]" reads as "[1–3]" does
+                inside = "–".join(text[item.open + 1 : item.close].strip() for item in listed)
+                inside = f"{text[node.open + 1 : node.close].strip()}–{inside}"
         window = max(0, node.open - _LOOK_BACK)
         # judged on the words before it as a second run sees them, past the removals
         before = text[window : min(edge, node.open)].rstrip()
@@ -1376,10 +1382,25 @@ class _Rules:
         squares.sort(key=lambda node: node.open)
         lists: dict[int, list[_Bracket]] = {}
         self._following = {}
+        self._ranges = set()
         first = 0
         while first < len(squares):
             head, last = squares[first], first
             kind = self._item_kind(text, head)
+            if kind == "numbers" and first + 1 < len(squares):
+                # "[1]–[3]": two brackets of one number joined by a dash are one range, as
+                # "[1–3]" is (#623)
+                ahead = squares[first + 1]
+                if (
+                    _RANGE_GAP.fullmatch(text, head.close + 1, ahead.open)
+                    and _ONE_NUMBER.fullmatch(text, head.open + 1, head.close)
+                    and _ONE_NUMBER.fullmatch(text, ahead.open + 1, ahead.close)
+                    and not _NUMBER_GLUED_AFTER.match(text, ahead.close + 1)
+                ):
+                    lists[head.open] = [ahead]
+                    self._ranges.add(head.open)
+                    first += 2
+                    continue
             while kind is not None and last + 1 < len(squares):
                 ahead = squares[last + 1]
                 gap = self.list_gap.fullmatch(text, squares[last].close + 1, ahead.open)
