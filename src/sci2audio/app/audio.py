@@ -896,7 +896,7 @@ def finished_audiobook(
         *(b.file.name for b in record.built),
     }
     if not vouched or not vouched <= record.owned(out_folder):
-        return None  # a file was changed, moved or removed: not the audiobook recorded
+        return None  # a file is no longer as recorded: not the audiobook this run would make
     chosen, _ = selected(find_chapters(document), settings.chapters)
     made = {c.index for c in record.chapters if c.files}
     if record.order == "chosen" or list(chosen) != sorted(chosen):
