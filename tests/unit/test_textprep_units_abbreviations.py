@@ -525,8 +525,7 @@ def test_a_unit_edit_names_the_printed_unit_and_its_reading() -> None:
         ("\u00d7\u00d7 and \u2248\u2248", "\u00d7\u00d7 and \u2248\u2248"),
         (
             "3 x 4, 3x4, 1920x1080, 10x speedup, 3.5x., 2x3x4",
-            "3 times 4, 3 times 4, 1920 times 1080, 10 times speedup, 3.5 times., "
-            "2 times 3 times 4",
+            "3 times 4, 3 times 4, 1920 by 1080, 10 times speedup, 3.5 times., 2 times 3 times 4",
         ),
         (
             "0x1F, x86, 2 x n, 2xl, 0003-066X, 10.1/2x3",

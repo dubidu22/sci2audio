@@ -233,7 +233,7 @@ def _both_runs(text: str, language: str, kind: BlockKind = BlockKind.PARAGRAPH) 
         ("It grew 1234 X 5.", "en", "It grew 1,234 times 5."),
         ("It is 1234X larger.", "en", "It is 1,234 times larger."),
         ("It is 1234X.", "en", "It is 1,234 times."),
-        ("It is 1920x1080.", "en", "It is 1920 times 1080."),
+        ("It is 1920x1080.", "en", "It is 1920 by 1080."),  # a size (#1037)
         ("It is 1234x, then.", "en", "It is 1,234 times, then."),
         ("It is 1234xy.", "en", "It is 1234xy."),
         ("It is 1234 xy.", "en", "It is 1234 xy."),
