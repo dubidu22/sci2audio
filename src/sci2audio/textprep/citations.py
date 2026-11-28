@@ -1633,13 +1633,18 @@ class _Rules:
         )
 
     def _only_periods(self, authors: str) -> bool:
-        """True when every word is a period word, joined by `and_word`, a slash or a space:
-        "Sommer", "Frühjahr und Sommer", "Herbst/Winter", "Stand März" (#595)."""
-        and_word = re.escape(self.words.and_word)
-        if not re.fullmatch(rf"{_WORD}(?:(?:\s+{and_word}\s+|[ \t]+|/){_WORD})*", authors):
+        """True when every word is a period word or a month, joined by `and_word` in any
+        case, "&", a slash, a hyphen, an en dash or a space: "Sommer", "Frühjahr und
+        Sommer", "Herbst/Winter", "Stand März" (#595), "Spring and May", "Spring & Summer",
+        "Fall-Winter" (#925). A name among them makes it a citation ("Summer & Lee")."""
+        joins = rf"(?i:\s+{re.escape(self.words.and_word)}\s+)|\s*&\s*|[ \t]+|/|[-\u2013]"
+        words = [word for word in re.split(joins, authors) if word]
+        if not words or not all(re.fullmatch(_WORD, word) for word in words):
             return False
-        words = re.split(rf"\s+{and_word}\s+|[ \t]+|/", authors)
-        return all(word.lower() in self.words.periods for word in words)
+        return all(
+            word.lower() in self.words.periods or word.lower() in self.words.months
+            for word in words
+        )
 
     def _names_ok(self, authors: str, acronym: bool) -> bool:
         tokens = [
