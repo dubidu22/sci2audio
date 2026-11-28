@@ -15,8 +15,9 @@ chart of minutes per group." Several pictures' texts are joined by "; ". The alt
 part of the notice, so later steps do not read it again, as for any notice.
 
 Formulas, tables-and-figures (D-108) and code blocks (D-545) are separate categories, so
-they are three steps. A code block is named by nothing yet ("A code block is skipped.");
-the player shows its code (D-546).
+they are three steps. A code block is named by its listing caption, as a table or a figure is
+by its caption ("Listing 3 is skipped.", #281, #604), else it reads "A code block is
+skipped."; the player shows its code (D-546).
 """
 
 from __future__ import annotations

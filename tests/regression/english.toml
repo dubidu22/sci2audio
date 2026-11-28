@@ -3704,3 +3704,14 @@ expected = [
     "It is today.",
 ]
 
+[[case]]
+id = "a-listing-caption-names-its-code-block"
+audit = 0
+issue = 604
+goal = "A 'Listing N: ...' caption that layout points at its code block names the block in the skip notice: 'Listing 3 is skipped.' (#281, AC-281.2, PR #600)."
+blocks = [
+    { kind = "caption", text = "Listing 3: Drawing a line plot.", label = "Listing 3", describes = 1 },
+    { kind = "code", text = "import seaborn as sns" },
+]
+expected = ["Listing 3: Drawing a line plot.", "Listing 3 is skipped."]
+
