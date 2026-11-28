@@ -225,6 +225,7 @@ def test_the_default_steps_are_the_built_in_ones() -> None:
             (BlockKind.PARAGRAPH, "An e\N{LATIN SMALL LIGATURE FFI}cient develop-\nment."),
             (BlockKind.PARAGRAPH, "It held (p < .05) in 3\u20135 cases."),
             (BlockKind.PARAGRAPH, "Shown, not hidden."),
+            (BlockKind.PARAGRAPH, "Its input/output."),
         ],
         tags={1: [(8, 9, "sup")], 2: [(14, 15, "sup")], 14: [(5, 16, ("span", "hidden"))]},
         sections=[Section("References", 1, 8, 10)],

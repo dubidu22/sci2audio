@@ -1308,6 +1308,15 @@ def test_the_read_along_uses_the_plugin_steps_it_is_given() -> None:
     assert said_parts(build_view(document, made, data)) == []
 
 
+def test_the_read_along_shows_a_slash_read_as_a_word() -> None:
+    # the printed slash stays on the page, the tooltip says what the voice reads (#653, #392)
+    text = "den Menschen/Gruppen"
+    document = make_document([("paragraph", text)], "de")
+    data = readalong([(0, 0, len(text))])
+    made = record(chunks=1, made_with=__version__)
+    assert said_parts(build_view(document, made, data)) == [("/", "und")]
+
+
 def test_joined_hyphens_takes_the_steps_it_is_given() -> None:
     text = "asking questions, and con-\ntributing code."
     document = make_document([("paragraph", text)])

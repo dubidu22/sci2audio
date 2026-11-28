@@ -46,6 +46,7 @@ from sci2audio.textprep.placeholders import (
     TableFigureNoticeStep,
 )
 from sci2audio.textprep.references import ReferenceListStep
+from sci2audio.textprep.slashes import SlashStep
 from sci2audio.textprep.statistics import StatisticsStep
 from sci2audio.textprep.steps import Stage, TextStep, step_problems
 from sci2audio.textprep.units import UnitStep
@@ -67,6 +68,8 @@ BUILT_IN_STEPS: tuple[TextStep, ...] = (
     # units then abbreviations (#68), after the numbers and statistics steps (#67, D-190)
     UnitStep(),
     AbbreviationStep(),
+    # a slash between words after every step that reads a slash of its own (#653)
+    SlashStep(),
     # characters and hyphenation stay the last inline steps (D-150)
     UnicodeStep(),
     LineEndHyphenStep(),
