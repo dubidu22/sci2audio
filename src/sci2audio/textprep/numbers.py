@@ -78,10 +78,19 @@ _DASH_RANGE = re.compile(r"(?<=\d)(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=[\u221
 # ... between a number's power and a power of ten: "10⁴–10⁶ K" is "10 to the power of 4 to
 # 10 to the power of 6 kelvin", as German reads it (#822); the power before it is read too
 _RAISED = "[⁰¹²³⁴⁵⁶⁷⁸⁹]"
+# PDF text often prints that dash as a hyphen-minus: unspaced between two powers of ten it is
+# the range too ("10⁴-10⁶ K", #1243), while "10⁴ - 10⁶" and "2²-1" may be a difference
+_AFTER_A_POWER = "|".join(
+    f"(?<=\\d{sign}{_RAISED}{{{n}}})" for sign in ("", "[⁺⁻]") for n in (1, 2)
+)
+_AFTER_A_POWER_OF_TEN = "|".join(
+    f"(?<=10{sign}{_RAISED}{{{n}}})" for sign in ("", "[⁺⁻]") for n in (1, 2)
+)
 _POWER_RANGE = re.compile(
-    "(?:"
-    + "|".join(f"(?<=\\d{sign}{_RAISED}{{{n}}})" for sign in ("", "[⁺⁻]") for n in (1, 2))
-    + r")(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=10[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹])"
+    f"(?P<dash>(?:{_AFTER_A_POWER})"
+    + r"(?:\s*[\u2013\u2012]\s*|\u2014)"
+    + f"|(?:{_AFTER_A_POWER_OF_TEN})"
+    + r"-\n?)(?=10[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹])"
 )
 # a hyphen between two plain numbers that are not part of a longer chain
 _HYPHEN_RANGE = re.compile(
@@ -106,9 +115,10 @@ _BEFORE_TIMES = r"(?:\s*\u00d7|\s+{times}\b)" + _SIZE
 # an "x" the units step may read "times": glued, or after one space (#870)
 _X_AFTER = re.compile(r" ?[xX]" + _SIZE)
 _YEAR_LIKE = range(1500, 2100)
-# the word after a number, maybe split at a line end ("x-" and "s"), which the line-end hyphen
-# step joins with or without its hyphen before a second run sees it (#1218)
-_NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*)(?:(?<=-)\n(?P<rest>[a-z][a-z'-]*))?")
+# the word after a number, maybe split at line ends ("x-" and "s", "x-", "s-" and "es"), which
+# the line-end hyphen step joins with or without each hyphen before a second run sees it
+# (#1218, #1238)
+_NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*(?:(?<=-)\n[a-z][a-z'-]*)*)")
 _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
 # words ending in "s" that are not plural nouns: "ACL 2023 is", "in 2019 was"
 _NOT_PLURAL = frozenset(
@@ -693,12 +703,7 @@ def _counted(text: str, end: int, before: str, value: int) -> bool:
     following = _NEXT_WORD.match(text, end)
     if not following:
         return False
-    word = following["word"]
-    if following["rest"]:  # a plural whichever way it is joined
-        forms = (word + following["rest"], word[:-1] + following["rest"])
-    else:
-        forms = (word,)
-    if not all(_plural(form) for form in forms):
+    if not all(_plural(form) for form in _joined_forms(following["word"].split("\n"))):
         return False
     if not 1500 <= value <= 2099:
         return True
@@ -709,9 +714,25 @@ def _counted(text: str, end: int, before: str, value: int) -> bool:
     )
 
 
+def _joined_forms(parts: list[str]) -> set[str]:
+    """Every word the line-end hyphen step may join `parts` into, each hyphen kept or not: a
+    count needs a plural whichever way it is joined."""
+    forms = {parts[0]}
+    for part in parts[1:]:
+        forms = {form + part for form in forms} | {form[:-1] + part for form in forms}
+    return forms
+
+
 def _plural(word: str) -> bool:
-    return word in _PLURALS or (
-        word.endswith("s") and not word.endswith(("ss", "us", "'s")) and word not in _not_plural()
+    # "chil-dren" is the plural that a split "chil-" and "dren" may be joined into (#1238)
+    return (
+        word in _PLURALS
+        or word.replace("-", "") in _PLURALS
+        or (
+            word.endswith("s")
+            and not word.endswith(("ss", "us", "'s"))
+            and word not in _not_plural()
+        )
     )
 
 

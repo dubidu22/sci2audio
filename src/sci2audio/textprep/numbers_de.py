@@ -629,10 +629,17 @@ _RAISED = "[⁰¹²³⁴⁵⁶⁷⁸⁹]"
 _AFTER_POWER = "|".join(
     f"(?<=\\d{sign}{_RAISED}{{{count}}})" for sign in ("", "[⁺⁻]") for count in (1, 2)
 )
+# a hyphen-minus, as PDF text often prints the dash, only unspaced between two powers of ten:
+# "10⁴-10⁶ K" (#1243), while "10⁴ - 10⁶" and "2²-1" may be a difference
+_AFTER_POWER_OF_TEN = "|".join(
+    f"(?<=10{sign}{_RAISED}{{{count}}})" for sign in ("", "[⁺⁻]") for count in (1, 2)
+)
 _DASH_RANGE = re.compile(
-    r"(?:(?<=\d)|(?<=\bUhr)|"
+    r"(?P<dash>(?:(?<=\d)|(?<=\bUhr)|"
     + _AFTER_POWER
-    + r")(?P<dash>\s*[\u2013\u2012]\s*|\u2014)(?=[\u2212-]?[.,]?\d)"
+    + r")(?:\s*[\u2013\u2012]\s*|\u2014)(?=[\u2212-]?[.,]?\d)|(?:"
+    + _AFTER_POWER_OF_TEN
+    + r")-\n?(?=10[⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]))"
 )
 _HYPHEN_RANGE = re.compile(
     r"(?<![^\WxX])(?<![,/:^\u2212-])"
@@ -1561,6 +1568,8 @@ def _powers(text: str, plain: str) -> list[Candidate]:
     kept = []
     for c, base in found:
         joined = _LABEL_JOINED_AFTER.match(text, c.end)
+        if joined and _DASH_RANGE.match(text, c.end):
+            joined = None  # "10⁴-10⁶": the hyphen is read "bis" in the same run (#1243)
         if joined and text[joined.end() - 1].isdigit():
             # "R³ : 1/5" is "R³ : ein Fünftel" after the first run: no number joins the power
             # there, so it is read on both runs (#970)
