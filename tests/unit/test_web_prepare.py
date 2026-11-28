@@ -398,6 +398,25 @@ def test_a_finished_audiobook_whose_chapter_files_are_gone_offers_no_listen_link
         assert not re.search(r"<span>[^<]* (?:of audio|Audio)</span>", meta), meta
 
 
+def test_the_listen_page_header_of_a_book_whose_chapter_files_are_gone_gives_no_length(
+    tmp_path: Path,
+) -> None:
+    """#1259: the Listen page's header says no length either, as the document page's
+    (#1069): the page has nothing to play."""
+    app, client = server(tmp_path, FakeVoice())
+    doc = upload(client, paper_bytes())["id"]
+    assert wait(client, start(client, doc))["state"] == "done"
+
+    def meta() -> str:
+        page = client.get(f"/documents/{doc}/listen").text
+        return page.split('<header class="paper-head">')[1].split("<nav")[0]
+
+    assert re.search(r"<span>[^<]* of audio</span>", meta())
+    for mp3 in book_folder(app.state.sci2audio.config.output_folder).glob("*.mp3"):
+        mp3.unlink()
+    assert not re.search(r"<span>[^<]* of audio</span>", meta()), meta()
+
+
 # --- the card -----------------------------------------------------------------------------
 
 

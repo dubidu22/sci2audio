@@ -12,6 +12,22 @@
 {{ paper_head(head, 'listen', 'listen-title', '') }}
 {% if not view %}
 <p class="note" id="listen-problem">{{ problem }}</p>
+{% if made_rows %}
+{#- a book that does not play as a whole, its chapters made listed and the others offered
+    again (#1244); app.js wires the buttons, drawn disabled (#350) -#}
+<section class="made-chapters" aria-labelledby="chapters-heading">
+  <h2 id="chapters-heading">{{ t('listen.chapters') }}</h2>
+  <ol class="outline" id="outline">
+  {% for row in made_rows %}
+    <li class="chapter-later" data-index="{{ row.index }}"><span class="ot" lang="{{ text_language }}">{{ row.title }}</span><span class="oc chapter-state">{% if row.state == 'generated' %}{{ t('player.generated') }}{% elif row.state == 'generating' %}{{ t('player.generating') }}{% else %}{{ t('player.missing') }}{% endif %}</span>{% if row.state == 'not-generated' and made.can %}<button type="button" class="sm generate" data-chapter="{{ row.index }}" data-document="{{ document.id }}" data-output="{{ made.output }}" disabled><span aria-hidden="true">{{ t('player.generate') }}</span><span class="visually-hidden">{{ t('player.generate') }}: <span lang="{{ text_language }}">{{ row.title }}</span></span></button>{% endif %}</li>
+  {% endfor %}
+  </ol>
+  {% if made.can and made.missing %}
+  <p class="buttons generate-rest"><button type="button" class="sm" id="generate-rest" data-chapters="{{ made.missing | tojson | forceescape }}" data-document="{{ document.id }}" data-output="{{ made.output }}" aria-describedby="generate-hint" disabled>{{ t('player.generate_rest') }}</button></p>
+  <p class="hint" id="generate-hint">{{ t('player.generate_hint') }}</p>
+  {% endif %}
+</section>
+{% endif %}
 {% if document.outside %}<p><a href="/">{{ t('common.back_home') }}</a></p>{% else %}<p><a href="/documents/{{ document.id }}#step-make">{{ t('listen.back') }}</a></p>{% endif %}
 {% else %}
 <script id="player-data" type="application/json">{{ data | safe }}</script>
