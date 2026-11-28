@@ -3345,6 +3345,27 @@ expected = [
 ]
 
 [[case]]
+id = "de-a-roman-part-list-with-other-list-words"
+audit = 0
+issue = 1013
+goal = "A list of Roman numerals after a part keyword, a full stop after each, joined by 'u.', 'bzw.', 'sowie' or a spaced dash, is left as printed as a whole, as 'Kapitel I. und II.' is (#996): never only its first numeral. Each reads the same on a second run."
+language = "de"
+blocks = [
+    { kind = "paragraph", text = "Kapitel I. u. II." },
+    { kind = "paragraph", text = "Kapitel I. bzw. II." },
+    { kind = "paragraph", text = "Kapitel I. sowie II." },
+    { kind = "paragraph", text = "Kapitel I. — II." },
+    { kind = "heading", text = "Teile I. bzw. II. folgen" },
+]
+expected = [
+    "Kapitel I. und II.",
+    "Kapitel I. beziehungsweise II.",
+    "Kapitel I. sowie II.",
+    "Kapitel I. — II.",
+    "Teile I. beziehungsweise II. folgen",
+]
+
+[[case]]
 id = "de-a-sign-before-nx"
 audit = 0
 issue = 988

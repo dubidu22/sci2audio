@@ -1611,10 +1611,12 @@ def _roman_run() -> re.Pattern[str]:
 
 
 # a list that goes on after a numeral's full stop ("Kapitel I. und II.", "Kapitel I. bis
-# III."): the first numeral is no part number on its own, so the list stays as printed as a
-# whole, as "Teil II und III." does (#996)
+# III.", "Kapitel I. bzw. II.", "Kapitel I. — II."): the first numeral is no part number on
+# its own, so the list stays as printed as a whole, as "Teil II und III." does (#996, #1013)
 _LIST_AFTER_STOP = re.compile(
-    r"\.(?:,\s*|\s+(?:und|oder|&|bis)\s+|\s*[/\u2013-]\s*)" + _ROMAN + r"(?!\w)"
+    r"\.(?:,\s*|\s+(?:und|oder|&|bis|sowie|u\.|bzw\.|beziehungsweise)\s+|\s*[/\u2013\u2014-]\s*)"
+    + _ROMAN
+    + r"(?!\w)"
 )
 _ROMAN_PART = re.compile(r"(?P<numeral>" + _ROMAN + r")|(?P<sep>\s*[/\u2013-]\s*)")
 _VALID_ROMAN = re.compile(r"\A(?P<tens>X{0,3})(?P<units>IX|IV|V?I{0,3})\Z")
