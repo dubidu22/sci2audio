@@ -3496,7 +3496,7 @@ expected = [
 id = "four-digit-count-before-a-spaced-or-capital-x"
 audit = 0
 issue = 870
-goal = "A four-digit number before a spaced 'x', a capital 'X' or an 'x' glued before a digit, each read 'times', is a count read with its comma on the first run, as on a second run, which sees 'times'; '1920x1080' and '1234x,' read as before (#870)."
+goal = "A four-digit number before a spaced 'x', a capital 'X' or an 'x' glued before a digit, each read 'times', is a count read with its comma on the first run, as on a second run, which sees 'times'; '1234x,' reads as before (#870), and the size '1920x1080' reads 'by' (#1037)."
 blocks = [
     { kind = "paragraph", text = "It grew 1234 x 5." },
     { kind = "paragraph", text = "It grew 1234x5 and 1234 X 5 here." },
@@ -3507,7 +3507,7 @@ expected = [
     "It grew 1,234 times 5.",
     "It grew 1,234 times 5 and 1,234 times 5 here.",
     "It is 1,234 times larger.",
-    "It is 1920 times 1080 and 1,234 times, here.",
+    "It is 1920 by 1080 and 1,234 times, here.",
 ]
 
 [[case]]
@@ -3524,7 +3524,7 @@ blocks = [
 expected = [
     "It grew 2,019 times and 2,019 times larger, then 2,019 times and 2,019 times again.",
     "We set 2019 equals A and 2019 equals B.",
-    "A 1920 times 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
+    "A 1920 by 1080 screen, 1920 times 1,080 pixels and 2,019 times 3.",
     "In 2019 times were hard.",
 ]
 
@@ -3626,4 +3626,26 @@ blocks = [
 expected = [
     "with 5 N samples",
     "where 2 m + 1",
+]
+
+[[case]]
+id = "a-glued-size-of-two-whole-numbers-reads-by"
+audit = 0
+issue = 1037
+goal = "Two whole numbers of two or more digits joined by a glued 'x', 'X' or '×' are a size, read 'by' with their printed digits (no comma, no year), on both runs, in a paragraph and a heading (ruled by Colin, 26 Nov 2026). A one-digit factor, a chain, a decimal, a spaced sign and a number with nothing after the sign keep 'times'; formulas keep their x (D-242)."
+blocks = [
+    { kind = "paragraph", text = "The screen is 1920x1080, 1920×1080 or 1024X768, an icon 32x32." },
+    { kind = "heading", text = "A 1920x1080 screen" },
+    { kind = "paragraph", text = "It is 3x5, 2x3x4 and 32x32x32 in all." },
+    { kind = "paragraph", text = "It grew 1234 x 5 and 3 × 5, then 3x and 2019× here." },
+    { kind = "paragraph", text = "It is 1.5x20 and 20x1.5 here." },
+    { kind = "paragraph", text = "So y = 2x + 1, 0x1F and x86 here." },
+]
+expected = [
+    "The screen is 1920 by 1080, 1920 by 1080 or 1024 by 768, an icon 32 by 32.",
+    "A 1920 by 1080 screen",
+    "It is 3 times 5, 2 times 3 times 4 and 32 times 32 times 32 in all.",
+    "It grew 1,234 times 5 and 3 times 5, then 3 times and 2,019 times here.",
+    "It is 1.5 times 20 and 20 times 1.5 here.",
+    "So y equals 2x + 1, 0x1F and x86 here.",
 ]
