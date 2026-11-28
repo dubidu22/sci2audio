@@ -788,6 +788,16 @@ def _language_meta(report: Mapping[str, Any] | None, s: Strings) -> str | None:
     return note() if note else None
 
 
+def _plays(work: Path, document_id: str, folders: tuple[Path | None, ...]) -> bool:
+    """True if the Listen page finds an audiobook to play: a finished one whose files are
+    all there, or a growing one with a playable chapter (#1069)."""
+    try:
+        current_audiobook(work, document_id, folders)
+    except PlayerError:
+        return False
+    return True
+
+
 def paper_head(
     s: Strings,
     *,
@@ -1074,7 +1084,10 @@ def _prepare(
     chosen_voice = _document_voice(saved.voice, _text_language(report))
     installed = _installed(state)
     about = read_about(found.folder)
-    got = heard(found.folder, found.id, _folders(state, found, saved.output_folder))
+    folders = _folders(state, found, saved.output_folder)
+    got = heard(found.folder, found.id, folders)
+    if got is not None and not _plays(found.folder, found.id, folders):
+        got = None  # a record whose chapter files are gone plays nothing: no length (#1069)
     # the language the report was made with ("" = automatic); a job made from this page
     # uses it, and it is not remembered for other documents (#212, D-521)
     language = str(report_settings.get("language", saved.language) or "")
@@ -1104,7 +1117,10 @@ def _prepare(
             # audiobook comes only at its end (#1054). `got` is the book the Listen page
             # plays, a growing one too, so the chapters a paused, failed or earlier run left
             # on disk open the tab when no job of this run says so (#1059)
-            has_audio=found.has_audio or got is not None or bool(card and card["playable"]),
+            # ... and a finished book whose chapter files were deleted keeps its record but
+            # plays nothing, so the tab is a link only when the Listen page plays (#1069)
+            has_audio=got is not None
+            or bool(card and card["playable"] and card["state"] == "running"),
             prepare=True,
         ),
         side=_side(s, found, about, report),
