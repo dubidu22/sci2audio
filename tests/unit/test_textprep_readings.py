@@ -1,17 +1,20 @@
 """The readings module: what the built-in text steps read for a block's printed text (#1107,
-#1110, #1111). Readings are checked here through the readings interface; the second-run tests
+#1110, #1111, #1112). Readings are checked here through the readings interface; the second-run tests
 check the listening script through the runner."""
 # ruff: noqa: RUF001 (the rows hold the signs the units and statistics steps read)
 
+import re
 from collections.abc import Callable, Iterator
+from pathlib import Path
 
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
+from sci2audio import textprep
 from sci2audio.core import BlockKind
 from sci2audio.testing import make_document
-from sci2audio.textprep import StatisticsStep, StepContext, UnitStep, readings
+from sci2audio.textprep import AbbreviationStep, StatisticsStep, StepContext, UnitStep, readings
 from sci2audio.textprep.footnotes import unread_marks
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import (
@@ -255,6 +258,93 @@ def test_the_statistics_step_edits_are_its_readings(block: tuple[str, str]) -> N
         (r.start, r.end, r.words) for r in found
     ]
     assert {r.category for r in found} <= {StatisticsStep.category}
+
+
+# ---- the abbreviations step's readings, printed text -> (span, words) -------------------
+
+ABBREVIATIONS = AbbreviationStep.category
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("See Fig. 3 here.", [(4, 8, "Figure")]),
+        ("It holds, e.g. here.", [(10, 14, "for example")]),
+        ("See eq.(1) now.", [(4, 7, "equation ")]),  # glued: a space after the reading
+        # the full stop is read with it, or stays where the sentence ends (D-115)
+        ("It is approx. 5 m.", [(6, 13, "approximately")]),
+        ("It is approx. Then more.", [(6, 12, "approximately")]),
+        ("No abbreviation here.", []),
+    ],
+)
+def test_english_abbreviation_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("abbreviations", printed, "en") == tuple(
+        Reading(start, end, words, ABBREVIATIONS) for start, end, words in said
+    )
+
+
+@pytest.mark.parametrize(
+    ("printed", "said"),
+    [
+        ("Siehe Kap. 3 hier.", [(6, 10, "Kapitel")]),
+        ("Das gilt z. B. hier.", [(9, 14, "zum Beispiel")]),
+        ("i. V. m. 2. Alternative", [(0, 8, "in Verbindung mit")]),
+        ("Äpfel, Birnen usw. und mehr.", [(14, 18, "und so weiter")]),
+        ("Äpfel, Birnen usw. Dann mehr.", [(14, 17, "und so weiter")]),  # the stop ends it
+        ("Kein Kürzel hier.", []),
+    ],
+)
+def test_german_abbreviation_readings(printed: str, said: list[tuple[int, int, str]]) -> None:
+    assert readings_of("abbreviations", printed, "de") == tuple(
+        Reading(start, end, words, ABBREVIATIONS) for start, end, words in said
+    )
+
+
+_ABBREVIATION_TOKENS = st.sampled_from(
+    ["Fig.", "Figs.", "e.g.", "i.e.", "eq.", "approx.", "resp.", "etc.", "et al.", "vs.",
+     "Kap.", "z. B.", "z.B.", "usw.", "bzw.", "i. V. m.", "Abs.", "S.", "Nr.", "Dr.", "Then",
+     "Dann", "and", "und", "3", "2.", "(1)", "(", ")", ".", ",", "https://x.org/a", "a"]
+)  # fmt: skip
+
+
+@st.composite
+def _abbreviation_blocks(draw: st.DrawFn) -> tuple[str, str]:
+    """A block's text in English or German, of the pieces the abbreviation rules look at."""
+    pieces = draw(st.lists(st.tuples(_ABBREVIATION_TOKENS, _GAPS), max_size=12))
+    return "".join(token + gap for token, gap in pieces), draw(st.sampled_from(["en", "de"]))
+
+
+@given(_abbreviation_blocks())
+def test_the_abbreviations_step_edits_are_its_readings(block: tuple[str, str]) -> None:
+    text, language = block
+    document = make_document([(BlockKind.PARAGRAPH, text)], language)
+    context = StepContext(language)
+    # as for the units step: the readings answer for the printed text alone
+    assume(read_as_prose(document.blocks[0], context) and not unread_marks(document, context))
+    edits = AbbreviationStep().find(document, context)
+    found = readings_of("abbreviations", text, language)
+    assert [(e.span.start, e.span.end, e.replacement) for e in edits] == [
+        (r.start, r.end, r.words) for r in found
+    ]
+    assert {r.category for r in found} <= {AbbreviationStep.category}
+
+
+def test_the_links_step_alone_asks_the_abbreviations_step_past_the_readings() -> None:
+    """The one known exception (#1112): the abbreviations step's readings ask the links step
+    for what it removes, and the links step asks back whether an abbreviation reads its full
+    stop, so that question stays a window-based call outside the readings. Every other step
+    asks the readings."""
+    source = Path(textprep.__file__).parent
+    callers = sorted(
+        path.name
+        for path in source.glob("*.py")
+        if path.name != "abbreviations.py"
+        and re.search(r"\breads_full_stop\(", path.read_text(encoding="utf-8"))
+    )
+    assert callers == ["links.py"]
+    asks = readings.dependencies()
+    assert asks["abbreviations"] == ()
+    assert "abbreviations" in asks["statistics"]
 
 
 # ---- the readings table ----------------------------------------------------------------

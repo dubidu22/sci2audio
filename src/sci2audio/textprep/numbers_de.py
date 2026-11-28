@@ -40,7 +40,6 @@ import re
 from collections.abc import Container
 from functools import cache
 
-from sci2audio.textprep.abbreviations import read_before
 from sci2audio.textprep.notation import (
     DOUBLE_ARROW,
     FILE_NUMBER_DE,
@@ -52,7 +51,14 @@ from sci2audio.textprep.notation import (
     unit_follows,
     unit_starts_at,
 )
-from sci2audio.textprep.readings import Reading, first_from, holding, readings_of, words_of
+from sci2audio.textprep.readings import (
+    Reading,
+    first_from,
+    holding,
+    last_before,
+    readings_of,
+    words_of,
+)
 from sci2audio.textprep.wordlists import abbreviations, opens_sentence
 
 # every look back before a match reads at most this many characters (linear on long blocks)
@@ -879,10 +885,23 @@ _RANGE_DASH_BEFORE = re.compile(r"\d\s*[\u2013\u2014]\s*\Z|\d\.\d{4}-\Z|\d\.[\u2
 _DASH_BEFORE = re.compile(r"[\u2013\u2014]\s*\Z")
 
 
+def _read_before(text: str, start: int) -> tuple[int, str] | None:
+    """Where an abbreviation the abbreviations step reads ends right before `start`, with
+    only white space between, its start and its reading: "i. V. m. 2. Alternative" gives the
+    start of "i. V. m." and "in Verbindung mit". The reading is the word before an ordinal,
+    as a second run sees it ("mit zweiter", #264)."""
+    if text[:start].rstrip()[-1:] != ".":
+        return None
+    found = last_before(readings_of("abbreviations", text, "de"), start)
+    if found is None or text[found.end : start].strip():
+        return None
+    return found.start, found.words.strip()
+
+
 def _before_read(text: str, start: int) -> str:
     """The text before `start` as a second run sees it: an abbreviation the abbreviations
     step reads right before is its reading ("i. V. m. 2." is "in Verbindung mit 2.")."""
-    read = read_before(text, start, "de")
+    read = _read_before(text, start)
     if read is None:
         return _before(text, start)
     return _before(text, read[0]) + read[1] + " "
@@ -1652,7 +1671,7 @@ def _ordinal_on_a_second_run(plain: str, start: int, end: int, digits: str) -> b
     the text around the numeral is looked at, so long blocks stay linear."""
     low = max(0, start - 2 * WINDOW)
     before = plain[low:start]
-    read = read_before(plain, start, "de")
+    read = _read_before(plain, start)
     if read is not None and read[0] >= low:
         printed = plain[read[0] : start]
         gap = printed[len(printed.rstrip()) :]

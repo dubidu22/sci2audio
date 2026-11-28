@@ -45,7 +45,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from sci2audio.core import Document, Edit, EditKind, Span
-from sci2audio.textprep.abbreviations import reads_full_stop
 from sci2audio.textprep.characters import INVISIBLE, SOFT_HYPHEN
 from sci2audio.textprep.furniture import edits_around, hidden_removals, read_around
 from sci2audio.textprep.links import (
@@ -57,7 +56,7 @@ from sci2audio.textprep.links import (
 from sci2audio.textprep.notation import Candidate, through_unread
 from sci2audio.textprep.numbers_de import YEAR_WORDS
 from sci2audio.textprep.placeholders import read_as_prose
-from sci2audio.textprep.readings import readings_of, words_of
+from sci2audio.textprep.readings import ending_at, readings_of, words_of
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 from sci2audio.textprep.utterances import ABBREVIATIONS
 from sci2audio.textprep.wording import Wording, wording_for
@@ -740,7 +739,7 @@ class _Rules:
             and text[start - 1] in _GLUES
             and end < len(text)
             and text[end].isdigit()
-            and not (text[start - 1] == "." and reads_full_stop(text, start, self.language))
+            and not (text[start - 1] == "." and self._reads_full_stop(text, start))
         )
 
     def _tidied(self, text: str, found: list[_Found]) -> list[_Found]:
@@ -772,9 +771,7 @@ class _Rules:
                     # "Kap." is read "Kapitel", its full stop with it: the sentence keeps its
                     # own ("Siehe Kap. (Müller, 2019). Dann", #227)
                     and not (
-                        last == "."
-                        and last_at >= 0
-                        and reads_full_stop(text, last_at + 1, self.language)
+                        last == "." and last_at >= 0 and self._reads_full_stop(text, last_at + 1)
                     )
                 ):
                     # "et al. (2019). Then" reads "et al. Then"
@@ -1601,6 +1598,12 @@ class _Rules:
             if previous:
                 named.append(part)
         return named
+
+    def _reads_full_stop(self, text: str, end: int) -> bool:
+        """True if the abbreviations step reads an abbreviation that ends at `end` with its
+        full stop ("Kap." as "Kapitel"): a citation after it then leaves the full stop, or
+        the sentence would lose its end ("Siehe Kap. (Müller, 2019). Dann", #227)."""
+        return ending_at(readings_of("abbreviations", text, self.language), end) is not None
 
     def _is_citation(self, text: str, part: tuple[int, int]) -> bool:
         piece = text[part[0] : part[1]]
