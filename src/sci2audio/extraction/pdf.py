@@ -173,6 +173,8 @@ def extract_pdf(
         if result.reason == "cancelled":
             raise ReadCancelled(f"{path.name}: the read was cancelled")
         raise _stopped(path.name, result)
+    if not isinstance(result, Content):  # the child's result crosses the pipe untyped
+        raise ExtractionError(f"{path.name}: cannot be read: its PDF reader returned no content")
     return result
 
 
@@ -499,8 +501,11 @@ def _region(document: pdfium.PdfDocument, region: Region) -> bytes | None:
         scale = region_scale(Box(x0, y0, x1, y1), region.scale)
         if scale <= 0:
             return None
+        # pypdfium2 leaves `scale` unannotated, so its default 1 reads as int; it takes a float
         bitmap = page.render(
-            scale=scale, crop=(x0, height - y1, width - x1, y0), rev_byteorder=True
+            scale=scale,  # pyright: ignore[reportArgumentType]
+            crop=(x0, height - y1, width - x1, y0),
+            rev_byteorder=True,
         )
         try:
             if bitmap.n_channels != 3:
