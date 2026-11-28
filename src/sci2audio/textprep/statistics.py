@@ -51,7 +51,13 @@ from sci2audio.textprep.notation import (
 )
 from sci2audio.textprep.placeholders import read_as_prose
 from sci2audio.textprep.readings import Reading, Words, ending_at, readings_of
-from sci2audio.textprep.statistics_de import ARROWS_DE, OPERATORS_DE, WORDS_DE, find_statistics_de
+from sci2audio.textprep.statistics_de import (
+    ARROWS_DE,
+    LATIN_CHI,
+    OPERATORS_DE,
+    WORDS_DE,
+    find_statistics_de,
+)
 from sci2audio.textprep.steps import Category, Stage, StepContext, TextStep
 
 OPERATORS = {
@@ -120,11 +126,17 @@ _THEN_OPERATOR = f"(?={_OPERATOR_AHEAD})"
 
 # S2: a test statistic, its df in a parenthesis (two numbers at most, or a chi-square's
 # "1, N = 100"), then an operator
-_DF = re.compile(
-    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)"
+_DF_BRACKET = (
     r"(?P<paren>\(\s*(?P<a>" + _NUMBER + r")\s*"
-    r"(?:,\s*(?:(?P<n>[Nn]\s*=\s*\d[\d,]*)|(?P<b>" + _NUMBER + r")))?\s*\))" + _THEN_OPERATOR
+    r"(?:,\s*(?:(?P<n>[Nn]\s*=\s*\d[\d,]*)|(?P<b>" + _NUMBER + r")))?\s*\))"
 )
+_DF = re.compile(r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)" + _DF_BRACKET + _THEN_OPERATOR)
+# ... and set apart by a space, only before "=", so prose such as "t (34 s)" is not read
+# (#1120, ruled by Colin on 26 Nov 2026)
+_DF_SPACED = re.compile(
+    r"(?<![\w′'])(?:[tFrHUWzG]|χ[2²]?|X2)(?P<gap> )" + _DF_BRACKET + r"(?=\s*=)"
+)
+
 
 # S3: squared statistics; the letter may carry a "p" for partial (ηp², η²p)
 _SQUARED_NAMES = {
@@ -238,8 +250,10 @@ def _english(text: str) -> list[Candidate]:
 
 def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
     found = []
-    for match in _DF.finditer(plain):
+    for match in (*_DF.finditer(plain), *_DF_SPACED.finditer(plain)):
         start, end = match.span("paren")
+        if match.groupdict().get("gap"):
+            start = match.start("gap")  # "t (34)" reads "t of 34", one space
         if match["n"]:
             n = re.sub(r"\s*=\s*", " equals ", match["n"])
             words = f" of {match['a']}, {n}"
@@ -260,7 +274,10 @@ def _degrees_of_freedom(text: str, plain: str) -> list[Candidate]:
 
 
 def _squared(text: str, plain: str) -> list[Candidate]:
-    found = []
+    found = [
+        Candidate(*m.span(), _SQUARED_NAMES["χ"], f'"{m.group()}" read as "{_SQUARED_NAMES["χ"]}"')
+        for m in LATIN_CHI.finditer(plain)
+    ]
     for match in _SQUARED.finditer(plain):
         if match["two"] and not _THEN_OPERATOR_OR_DF.match(plain, match.end()):
             continue
