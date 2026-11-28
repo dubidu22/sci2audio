@@ -2932,10 +2932,48 @@ utterances = ["This was shown before.", "Then more."]
 id = "slash-words-in-brackets-are-no-citation"
 audit = 0
 issue = 455
-goal = "A slash between ordinary words in brackets is no citation, even with a year (D-719 PR 4)."
+goal = "A slash between ordinary words in brackets is no citation, even with a year (D-719 PR 4); since #653 the slash between them reads 'and', and 'and/or' stays."
 blocks = [{ kind = "paragraph", text = "We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)." }]
-expected = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]
-utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input/output 2001)."]
+expected = ["We repeat it (and/or 3 times) here, as in 2001 (input and output 2001)."]
+utterances = ["We repeat it (and/or 3 times) here, as in 2001 (input and output 2001)."]
+
+[[case]]
+id = "a-slash-between-words-reads-and"
+audit = 0
+issue = 653
+goal = "A slash between two words, glued or spaced, reads 'and', and between three or more words a list ('schools, clubs and centres'); a pair of opposites reads 'or' ('yes or no', 'true or false'), ruled by Colin at triage on 26 Nov 2026 (D-816)."
+blocks = [
+    { kind = "paragraph", text = "It is about people/groups and about people / groups." },
+    { kind = "paragraph", text = "We mean schools/clubs/centres." },
+    { kind = "paragraph", text = "The answer is yes/no or true/false." },
+    { kind = "heading", text = "The input/output layer" },
+]
+expected = [
+    "It is about people and groups and about people and groups.",
+    "We mean schools, clubs and centres.",
+    "The answer is yes or no or true or false.",
+    "The input and output layer",
+]
+
+[[case]]
+id = "a-slash-the-slash-rule-leaves"
+audit = 0
+issue = 653
+goal = "A slash that is no slash between words stays as the steps before read it: fixed slash words ('and/or', 'w/o', 'c/o', 'n/a', 's/he'), acronyms ('TCP/IP', 'I/O', 'A/B'), a sign's name ('plus/minus'), a rate ('dollars/month'), a unit ('km/h') and a path ('docs/kb', '/usr/bin') (#653)."
+blocks = [
+    { kind = "paragraph", text = "It is and/or, w/o, c/o, n/a and s/he." },
+    { kind = "paragraph", text = "It is TCP/IP, I/O and an A/B test." },
+    { kind = "paragraph", text = "It was plus/minus 3 here." },
+    { kind = "paragraph", text = "It costs 5 dollars/month at 5 km/h." },
+    { kind = "paragraph", text = "See docs/kb and /usr/bin." },
+]
+expected = [
+    "It is and/or, w/o, c/o, n/a and s/he.",
+    "It is TCP/IP, I/O and an A/B test.",
+    "It was plus/minus 3 here.",
+    "It costs 5 dollars/month at 5 kilometres per hour.",
+    "See docs/kb and /usr/bin.",
+]
 
 [[case]]
 id = "hidden-runs-in-a-table-read-when-its-notice-is-off"
