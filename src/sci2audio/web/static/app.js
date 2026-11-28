@@ -566,8 +566,8 @@ function capturesPage() {
 // then; the server refuses it again if that would be another file. Typing in the field or
 // changing the filters ends the question as kept. "Keep it" and Escape leave the file and
 // say so. A replace another program refused (it holds the file open, #990) names the file.
-// Copy beside the Markdown file puts that file's text on the clipboard (#1048); the page
-// never reads the clipboard. Every state line has an icon and a word, and is a status line
+// Copy beside the Markdown file puts that file's text on the clipboard (#1048) and leaves an
+// open question as it is (#1242); the page never reads the clipboard. Every state line has an icon and a word, and is a status line
 // for screen readers.
 function captureExport(current) {
   const aside = document.getElementById("capture-export");
@@ -713,10 +713,10 @@ function captureExport(current) {
     // The text is asked for after the press, and Safari writes only within the press: a
     // ClipboardItem takes the text as a promise and keeps the press. Without one, the
     // text is written once it is in. A refused write leaves the clipboard as it was.
+    // no close(): copying answers nothing about the file, so an open question stays
     async function copyText() {
       if (busy) return;
       busy = true;
-      close();
       tell("copying", "text", tr("export.copying"));
       const wanted = current();
       const query = new URLSearchParams({ type: wanted.type, document: wanted.document });
