@@ -1372,6 +1372,14 @@ def test_a_label_word_counts_up_to_64_characters_before_the_number() -> None:
         ("So 3x < 2.", "So 3 times < 2."),
         ("It took 3x >2h.", "It took 3 times >2h."),
         ("So 3x=>A.", "So 3 times =>A."),
+        # a citation the citations step removes after "Nx" or after the sign is gone on a
+        # second run, so what stands past it decides (#1233)
+        ("So 3x > (Smith, 2019) 2x.", "So 3 times > (Smith, 2019) 2 times."),
+        ("So 3x < (Smith, 2019) 2x.", "So 3 times < (Smith, 2019) 2 times."),
+        ("So 3x (Smith, 2019) > 2x.", "So 3 times (Smith, 2019) > 2 times."),
+        ("So 3x (Smith, 2019) here.", "So 3 times (Smith, 2019) here."),
+        ("So 3x > (Smith, 2019) y.", "So 3x > (Smith, 2019) y."),
+        ("So 3x > (a) 2x.", "So 3x > (a) 2 times."),
         (
             "\u2190\u221212x and 12x\u2212\u2192 M",
             "\u2190\u221212 times and 12 times \u2212\u2192 M",

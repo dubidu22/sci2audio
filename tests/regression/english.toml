@@ -3702,6 +3702,24 @@ expected = [
 ]
 
 [[case]]
+id = "a-citation-after-nx-before-a-bare-comparison"
+audit = 0
+issue = 1233
+goal = "A round citation removed right after 'Nx' is gone on a second run, so what stands past it decides whether the x reads 'times': before a bare '<' or '>' or a word it does ('3 times greater than 2 times', '3 times here'), as a second run reads it; the mirror of #1032's citation before the sign (#1233)."
+blocks = [
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) > 2x here." },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) < 2x here." },
+    { kind = "heading", text = "When 3x (Smith, 2019) > 2x" },
+    { kind = "paragraph", text = "It holds 3x (Smith, 2019) here." },
+]
+expected = [
+    "It holds 3 times greater than 2 times here.",
+    "It holds 3 times less than 2 times here.",
+    "When 3 times greater than 2 times",
+    "It holds 3 times here.",
+]
+
+[[case]]
 id = "four-digit-count-before-a-spaced-or-capital-x"
 audit = 0
 issue = 870
