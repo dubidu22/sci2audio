@@ -106,7 +106,9 @@ _BEFORE_TIMES = r"(?:\s*\u00d7|\s+{times}\b)" + _SIZE
 # an "x" the units step may read "times": glued, or after one space (#870)
 _X_AFTER = re.compile(r" ?[xX]" + _SIZE)
 _YEAR_LIKE = range(1500, 2100)
-_NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*)")
+# the word after a number, maybe split at a line end ("x-" and "s"), which the line-end hyphen
+# step joins with or without its hyphen before a second run sees it (#1218)
+_NEXT_WORD = re.compile(r"\s+(?P<word>[a-z][a-z'-]*)(?:(?<=-)\n(?P<rest>[a-z][a-z'-]*))?")
 _PREVIOUS_WORD = re.compile(r"(?P<word>[A-Za-z]+)\.?\s+\Z")
 # words ending in "s" that are not plural nouns: "ACL 2023 is", "in 2019 was"
 _NOT_PLURAL = frozenset(
@@ -692,10 +694,11 @@ def _counted(text: str, end: int, before: str, value: int) -> bool:
     if not following:
         return False
     word = following["word"]
-    plural = word in _PLURALS or (
-        word.endswith("s") and not word.endswith(("ss", "us", "'s")) and word not in _not_plural()
-    )
-    if not plural:
+    if following["rest"]:  # a plural whichever way it is joined
+        forms = (word + following["rest"], word[:-1] + following["rest"])
+    else:
+        forms = (word,)
+    if not all(_plural(form) for form in forms):
         return False
     if not 1500 <= value <= 2099:
         return True
@@ -703,6 +706,12 @@ def _counted(text: str, end: int, before: str, value: int) -> bool:
     # "in 2019 studies", "the 2019 guidelines", "ACL 2023 papers": the number is a year
     return previous is None or not (
         previous["word"].lower() in _YEAR_WORDS or previous["word"][0].isupper()
+    )
+
+
+def _plural(word: str) -> bool:
+    return word in _PLURALS or (
+        word.endswith("s") and not word.endswith(("ss", "us", "'s")) and word not in _not_plural()
     )
 
 

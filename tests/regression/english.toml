@@ -3680,6 +3680,24 @@ expected = [
 ]
 
 [[case]]
+id = "four-digit-count-before-a-word-split-at-a-line-end-hyphen"
+audit = 0
+issue = 1218
+goal = "A four-digit number before a plural word split at a line-end hyphen is a count as the joined word makes it: '1234 x-' and 's' on the next line read '1,234 x-s', as a second run reads the joined 'x-s' (D-577); a word that is no plural either way leaves the number as printed."
+blocks = [
+    { kind = "paragraph", text = "It holds 1234 x-\ns here." },
+    { kind = "heading", text = "Some 1234 x-\ns" },
+    { kind = "paragraph", text = "It holds 1234 de-\nvelopments here." },
+    { kind = "paragraph", text = "In 1234 x-\nray light." },
+]
+expected = [
+    "It holds 1,234 x-s here.",
+    "Some 1,234 x-s",
+    "It holds 1,234 developments here.",
+    "In 1234 x-ray light.",
+]
+
+[[case]]
 id = "four-digit-year-like-count-before-times"
 audit = 0
 issue = 871
