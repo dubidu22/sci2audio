@@ -1,8 +1,8 @@
 # sci2audio v2.0 — Feature & UX/UI Design Specification
 
-**Product Type:** Open-Source, Local-First Academic Paper-to-Audio Converter & Player  
-**Target Platforms:** Desktop (macOS, Windows, Linux) with Offline Companion Apps (iOS, Android)  
-**Primary Target Audience:** University Students, PhD Candidates, and Academic Researchers  
+**Product Type:** Open-Source, Local-First Academic Paper-to-Audio Converter & Player
+**Target Platforms:** Desktop (macOS, Windows, Linux) with Offline Companion Apps (iOS, Android)
+**Primary Target Audience:** University Students, PhD Candidates, and Academic Researchers
 
 ---
 

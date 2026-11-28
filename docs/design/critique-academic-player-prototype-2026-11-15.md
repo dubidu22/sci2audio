@@ -2,7 +2,7 @@
 target: design proposal in folder (prototype + spec)
 total_score: 17
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 1
 p1_count: 3
 target_identity: "file:/Users/colinmeng/Documents/Projekte/sci2audio-design/sci2audio_v2_0_academic_player_annotation_prototype.html"

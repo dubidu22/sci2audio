@@ -12,7 +12,7 @@
   - thin student margins (≈ €0.30–1.80 per audio hour after reverse-charge VAT);
   - strong free competitors;
   - a long list of legal, tax and operational work before the first euro.
-  
+
   Realistic outcome: covering running costs, rarely more. [advisor proposal, accepted as context]
 - Colin can't afford a lawyer or any copyright litigation risk now, and doesn't want to found a GmbH/UG. [session decision, 9 Nov]
 - Colin's actual goal: **learn proper AI-assisted development methods** and use that knowledge for future client work, while keeping a tool he can use himself. [session decision, 9 Nov]
