@@ -1214,6 +1214,17 @@ def test_the_reason_names_the_join_word_that_goes_with_a_citation() -> None:
     assert edit.reason == 'citation "(Lee, 2019)" is not read; "and" before it goes too (TP-03)'
 
 
+def test_a_citation_before_a_link_takes_the_join_word_before_it() -> None:
+    # the second join word stands after the link the links step removes (#847)
+    text = "Then it and (Lee, 2019) https://x.org and more."
+    document = make_document([(BlockKind.PARAGRAPH, text)])
+    run = run_steps(document, EN, strict=True)
+    assert render(run) == ["Then it and more."]
+    (edit,) = (e for e in run.edits(Status.ACCEPTED) if e.step == "citations")
+    assert text[edit.span.start : edit.span.end] == " and (Lee, 2019)"
+    assert edit.reason == 'citation "(Lee, 2019)" is not read; "and" before it goes too (TP-03)'
+
+
 @pytest.mark.parametrize(
     ("text", "spoken"),
     [
@@ -1224,6 +1235,10 @@ def test_the_reason_names_the_join_word_that_goes_with_a_citation() -> None:
         (
             "Then it or https://x.org/8 (Lee, 2019) and more.",
             "Then it or https://x.org/8 and more.",
+        ),
+        (
+            "Then it and (Lee, 2019) https://x.org/8 and more.",
+            "Then it and https://x.org/8 and more.",
         ),
     ],
 )

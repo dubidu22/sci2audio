@@ -642,11 +642,15 @@ class _Rules:
         """A removal between two join words takes the one before along: "Then it and (Lee,
         2019) and more" reads "Then it and more", not "Then it and and more"; so does "Then it
         and https://x.org (Lee, 2019) and more", the join word then an edit of its own before
-        the link's removal (#628). Not where the join word starts the sentence."""
+        the link's removal (#628), and "Then it and (Lee, 2019) https://x.org and more", the
+        join word after the link (#847). Not where the join word starts the sentence."""
         result: list[_Found] = []
         kept_end = 0
         for start, end, kind, replacement, reason in found:
-            if kind is EditKind.REMOVE and self.join_after.match(text, end):
+            after = end  # past the removed links right after it
+            while not self.links_read and after in self._link_ends:
+                after = self._link_ends[after]
+            if kind is EditKind.REMOVE and self.join_after.match(text, after):
                 before = start  # past the removed links right before it
                 while (
                     not self.links_read

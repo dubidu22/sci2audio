@@ -2138,6 +2138,26 @@ expected = [
 ]
 
 [[case]]
+id = "links-no-two-join-words-around-a-citation-before-a-link"
+audit = 0
+issue = 847
+goal = "A join word right before a removed citation goes with it when a removed link follows the citation and another join word follows the link, so no two join words are read side by side; one that starts the sentence, or has no second join word after the link, is read."
+blocks = [
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org and more." },
+    { kind = "paragraph", text = "Then it or (Lee, 2019) https://x.org or more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org/8 or more." },
+    { kind = "paragraph", text = "And (Lee, 2019) https://x.org and more." },
+    { kind = "paragraph", text = "Then it and (Lee, 2019) https://x.org more." },
+]
+expected = [
+    "Then it and more.",
+    "Then it or more.",
+    "Then it or more.",
+    "And and more.",
+    "Then it and more.",
+]
+
+[[case]]
 id = "links-a-word-glued-after-a-removed-bracket-stays-a-word"
 audit = 0
 issue = 629
