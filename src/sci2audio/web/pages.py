@@ -1639,6 +1639,7 @@ def captures_page(
                 "name": s("export.md"),
                 "text": s("export.md_text"),
                 "save": s("export.save_md"),
+                "copy_button": s("export.copy"),  # the file's text onto the clipboard (#1048)
             },
             {
                 "id": "csv",

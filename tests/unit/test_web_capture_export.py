@@ -35,7 +35,8 @@ from web_helpers import (
 from sci2audio.app import capture_export
 from sci2audio.app.captures import CAPTURES
 from sci2audio.core import Anchor
-from sci2audio.web import create_app
+from sci2audio.web import create_app, exports
+from sci2audio.web.i18n import strings
 from sci2audio.web.markers import finder
 from sci2audio.web.player import load_document
 
@@ -183,6 +184,50 @@ def test_the_filters_choose_what_is_saved_and_one_document_names_the_file(
     assert unknown["error"] == "not-found"
     refused = client.post(URL, json={"format": "apkg", "folder": str(folder)})
     assert refused.status_code == 422  # no Anki file (D-850)
+
+
+COPY = "/api/v1/captures/markdown"
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_the_text_to_copy_is_what_the_markdown_file_holds(
+    studied: dict[str, Any], language: str
+) -> None:
+    """#1048: Copy puts the Markdown export's own text on the clipboard: the same filters,
+    order and headings in the page's language, built by `markdown_text`, read and never
+    written."""
+    client, folder, app = studied["client"], studied["folder"], studied["app"]
+    client.cookies.set("sci2audio-language", language)
+    state = app.state.sci2audio
+    s = strings(language)
+    for filters in ({}, {"type": "quote"}, {"document": studied["doc"]}):
+        answer = client.get(COPY, params=filters)
+        assert answer.status_code == 200, answer.text
+        copied = answer.json()
+        documents = exports.exported(state, filters.get("type", "all"), filters.get("document", ""))
+        assert copied["text"] == capture_export.markdown_text(documents, exports.labels(s))
+        saved = export(
+            client,
+            folder,
+            "md",
+            overwrite=True,
+            file=f"{exports.stem(s, documents, 'document' in filters)}.md",
+            **filters,
+        )
+        assert (folder / saved["file"]).read_text(encoding="utf-8") == copied["text"]
+        assert copied["count"] == saved["count"]
+    assert client.get(COPY).json()["count"] == 4
+    assert client.get(COPY, params={"type": "quote"}).json()["count"] == 2
+
+
+def test_the_text_to_copy_is_refused_when_nothing_is_shown(studied: dict[str, Any]) -> None:
+    client, other = studied["client"], studied["other"]
+    none = client.get(COPY, params={"document": other, "type": "mark"})
+    assert (none.status_code, none.json()["error"]) == (422, "export-empty")
+    unknown = client.get(COPY, params={"document": "f" * 16})
+    assert (unknown.status_code, unknown.json()["error"]) == (404, "not-found")
+    wrong = client.get(COPY, params={"type": "anki"})
+    assert wrong.status_code == 422
 
 
 def test_german_headings_and_file_name(studied: dict[str, Any]) -> None:

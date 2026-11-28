@@ -436,3 +436,107 @@ def test_at_1440_and_1280_px_beside_the_list_and_below_it_when_narrower(
     page.emulate_media(color_scheme="light")
     page.set_extra_http_headers({})
     page.set_viewport_size({"width": 1280, "height": 720})
+
+
+def pasted(page: Page) -> str:
+    """The clipboard's text, pasted by keyboard into a box of the page's own: the page may
+    not read the clipboard (`clipboard-read=()`), and a person's paste is no read."""
+    page.evaluate(
+        """() => { const box = document.createElement("textarea");
+            box.id = "pasted"; document.body.append(box); box.focus(); }"""
+    )
+    page.keyboard.press("ControlOrMeta+V")
+    text: str = page.locator("#pasted").input_value()
+    page.evaluate("() => document.getElementById('pasted').remove()")
+    return text
+
+
+@pytest.mark.only_browser("chromium")
+def test_copy_puts_the_markdown_file_s_text_on_the_clipboard_in_english_and_german(
+    signed_in: Page, live: Live
+) -> None:
+    """#1048: Copy beside the Obsidian file puts exactly the text that file holds on the
+    clipboard, for the same filters and in the page's language, and says how many."""
+    page = signed_in
+    page.context.grant_permissions(["clipboard-read", "clipboard-write"], origin=live.url)
+    captured(page, live)
+    open_captures(page)
+    folder = folder_of(live)
+    copy = page.locator("#export-copy-md")
+    expect(copy).to_have_text("Copy")
+    copy.click()
+    expect(state(page, "md")).to_have_text("Copied 3 captures.")
+    expect(state(page, "md")).to_have_attribute("data-state", "copied")
+    text = pasted(page)
+    page.locator("#export-folder-md").fill(str(folder))
+    page.locator("#export-save-md").click()
+    expect(state(page, "md")).to_have_text(f"Saved as Captures.md in {folder}.")
+    assert text == (folder / "Captures.md").read_text(encoding="utf-8")
+    assert text.startswith("# ")
+    check_axe(page, "captures, copied")
+    page.set_extra_http_headers({"Accept-Language": "de"})
+    page.reload()
+    page.wait_for_load_state("load")
+    expect(copy).to_be_enabled()  # the script is in
+    page.locator('.cap-kinds button[data-kind="quote"]').click()
+    expect(copy).to_have_text("Kopieren")
+    copy.click()
+    expect(state(page, "md")).to_have_text("Das Fundstück ist kopiert.")
+    text = pasted(page)
+    page.locator("#export-folder-md").fill(str(folder))
+    page.locator("#export-save-md").click()
+    expect(state(page, "md")).to_contain_text("Gespeichert als")
+    [saved] = [p for p in folder.iterdir() if p.name not in ("Captures.md",)]
+    assert text == saved.read_text(encoding="utf-8")
+    assert "Zitat" in text
+    check_axe(page, "captures, copied, German")
+    page.set_extra_http_headers({})
+
+
+@pytest.mark.only_browser("chromium")
+def test_a_refused_clipboard_is_said_and_nothing_else_changes(signed_in: Page, live: Live) -> None:
+    page = signed_in
+    page.context.clear_permissions()  # headless Chromium then refuses the write
+    captured(page, live)
+    open_captures(page)
+    folder = folder_of(live)
+    before = {form: page.locator(f"#export-folder-{form}").input_value() for form in ("md", "csv")}
+    page.locator("#export-copy-md").click()
+    expect(state(page, "md")).to_have_text(
+        "Not copied: the clipboard was refused. Try again, or save the Markdown file."
+    )
+    expect(state(page, "md")).to_have_attribute("data-state", "failed")
+    expect(state(page, "csv")).to_have_attribute("data-state", "never")
+    assert {form: page.locator(f"#export-folder-{form}").input_value() for form in before} == before
+    expect(page.locator("#export-copy-md")).to_be_enabled()
+    assert list(folder.iterdir()) == []
+    check_axe(page, "captures, copy refused")
+
+
+@pytest.mark.only_browser("chromium")
+def test_copy_is_off_while_nothing_is_shown_and_works_by_keyboard(
+    signed_in: Page, live: Live
+) -> None:
+    page = signed_in
+    page.context.grant_permissions(["clipboard-read", "clipboard-write"], origin=live.url)
+    made = captured(page, live)
+    removed = page.request.delete(
+        f"{live.url}/api/v1/documents/{made['document']}/captures/{made['ids']['quote']}",
+        headers={"Origin": live.url},
+    )
+    assert removed.ok, removed.text()
+    open_captures(page)
+    copy = page.locator("#export-copy-md")
+    page.locator('.cap-kinds button[data-kind="quote"]').click()
+    expect(page.locator("#export-count")).to_have_text("Saves the 0 captures shown.")
+    expect(copy).to_be_disabled()
+    expect(page.locator("#export-save-md")).to_be_disabled()
+    page.locator('.cap-kinds button[data-kind="all"]').click()
+    expect(copy).to_be_enabled()
+    page.locator("#export-save-md").focus()
+    page.keyboard.press(tab_key(page))
+    expect(copy).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(state(page, "md")).to_have_text("Copied 2 captures.")
+    expect(copy).to_be_focused()
+    check_axe(page, "captures, copy by keyboard")  # light and dark

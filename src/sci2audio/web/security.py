@@ -52,10 +52,12 @@ CSP = (
     "form-action 'self'"
 )
 # Every feature the interface does not use is off (#172, ZAP 10063); playing audio stays,
-# and the player starts the next chapter by itself. Only names Chromium knows, so the
-# browser logs no "unrecognized feature".
+# and the player starts the next chapter by itself. Copy on the Captures page writes to
+# the clipboard (#1048); nothing reads it. Only names Chromium knows, so the browser logs
+# no "unrecognized feature".
+_OWN = frozenset({"autoplay", "clipboard-write"})
 PERMISSIONS_POLICY = ", ".join(
-    f"{feature}=()" if feature != "autoplay" else "autoplay=(self)"
+    f"{feature}=(self)" if feature in _OWN else f"{feature}=()"
     for feature in (
         "accelerometer",
         "autoplay",

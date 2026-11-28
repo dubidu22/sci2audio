@@ -566,7 +566,9 @@ function capturesPage() {
 // then; the server refuses it again if that would be another file. Typing in the field or
 // changing the filters ends the question as kept. "Keep it" and Escape leave the file and
 // say so. A replace another program refused (it holds the file open, #990) names the file.
-// Every state line has an icon and a word, and is a status line for screen readers.
+// Copy beside the Markdown file puts that file's text on the clipboard (#1048); the page
+// never reads the clipboard. Every state line has an icon and a word, and is a status line
+// for screen readers.
 function captureExport(current) {
   const aside = document.getElementById("capture-export");
   const none = { shown() {} };
@@ -705,6 +707,49 @@ function captureExport(current) {
       save(null);
     });
     button.disabled = shownNow === 0; // drawn disabled: a click before this ran would be lost (#350)
+
+    const copy = document.getElementById(`export-copy-${format}`);
+    if (!copy) continue;
+    // The text is asked for after the press, and Safari writes only within the press: a
+    // ClipboardItem takes the text as a promise and keeps the press. Without one, the
+    // text is written once it is in. A refused write leaves the clipboard as it was.
+    async function copyText() {
+      if (busy) return;
+      busy = true;
+      close();
+      tell("copying", "text", tr("export.copying"));
+      const wanted = current();
+      const query = new URLSearchParams({ type: wanted.type, document: wanted.document });
+      let unread = null; // the server's refusal, apart from the clipboard's
+      const asked = send(`/api/v1/captures/markdown?${query}`).catch((error) => {
+        unread = error;
+        throw error;
+      });
+      try {
+        if (typeof ClipboardItem === "function" && navigator.clipboard?.write) {
+          const blob = asked.then((got) => new Blob([got.text], { type: "text/plain" }));
+          await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+        } else {
+          await navigator.clipboard.writeText((await asked).text);
+        }
+        const got = await asked;
+        tell("copied", "check", tr("export.copied", { n: got.count }));
+      } catch (error) {
+        if (unread) {
+          const said = explain(unread);
+          tell("failed", "alert", {
+            text: `${tr("export.copy_failed")} ${typeof said === "string" ? said : said.text}`,
+            details: typeof said === "string" ? "" : said.details,
+          });
+        } else {
+          tell("failed", "alert", tr("export.copy_refused"));
+        }
+      } finally {
+        busy = false;
+      }
+    }
+    copy.addEventListener("click", copyText);
+    copy.disabled = shownNow === 0;
   }
 
   return {
@@ -718,7 +763,9 @@ function captureExport(current) {
       shownNow = n;
       shownFor = current();
       count.textContent = tr("export.count", { n });
-      for (const button of aside.querySelectorAll("button[data-export]")) button.disabled = n === 0;
+      for (const button of aside.querySelectorAll("button[data-export], button[data-copy]")) {
+        button.disabled = n === 0;
+      }
     },
   };
 }

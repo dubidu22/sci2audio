@@ -414,6 +414,11 @@ class CaptureExportOut(BaseModel):
     count: int = Field(description="how many captures it holds")
 
 
+class CaptureTextOut(BaseModel):
+    text: str = Field(description="the Markdown file's text, as Save Markdown file writes it")
+    count: int = Field(description="how many captures it holds")
+
+
 class ExportExistsOut(ErrorOut):
     """export-exists: nothing was written; the page asks before it sends `overwrite`."""
 

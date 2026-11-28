@@ -90,7 +90,8 @@
     <p class="target-text">{{ target.text }}</p>
     <label for="export-folder-{{ target.id }}" id="export-folder-{{ target.id }}-label">{{ t('export.folder') }}</label>
     <input id="export-folder-{{ target.id }}" value="{{ export_folder }}" aria-labelledby="export-folder-{{ target.id }}-label export-{{ target.id }}-name" aria-describedby="export-folder-hint" spellcheck="false" autocomplete="off">
-    <p class="buttons"><button type="button" id="export-save-{{ target.id }}" data-export="{{ target.id }}" disabled>{{ icon('download', 's') }}<span>{{ target.save }}</span></button></p>
+    <p class="buttons"><button type="button" id="export-save-{{ target.id }}" data-export="{{ target.id }}" disabled>{{ icon('download', 's') }}<span>{{ target.save }}</span></button>
+      {%- if target.copy_button %} <button type="button" id="export-copy-{{ target.id }}" data-copy="{{ target.id }}" disabled>{{ icon('text', 's') }}<span>{{ target.copy_button }}</span></button>{% endif %}</p>
     <p class="export-state" id="export-state-{{ target.id }}" data-state="never" role="status">{{ icon('info', 's') }}<span>{{ t('export.never') }}</span></p>
     <div class="callout warn export-ask" id="export-ask-{{ target.id }}" hidden>{{ icon('alert', 'l') }}<div>
       <p class="ask-title" id="export-ask-{{ target.id }}-title" tabindex="-1"></p>
